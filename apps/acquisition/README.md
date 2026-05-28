@@ -2,10 +2,4 @@
 
 Entrada de datos desde APIs, scraping, CSV/JSON y OCR.
 
-Responsabilidades:
-
-- ejecutar capturas;
-- normalizar datos;
-- guardar observaciones de mercado;
-- registrar eventos `MarketObservationCaptured`.
-
+Consulta [../../docs/architecture.md](../../docs/architecture.md) para el flujo general y [../../docs/ocr-pipeline.md](../../docs/ocr-pipeline.md) para la parte OCR.

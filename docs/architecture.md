@@ -2,9 +2,7 @@
 
 ## Contexto
 
-El proyecto estudia el mercado de activos digitales de CS2 como un ecosistema financiero fragmentado. Un mismo activo puede tener precios, liquidez, comisiones y tiempos de disponibilidad distintos en Steam, Skinport, Buff u otras plataformas.
-
-El problema principal no es solo predecir precio. También hay que gestionar fricción temporal, especialmente el `trade hold` de 7 días, comisiones, capital inmovilizado, liquidez y riesgo.
+El contexto académico y de mercado está resumido en [tfm-proposal-summary.md](tfm-proposal-summary.md). Este documento se centra solo en la arquitectura técnica.
 
 ## Objetivo Técnico
 
@@ -30,20 +28,11 @@ Responsable de capturar datos desde:
 
 La adquisición valida y normaliza datos antes de guardarlos. Después registra eventos en la outbox.
 
+Los scrapers, conectores API, importadores CSV y procesos OCR son automatizaciones de adquisición. No son agentes SPADE por defecto: deben poder ejecutarse como jobs, comandos CLI o servicios programados. Si más adelante se necesita coordinación inteligente de fuentes, se podrá añadir un agente coordinador de adquisición.
+
 ### 2. Persistencia
 
-Supabase/Postgres es la fuente de verdad.
-
-Guarda:
-
-- activos;
-- observaciones de mercado;
-- predicciones;
-- perfiles de riesgo;
-- votos;
-- decisiones;
-- eventos de dominio;
-- resultados de simulación.
+Supabase/Postgres es la fuente de verdad. El detalle de tablas vive en [data-model.md](data-model.md).
 
 ### 3. Predicción
 
@@ -57,22 +46,13 @@ Los agentes SPADE coordinan el flujo:
 
 - el Agente Analista solicita o ejecuta predicciones;
 - el Agente Jefe convoca votaciones;
-- los agentes de perfil evalúan desde distintas estrategias;
-- el consenso genera una decisión simulada.
+- los agentes de perfil evalúan desde distintas estrategias.
 
-La lógica de decisión vive en `packages/decision/`, no dentro de los agentes.
+La definición completa de agentes, mensajes y FIPA está en [agent-protocols.md](agent-protocols.md).
 
 ### 5. Simulación y Evaluación
 
-El simulador replica:
-
-- comisiones por plataforma;
-- trade hold de 7 días;
-- capital disponible e inmovilizado;
-- inventario;
-- liquidez;
-- slippage o diferencia entre precio observado y precio ejecutable;
-- ventanas temporales de entrenamiento y evaluación.
+El simulador replica reglas de mercado como comisiones, liquidez y `trade hold`. El detalle vive en [simulation-model.md](simulation-model.md).
 
 ## Flujo Principal
 
@@ -102,4 +82,3 @@ domain -> nada externo
 ```
 
 SPADE, Supabase, OpenCV, Tesseract y TensorFlow son detalles de infraestructura o servicios especializados. No deben contaminar el dominio.
-

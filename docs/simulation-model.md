@@ -39,12 +39,7 @@ Métricas posibles:
 
 ## Agentes Estratégicos
 
-La capa operativa puede evolucionar hacia varios perfiles:
-
-- Flipper: corto plazo.
-- Swing trader: medio plazo.
-- Inversor: largo plazo.
-- Arbitrajista: discrepancias entre plataformas.
+La capa operativa puede evolucionar hacia perfiles como flipper, swing trader, inversor o arbitrajista. Los agentes concretos y sus responsabilidades están en [agent-protocols.md](agent-protocols.md).
 
 ## Evaluación
 
@@ -75,4 +70,3 @@ Cada ejecución de simulación debe producir:
 - posiciones abiertas/cerradas;
 - métricas agregadas;
 - errores o datos insuficientes.
-

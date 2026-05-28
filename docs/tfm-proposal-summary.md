@@ -58,18 +58,11 @@ La implementación puede evolucionar por fases:
 
 Además de APIs, scraping y CSV/JSON, el proyecto incluye OCR como mecanismo de adquisición.
 
-El OCR permite extraer datos desde capturas, tablas o interfaces donde no exista una API directa. Esta parte vive en la capa de adquisición y debe producir las mismas observaciones normalizadas que cualquier otra fuente.
+El OCR permite extraer datos desde capturas, tablas o interfaces donde no exista una API directa. El flujo técnico está en [ocr-pipeline.md](ocr-pipeline.md).
 
 ## Tecnología Base
 
-- Python como lenguaje principal.
-- SPADE para coordinación multiagente.
-- Supabase/Postgres como persistencia.
-- Pydantic V2 para contratos.
-- OpenCV y Tesseract para OCR.
-- Pandas y NumPy para análisis y simulación.
-- TensorFlow/Keras o PyTorch para modelos predictivos.
-- Pytest, Ruff y Mypy para calidad.
+La pila técnica operativa se mantiene en `pyproject.toml`; las decisiones arquitectónicas están en [architecture.md](architecture.md) y [decisions/](decisions/).
 
 ## Restricción Clave
 

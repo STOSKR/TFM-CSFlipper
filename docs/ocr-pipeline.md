@@ -68,12 +68,7 @@ Responsable de rechazar datos imposibles:
 
 ## Datos a Persistir
 
-En `market_observations`:
-
-- `source_type = ocr`;
-- `source_reference`;
-- `raw_payload`;
-- campos normalizados de precio, volumen y plataforma.
+La salida OCR se persiste como `market_observations` con `source_type = ocr`. El detalle de campos está en [data-model.md](data-model.md).
 
 ## Riesgos
 
@@ -89,4 +84,3 @@ En `market_observations`:
 - pruebas con imágenes pequeñas controladas;
 - validaciones contra casos con separador decimal `,` y `.`;
 - test de rechazo de valores imposibles.
-

@@ -6,42 +6,21 @@ Definir cómo se comunican los agentes sin duplicar contratos ni mezclar lógica
 
 ## Agentes Iniciales
 
-### Agente Analista
+| Agente | Responsabilidad | Paquetes principales |
+| --- | --- | --- |
+| Analista | Lee histórico, invoca predicción y emite `PredictionCompleted`. | `packages/prediction/`, `packages/persistence/`, `packages/contracts/` |
+| Jefe/Broker | Convoca votación, recoge votos, calcula consenso y registra la decisión simulada. | `packages/decision/`, `packages/persistence/`, `packages/contracts/` |
+| Conservador | Vota priorizando confianza alta, liquidez y baja exposición. | `packages/decision/` |
+| Moderado | Equilibra retorno esperado, confianza, liquidez y calidad de datos. | `packages/decision/` |
+| Arriesgado | Tolera más incertidumbre si el retorno esperado compensa. | `packages/decision/` |
+| Liquidez | Evalúa volumen, spread y capacidad de venta posterior. | `packages/decision/`, `packages/simulation/` |
+| Tendencia | Evalúa momentum, consistencia temporal y posibles reversiones. | `packages/prediction/`, `packages/decision/` |
+| Arbitrajista | Compara precios netos entre plataformas. | `packages/decision/`, `packages/simulation/`, `packages/persistence/` |
+| Risk Manager | Supervisa capital, exposición global y bloqueo por trade hold. | `packages/decision/`, `packages/simulation/`, `packages/persistence/` |
 
-Responsabilidades:
+Regla común: los agentes validan mensajes y coordinan; la lógica de inversión vive en `packages/decision/`, `packages/prediction/` o `packages/simulation/`.
 
-- escuchar eventos `PredictionRequested` o `MarketObservationCaptured`;
-- recuperar histórico desde persistencia;
-- invocar servicios de predicción;
-- guardar la predicción;
-- enviar `PredictionCompleted` al Agente Jefe.
-
-### Agente Jefe o Broker
-
-Responsabilidades:
-
-- recibir predicciones;
-- convocar votación;
-- recoger votos;
-- calcular consenso;
-- registrar decisión simulada.
-
-### Agentes de Perfil de Riesgo
-
-Ejemplos:
-
-- Conservador;
-- Moderado;
-- Arriesgado;
-- Liquidez;
-- Tendencia;
-- Arbitraje.
-
-Responsabilidades:
-
-- recibir una solicitud de voto;
-- evaluar usando reglas de `packages/decision/`;
-- devolver un voto estructurado.
+Los procesos de scraping, API, CSV y OCR no se modelan como agentes iniciales. Pertenecen a la capa de adquisición y publican eventos para que los agentes reaccionen.
 
 ## Mensajes Esperados
 
@@ -114,4 +93,3 @@ Broker -> interesados: decision notification
 - Toda conversación debe usar `correlation_id`.
 - Los mensajes inválidos se registran y se responden de forma controlada.
 - La decisión final siempre queda persistida.
-

@@ -2,5 +2,4 @@
 
 Reglas de perfiles de riesgo, votos y consenso.
 
-Los agentes invocan esta lógica, pero no la duplican.
-
+Los agentes que consumen estas reglas están en [../../docs/agent-protocols.md](../../docs/agent-protocols.md).

@@ -19,29 +19,7 @@ La tarea activa, si existe, está en `backlog/en_progreso/`.
 
 ## Estructura
 
-```text
-apps/
-├── agents/       # Procesos SPADE y coordinación multiagente
-├── acquisition/  # OCR, scraping e ingesta de datos
-└── cli/          # Comandos de desarrollo y diagnóstico
-
-packages/
-├── contracts/    # Modelos Pydantic compartidos
-├── decision/     # Votación, perfiles de riesgo y consenso
-├── domain/       # Entidades y reglas puras
-├── persistence/  # Supabase/Postgres, repositorios y outbox
-├── prediction/   # Features, datasets e inferencia temporal
-├── simulation/   # Trade hold, comisiones, cartera y backtesting
-└── vision/       # OpenCV, Tesseract y normalización OCR
-
-docs/
-├── architecture.md
-├── agent-protocols.md
-├── data-model.md
-├── ocr-pipeline.md
-├── simulation-model.md
-└── decisions/
-```
+Para una vista rápida del árbol, agentes y flujo funcional, abre [ESTRUCTURA_PROYECTO.md](ESTRUCTURA_PROYECTO.md). Ese archivo actúa como mapa del proyecto; los detalles viven en `docs/`.
 
 ## Principios
 
@@ -55,6 +33,7 @@ docs/
 
 ## Documentación Principal
 
+- [Mapa rápido del proyecto](ESTRUCTURA_PROYECTO.md)
 - [Arquitectura](docs/architecture.md)
 - [Resumen del TFM](docs/tfm-proposal-summary.md)
 - [Modelo de datos](docs/data-model.md)

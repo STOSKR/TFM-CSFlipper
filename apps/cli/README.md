@@ -2,10 +2,4 @@
 
 Comandos manuales para desarrollo, diagnóstico y tareas operativas.
 
-Ejemplos futuros:
-
-- lanzar una captura OCR;
-- reprocesar eventos pendientes;
-- ejecutar una simulación;
-- inspeccionar decisiones.
-
+Los comandos concretos se definirán según las tareas del [../../backlog](../../backlog).

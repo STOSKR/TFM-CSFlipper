@@ -2,12 +2,4 @@
 
 Procesos SPADE del sistema.
 
-Responsabilidades:
-
-- iniciar agentes;
-- validar mensajes con contratos compartidos;
-- delegar trabajo en paquetes de dominio, predicción, decisión o persistencia;
-- registrar errores y trazabilidad.
-
-No debe contener lógica compleja de inversión, OCR ni entrenamiento.
-
+Consulta [../../docs/agent-protocols.md](../../docs/agent-protocols.md) para agentes, mensajes y reglas de coordinación.

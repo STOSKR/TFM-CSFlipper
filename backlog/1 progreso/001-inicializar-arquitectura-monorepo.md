@@ -51,6 +51,10 @@ También se ha revisado el resumen del TFM `Propuesta TFM v2.pdf`, que añade el
 - Documentado el modelo de simulación y evaluación en `docs/simulation-model.md`.
 - Añadidos ADRs iniciales en `docs/decisions/`.
 - Añadido test mínimo de estructura en `tests/unit/test_project_structure.py`.
+- Añadido `ESTRUCTURA_PROYECTO.md` en la raíz para consultar rápidamente el árbol del monorepo, agentes, servicios y flujo funcional.
+- Revisados los Markdown para reducir repetición: `ESTRUCTURA_PROYECTO.md` queda como índice rápido y los detalles se referencian desde `docs/`.
+- Simplificados README internos de `apps/` y `packages/` para que enlacen al documento dueño de cada tema.
+- Aclarado que scraping/API/CSV/OCR son automatizaciones de adquisición, no agentes SPADE iniciales.
 
 ## Pruebas ejecutadas
 

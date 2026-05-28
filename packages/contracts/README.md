@@ -2,5 +2,4 @@
 
 Modelos Pydantic V2 compartidos por agentes, servicios y persistencia.
 
-Regla: cualquier payload entre componentes debe definirse aquí antes de usarse.
-
+Los mensajes iniciales están descritos en [../../docs/agent-protocols.md](../../docs/agent-protocols.md).

@@ -2,5 +2,4 @@
 
 Features, datasets, modelos temporales e inferencia.
 
-Puede empezar con baselines simples y evolucionar hacia LSTM, Transformers o aprendizaje por refuerzo.
-
+Su papel dentro del flujo está en [../../docs/architecture.md](../../docs/architecture.md).
