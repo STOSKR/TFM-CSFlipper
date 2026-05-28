@@ -10,9 +10,9 @@
 
 ```text
 backlog/
-├── pendientes/      # Historias de usuario y tareas técnicas por hacer
-├── en_progreso/     # Tarea activa en la que estás trabajando actualmente
-└── realizadas/      # Tareas finalizadas, testeadas y aprobadas por el Scrum Master
+├── 0 pendientes/    # Historias de usuario y tareas técnicas por hacer
+├── 1 progreso/      # Tarea activa en la que estás trabajando actualmente
+└── 2 realizadas/    # Tareas finalizadas, testeadas y aprobadas por el Scrum Master
 ```
 
 Después de leerlo, resume brevemente:
@@ -22,6 +22,9 @@ Después de leerlo, resume brevemente:
 - qué tarea recomiendas abordar a continuación y por qué.
 
 Si no existe el directorio `backlog/`, debes proponer crearlo con esa estructura antes de empezar a desarrollar.
+Si encuentras referencias antiguas a `backlog/pendientes`, `backlog/en_progreso` o
+`backlog/realizadas`, tradúcelas a las carpetas reales `backlog/0 pendientes`,
+`backlog/1 progreso` y `backlog/2 realizadas`.
 
 ---
 
@@ -83,9 +86,9 @@ TFM-CSFlipper/
 │   ├── integration/
 │   └── e2e/
 ├── backlog/
-│   ├── pendientes/
-│   ├── en_progreso/
-│   └── realizadas/
+│   ├── 0 pendientes/
+│   ├── 1 progreso/
+│   └── 2 realizadas/
 ├── docs/
 │   ├── architecture.md
 │   ├── agent-protocols.md
@@ -148,6 +151,10 @@ Aplica estrictamente **DRY, SOLID, KISS y separación de responsabilidades**.
 
 Reglas concretas:
 
+- Antes de crear una implementación nueva, revisa si el Scrum Master ya ha aportado código,
+  scripts, notebooks, capturas, datasets, documentación o prototipos relacionados.
+- Si existe material previo, primero haz inventario, evalúa qué piezas son reutilizables y
+  propón cómo integrarlas en `apps/`, `packages/`, `docs/` o `tests/`.
 - No dupliques modelos Pydantic entre agentes. Todo contrato compartido va en `packages/contracts/`.
 - No dupliques queries SQL ni lógica de persistencia. Centralízalas en repositorios dentro de `packages/persistence/`.
 - No repitas reglas de decisión dentro de varios agentes. Las reglas viven en `packages/decision/` y los agentes solo las invocan.
@@ -247,11 +254,11 @@ El control de tareas se gestiona mediante el directorio físico `backlog/`.
 Reglas:
 
 1. Debes leer `backlog/` al inicio de cada nuevo chat.
-2. Solo debe haber una tarea activa en `backlog/en_progreso/`, salvo que el Scrum Master indique lo contrario.
-3. Para empezar una tarea, muévela de `backlog/pendientes/` a `backlog/en_progreso/`.
+2. Solo debe haber una tarea activa en `backlog/1 progreso/`, salvo que el Scrum Master indique lo contrario.
+3. Para empezar una tarea, muévela de `backlog/0 pendientes/` a `backlog/1 progreso/`.
 4. Mientras trabajas, actualiza el archivo de la tarea con decisiones, avance, bloqueos y pruebas ejecutadas.
-5. No muevas una tarea a `backlog/realizadas/` hasta que esté implementada, testeada y aprobada por el Scrum Master.
-6. Si descubres trabajo nuevo, crea una nueva tarea en `backlog/pendientes/` en lugar de mezclarlo sin control en la tarea actual.
+5. No muevas una tarea a `backlog/2 realizadas/` hasta que esté implementada, testeada y aprobada por el Scrum Master.
+6. Si descubres trabajo nuevo, crea una nueva tarea en `backlog/0 pendientes/` en lugar de mezclarlo sin control en la tarea actual.
 
 Plantilla sugerida para tareas:
 

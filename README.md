@@ -10,12 +10,17 @@ Antes de empezar cualquier tarea, lee el tablero Kanban físico:
 
 ```text
 backlog/
-├── pendientes/
-├── en_progreso/
-└── realizadas/
+├── 0 pendientes/
+├── 1 progreso/
+└── 2 realizadas/
 ```
 
-La tarea activa, si existe, está en `backlog/en_progreso/`.
+La tarea activa, si existe, está en `backlog/1 progreso/`. Si un documento antiguo menciona
+`backlog/en_progreso/`, interprétalo como la carpeta real `backlog/1 progreso/`.
+
+Antes de implementar una tarea, revisa si ya existe código, scripts, notebooks, capturas,
+experimentos o documentos externos que puedan integrarse. El objetivo es consolidar material
+existente en la arquitectura del monorepo, no rehacerlo sin necesidad.
 
 ## Estructura
 
@@ -30,6 +35,7 @@ Para una vista rápida del árbol, agentes y flujo funcional, abre [ESTRUCTURA_P
 - Contratos compartidos con Pydantic V2.
 - Decisiones siempre simuladas hasta nueva orden.
 - Código no repetido: lógica común en `packages/`, no duplicada en `apps/`.
+- Reutilización primero: inventariar material existente antes de crear una implementación nueva.
 
 ## Documentación Principal
 

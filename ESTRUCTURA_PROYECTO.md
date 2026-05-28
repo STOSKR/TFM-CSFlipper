@@ -29,9 +29,9 @@ TFM-CSFlipper/
 │   ├── integration/         # Tests con BD/agentes/servicios
 │   └── e2e/                 # Flujos completos
 ├── backlog/
-│   ├── pendientes/          # Tareas por hacer
-│   ├── en_progreso/         # Tarea activa
-│   └── realizadas/          # Tareas aprobadas y cerradas
+│   ├── 0 pendientes/        # Tareas por hacer
+│   ├── 1 progreso/          # Tarea activa
+│   └── 2 realizadas/        # Tareas aprobadas y cerradas
 ├── .env.example             # Variables de entorno esperadas
 ├── docker-compose.yml       # Postgres local para desarrollo
 ├── pyproject.toml           # Dependencias y configuración Python
@@ -42,11 +42,14 @@ TFM-CSFlipper/
 ## Lectura Recomendada para un Chat Nuevo
 
 1. `prompt_maestro.md`
-2. `backlog/en_progreso/` y `backlog/pendientes/`
+2. `backlog/1 progreso/` y `backlog/0 pendientes/`
 3. `ESTRUCTURA_PROYECTO.md`
 4. `README.md`
 5. `docs/architecture.md`
 6. `docs/tfm-proposal-summary.md`
+
+Si aparece material previo fuera del flujo actual, primero hay que inventariarlo y decidir
+dónde encaja dentro de `apps/`, `packages/`, `docs/` o `tests/` antes de escribir una versión nueva.
 
 ## Regla Rápida
 
@@ -55,6 +58,9 @@ Si necesitas saber **qué hacer**, mira `backlog/`.
 Si necesitas saber **dónde tocar código**, mira `apps/` y `packages/`.
 
 Si necesitas saber **por qué existe algo**, mira `docs/` y `docs/decisions/`.
+
+Si necesitas saber **si algo ya existe**, busca primero en el repositorio y en el material aportado
+por el Scrum Master; integrar tiene prioridad sobre reinventar.
 
 ---
 

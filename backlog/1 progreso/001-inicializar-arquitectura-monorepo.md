@@ -55,6 +55,8 @@ También se ha revisado el resumen del TFM `Propuesta TFM v2.pdf`, que añade el
 - Revisados los Markdown para reducir repetición: `ESTRUCTURA_PROYECTO.md` queda como índice rápido y los detalles se referencian desde `docs/`.
 - Simplificados README internos de `apps/` y `packages/` para que enlacen al documento dueño de cada tema.
 - Aclarado que scraping/API/CSV/OCR son automatizaciones de adquisición, no agentes SPADE iniciales.
+- Aclarada en `README.md`, `ESTRUCTURA_PROYECTO.md` y `prompt_maestro.md` la estructura real del backlog: `0 pendientes`, `1 progreso` y `2 realizadas`.
+- Añadida regla explícita de inventariar e integrar material existente antes de crear implementaciones nuevas.
 
 ## Pruebas ejecutadas
 
