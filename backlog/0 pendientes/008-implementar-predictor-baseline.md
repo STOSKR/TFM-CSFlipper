@@ -12,6 +12,7 @@ Un baseline permite probar el flujo completo adquisición -> predicción -> vota
 
 - Calcular features iniciales sobre histórico.
 - Implementar modelo simple basado en momentum/media móvil/reglas estadísticas.
+- Añadir prefiltro de candidatos para priorizar qué artículos merecen scraping profundo o evaluación completa.
 - Generar `probability_up`, `expected_return` y `confidence`.
 - Persistir predicciones.
 - Añadir tests unitarios.
@@ -20,6 +21,7 @@ Un baseline permite probar el flujo completo adquisición -> predicción -> vota
 
 - El predictor funciona con histórico mínimo.
 - La salida usa contratos compartidos.
+- El predictor puede evaluar una lista de candidatos normalizados antes de la votación.
 - Los resultados son deterministas en tests.
 - Queda documentada la limitación del baseline.
 

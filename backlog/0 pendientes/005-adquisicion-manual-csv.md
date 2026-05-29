@@ -11,6 +11,7 @@ Antes de automatizar fuentes externas, conviene poder alimentar el sistema con d
 ## Alcance
 
 - Definir formato CSV/JSON esperado.
+- Soportar, si encaja, el formato JSON jerárquico extraído en `material_a_integrar/005-adquisicion-manual-csv-json/cs-scraper`.
 - Crear parser y normalizador.
 - Validar observaciones con contratos.
 - Persistir `market_observations`.
@@ -20,6 +21,7 @@ Antes de automatizar fuentes externas, conviene poder alimentar el sistema con d
 ## Criterios de aceptación
 
 - Se puede importar un archivo de ejemplo.
+- Se puede importar o adaptar un histórico local previamente extraído sin reescribir el scraper.
 - Los datos inválidos se rechazan con errores claros.
 - Cada observación válida genera evento outbox.
 - Hay tests unitarios del parser.

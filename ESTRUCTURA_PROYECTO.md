@@ -20,6 +20,7 @@ TFM-CSFlipper/
 │   ├── architecture.md      # Arquitectura general y flujo del sistema
 │   ├── agent-protocols.md   # Agentes, mensajes y protocolo FIPA
 │   ├── data-model.md        # Modelo inicial de datos Supabase/Postgres
+│   ├── operational-flow.md  # Flujo operativo de adquisición, predicción y decisión
 │   ├── ocr-pipeline.md      # Flujo OCR añadido al alcance del TFM
 │   ├── simulation-model.md  # Simulación, trade hold y evaluación
 │   ├── tfm-proposal-summary.md
@@ -28,6 +29,7 @@ TFM-CSFlipper/
 │   ├── unit/                # Tests unitarios
 │   ├── integration/         # Tests con BD/agentes/servicios
 │   └── e2e/                 # Flujos completos
+├── material_a_integrar/     # Material local a revisar, organizado por tareas del backlog
 ├── backlog/
 │   ├── 0 pendientes/        # Tareas por hacer
 │   ├── 1 progreso/          # Tarea activa
@@ -61,6 +63,10 @@ Si necesitas saber **por qué existe algo**, mira `docs/` y `docs/decisions/`.
 
 Si necesitas saber **si algo ya existe**, busca primero en el repositorio y en el material aportado
 por el Scrum Master; integrar tiene prioridad sobre reinventar.
+
+El material previo que todavía no esté adaptado al monorepo debe entrar primero en
+`material_a_integrar/`. Los repos brutos pueden quedarse como referencia, pero las piezas
+reutilizables deben agruparse por tarea del backlog antes de migrarlas al código final.
 
 ---
 

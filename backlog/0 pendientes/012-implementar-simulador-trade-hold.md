@@ -13,6 +13,7 @@ El TFM necesita validar decisiones sin ejecutar compras reales y medir impacto d
 - Modelar cartera y posiciones.
 - Aplicar bloqueo de 7 días.
 - Calcular comisiones por plataforma.
+- Exponer estado consultable por el Risk/Portfolio Manager: capital disponible, capital bloqueado, posiciones abiertas y fechas de liberación.
 - Registrar posiciones abiertas/cerradas.
 - Calcular métricas iniciales.
 
@@ -20,6 +21,7 @@ El TFM necesita validar decisiones sin ejecutar compras reales y medir impacto d
 
 - Una decisión de compra simulada crea posición bloqueada.
 - La posición no puede venderse antes de fin de trade hold.
+- El simulador puede responder cuánto capital hay disponible y cuánto queda bloqueado.
 - Las métricas incluyen rentabilidad neta y capital bloqueado.
 - Hay tests unitarios del ciclo de vida de posición.
 

@@ -21,3 +21,5 @@ data/raw/
 data/processed/
 models/checkpoints/
 
+# Material local pendiente de revisar; no versionar repos/datos brutos.
+material_a_integrar/

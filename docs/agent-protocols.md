@@ -22,6 +22,11 @@ Regla común: los agentes validan mensajes y coordinan; la lógica de inversión
 
 Los procesos de scraping, API, CSV y OCR no se modelan como agentes iniciales. Pertenecen a la capa de adquisición y publican eventos para que los agentes reaccionen.
 
+El Risk Manager actúa como participante de la votación cuando exista una predicción accionable.
+Su voto debe considerar capital disponible, capital bloqueado, posiciones abiertas, fechas de
+liberación por `trade hold`, exposición máxima y liquidez mínima. No decide solo: aporta una
+restricción de cartera simulada al consenso del Broker.
+
 ## Mensajes Esperados
 
 Los modelos Pydantic deben vivir en `packages/contracts/`.

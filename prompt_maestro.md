@@ -155,6 +155,8 @@ Reglas concretas:
   scripts, notebooks, capturas, datasets, documentación o prototipos relacionados.
 - Si existe material previo, primero haz inventario, evalúa qué piezas son reutilizables y
   propón cómo integrarlas en `apps/`, `packages/`, `docs/` o `tests/`.
+- El material previo pendiente de revisar debe vivir en `material_a_integrar/`. Trátalo como
+  entrada de análisis, no como código productivo, hasta que se migre explícitamente.
 - No dupliques modelos Pydantic entre agentes. Todo contrato compartido va en `packages/contracts/`.
 - No dupliques queries SQL ni lógica de persistencia. Centralízalas en repositorios dentro de `packages/persistence/`.
 - No repitas reglas de decisión dentro de varios agentes. Las reglas viven en `packages/decision/` y los agentes solo las invocan.

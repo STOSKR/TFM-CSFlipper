@@ -70,6 +70,10 @@ Fuente externa
   -> simulador/evaluador
 ```
 
+El flujo operativo detallado, incluyendo scraping periódico, OCR, cookies, delays aleatorios,
+workers paralelos, prefiltro de candidatos, predicción, votación y cartera simulada, está en
+[operational-flow.md](operational-flow.md).
+
 ## Regla de Dependencias
 
 Las dependencias apuntan hacia dentro:

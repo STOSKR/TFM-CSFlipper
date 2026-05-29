@@ -22,6 +22,10 @@ Antes de implementar una tarea, revisa si ya existe código, scripts, notebooks,
 experimentos o documentos externos que puedan integrarse. El objetivo es consolidar material
 existente en la arquitectura del monorepo, no rehacerlo sin necesidad.
 
+El material previo pendiente de revisar debe colocarse en `material_a_integrar/`. Los repos
+brutos pueden quedar como referencia, pero las piezas útiles deben extraerse a carpetas alineadas
+con las tareas del backlog antes de migrarse al módulo correspondiente.
+
 ## Estructura
 
 Para una vista rápida del árbol, agentes y flujo funcional, abre [ESTRUCTURA_PROYECTO.md](ESTRUCTURA_PROYECTO.md). Ese archivo actúa como mapa del proyecto; los detalles viven en `docs/`.
@@ -43,6 +47,7 @@ Para una vista rápida del árbol, agentes y flujo funcional, abre [ESTRUCTURA_P
 - [Arquitectura](docs/architecture.md)
 - [Resumen del TFM](docs/tfm-proposal-summary.md)
 - [Modelo de datos](docs/data-model.md)
+- [Flujo operativo](docs/operational-flow.md)
 - [Protocolos de agentes](docs/agent-protocols.md)
 - [Pipeline OCR](docs/ocr-pipeline.md)
 - [Simulación y evaluación](docs/simulation-model.md)
