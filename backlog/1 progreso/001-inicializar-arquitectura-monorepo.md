@@ -61,6 +61,8 @@ También se ha revisado el resumen del TFM `Propuesta TFM v2.pdf`, que añade el
 - Añadida regla en `.gitignore` para no versionar repos/datos brutos dentro de `material_a_integrar/`.
 - Revisado el inventario inicial de `material_a_integrar/` para detectar piezas reutilizables antes de implementar servicios nuevos.
 - Extraídas piezas útiles a carpetas de `material_a_integrar/` alineadas con las tareas del backlog (`002-...`, `003-...`, etc.), separadas por repo de origen y listas para migración selectiva.
+- Recuperado material adicional antes de limpiar repos brutos: catálogos completos, métricas de experimentos, scheduler, scripts de notebooks/policy bundle, demo web y documentación de evaluación.
+- Conservados artefactos entrenados del predictor (`.joblib`) y splits (`.pkl`) en la carpeta de la tarea `008` para no perder el modelo existente.
 - Documentado el flujo operativo objetivo en `docs/operational-flow.md` y enlazado desde `README.md` y `docs/architecture.md`.
 - Actualizadas tareas pendientes relacionadas con almacenamiento append-only, scraping con cookies/delays/workers, prefiltro del predictor, votación con Risk/Portfolio Manager y simulación de capital bloqueado.
 
