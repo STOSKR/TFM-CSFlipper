@@ -7,6 +7,7 @@ def test_project_structure_exists() -> None:
     expected_paths = [
         root / "apps" / "agents",
         root / "apps" / "acquisition",
+        root / "apps" / "cli",
         root / "packages" / "contracts",
         root / "packages" / "domain",
         root / "packages" / "persistence",
@@ -20,9 +21,9 @@ def test_project_structure_exists() -> None:
         root / "docs" / "ocr-pipeline.md",
         root / "docs" / "simulation-model.md",
         root / "docs" / "tfm-proposal-summary.md",
-        root / "backlog" / "en_progreso",
-        root / "backlog" / "pendientes",
-        root / "backlog" / "realizadas",
+        root / "backlog" / "0 pendientes",
+        root / "backlog" / "1 progreso",
+        root / "backlog" / "2 realizadas",
     ]
 
     missing_paths = [path for path in expected_paths if not path.exists()]

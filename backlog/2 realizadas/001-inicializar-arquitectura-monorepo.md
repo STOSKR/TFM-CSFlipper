@@ -65,6 +65,9 @@ También se ha revisado el resumen del TFM `Propuesta TFM v2.pdf`, que añade el
 - Conservados artefactos entrenados del predictor (`.joblib`) y splits (`.pkl`) en la carpeta de la tarea `008` para no perder el modelo existente.
 - Documentado el flujo operativo objetivo en `docs/operational-flow.md` y enlazado desde `README.md` y `docs/architecture.md`.
 - Actualizadas tareas pendientes relacionadas con almacenamiento append-only, scraping con cookies/delays/workers, prefiltro del predictor, votación con Risk/Portfolio Manager y simulación de capital bloqueado.
+- Detectado que el test minimo de estructura seguia validando nombres antiguos del backlog (`pendientes`, `en_progreso`, `realizadas`).
+- Corregido `tests/unit/test_project_structure.py` para validar las carpetas reales `backlog/0 pendientes`, `backlog/1 progreso` y `backlog/2 realizadas`.
+- Aniadida validacion de `apps/cli` al test minimo de estructura.
 
 ## Inventario de material a integrar
 
@@ -179,14 +182,14 @@ Riesgos:
 
 ## Pruebas ejecutadas
 
-- `python` + `tomllib` para validar que `pyproject.toml` parsea correctamente: OK.
-- Ejecución manual del test `test_project_structure_exists`: OK.
-- `python -m py_compile .\tests\unit\test_project_structure.py`: OK.
-- `python -m pytest`: no ejecutado porque `pytest` no está instalado en el entorno actual.
-- `python -m ruff check .`: no ejecutado porque `ruff` no está instalado en el entorno actual.
+- `python --version`: OK (`Python 3.11.9`).
+- `python -c "import tomllib, pathlib; tomllib.load(pathlib.Path('pyproject.toml').open('rb')); print('pyproject OK')"`: OK.
+- `python -m py_compile tests\unit\test_project_structure.py`: OK.
+- Invocacion directa de `test_project_structure_exists` mediante `importlib`: OK.
+- `python -m pytest`: no ejecutado porque `pytest` no esta instalado en el entorno actual.
+- `python -m ruff check .`: no ejecutado porque `ruff` no esta instalado en el entorno actual.
 
 ## Bloqueos o riesgos
 
-- Confirmar si se usará Supabase local mediante CLI/Docker o solo proyecto remoto.
-- Confirmar versión exacta de Python objetivo.
-- Instalar dependencias de desarrollo para ejecutar `pytest`, `ruff` y `mypy`.
+- Confirmar si se usara Supabase local mediante CLI/Docker o solo proyecto remoto.
+- Instalar dependencias de desarrollo para ejecutar `pytest`, `ruff` y `mypy` como checks completos.
