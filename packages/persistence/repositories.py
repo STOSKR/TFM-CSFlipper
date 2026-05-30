@@ -12,7 +12,9 @@ from uuid import UUID
 import asyncpg
 
 from packages.contracts.events import DomainEventContract
+from packages.contracts.messages import PredictionCompletedMessage
 from packages.contracts.observations import MarketObservationContract
+from packages.domain.entities import Prediction
 from packages.domain.enums import DomainEventType, EventStatus
 
 EventHandler = Callable[[DomainEventContract], Awaitable[None]]
@@ -270,6 +272,83 @@ class MarketObservationIngestionRepository:
             )
             await outbox.add_event(event)
             return observation_id
+
+
+@dataclass(slots=True)
+class PredictionIngestionRepository:
+    connection: asyncpg.Connection
+
+    async def record_prediction(
+        self,
+        prediction: Prediction,
+        *,
+        asset_name: str | None = None,
+        category: str | None = None,
+        quality: str | None = None,
+        variant_key: str = "default",
+    ) -> UUID:
+        assets = AssetRepository(self.connection)
+        platforms = PlatformRepository(self.connection)
+        outbox = OutboxRepository(self.connection)
+
+        async with self.connection.transaction():
+            asset_db_id = await assets.upsert_asset(
+                canonical_id=prediction.asset_id,
+                name=asset_name or prediction.asset_id,
+                category=category,
+                quality=quality,
+                metadata={"variant_key": variant_key},
+            )
+            platform_db_id = await platforms.get_platform_id(prediction.platform_id)
+            row = await self.connection.fetchrow(
+                """
+                insert into predictions (
+                    asset_id,
+                    platform_id,
+                    model_name,
+                    model_version,
+                    prediction_horizon,
+                    probability_up,
+                    expected_return,
+                    confidence,
+                    features_snapshot,
+                    created_at,
+                    correlation_id
+                )
+                values ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10, $11)
+                returning id
+                """,
+                asset_db_id,
+                platform_db_id,
+                prediction.model_name,
+                prediction.model_version,
+                prediction.prediction_horizon,
+                prediction.probability_up,
+                prediction.expected_return,
+                prediction.confidence,
+                _jsonb(dict(prediction.features_snapshot)),
+                prediction.created_at,
+                prediction.correlation_id,
+            )
+            prediction_db_id = UUID(str(row["id"]))
+            message = PredictionCompletedMessage(
+                correlation_id=prediction.correlation_id,
+                prediction_id=str(prediction_db_id),
+                asset_id=prediction.asset_id,
+                platform_id=prediction.platform_id,
+                probability_up=prediction.probability_up,
+                expected_return=prediction.expected_return,
+                confidence=prediction.confidence,
+                prediction_horizon=prediction.prediction_horizon,
+            )
+            event = DomainEventContract(
+                event_type=DomainEventType.PREDICTION_COMPLETED,
+                aggregate_id=str(prediction_db_id),
+                payload=message.model_dump(mode="json"),
+                correlation_id=prediction.correlation_id,
+            )
+            await outbox.add_event(event)
+            return prediction_db_id
 
 
 @dataclass(slots=True)
