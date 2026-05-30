@@ -21,3 +21,17 @@ Persistir observaciones en Supabase requiere hacerlo de forma explicita:
 ```bash
 python -m apps.cli.discover_steamdt_hanging --profile platform_arbitrage_safe --limit 5 --fetch-steam-prices --persist
 ```
+
+## OCR
+
+Validar un texto OCR ya extraido sin guardar nada:
+
+```bash
+python -m apps.cli.import_ocr_observations tests/fixtures/ocr_observations.txt --dry-run
+```
+
+Procesar una captura con Tesseract requiere tener el binario de Tesseract instalado:
+
+```bash
+python -m apps.cli.import_ocr_observations path/to/capture.png --dry-run
+```
