@@ -158,17 +158,22 @@ Campos esperados:
 
 ## Migraciones
 
-Las migraciones SQL deben vivir en una carpeta versionada en una fase posterior, por ejemplo:
+Las migraciones SQL viven en:
 
 ```text
 supabase/migrations/
 ```
 
-o:
+La migracion inicial es `0001_initial_schema.sql` y crea el esquema canonico del TFM.
 
-```text
-packages/persistence/migrations/
+La tabla `legacy_scraped_items` existe solo como staging para datos antiguos de `cs-tracker`.
+No sustituye a `assets`, `platforms` ni `market_observations`.
+
+Para aplicar la migracion con `psql`:
+
+```bash
+psql "$DATABASE_URL" -f supabase/migrations/0001_initial_schema.sql
 ```
 
-La decisión final dependerá de si se usa Supabase CLI local o solo una instancia remota.
-
+Si `DATABASE_URL` usa el prefijo de SQLAlchemy/asyncpg (`postgresql+asyncpg://`), cambia ese
+prefijo por `postgresql://` para usarlo con `psql`.
