@@ -187,6 +187,8 @@ class SteamMarketConnector:
 
 def _parse_price(value: str) -> Decimal:
     cleaned = re.sub(r"[^0-9,.-]", "", value)
+    cleaned = re.sub(r"([,.])--$", r"\g<1>00", cleaned)
+    cleaned = cleaned.rstrip(".,-")
     if "," in cleaned and "." in cleaned:
         if cleaned.rfind(",") > cleaned.rfind("."):
             cleaned = cleaned.replace(".", "").replace(",", ".")

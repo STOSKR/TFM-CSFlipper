@@ -22,8 +22,8 @@ async def test_steam_market_connector_normalizes_priceoverview() -> None:
             200,
             json={
                 "success": True,
-                "lowest_price": "12,34€",
-                "median_price": "12,50€",
+                "lowest_price": "12,34 EUR",
+                "median_price": "12,50 EUR",
                 "volume": "1,234",
             },
         )
@@ -44,6 +44,29 @@ async def test_steam_market_connector_normalizes_priceoverview() -> None:
     assert result.observation.price == Decimal("12.50")
     assert result.observation.currency == "EUR"
     assert result.observation.volume == 1234
+
+
+@pytest.mark.asyncio
+async def test_steam_market_connector_accepts_dash_cents_price() -> None:
+    async with httpx.AsyncClient(
+        transport=httpx.MockTransport(
+            lambda _request: httpx.Response(
+                200,
+                json={"success": True, "lowest_price": "90,-- EUR", "volume": "12"},
+            )
+        )
+    ) as client:
+        connector = SteamMarketConnector(
+            client=client,
+            config=SteamMarketConnectorConfig(min_delay_seconds=0, max_delay_seconds=0),
+        )
+        result = await connector.fetch_price_overview(
+            SteamMarketCandidate(market_hash_name="P250 | Whiteout (Minimal Wear)"),
+            correlation_id="corr-1",
+        )
+
+    assert result.observation.price == Decimal("90.00")
+    assert result.observation.currency == "EUR"
 
 
 @pytest.mark.asyncio
