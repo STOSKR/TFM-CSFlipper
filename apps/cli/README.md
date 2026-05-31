@@ -4,6 +4,8 @@ Comandos manuales para desarrollo, diagnostico y tareas operativas.
 
 ## SteamDT Hanging
 
+Guia completa de opciones: [../../docs/steamdt-scraping-options.md](../../docs/steamdt-scraping-options.md).
+
 Descubre candidatos desde SteamDT Hanging sin guardar nada:
 
 ```bash
