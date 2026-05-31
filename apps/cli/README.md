@@ -10,6 +10,12 @@ Descubre candidatos desde SteamDT Hanging sin guardar nada:
 python -m apps.cli.discover_steamdt_hanging --profile platform_arbitrage_safe --limit 5 --dry-run
 ```
 
+La salida por defecto es una tabla con item, precios, beneficio, ROI y volumen. Para salida JSON:
+
+```bash
+python -m apps.cli.discover_steamdt_hanging --profile platform_arbitrage_safe --limit 5 --dry-run --format json
+```
+
 Descubre candidatos y consulta sus precios actuales en Steam Market sin guardar nada:
 
 ```bash

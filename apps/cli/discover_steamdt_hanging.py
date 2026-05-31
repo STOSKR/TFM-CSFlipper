@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import sys
 from dataclasses import dataclass
 from decimal import Decimal
 from pathlib import Path
@@ -78,8 +79,11 @@ async def discover(args: argparse.Namespace) -> int:
     if args.fetch_steam_prices:
         return await _fetch_steam_prices(candidates, persist=args.persist and not args.dry_run)
 
-    for candidate in candidates:
-        print(candidate.to_json())
+    if args.format == "json":
+        for candidate in candidates:
+            print(candidate.to_json())
+    else:
+        _print_candidates_table(candidates)
     print(f"steamdt_candidates={len(candidates)}")
     return len(candidates)
 
@@ -129,6 +133,61 @@ async def _fetch_steam_prices(
     return len(observations)
 
 
+def _print_candidates_table(candidates: tuple[SteamDTCandidate, ...]) -> None:
+    if not candidates:
+        print("No SteamDT candidates found.")
+        return
+
+    rows = [
+        (
+            str(index),
+            _safe_console_text(candidate.item_name),
+            candidate.quality or "",
+            _money(candidate.buff_price, candidate.currency),
+            _money(candidate.steam_price, candidate.currency),
+            _money(candidate.profit, candidate.currency),
+            _percent(candidate.profitability_percent),
+            str(candidate.volume or ""),
+        )
+        for index, candidate in enumerate(candidates, start=1)
+    ]
+    headers = ("#", "Item", "Quality", "Buy", "Sell", "Profit", "ROI", "Vol")
+    widths = [
+        min(max(len(row[column]) for row in (*rows, headers)), 48)
+        for column in range(len(headers))
+    ]
+    print(_format_row(headers, widths))
+    print(_format_row(tuple("-" * width for width in widths), widths))
+    for row in rows:
+        print(_format_row(row, widths))
+
+
+def _format_row(values: tuple[str, ...], widths: list[int]) -> str:
+    return "  ".join(
+        value[: widths[index]].ljust(widths[index])
+        for index, value in enumerate(values)
+    )
+
+
+def _money(value: Decimal | None, currency: str | None) -> str:
+    if value is None:
+        return ""
+    suffix = f" {currency}" if currency else ""
+    return f"{value}{suffix}"
+
+
+def _percent(value: Decimal | None) -> str:
+    if value is None:
+        return ""
+    normalized = value * Decimal("100") if abs(value) <= Decimal("3") else value
+    return f"{normalized.quantize(Decimal('0.01'))}%"
+
+
+def _safe_console_text(value: str) -> str:
+    encoding = sys.stdout.encoding or "utf-8"
+    return value.encode(encoding, errors="replace").decode(encoding, errors="replace")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Discover candidates from SteamDT Hanging.")
     parser.add_argument(
@@ -152,6 +211,7 @@ def main() -> None:
     parser.add_argument("--fetch-steam-prices", action="store_true")
     parser.add_argument("--persist", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--format", choices=("table", "json"), default="table")
     args = parser.parse_args()
 
     asyncio.run(discover(args))
