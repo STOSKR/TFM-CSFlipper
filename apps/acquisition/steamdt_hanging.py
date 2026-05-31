@@ -3,18 +3,30 @@
 from __future__ import annotations
 
 import json
-import re
 from dataclasses import asdict, dataclass
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
-from urllib.parse import unquote, urlparse
+
+from apps.acquisition.steamdt_ui import (
+    change_currency,
+    click_confirm_search,
+    click_tab_by_text,
+    close_modal,
+    configure_platforms,
+    fill_price_volume_filters,
+)
+from packages.domain.market_parsing import (
+    clean_text,
+    detect_currency,
+    market_hash_name,
+    parse_int_from_text,
+    parse_item_text,
+    parse_market_decimal,
+    parse_market_hash_from_steam_url,
+)
 
 STEAMDT_HANGING_URL = "https://www.steamdt.com/hanging"
-QUALITY_PATTERN = re.compile(
-    r"\((Factory New|Minimal Wear|Field-Tested|Well-Worn|Battle-Scarred)\)\s*$",
-    re.IGNORECASE,
-)
 
 
 class SteamDTDiscoveryError(RuntimeError):
@@ -103,15 +115,24 @@ class SteamDTHangingDiscovery:
         return parse_steamdt_rows(rows, limit=self.filters.max_candidates)
 
     async def _configure_filters(self, page: Any) -> None:
-        await _close_modal(page)
-        await _change_currency(page, self.filters.currency_code)
-        await _click_tab_by_text(page, self.filters.balance_type)
-        await _click_tab_by_text(page, self.filters.sell_mode)
-        if self.filters.buy_mode:
-            await _click_tab_by_text(page, self.filters.buy_mode)
-        await _fill_price_volume_filters(page, self.filters)
-        await _configure_platforms(page, self.filters)
-        await _click_confirm_search(page)
+        await close_modal(page)
+        await change_currency(page, self.filters.currency_code)
+        await click_tab_by_text(page, self.filters.balance_type)
+        await click_tab_by_text(page, self.filters.sell_mode)
+        await click_tab_by_text(page, self.filters.buy_mode)
+        await fill_price_volume_filters(
+            page,
+            min_price=self.filters.min_price,
+            max_price=self.filters.max_price,
+            min_volume=self.filters.min_volume,
+        )
+        await configure_platforms(
+            page,
+            platform_buff=self.filters.platform_buff,
+            platform_c5game=self.filters.platform_c5game,
+            platform_uu=self.filters.platform_uu,
+        )
+        await click_confirm_search(page)
         await page.wait_for_timeout(self.filters.wait_after_search_ms)
 
     async def _extract_rows(self, page: Any) -> list[dict[str, Any]]:
@@ -154,189 +175,45 @@ def parse_steamdt_rows(
 
 
 def parse_steamdt_row(row: dict[str, Any]) -> SteamDTCandidate | None:
-    cells = tuple(_clean_text(value) for value in row.get("cells", ()))
+    cells = tuple(clean_text(value) for value in row.get("cells", ()))
     links = tuple(str(value) for value in row.get("links", ()))
     if len(cells) < 4:
         return None
 
-    item_text = cells[1]
-    display_name, display_quality, display_stattrak = _parse_item_text(item_text)
+    display_name, display_quality, display_stattrak = parse_item_text(cells[1])
     buff_url = _find_url(links, "buff.163.com")
     steam_url = _find_url(links, "steamcommunity.com/market/listings")
-    steam_market_hash = _market_hash_from_steam_url(steam_url)
+    steam_market_hash = parse_market_hash_from_steam_url(steam_url)
 
     if steam_market_hash:
-        item_name, quality, stattrak = _parse_item_text(steam_market_hash)
-        market_hash_name = steam_market_hash
+        item_name, quality, stattrak = parse_item_text(steam_market_hash)
+        candidate_market_hash = steam_market_hash
     else:
         item_name = display_name
         quality = display_quality
         stattrak = display_stattrak
-        market_hash_name = _market_hash_name(item_name, quality)
+        candidate_market_hash = market_hash_name(item_name, quality)
 
     if _should_skip_item(item_name):
         return None
 
-    item_url = _find_url(links, "steamdt.com") or _find_url(links, "/item/")
-    currency = _detect_currency(" ".join(cells[2:5]))
-
     return SteamDTCandidate(
         item_name=item_name,
-        market_hash_name=market_hash_name,
+        market_hash_name=candidate_market_hash,
         display_name=display_name if display_name != item_name else None,
         quality=quality,
         stattrak=stattrak,
-        item_url=item_url,
+        item_url=_find_url(links, "steamdt.com") or _find_url(links, "/item/"),
         buff_url=buff_url,
         steam_url=steam_url,
-        currency=currency,
-        buff_price=_parse_decimal_from_text(cells[2]) if len(cells) > 2 else None,
-        steam_price=_parse_decimal_from_text(cells[3]) if len(cells) > 3 else None,
-        profit=_parse_decimal_from_text(cells[4]) if len(cells) > 4 else None,
-        profitability_percent=_parse_decimal_from_text(cells[6]) if len(cells) > 6 else None,
-        volume=_parse_int_from_text(cells[5]) if len(cells) > 5 else None,
+        currency=detect_currency(" ".join(cells[2:5])),
+        buff_price=parse_market_decimal(cells[2]) if len(cells) > 2 else None,
+        steam_price=parse_market_decimal(cells[3]) if len(cells) > 3 else None,
+        profit=parse_market_decimal(cells[4]) if len(cells) > 4 else None,
+        profitability_percent=parse_market_decimal(cells[6]) if len(cells) > 6 else None,
+        volume=parse_int_from_text(cells[5]) if len(cells) > 5 else None,
         raw_cells=cells,
     )
-
-
-async def _close_modal(page: Any) -> None:
-    close_selectors = (
-        ".el-dialog__headerbtn",
-        'button[aria-label="Close"]',
-        'button:has-text("我已知晓")',
-        'button:has-text("我知道了")',
-        'button:has-text("同意")',
-        'button:has-text("I understand")',
-        'button:has-text("OK")',
-        ".el-overlay-dialog .el-button",
-    )
-    for _ in range(3):
-        clicked = False
-        for selector in close_selectors:
-            elements = await page.locator(selector).all()
-            for element in elements:
-                if await element.is_visible():
-                    await element.click(force=True)
-                    await page.wait_for_timeout(700)
-                    clicked = True
-        if not clicked:
-            return
-
-
-async def _change_currency(page: Any, currency_code: str) -> None:
-    if not currency_code:
-        return
-    for selector in (".el-dropdown-link", "[class*='currency']", "[class*='dropdown']"):
-        locator = page.locator(selector)
-        if await locator.count() == 0:
-            continue
-        await locator.first.click(force=True)
-        await page.wait_for_timeout(500)
-        option = page.locator(f'li:has-text("{currency_code}")')
-        if await option.count() > 0:
-            await option.first.click(force=True)
-            await page.wait_for_timeout(1500)
-            return
-        await page.keyboard.press("Escape")
-
-
-async def _click_tab_by_text(page: Any, text: str) -> None:
-    if not text:
-        return
-    labels = _localized_tab_labels(text)
-    locator = page.locator(f'.tabs-item:has-text("{labels[0]}")')
-    if await locator.count() == 0:
-        for label in labels[1:]:
-            locator = page.locator(f'.tabs-item:has-text("{label}")')
-            if await locator.count() > 0:
-                break
-    if await locator.count() == 0:
-        for label in labels:
-            locator = page.locator(f'text="{label}"')
-            if await locator.count() > 0:
-                break
-    if await locator.count() == 0:
-        return
-    target = locator.first
-    class_name = await target.get_attribute("class") or ""
-    if "active" not in class_name:
-        await target.click(force=True)
-        await page.wait_for_timeout(500)
-
-
-def _localized_tab_labels(text: str) -> tuple[str, ...]:
-    labels = {
-        "STEAM Balance": ("STEAM Balance", "STEAM余额"),
-        "Platform Balance": ("Platform Balance", "平台余额"),
-        "Sell at STEAM Lowest Price": ("Sell at STEAM Lowest Price", "STEAM挂底价"),
-        "Sell to STEAM Highest Buy Order": (
-            "Sell to STEAM Highest Buy Order",
-            "STEAM丢求购",
-        ),
-        "Sell at Platform Lowest Price": ("Sell at Platform Lowest Price", "平台挂底价"),
-        "Sell to Platform Highest Buy Order": (
-            "Sell to Platform Highest Buy Order",
-            "平台丢求购",
-        ),
-        "Buy via STEAM Buy Order": ("Buy via STEAM Buy Order", "STEAM求购"),
-        "Buy at STEAM Lowest Price": ("Buy at STEAM Lowest Price", "STEAM底价"),
-    }
-    return labels.get(text, (text,))
-
-
-async def _fill_price_volume_filters(page: Any, filters: SteamDTHangingFilters) -> None:
-    inputs = await page.locator(".el-input__inner:not(#searchInput)").all()
-    values = [filters.min_price, filters.max_price, filters.min_volume]
-    for index, value in enumerate(values):
-        if value is None or index >= len(inputs):
-            continue
-        await inputs[index].fill(str(value), force=True)
-        await page.wait_for_timeout(150)
-
-
-async def _configure_platforms(page: Any, filters: SteamDTHangingFilters) -> None:
-    settings = page.locator('.text-blue:has-text("Platform Settings")')
-    if await settings.count() > 0:
-        await settings.first.click()
-        await page.wait_for_timeout(500)
-    for label, enabled in (
-        ("C5GAME", filters.platform_c5game),
-        ("UU", filters.platform_uu),
-        ("BUFF", filters.platform_buff),
-    ):
-        checkbox = page.locator(f'.el-checkbox:has-text("{label}")')
-        if await checkbox.count() == 0:
-            continue
-        input_box = checkbox.first.locator('input[type="checkbox"]')
-        if await input_box.count() == 0:
-            continue
-        checked = await input_box.first.is_checked()
-        if checked != enabled:
-            await checkbox.first.click(force=True)
-            await page.wait_for_timeout(150)
-
-
-async def _click_confirm_search(page: Any) -> None:
-    for selector in (
-        '.bg-\\[\\#0252D9\\]:has-text("Confirm and Search")',
-        'button:has-text("Confirm and Search")',
-        'button:has-text("Search")',
-        'text="确定并搜索"',
-    ):
-        locator = page.locator(selector)
-        if await locator.count() > 0:
-            await locator.first.click(force=True)
-            return
-
-
-def _parse_item_text(value: str) -> tuple[str, str | None, bool]:
-    text = _clean_text(value)
-    stattrak = "stattrak" in text.lower()
-    match = QUALITY_PATTERN.search(text)
-    quality = match.group(1) if match else None
-    if quality:
-        text = QUALITY_PATTERN.sub("", text).strip()
-    return text, quality, stattrak
 
 
 def _should_skip_item(item_name: str) -> bool:
@@ -350,65 +227,11 @@ def _should_skip_item(item_name: str) -> bool:
     )
 
 
-def _market_hash_name(item_name: str, quality: str | None) -> str:
-    return f"{item_name} ({quality})" if quality else item_name
-
-
-def _market_hash_from_steam_url(url: str | None) -> str | None:
-    if not url:
-        return None
-    path = urlparse(url).path
-    parts = path.split("/market/listings/730/")
-    if len(parts) != 2:
-        return None
-    return unquote(parts[1])
-
-
 def _find_url(links: tuple[str, ...], pattern: str) -> str | None:
     for link in links:
         if pattern in link:
             return link
     return None
-
-
-def _parse_decimal_from_text(value: str) -> Decimal | None:
-    match = re.search(r"\d[\d.,]*", value)
-    if match is None:
-        return None
-    cleaned = match.group(0)
-    if "," in cleaned and "." in cleaned:
-        if cleaned.rfind(",") > cleaned.rfind("."):
-            cleaned = cleaned.replace(".", "").replace(",", ".")
-        else:
-            cleaned = cleaned.replace(",", "")
-    elif "," in cleaned:
-        cleaned = cleaned.replace(".", "").replace(",", ".")
-    try:
-        return Decimal(cleaned)
-    except Exception:
-        return None
-
-
-def _detect_currency(value: str) -> str | None:
-    lowered = value.lower()
-    if "eur" in lowered or "€" in value:
-        return "EUR"
-    if "¥" in value or "cny" in lowered:
-        return "CNY"
-    if "$" in value or "usd" in lowered:
-        return "USD"
-    if "£" in value or "gbp" in lowered:
-        return "GBP"
-    return None
-
-
-def _parse_int_from_text(value: str) -> int | None:
-    digits = re.sub(r"[^0-9]", "", value)
-    return int(digits) if digits else None
-
-
-def _clean_text(value: Any) -> str:
-    return " ".join(str(value or "").split()).strip()
 
 
 def save_candidates(path: str | Path, candidates: tuple[SteamDTCandidate, ...]) -> None:

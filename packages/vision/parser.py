@@ -6,14 +6,16 @@ import re
 import unicodedata
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal
 
 from packages.contracts.observations import MarketObservationContract
 from packages.domain.canonical_id import build_canonical_asset_id
 from packages.domain.enums import SourceType
+from packages.domain.market_parsing import parse_market_decimal, variant_key
 
 PRICE_PATTERN = re.compile(
-    r"(?P<amount>\d[\d.,]*(?:[,.]--)?)(?:\s*)(?P<currency>EUR|USD|GBP|€|\$|£)?"
+    r"(?P<amount>\d[\d.,]*(?:[,.]--)?)(?:\s*)"
+    r"(?P<currency>EUR|USD|GBP|\u20ac|\$|\u00a3)?"
 )
 QUALITY_PATTERN = re.compile(
     r"\((Factory New|Minimal Wear|Field-Tested|Well-Worn|Battle-Scarred)\)",
@@ -65,14 +67,13 @@ def parse_ocr_market_observations(
         if parsed is None:
             continue
         asset_name, quality, stattrak, platform_id, price, currency, volume = parsed
-        asset_id = build_canonical_asset_id(
-            name=asset_name,
-            quality=quality,
-            stattrak=stattrak,
-        )
         observation = MarketObservationContract(
             correlation_id=correlation_id,
-            asset_id=asset_id,
+            asset_id=build_canonical_asset_id(
+                name=asset_name,
+                quality=quality,
+                stattrak=stattrak,
+            ),
             platform_id=platform_id,
             observed_at=timestamp,
             price=price,
@@ -91,7 +92,7 @@ def parse_ocr_market_observations(
                 observation=observation,
                 asset_name=asset_name,
                 quality=quality,
-                variant_key=_variant_key(quality, stattrak),
+                variant_key=variant_key(quality, stattrak),
                 confidence=confidence,
             )
         )
@@ -114,24 +115,29 @@ def _parse_line(
     price_match = _last_price_match(line)
     if price_match is None:
         return None
-    price = _parse_price(price_match.group("amount"))
+    price = parse_market_decimal(price_match.group("amount"))
     if price is None or price <= 0 or price > Decimal("1000000"):
         return None
 
-    currency = _normalize_currency(price_match.group("currency"), default_currency)
     before_price = line[: price_match.start()].strip(" |-;:")
     if not before_price:
         return None
 
-    platform_id = _detect_platform(before_price) or default_platform_id
     asset_name = _strip_platform(before_price)
-    volume = _parse_volume(line[price_match.end() :])
     quality = _parse_quality(asset_name)
     stattrak = "stattrak" in asset_name.lower()
     asset_name = QUALITY_PATTERN.sub("", asset_name).strip(" |-;")
     if not asset_name:
         return None
-    return asset_name, quality, stattrak, platform_id, price, currency, volume
+    return (
+        asset_name,
+        quality,
+        stattrak,
+        _detect_platform(before_price) or default_platform_id,
+        price,
+        _normalize_currency(price_match.group("currency"), default_currency),
+        _parse_volume(line[price_match.end() :]),
+    )
 
 
 def _last_price_match(line: str) -> re.Match[str] | None:
@@ -143,22 +149,6 @@ def _last_price_match(line: str) -> re.Match[str] | None:
     return matches[-1] if matches else None
 
 
-def _parse_price(value: str) -> Decimal | None:
-    cleaned = value.replace(" ", "")
-    cleaned = re.sub(r"([,.])--$", r"\g<1>00", cleaned)
-    if "," in cleaned and "." in cleaned:
-        if cleaned.rfind(",") > cleaned.rfind("."):
-            cleaned = cleaned.replace(".", "").replace(",", ".")
-        else:
-            cleaned = cleaned.replace(",", "")
-    elif "," in cleaned:
-        cleaned = cleaned.replace(".", "").replace(",", ".")
-    try:
-        return Decimal(cleaned)
-    except InvalidOperation:
-        return None
-
-
 def _looks_like_price(value: str) -> bool:
     return "." in value or "," in value
 
@@ -166,11 +156,11 @@ def _looks_like_price(value: str) -> bool:
 def _normalize_currency(value: str | None, default_currency: str) -> str:
     if value is None:
         return default_currency.upper()
-    if value == "€":
+    if value == "\u20ac":
         return "EUR"
     if value == "$":
         return "USD"
-    if value == "£":
+    if value == "\u00a3":
         return "GBP"
     return value.upper()
 
@@ -198,11 +188,6 @@ def _parse_quality(text: str) -> str | None:
 def _parse_volume(text: str) -> int | None:
     match = re.search(r"(?:vol(?:ume)?|x)\D*(\d+)", text, flags=re.IGNORECASE)
     return int(match.group(1)) if match else None
-
-
-def _variant_key(quality: str | None, stattrak: bool) -> str:
-    quality_key = (quality or "default").strip().lower().replace(" ", "_")
-    return f"{quality_key}_st{int(stattrak)}"
 
 
 def _normalize_text(text: str) -> str:
