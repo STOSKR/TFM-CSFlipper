@@ -9,6 +9,12 @@ Guia completa de opciones: [../../docs/steamdt-scraping-options.md](../../docs/s
 Descubre candidatos desde SteamDT Hanging sin guardar nada:
 
 ```bash
+python steamdt.py
+```
+
+Equivalente largo:
+
+```bash
 python -m apps.cli.discover_steamdt_hanging --profile platform_arbitrage_safe --limit 5 --dry-run
 ```
 

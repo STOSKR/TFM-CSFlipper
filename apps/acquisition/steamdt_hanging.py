@@ -40,12 +40,12 @@ class SteamDTHangingFilters:
     balance_type: str = "Platform Balance"
     sell_mode: str = "Sell at Platform Lowest Price"
     buy_mode: str | None = "Buy via STEAM Buy Order"
-    min_price: Decimal | None = Decimal("300")
+    min_price: Decimal | None = Decimal("100")
     max_price: Decimal | None = None
     min_volume: int | None = 12
     platform_buff: bool = True
     platform_c5game: bool = False
-    platform_uu: bool = False
+    platform_uu: bool = True
     headless: bool = True
     timeout_ms: int = 30000
     initial_wait_ms: int = 5000

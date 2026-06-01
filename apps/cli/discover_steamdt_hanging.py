@@ -205,7 +205,7 @@ def main() -> None:
     parser.add_argument("--buy-mode")
     parser.add_argument("--platform-buff", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--platform-c5game", action=argparse.BooleanOptionalAction, default=False)
-    parser.add_argument("--platform-uu", action=argparse.BooleanOptionalAction, default=False)
+    parser.add_argument("--platform-uu", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--show-browser", action="store_true")
     parser.add_argument("--output", type=Path)
     parser.add_argument("--fetch-steam-prices", action="store_true")

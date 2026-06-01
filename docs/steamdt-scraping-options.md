@@ -2,7 +2,29 @@
 
 Este archivo sirve como menu para elegir como ejecutar el discovery de articulos desde SteamDT Hanging.
 
-Comando base:
+Comando corto recomendado:
+
+```bash
+python steamdt.py
+```
+
+Por defecto usa:
+
+- perfil `platform_arbitrage_safe`.
+- `--limit 5`.
+- BUFF activado.
+- UU activado.
+- C5GAME desactivado.
+- salida en tabla.
+- `--dry-run`, sin guardar nada.
+
+En PowerShell tambien puedes usar:
+
+```powershell
+.\steamdt.ps1 -Limit 5
+```
+
+Comando largo equivalente:
 
 ```bash
 python -m apps.cli.discover_steamdt_hanging --profile platform_arbitrage_safe --limit 5 --dry-run
@@ -13,7 +35,7 @@ python -m apps.cli.discover_steamdt_hanging --profile platform_arbitrage_safe --
 Usa esto para comprobar que el sistema funciona sin guardar nada:
 
 ```bash
-python -m apps.cli.discover_steamdt_hanging --profile platform_arbitrage_safe --limit 5 --dry-run
+python steamdt.py
 ```
 
 Salida esperada: tabla en consola con `Item`, `Buy`, `Sell`, `Profit`, `ROI` y `Vol`.
@@ -32,7 +54,7 @@ Salida esperada: tabla en consola con `Item`, `Buy`, `Sell`, `Profit`, `ROI` y `
 Ejemplo:
 
 ```bash
-python -m apps.cli.discover_steamdt_hanging --profile platform_arbitrage_fast --limit 10 --dry-run
+python steamdt.py 10 --fast
 ```
 
 ## Cantidad de Items
@@ -40,7 +62,7 @@ python -m apps.cli.discover_steamdt_hanging --profile platform_arbitrage_fast --
 `--limit` indica cuantos candidatos quieres imprimir.
 
 ```bash
-python -m apps.cli.discover_steamdt_hanging --profile platform_arbitrage_safe --limit 20 --dry-run
+python steamdt.py 20
 ```
 
 ## Filtros de Precio y Volumen
@@ -55,12 +77,12 @@ python -m apps.cli.discover_steamdt_hanging --profile platform_arbitrage_safe --
 Ejemplo:
 
 ```bash
-python -m apps.cli.discover_steamdt_hanging --profile platform_arbitrage_safe --limit 15 --min-price 10 --max-price 300 --min-volume 20 --currency EUR --dry-run
+python steamdt.py 15 --min 10 --max 300 --vol 20
 ```
 
 ## Plataformas
 
-Por defecto se usa BUFF y se desactivan C5GAME y UU.
+Por defecto se usa BUFF y UU. C5GAME queda desactivado.
 
 | Opcion | Descripcion |
 | --- | --- |
@@ -74,7 +96,7 @@ Por defecto se usa BUFF y se desactivan C5GAME y UU.
 Ejemplo con BUFF y C5GAME:
 
 ```bash
-python -m apps.cli.discover_steamdt_hanging --profile platform_arbitrage_safe --limit 10 --platform-buff --platform-c5game --no-platform-uu --dry-run
+python steamdt.py 10 --c5
 ```
 
 ## Ver el Navegador
@@ -82,7 +104,7 @@ python -m apps.cli.discover_steamdt_hanging --profile platform_arbitrage_safe --
 Si quieres comprobar visualmente que Playwright esta pulsando los botones correctos:
 
 ```bash
-python -m apps.cli.discover_steamdt_hanging --profile platform_arbitrage_safe --limit 5 --dry-run --show-browser
+python steamdt.py 5 --show
 ```
 
 ## Formato de Salida
@@ -90,13 +112,13 @@ python -m apps.cli.discover_steamdt_hanging --profile platform_arbitrage_safe --
 Tabla por defecto:
 
 ```bash
-python -m apps.cli.discover_steamdt_hanging --profile platform_arbitrage_safe --limit 5 --dry-run --format table
+python steamdt.py 5
 ```
 
 JSON por linea:
 
 ```bash
-python -m apps.cli.discover_steamdt_hanging --profile platform_arbitrage_safe --limit 5 --dry-run --format json
+python steamdt.py 5 --json
 ```
 
 Guardar candidatos en archivo:
@@ -112,13 +134,13 @@ Primero descubre candidatos en SteamDT y luego consulta precio actual en Steam M
 Sin guardar:
 
 ```bash
-python -m apps.cli.discover_steamdt_hanging --profile platform_arbitrage_safe --limit 5 --fetch-steam-prices --dry-run
+python steamdt.py 5 --steam
 ```
 
 Guardando observaciones en Supabase:
 
 ```bash
-python -m apps.cli.discover_steamdt_hanging --profile platform_arbitrage_safe --limit 5 --fetch-steam-prices --persist
+python steamdt.py 5 --steam --persist
 ```
 
 Importante: no uses `--persist` hasta que hayas comprobado antes el resultado con `--dry-run`.
@@ -128,25 +150,25 @@ Importante: no uses `--persist` hasta que hayas comprobado antes el resultado co
 Conservador:
 
 ```bash
-python -m apps.cli.discover_steamdt_hanging --profile platform_arbitrage_safe --limit TU_NUMERO --min-price TU_MIN --max-price TU_MAX --min-volume TU_VOLUMEN --dry-run
+python steamdt.py TU_NUMERO --min TU_MIN --max TU_MAX --vol TU_VOLUMEN
 ```
 
 Rapido:
 
 ```bash
-python -m apps.cli.discover_steamdt_hanging --profile platform_arbitrage_fast --limit TU_NUMERO --min-price TU_MIN --max-price TU_MAX --min-volume TU_VOLUMEN --dry-run
+python steamdt.py TU_NUMERO --fast --min TU_MIN --max TU_MAX --vol TU_VOLUMEN
 ```
 
 Con navegador visible:
 
 ```bash
-python -m apps.cli.discover_steamdt_hanging --profile platform_arbitrage_safe --limit TU_NUMERO --dry-run --show-browser
+python steamdt.py TU_NUMERO --show
 ```
 
 Con persistencia:
 
 ```bash
-python -m apps.cli.discover_steamdt_hanging --profile platform_arbitrage_safe --limit TU_NUMERO --fetch-steam-prices --persist
+python steamdt.py TU_NUMERO --steam --persist
 ```
 
 ## Recomendacion Inicial
@@ -154,7 +176,7 @@ python -m apps.cli.discover_steamdt_hanging --profile platform_arbitrage_safe --
 Empieza con:
 
 ```bash
-python -m apps.cli.discover_steamdt_hanging --profile platform_arbitrage_safe --limit 5 --min-price 10 --max-price 300 --min-volume 10 --dry-run --show-browser
+python steamdt.py 5 --min 10 --max 300 --vol 10 --show
 ```
 
 Si ves que SteamDT aplica bien los filtros, quita `--show-browser` y sube `--limit`.
