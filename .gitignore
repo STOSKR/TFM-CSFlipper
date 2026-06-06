@@ -19,6 +19,8 @@ build/
 
 data/raw/
 data/processed/
+data/flow-runs/
+logs/
 models/checkpoints/
 
 # Material local pendiente de revisar; no versionar repos/datos brutos.
