@@ -1,36 +1,23 @@
-"""Editable flow runner for CS2 market acquisition.
+"""Editable flow runner.
 
 Edit the CONFIG section, then run:
 
     python run_flow.py
 
-The default flow is conservative: it does not persist anything unless you set
-the corresponding RUN_PERSIST_* flag to True.
+This file is only an orchestrator. Each real operation lives in its own short
+script, such as steamdt.py, prefilter.py, steam_market.py, manual_import.py or
+ocr_import.py.
 """
 
 from __future__ import annotations
 
-import asyncio
 import json
 import logging
+import subprocess
+import sys
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
-from decimal import Decimal
 from pathlib import Path
-from uuid import uuid4
-
-from apps.acquisition.manual_import import load_manual_observations
-from apps.acquisition.ocr_import import load_ocr_observations
-from apps.acquisition.steam_market import SteamMarketCandidate, SteamMarketConnector
-from apps.acquisition.steamdt_hanging import (
-    SteamDTCandidate,
-    SteamDTHangingDiscovery,
-    SteamDTHangingFilters,
-    save_candidates,
-)
-from packages.persistence.connection import create_pool
-from packages.persistence.repositories import MarketObservationIngestionRepository
-from packages.prediction.baseline import BaselineCandidate, prioritize_candidates
 
 # =============================================================================
 # CONFIG
@@ -42,87 +29,107 @@ FLOW_NAME = "steamdt_research_dry_run"
 # Carpeta donde se guardan los logs de ejecucion.
 LOG_DIR = Path("logs")
 
-# Carpeta donde se guardan salidas intermedias, como candidatos y observaciones JSON.
+# Carpeta donde cada script puede guardar salidas intermedias del flujo.
 OUTPUT_DIR = Path("data/flow-runs")
 
-# Si es True, cualquier error detiene el flujo completo.
-# Si es False, el error se registra y el script intenta terminar con lo que pueda.
+# Si es True, cualquier fase fallida detiene el flujo completo.
+# Si es False, el error se registra y se intenta continuar con las siguientes fases.
 STOP_ON_ERROR = True
 
-# Phases
-# Activa el scraping inicial de candidatos desde SteamDT Hanging.
+# Si es True, el log incluye todo stdout/stderr de los scripts ejecutados.
+# Si es False, solo guarda las ultimas lineas utiles para no llenar el log.
+VERBOSE_CHILD_OUTPUT = False
+
+# Numero de lineas finales de salida que se guardan por script si VERBOSE_CHILD_OUTPUT es False.
+CHILD_LOG_LINES = 8
+
+# Scripts raiz que ejecuta el flujo. Cambialos solo si renombras archivos.
+STEAMDT_SCRIPT = Path("steamdt.py")
+PREFILTER_SCRIPT = Path("prefilter.py")
+STEAM_MARKET_SCRIPT = Path("steam_market.py")
+MANUAL_IMPORT_SCRIPT = Path("manual_import.py")
+OCR_IMPORT_SCRIPT = Path("ocr_import.py")
+
+# -----------------------------------------------------------------------------
+# Fases
+# -----------------------------------------------------------------------------
+
+# Descubre candidatos desde SteamDT Hanging y los guarda en JSON.
 RUN_STEAMDT_DISCOVERY = True
 
-# Activa un prefiltro ligero para ordenar/recortar candidatos antes de pedir precios a Steam.
+# Lee el JSON de SteamDT y crea otro JSON con los mejores candidatos.
 RUN_BASELINE_PREFILTER = True
 
-# Activa la consulta de precios actuales en Steam Market para los candidatos seleccionados.
+# Consulta precios actuales en Steam Market para el JSON seleccionado.
 RUN_FETCH_STEAM_PRICES = True
 
-# Si es True, guarda en Postgres/Supabase las observaciones obtenidas de Steam.
-# Recomendado: dejar False hasta verificar los resultados generados en data/flow-runs.
+# Si es True, steam_market.py guarda las observaciones en Postgres/Supabase.
+# Recomendado: dejar False hasta revisar el output JSON.
 RUN_PERSIST_STEAM_OBSERVATIONS = False
 
-# Activa la importacion de observaciones desde CSV/JSON manual.
+# Valida o importa observaciones desde CSV/JSON manual.
 RUN_MANUAL_IMPORT = False
 
-# Si es True, persiste en BD los registros del import manual.
+# Si es True, manual_import.py persiste en BD; si es False, solo valida.
 RUN_PERSIST_MANUAL_IMPORT = False
 
-# Activa la importacion OCR desde un .txt ya extraido o una imagen.
+# Valida o importa observaciones OCR desde un .txt o imagen.
 RUN_OCR_IMPORT = False
 
-# Si es True, persiste en BD los registros OCR.
+# Si es True, ocr_import.py persiste en BD; si es False, solo valida.
 RUN_PERSIST_OCR_IMPORT = False
 
-# SteamDT discovery
+# -----------------------------------------------------------------------------
+# Parametros de SteamDT
+# -----------------------------------------------------------------------------
+
 # Numero maximo de candidatos a extraer de SteamDT.
 STEAMDT_LIMIT = 5
 
-# True ejecuta Playwright sin mostrar navegador. False muestra la ventana para depurar.
-STEAMDT_HEADLESS = True
+# Si es True se usa el perfil rapido. Si es False se usa el perfil conservador.
+STEAMDT_FAST_PROFILE = False
+
+# Si es True se muestra el navegador durante el scraping.
+STEAMDT_SHOW_BROWSER = False
 
 # Moneda configurada en SteamDT.
 STEAMDT_CURRENCY = "EUR"
 
-# Tipo de balance elegido en la UI de SteamDT.
-STEAMDT_BALANCE_TYPE = "Platform Balance"
-
-# Modo de venta elegido en SteamDT.
-STEAMDT_SELL_MODE = "Sell at Platform Lowest Price"
-
-# Modo de compra elegido en SteamDT. Puede ser None si el perfil no lo necesita.
-STEAMDT_BUY_MODE = "Buy via STEAM Buy Order"
-
 # Filtro de precio minimo en SteamDT. Usa None para dejarlo vacio.
-STEAMDT_MIN_PRICE: Decimal | None = Decimal("300")
+STEAMDT_MIN_PRICE: float | None = 300
 
 # Filtro de precio maximo en SteamDT. Usa None para dejarlo vacio.
-STEAMDT_MAX_PRICE: Decimal | None = None
+STEAMDT_MAX_PRICE: float | None = None
 
 # Filtro de volumen minimo en SteamDT. Usa None para dejarlo vacio.
 STEAMDT_MIN_VOLUME: int | None = 12
 
 # Plataformas incluidas en la busqueda de SteamDT.
-STEAMDT_PLATFORM_BUFF = True
-STEAMDT_PLATFORM_C5GAME = False
-STEAMDT_PLATFORM_UU = True
+STEAMDT_USE_BUFF = True
+STEAMDT_USE_UU = True
+STEAMDT_USE_C5GAME = False
 
-# Candidate prefilter
-# Volumen minimo que debe tener un candidato para pasar el prefiltro local.
+# -----------------------------------------------------------------------------
+# Parametros del prefiltro local
+# -----------------------------------------------------------------------------
+
+# Volumen minimo para que un candidato pase al siguiente paso.
 PREFILTER_MIN_VOLUME = 12
 
-# Numero maximo de candidatos que pasan a la fase de consulta de Steam Market.
+# Numero maximo de candidatos que pasan a la consulta de Steam Market.
 PREFILTER_LIMIT = 5
 
-# Manual/OCR imports
-# Archivo CSV/JSON usado si RUN_MANUAL_IMPORT esta activo.
+# -----------------------------------------------------------------------------
+# Parametros de import manual y OCR
+# -----------------------------------------------------------------------------
+
+# Archivo usado si RUN_MANUAL_IMPORT esta activo.
 MANUAL_IMPORT_PATH = Path("tests/fixtures/manual_observations.csv")
 
-# Archivo .txt o imagen usado si RUN_OCR_IMPORT esta activo.
+# Archivo usado si RUN_OCR_IMPORT esta activo.
 OCR_IMPORT_PATH = Path("tests/fixtures/ocr_observations.txt")
 
-# Confianza minima aceptada para OCR. Por debajo de este valor se descarta.
+# Confianza minima aceptada en OCR.
 OCR_MIN_CONFIDENCE = 0.5
 
 
@@ -138,6 +145,13 @@ class FlowConfig:
     log_dir: Path
     output_dir: Path
     stop_on_error: bool
+    verbose_child_output: bool
+    child_log_lines: int
+    steamdt_script: Path
+    prefilter_script: Path
+    steam_market_script: Path
+    manual_import_script: Path
+    ocr_import_script: Path
     run_steamdt_discovery: bool
     run_baseline_prefilter: bool
     run_fetch_steam_prices: bool
@@ -147,22 +161,61 @@ class FlowConfig:
     run_ocr_import: bool
     run_persist_ocr_import: bool
     steamdt_limit: int
-    steamdt_headless: bool
+    steamdt_fast_profile: bool
+    steamdt_show_browser: bool
     steamdt_currency: str
-    steamdt_balance_type: str
-    steamdt_sell_mode: str
-    steamdt_buy_mode: str | None
-    steamdt_min_price: Decimal | None
-    steamdt_max_price: Decimal | None
+    steamdt_min_price: float | None
+    steamdt_max_price: float | None
     steamdt_min_volume: int | None
-    steamdt_platform_buff: bool
-    steamdt_platform_c5game: bool
-    steamdt_platform_uu: bool
+    steamdt_use_buff: bool
+    steamdt_use_uu: bool
+    steamdt_use_c5game: bool
     prefilter_min_volume: int
     prefilter_limit: int
     manual_import_path: Path
     ocr_import_path: Path
     ocr_min_confidence: float
+
+    @property
+    def steamdt_candidates_path(self) -> Path:
+        return self.output_dir / f"steamdt_candidates_{self.run_id}.json"
+
+    @property
+    def selected_candidates_path(self) -> Path:
+        return self.output_dir / f"selected_candidates_{self.run_id}.json"
+
+    @property
+    def steam_observations_path(self) -> Path:
+        return self.output_dir / f"steam_observations_{self.run_id}.json"
+
+
+def main() -> int:
+    config = build_config()
+    logger = configure_logging(config)
+    config.output_dir.mkdir(parents=True, exist_ok=True)
+
+    logger.info("=== Iniciando flujo %s ===", config.flow_name)
+    logger.info("Fases activas: %s", ", ".join(active_phases(config)) or "ninguna")
+    logger.info("Parametros recibidos: %s", serialize_config(config))
+
+    for phase in build_phases(config):
+        try:
+            run_phase(phase, config, logger)
+        except subprocess.CalledProcessError:
+            logger.exception("[%s] Fase fallida", phase.name)
+            if config.stop_on_error:
+                logger.info("=== Flujo detenido ===")
+                return 1
+
+    logger.info("=== Flujo finalizado ===")
+    return 0
+
+
+@dataclass(frozen=True, slots=True)
+class Phase:
+    name: str
+    description: str
+    command: list[str]
 
 
 def build_config() -> FlowConfig:
@@ -174,6 +227,13 @@ def build_config() -> FlowConfig:
         log_dir=LOG_DIR,
         output_dir=OUTPUT_DIR,
         stop_on_error=STOP_ON_ERROR,
+        verbose_child_output=VERBOSE_CHILD_OUTPUT,
+        child_log_lines=CHILD_LOG_LINES,
+        steamdt_script=STEAMDT_SCRIPT,
+        prefilter_script=PREFILTER_SCRIPT,
+        steam_market_script=STEAM_MARKET_SCRIPT,
+        manual_import_script=MANUAL_IMPORT_SCRIPT,
+        ocr_import_script=OCR_IMPORT_SCRIPT,
         run_steamdt_discovery=RUN_STEAMDT_DISCOVERY,
         run_baseline_prefilter=RUN_BASELINE_PREFILTER,
         run_fetch_steam_prices=RUN_FETCH_STEAM_PRICES,
@@ -183,17 +243,15 @@ def build_config() -> FlowConfig:
         run_ocr_import=RUN_OCR_IMPORT,
         run_persist_ocr_import=RUN_PERSIST_OCR_IMPORT,
         steamdt_limit=STEAMDT_LIMIT,
-        steamdt_headless=STEAMDT_HEADLESS,
+        steamdt_fast_profile=STEAMDT_FAST_PROFILE,
+        steamdt_show_browser=STEAMDT_SHOW_BROWSER,
         steamdt_currency=STEAMDT_CURRENCY,
-        steamdt_balance_type=STEAMDT_BALANCE_TYPE,
-        steamdt_sell_mode=STEAMDT_SELL_MODE,
-        steamdt_buy_mode=STEAMDT_BUY_MODE,
         steamdt_min_price=STEAMDT_MIN_PRICE,
         steamdt_max_price=STEAMDT_MAX_PRICE,
         steamdt_min_volume=STEAMDT_MIN_VOLUME,
-        steamdt_platform_buff=STEAMDT_PLATFORM_BUFF,
-        steamdt_platform_c5game=STEAMDT_PLATFORM_C5GAME,
-        steamdt_platform_uu=STEAMDT_PLATFORM_UU,
+        steamdt_use_buff=STEAMDT_USE_BUFF,
+        steamdt_use_uu=STEAMDT_USE_UU,
+        steamdt_use_c5game=STEAMDT_USE_C5GAME,
         prefilter_min_volume=PREFILTER_MIN_VOLUME,
         prefilter_limit=PREFILTER_LIMIT,
         manual_import_path=MANUAL_IMPORT_PATH,
@@ -226,225 +284,205 @@ def configure_logging(config: FlowConfig) -> logging.Logger:
     return logger
 
 
-async def run_flow() -> None:
-    """Run the selected phases in order."""
+def build_phases(config: FlowConfig) -> tuple[Phase, ...]:
+    """Build script commands in the order they should run."""
 
-    config = build_config()
-    logger = configure_logging(config)
-    config.output_dir.mkdir(parents=True, exist_ok=True)
+    phases: list[Phase] = []
 
-    logger.info("=== Iniciando flujo %s ===", config.flow_name)
-    logger.info("Fases activas: %s", ", ".join(active_phases(config)) or "ninguna")
-    logger.info("Parametros recibidos: %s", serialize_config(config))
-
-    candidates: tuple[SteamDTCandidate, ...] = ()
-    selected_candidates: tuple[SteamDTCandidate, ...] = ()
-
-    try:
-        if config.run_steamdt_discovery:
-            candidates = await phase_steamdt_discovery(config, logger)
-            selected_candidates = candidates
-
-        if config.run_baseline_prefilter:
-            selected_candidates = phase_baseline_prefilter(config, logger, candidates)
-
-        if config.run_fetch_steam_prices:
-            await phase_fetch_steam_prices(config, logger, selected_candidates)
-
-        if config.run_manual_import:
-            await phase_manual_import(config, logger)
-
-        if config.run_ocr_import:
-            await phase_ocr_import(config, logger)
-
-    except Exception:
-        logger.exception("Flujo detenido por error")
-        if config.stop_on_error:
-            raise
-
-    logger.info("=== Flujo finalizado ===")
-
-
-async def phase_steamdt_discovery(
-    config: FlowConfig,
-    logger: logging.Logger,
-) -> tuple[SteamDTCandidate, ...]:
-    """Scrape candidate opportunities from SteamDT and save them as JSON."""
-
-    logger.info("[steamdt] Iniciando scraping SteamDT")
-    filters = SteamDTHangingFilters(
-        headless=config.steamdt_headless,
-        max_candidates=config.steamdt_limit,
-        min_price=config.steamdt_min_price,
-        max_price=config.steamdt_max_price,
-        min_volume=config.steamdt_min_volume,
-        currency_code=config.steamdt_currency,
-        balance_type=config.steamdt_balance_type,
-        sell_mode=config.steamdt_sell_mode,
-        buy_mode=config.steamdt_buy_mode,
-        platform_buff=config.steamdt_platform_buff,
-        platform_c5game=config.steamdt_platform_c5game,
-        platform_uu=config.steamdt_platform_uu,
-    )
-    candidates = await SteamDTHangingDiscovery(filters).discover()
-    output_path = config.output_dir / f"steamdt_candidates_{config.run_id}.json"
-    save_candidates(output_path, candidates)
-    logger.info("[steamdt] OK candidatos=%s output=%s", len(candidates), output_path)
-    return candidates
-
-
-def phase_baseline_prefilter(
-    config: FlowConfig,
-    logger: logging.Logger,
-    candidates: tuple[SteamDTCandidate, ...],
-) -> tuple[SteamDTCandidate, ...]:
-    """Keep the best candidates using the current simple baseline score."""
-
-    logger.info("[prefiltro] Iniciando prefiltro baseline de candidatos")
-    ranked = prioritize_candidates(
-        tuple(
-            BaselineCandidate(
-                candidate_id=candidate.market_hash_name,
-                market_hash_name=candidate.market_hash_name,
-                price=candidate.steam_price or candidate.buff_price,
-                volume=candidate.volume,
-                expected_return_hint=_percent_to_return(candidate.profitability_percent),
+    if config.run_steamdt_discovery:
+        phases.append(
+            Phase(
+                name="steamdt",
+                description="Iniciando scraping SteamDT",
+                command=steamdt_command(config),
             )
-            for candidate in candidates
-        ),
-        min_volume=config.prefilter_min_volume,
-        limit=config.prefilter_limit,
-    )
-    ranked_ids = {candidate.candidate_id for candidate in ranked}
-    selected = tuple(
-        candidate for candidate in candidates if candidate.market_hash_name in ranked_ids
-    )
-    logger.info(
-        "[prefiltro] OK entrada=%s seleccionados=%s min_volume=%s limit=%s",
-        len(candidates),
-        len(selected),
-        config.prefilter_min_volume,
-        config.prefilter_limit,
-    )
-    return selected
-
-
-async def phase_fetch_steam_prices(
-    config: FlowConfig,
-    logger: logging.Logger,
-    candidates: tuple[SteamDTCandidate, ...],
-) -> None:
-    """Fetch current Steam Market prices and optionally persist observations."""
-
-    if not candidates:
-        logger.info("[steam] Saltado: no hay candidatos")
-        return
-
-    logger.info("[steam] Iniciando scraping Steam Market")
-    correlation_id = f"flow:{config.run_id}:{uuid4()}"
-    async with SteamMarketConnector() as connector:
-        observations = await connector.fetch_candidates(
-            [
-                SteamMarketCandidate(
-                    market_hash_name=candidate.market_hash_name,
-                    asset_name=candidate.item_name,
-                    quality=candidate.quality,
-                    stattrak=candidate.stattrak,
-                )
-                for candidate in candidates
-            ],
-            correlation_id=correlation_id,
         )
 
-    output_path = config.output_dir / f"steam_observations_{config.run_id}.json"
-    output_path.write_text(
-        json.dumps(
-            [observation.observation.model_dump(mode="json") for observation in observations],
-            indent=2,
-        ),
-        encoding="utf-8",
+    if config.run_baseline_prefilter:
+        phases.append(
+            Phase(
+                name="prefiltro",
+                description="Iniciando prefiltro baseline",
+                command=prefilter_command(config),
+            )
+        )
+
+    if config.run_fetch_steam_prices:
+        phases.append(
+            Phase(
+                name="steam_market",
+                description="Iniciando scraping Steam Market",
+                command=steam_market_command(config),
+            )
+        )
+
+    if config.run_manual_import:
+        phases.append(
+            Phase(
+                name="manual",
+                description="Iniciando importacion manual",
+                command=manual_import_command(config),
+            )
+        )
+
+    if config.run_ocr_import:
+        phases.append(
+            Phase(
+                name="ocr",
+                description="Iniciando importacion OCR",
+                command=ocr_import_command(config),
+            )
+        )
+
+    return tuple(phases)
+
+
+def steamdt_command(config: FlowConfig) -> list[str]:
+    """Build the command that discovers candidates with steamdt.py."""
+
+    command = [
+        sys.executable,
+        str(config.steamdt_script),
+        str(config.steamdt_limit),
+        "--currency",
+        config.steamdt_currency,
+        "--output",
+        str(config.steamdt_candidates_path),
+    ]
+    if config.steamdt_fast_profile:
+        command.append("--fast")
+    if config.steamdt_show_browser:
+        command.append("--show")
+    if config.steamdt_min_price is not None:
+        command.extend(["--min", str(config.steamdt_min_price)])
+    if config.steamdt_max_price is not None:
+        command.extend(["--max", str(config.steamdt_max_price)])
+    if config.steamdt_min_volume is not None:
+        command.extend(["--vol", str(config.steamdt_min_volume)])
+    if not config.steamdt_use_buff:
+        command.append("--no-buff")
+    if not config.steamdt_use_uu:
+        command.append("--no-uu")
+    if config.steamdt_use_c5game:
+        command.append("--c5")
+    return command
+
+
+def prefilter_command(config: FlowConfig) -> list[str]:
+    """Build the command that creates a selected-candidates JSON."""
+
+    return [
+        sys.executable,
+        str(config.prefilter_script),
+        str(config.steamdt_candidates_path),
+        "--output",
+        str(config.selected_candidates_path),
+        "--min-volume",
+        str(config.prefilter_min_volume),
+        "--limit",
+        str(config.prefilter_limit),
+    ]
+
+
+def steam_market_command(config: FlowConfig) -> list[str]:
+    """Build the command that fetches current Steam Market prices."""
+
+    candidates_path = (
+        config.selected_candidates_path
+        if config.run_baseline_prefilter
+        else config.steamdt_candidates_path
     )
-    logger.info("[steam] OK observaciones=%s output=%s", len(observations), output_path)
-
-    if not config.run_persist_steam_observations:
-        logger.info("[steam] Persistencia desactivada")
-        return
-
-    logger.info("[steam] Persistiendo observaciones")
-    pool = await create_pool(max_size=2)
-    try:
-        async with pool.acquire() as connection:
-            repository = MarketObservationIngestionRepository(connection)
-            for observation in observations:
-                await repository.record_observation(
-                    observation.observation,
-                    asset_name=observation.asset_name,
-                    category=observation.category,
-                    quality=observation.quality,
-                    variant_key=observation.variant_key,
-                )
-    finally:
-        await pool.close()
-    logger.info("[steam] Persistencia OK observaciones=%s", len(observations))
+    command = [
+        sys.executable,
+        str(config.steam_market_script),
+        "--candidates",
+        str(candidates_path),
+        "--output",
+        str(config.steam_observations_path),
+    ]
+    if config.run_persist_steam_observations:
+        command.append("--persist")
+    else:
+        command.append("--dry-run")
+    return command
 
 
-async def phase_manual_import(config: FlowConfig, logger: logging.Logger) -> None:
-    """Validate or persist manual CSV/JSON observations."""
+def manual_import_command(config: FlowConfig) -> list[str]:
+    """Build the command that validates or persists manual CSV/JSON data."""
 
-    logger.info("[manual] Iniciando importacion manual")
-    records = load_manual_observations(config.manual_import_path)
-    logger.info("[manual] OK registros=%s path=%s", len(records), config.manual_import_path)
-
-    if not config.run_persist_manual_import:
-        logger.info("[manual] Persistencia desactivada")
-        return
-
-    pool = await create_pool(max_size=2)
-    try:
-        async with pool.acquire() as connection:
-            repository = MarketObservationIngestionRepository(connection)
-            for record in records:
-                await repository.record_observation(
-                    record.observation,
-                    asset_name=record.asset_name,
-                    category=record.category,
-                    quality=record.quality,
-                    variant_key=record.variant_key,
-                )
-    finally:
-        await pool.close()
-    logger.info("[manual] Persistencia OK registros=%s", len(records))
+    command = [
+        sys.executable,
+        str(config.manual_import_script),
+        str(config.manual_import_path),
+    ]
+    if config.run_persist_manual_import:
+        command.append("--persist")
+    return command
 
 
-async def phase_ocr_import(config: FlowConfig, logger: logging.Logger) -> None:
-    """Validate or persist observations extracted from OCR."""
+def ocr_import_command(config: FlowConfig) -> list[str]:
+    """Build the command that validates or persists OCR data."""
 
-    logger.info("[ocr] Iniciando importacion OCR")
-    records = await load_ocr_observations(
-        config.ocr_import_path,
-        min_confidence=config.ocr_min_confidence,
+    command = [
+        sys.executable,
+        str(config.ocr_import_script),
+        str(config.ocr_import_path),
+        "--min-confidence",
+        str(config.ocr_min_confidence),
+    ]
+    if config.run_persist_ocr_import:
+        command.append("--persist")
+    return command
+
+
+def run_phase(phase: Phase, config: FlowConfig, logger: logging.Logger) -> None:
+    """Execute one script and log a compact status summary."""
+
+    logger.info("[%s] %s", phase.name, phase.description)
+    logger.info("[%s] Comando: %s", phase.name, format_command(phase.command))
+
+    result = subprocess.run(
+        phase.command,
+        check=False,
+        capture_output=True,
+        text=True,
     )
-    logger.info("[ocr] OK registros=%s path=%s", len(records), config.ocr_import_path)
+    log_child_output(phase, config, logger, result.stdout, result.stderr)
 
-    if not config.run_persist_ocr_import:
-        logger.info("[ocr] Persistencia desactivada")
-        return
+    if result.returncode != 0:
+        raise subprocess.CalledProcessError(
+            result.returncode,
+            phase.command,
+            output=result.stdout,
+            stderr=result.stderr,
+        )
 
-    pool = await create_pool(max_size=2)
-    try:
-        async with pool.acquire() as connection:
-            repository = MarketObservationIngestionRepository(connection)
-            for record in records:
-                await repository.record_observation(
-                    record.observation,
-                    asset_name=record.asset_name,
-                    category=record.category,
-                    quality=record.quality,
-                    variant_key=record.variant_key,
-                )
-    finally:
-        await pool.close()
-    logger.info("[ocr] Persistencia OK registros=%s", len(records))
+    logger.info("[%s] OK", phase.name)
+
+
+def log_child_output(
+    phase: Phase,
+    config: FlowConfig,
+    logger: logging.Logger,
+    stdout: str,
+    stderr: str,
+) -> None:
+    """Log script output without flooding the flow log."""
+
+    for stream_name, text in (("stdout", stdout), ("stderr", stderr)):
+        lines = [line for line in text.splitlines() if line.strip()]
+        if not lines:
+            continue
+        selected = lines if config.verbose_child_output else lines[-config.child_log_lines :]
+        for line in selected:
+            logger.info("[%s] %s: %s", phase.name, stream_name, line)
+        if not config.verbose_child_output and len(lines) > len(selected):
+            logger.info(
+                "[%s] %s: ... %s lineas omitidas",
+                phase.name,
+                stream_name,
+                len(lines) - len(selected),
+            )
 
 
 def active_phases(config: FlowConfig) -> tuple[str, ...]:
@@ -473,17 +511,14 @@ def active_phases(config: FlowConfig) -> tuple[str, ...]:
 def serialize_config(config: FlowConfig) -> str:
     """Serialize config values so the log records exactly what was executed."""
 
-    payload = asdict(config)
-    return json.dumps(payload, default=str, sort_keys=True)
+    return json.dumps(asdict(config), default=str, sort_keys=True)
 
 
-def _percent_to_return(value: Decimal | None) -> Decimal | None:
-    """Normalize SteamDT percentages into return values used by the prefiltro."""
+def format_command(command: list[str]) -> str:
+    """Format a command for logs."""
 
-    if value is None:
-        return None
-    return value / Decimal("100") if abs(value) > Decimal("3") else value
+    return " ".join(command)
 
 
 if __name__ == "__main__":
-    asyncio.run(run_flow())
+    raise SystemExit(main())

@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
@@ -26,7 +27,7 @@ from packages.domain.market_parsing import (
     parse_market_hash_from_steam_url,
 )
 
-STEAMDT_HANGING_URL = "https://www.steamdt.com/hanging"
+STEAMDT_HANGING_URL = "https://www.steamdt.com/en/hanging"
 
 
 class SteamDTDiscoveryError(RuntimeError):
@@ -50,7 +51,12 @@ class SteamDTHangingFilters:
     timeout_ms: int = 30000
     initial_wait_ms: int = 5000
     wait_after_search_ms: int = 3500
+    wait_after_detail_ms: int = 1200
+    manual_login_wait_ms: int = 0
     max_candidates: int = 50
+    enrich_missing_platform_links: bool = True
+    max_detail_concurrency: int = 2
+    session_state_path: Path | None = Path("data/browser-state/steamdt_storage_state.json")
 
 
 @dataclass(frozen=True, slots=True)
@@ -91,13 +97,16 @@ class SteamDTHangingDiscovery:
 
         async with async_playwright() as playwright:
             browser = await playwright.chromium.launch(headless=self.filters.headless)
-            context = await browser.new_context(
-                viewport={"width": 1920, "height": 1080},
-                user_agent=(
+            context_options: dict[str, Any] = {
+                "viewport": {"width": 1920, "height": 1080},
+                "user_agent": (
                     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
                     "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123 Safari/537.36"
                 ),
-            )
+            }
+            if self.filters.session_state_path and self.filters.session_state_path.exists():
+                context_options["storage_state"] = str(self.filters.session_state_path)
+            context = await browser.new_context(**context_options)
             page = await context.new_page()
             try:
                 await page.goto(
@@ -105,14 +114,26 @@ class SteamDTHangingDiscovery:
                     wait_until="domcontentloaded",
                     timeout=self.filters.timeout_ms,
                 )
+                await close_modal(page)
+                if self.filters.manual_login_wait_ms > 0:
+                    await page.wait_for_timeout(self.filters.manual_login_wait_ms)
                 await page.wait_for_selector(".tabs-item", timeout=self.filters.timeout_ms)
                 await page.wait_for_timeout(self.filters.initial_wait_ms)
                 await self._configure_filters(page)
                 rows = await self._extract_rows(page)
+                candidates = parse_steamdt_rows(rows, limit=self.filters.max_candidates)
+                candidates = await self._enrich_missing_platform_links(context, candidates)
             finally:
+                await self._save_session_state(context)
                 await context.close()
                 await browser.close()
-        return parse_steamdt_rows(rows, limit=self.filters.max_candidates)
+        return candidates
+
+    async def _save_session_state(self, context: Any) -> None:
+        if not self.filters.session_state_path:
+            return
+        self.filters.session_state_path.parent.mkdir(parents=True, exist_ok=True)
+        await context.storage_state(path=str(self.filters.session_state_path))
 
     async def _configure_filters(self, page: Any) -> None:
         await close_modal(page)
@@ -156,6 +177,44 @@ class SteamDTHangingDiscovery:
                 """
             )
         return list(rows)
+
+    async def _enrich_missing_platform_links(
+        self,
+        context: Any,
+        candidates: tuple[SteamDTCandidate, ...],
+    ) -> tuple[SteamDTCandidate, ...]:
+        if not self.filters.enrich_missing_platform_links:
+            return candidates
+
+        async def enrich_one(candidate: SteamDTCandidate) -> SteamDTCandidate:
+            if candidate.buff_url or not candidate.item_url:
+                return candidate
+            page = await context.new_page()
+            try:
+                await page.goto(
+                    candidate.item_url,
+                    wait_until="domcontentloaded",
+                    timeout=self.filters.timeout_ms,
+                )
+                await page.wait_for_timeout(self.filters.wait_after_detail_ms)
+                links = await page.evaluate(
+                    """
+                    () => Array.from(document.querySelectorAll('a')).map((a) => a.href)
+                    """
+                )
+                return merge_candidate_links(candidate, tuple(str(link) for link in links))
+            except Exception:
+                return candidate
+            finally:
+                await page.close()
+
+        semaphore = asyncio.Semaphore(self.filters.max_detail_concurrency)
+
+        async def limited_enrich(candidate: SteamDTCandidate) -> SteamDTCandidate:
+            async with semaphore:
+                return await enrich_one(candidate)
+
+        return tuple(await asyncio.gather(*(limited_enrich(c) for c in candidates)))
 
 
 def parse_steamdt_rows(
@@ -216,6 +275,24 @@ def parse_steamdt_row(row: dict[str, Any]) -> SteamDTCandidate | None:
     )
 
 
+def merge_candidate_links(
+    candidate: SteamDTCandidate,
+    links: tuple[str, ...],
+) -> SteamDTCandidate:
+    """Fill missing platform links from a SteamDT detail page."""
+
+    buff_url = candidate.buff_url or _find_url(links, "buff.163.com")
+    steam_url = candidate.steam_url or _find_url(links, "steamcommunity.com/market/listings")
+    item_url = candidate.item_url or _find_url(links, "steamdt.com") or _find_url(links, "/item/")
+    if (
+        buff_url == candidate.buff_url
+        and steam_url == candidate.steam_url
+        and item_url == candidate.item_url
+    ):
+        return candidate
+    return replace(candidate, buff_url=buff_url, steam_url=steam_url, item_url=item_url)
+
+
 def _should_skip_item(item_name: str) -> bool:
     lowered = item_name.lower()
     return (
@@ -235,7 +312,9 @@ def _find_url(links: tuple[str, ...], pattern: str) -> str | None:
 
 
 def save_candidates(path: str | Path, candidates: tuple[SteamDTCandidate, ...]) -> None:
-    Path(path).write_text(
+    output_path = Path(path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(
         json.dumps([asdict(candidate) for candidate in candidates], default=str, indent=2),
         encoding="utf-8",
     )

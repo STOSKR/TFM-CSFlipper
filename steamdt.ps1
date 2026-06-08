@@ -5,6 +5,12 @@ param(
     [switch]$Json,
     [switch]$Steam,
     [switch]$Persist,
+    [string]$Output,
+    [switch]$NoOutput,
+    [string]$SessionState,
+    [switch]$NoSessionState,
+    [switch]$Login,
+    [int]$LoginWait,
     [double]$Min,
     [double]$Max,
     [int]$Vol,
@@ -20,6 +26,12 @@ if ($Show) { $argsList += "--show" }
 if ($Json) { $argsList += "--json" }
 if ($Steam) { $argsList += "--steam" }
 if ($Persist) { $argsList += "--persist" }
+if ($PSBoundParameters.ContainsKey("Output")) { $argsList += @("--output", "$Output") }
+if ($NoOutput) { $argsList += "--no-output" }
+if ($PSBoundParameters.ContainsKey("SessionState")) { $argsList += @("--session-state", "$SessionState") }
+if ($NoSessionState) { $argsList += "--no-session-state" }
+if ($Login) { $argsList += "--login" }
+if ($PSBoundParameters.ContainsKey("LoginWait")) { $argsList += @("--login-wait", "$LoginWait") }
 if ($PSBoundParameters.ContainsKey("Min")) { $argsList += @("--min", "$Min") }
 if ($PSBoundParameters.ContainsKey("Max")) { $argsList += @("--max", "$Max") }
 if ($PSBoundParameters.ContainsKey("Vol")) { $argsList += @("--vol", "$Vol") }

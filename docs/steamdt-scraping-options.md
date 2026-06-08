@@ -16,7 +16,9 @@ Por defecto usa:
 - UU activado.
 - C5GAME desactivado.
 - salida en tabla.
-- `--dry-run`, sin guardar nada.
+- `--dry-run`, sin persistir en base de datos.
+- guarda candidatos en `data/flow-runs/steamdt_candidates_YYYYMMDD_HHMMSS.json`.
+- carga y guarda cookies/localStorage en `data/browser-state/steamdt_storage_state.json`.
 
 En PowerShell tambien puedes usar:
 
@@ -38,7 +40,8 @@ Usa esto para comprobar que el sistema funciona sin guardar nada:
 python steamdt.py
 ```
 
-Salida esperada: tabla en consola con `Item`, `Buy`, `Sell`, `Profit`, `ROI` y `Vol`.
+Salida esperada: tabla en consola con `Item`, `Buy`, `Sell`, `Profit`, `ROI` y `Vol`, mas
+la ruta `steamdt_candidates_file=...` del JSON guardado.
 
 ## Perfiles
 
@@ -124,7 +127,114 @@ python steamdt.py 5 --json
 Guardar candidatos en archivo:
 
 ```bash
-python -m apps.cli.discover_steamdt_hanging --profile platform_arbitrage_safe --limit 20 --dry-run --output data/steamdt-candidates.json
+python steamdt.py 20 --output data/steamdt-candidates.json
+```
+
+No guardar candidatos:
+
+```bash
+python steamdt.py 20 --no-output
+```
+
+## Cookies y Login
+
+El scraper guarda estado de navegador compatible con Playwright en:
+
+```text
+data/browser-state/steamdt_storage_state.json
+```
+
+Para iniciar sesion una vez, abre el navegador visible y deja tiempo para hacer login manual:
+
+```bash
+python steamdt.py 20 --show --login
+```
+
+Por defecto espera 120 segundos. Puedes cambiarlo:
+
+```bash
+python steamdt.py 20 --show --login --login-wait 240
+```
+
+Las siguientes ejecuciones reutilizan esas cookies:
+
+```bash
+python steamdt.py 20
+```
+
+Si quieres usar otro archivo de sesion:
+
+```bash
+python steamdt.py 20 --session-state data/browser-state/mi_sesion.json
+```
+
+Si quieres ejecutar sin cargar ni guardar cookies:
+
+```bash
+python steamdt.py 20 --no-session-state
+```
+
+## Scraping Profundo Por Plataforma
+
+SteamDT se usa como discovery. Despues, el JSON guardado alimenta dos workers en paralelo:
+
+- worker `steam`: abre Steam Market con Playwright por defecto.
+- worker `buff163`: abre el enlace `buff_url` de cada candidato con Playwright.
+
+Ejemplo completo:
+
+```bash
+python steamdt.py 20 --show
+python market_workers.py
+```
+
+`market_workers.py` usa automaticamente el ultimo
+`data/flow-runs/steamdt_candidates_*.json`. Si quieres forzar un archivo concreto:
+
+```bash
+python market_workers.py --candidates data/flow-runs/steamdt_candidates_YYYYMMDD_HHMMSS.json
+```
+
+El segundo comando guarda observaciones normalizadas y errores por plataforma en:
+
+```text
+data/flow-runs/platform_observations_YYYYMMDD_HHMMSS.json
+```
+
+Tambien guarda logs detallados en:
+
+```text
+logs/market_workers_YYYYMMDD_HHMMSS.log
+```
+
+Para ver las interfaces de Steam y BUFF durante el scraping:
+
+```bash
+python market_workers.py --show-browser
+```
+
+Si alguna pagina necesita login manual:
+
+```bash
+python market_workers.py --show-browser --steam-login --buff-login
+```
+
+Para hacer login en BUFF una vez:
+
+```bash
+python market_workers.py --show-browser --buff-login
+```
+
+La sesion BUFF queda en:
+
+```text
+data/browser-state/buff163_storage_state.json
+```
+
+Si quieres comparar contra el conector HTTP antiguo de Steam:
+
+```bash
+python market_workers.py --steam-api
 ```
 
 ## Encadenar con Steam Market

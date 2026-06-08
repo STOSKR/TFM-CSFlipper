@@ -36,6 +36,49 @@ Persistir observaciones en Supabase requiere hacerlo de forma explicita:
 python -m apps.cli.discover_steamdt_hanging --profile platform_arbitrage_safe --limit 5 --fetch-steam-prices --persist
 ```
 
+## Workers Por Plataforma
+
+Despues del discovery, usa el JSON de candidatos para lanzar un worker de Steam Market y otro
+de BUFF en paralelo:
+
+```bash
+python market_workers.py
+```
+
+Por defecto usa el ultimo `data/flow-runs/steamdt_candidates_*.json`.
+
+Por defecto Steam y BUFF se scrapean con navegador Playwright. El resultado combinado se
+guarda en `data/flow-runs/platform_observations_YYYYMMDD_HHMMSS.json` y los logs detallados
+en `logs/market_workers_YYYYMMDD_HHMMSS.log`.
+
+Para ver las interfaces mientras scrapea:
+
+```bash
+python market_workers.py --show-browser
+```
+
+Para hacer login manual en ambas plataformas:
+
+```bash
+python market_workers.py --show-browser --steam-login --buff-login
+```
+
+Para iniciar sesion en BUFF una vez:
+
+```bash
+python market_workers.py --show-browser --buff-login
+```
+
+Las cookies/localStorage de BUFF se guardan en
+`data/browser-state/buff163_storage_state.json` y se reutilizan en ejecuciones posteriores.
+
+Puedes desactivar una plataforma durante pruebas:
+
+```bash
+python market_workers.py --no-buff
+python market_workers.py --no-steam
+```
+
 ## OCR
 
 Validar un texto OCR ya extraido sin guardar nada:

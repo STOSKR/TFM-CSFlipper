@@ -20,6 +20,7 @@ build/
 data/raw/
 data/processed/
 data/flow-runs/
+data/browser-state/
 logs/
 models/checkpoints/
 

@@ -70,11 +70,14 @@ async def discover(args: argparse.Namespace) -> int:
         platform_buff=args.platform_buff,
         platform_c5game=args.platform_c5game,
         platform_uu=args.platform_uu,
+        manual_login_wait_ms=args.login_wait * 1000 if args.login else 0,
+        session_state_path=None if args.no_session_state else args.session_state,
     )
     candidates = await SteamDTHangingDiscovery(filters).discover()
 
     if args.output:
         save_candidates(args.output, candidates)
+        print(f"steamdt_candidates_file={args.output}")
 
     if args.fetch_steam_prices:
         return await _fetch_steam_prices(candidates, persist=args.persist and not args.dry_run)
@@ -208,6 +211,24 @@ def main() -> None:
     parser.add_argument("--platform-uu", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--show-browser", action="store_true")
     parser.add_argument("--output", type=Path)
+    parser.add_argument(
+        "--session-state",
+        type=Path,
+        default=Path("data/browser-state/steamdt_storage_state.json"),
+        help="Playwright storage_state file for cookies and localStorage",
+    )
+    parser.add_argument("--no-session-state", action="store_true")
+    parser.add_argument(
+        "--login",
+        action="store_true",
+        help="Wait with the visible browser open so you can log in before scraping",
+    )
+    parser.add_argument(
+        "--login-wait",
+        type=int,
+        default=120,
+        help="Seconds to wait for manual login when --login is enabled",
+    )
     parser.add_argument("--fetch-steam-prices", action="store_true")
     parser.add_argument("--persist", action="store_true")
     parser.add_argument("--dry-run", action="store_true")

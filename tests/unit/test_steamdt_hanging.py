@@ -1,6 +1,12 @@
+import json
 from decimal import Decimal
 
-from apps.acquisition.steamdt_hanging import parse_steamdt_rows
+from apps.acquisition.steamdt_hanging import (
+    SteamDTCandidate,
+    merge_candidate_links,
+    parse_steamdt_rows,
+    save_candidates,
+)
 
 
 def test_parse_steamdt_hanging_row_extracts_candidate() -> None:
@@ -78,3 +84,45 @@ def test_parse_steamdt_hanging_row_filters_non_skin_items() -> None:
 
     assert len(candidates) == 1
     assert candidates[0].market_hash_name == "AK-47 | Slate (Field-Tested)"
+
+
+def test_save_candidates_creates_parent_directory(tmp_path) -> None:
+    output_path = tmp_path / "nested" / "steamdt_candidates.json"
+
+    save_candidates(
+        output_path,
+        (
+            SteamDTCandidate(
+                item_name="AK-47 | Slate",
+                market_hash_name="AK-47 | Slate (Field-Tested)",
+                quality="Field-Tested",
+                steam_price=Decimal("12.34"),
+            ),
+        ),
+    )
+
+    payload = json.loads(output_path.read_text(encoding="utf-8"))
+
+    assert payload[0]["market_hash_name"] == "AK-47 | Slate (Field-Tested)"
+    assert payload[0]["steam_price"] == "12.34"
+
+
+def test_merge_candidate_links_fills_missing_buff_url_from_detail_links() -> None:
+    candidate = SteamDTCandidate(
+        item_name="Glock-18 | Ironwork",
+        market_hash_name="Glock-18 | Ironwork (Factory New)",
+        quality="Factory New",
+        item_url="https://www.steamdt.com/en/item/123",
+        buff_url=None,
+    )
+
+    enriched = merge_candidate_links(
+        candidate,
+        (
+            "https://buff.163.com/goods/35031?from=market#tab=selling",
+            "https://steamcommunity.com/market/listings/730/Glock-18",
+        ),
+    )
+
+    assert enriched.buff_url == "https://buff.163.com/goods/35031?from=market#tab=selling"
+    assert enriched.steam_url == "https://steamcommunity.com/market/listings/730/Glock-18"

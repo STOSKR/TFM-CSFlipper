@@ -12,6 +12,15 @@ from __future__ import annotations
 import argparse
 import subprocess
 import sys
+from datetime import UTC, datetime
+from pathlib import Path
+
+DEFAULT_OUTPUT_DIR = Path("data/flow-runs")
+
+
+def default_candidates_path() -> Path:
+    run_id = datetime.now(tz=UTC).strftime("%Y%m%d_%H%M%S")
+    return DEFAULT_OUTPUT_DIR / f"steamdt_candidates_{run_id}.json"
 
 
 def main() -> int:
@@ -22,6 +31,26 @@ def main() -> int:
     parser.add_argument("--json", action="store_true", help="Print JSON instead of table")
     parser.add_argument("--steam", action="store_true", help="Also fetch Steam Market prices")
     parser.add_argument("--persist", action="store_true", help="Persist fetched Steam prices")
+    parser.add_argument("--output", help="Save discovered candidates to this JSON file")
+    parser.add_argument("--no-output", action="store_true", help="Do not save candidates to JSON")
+    parser.add_argument(
+        "--session-state",
+        default="data/browser-state/steamdt_storage_state.json",
+        help="File used to load/save browser cookies and localStorage",
+    )
+    parser.add_argument("--no-session-state", action="store_true", help="Do not load/save session")
+    parser.add_argument(
+        "--login",
+        action="store_true",
+        help="Wait with the visible browser open so you can log in before scraping",
+    )
+    parser.add_argument(
+        "--login-wait",
+        type=int,
+        default=120,
+        help="Seconds to wait for manual login when --login is enabled",
+    )
+    parser.add_argument("--currency", default="EUR", help="Currency to select in SteamDT")
     parser.add_argument("--min", dest="min_price", type=float, help="Minimum price filter")
     parser.add_argument("--max", dest="max_price", type=float, help="Maximum price filter")
     parser.add_argument("--vol", dest="min_volume", type=int, help="Minimum volume filter")
@@ -38,6 +67,8 @@ def main() -> int:
         "platform_arbitrage_fast" if args.fast else "platform_arbitrage_safe",
         "--limit",
         str(args.limit),
+        "--currency",
+        args.currency,
         "--platform-buff" if not args.no_buff else "--no-platform-buff",
         "--platform-uu" if not args.no_uu else "--no-platform-uu",
         "--platform-c5game" if args.c5 else "--no-platform-c5game",
@@ -52,6 +83,15 @@ def main() -> int:
         command.append("--show-browser")
     if args.json:
         command.extend(["--format", "json"])
+    if not args.no_output:
+        output_path = Path(args.output) if args.output else default_candidates_path()
+        command.extend(["--output", str(output_path)])
+    if not args.no_session_state:
+        command.extend(["--session-state", args.session_state])
+    else:
+        command.append("--no-session-state")
+    if args.login:
+        command.extend(["--login", "--login-wait", str(args.login_wait)])
     if args.steam:
         command.append("--fetch-steam-prices")
     if args.persist:
