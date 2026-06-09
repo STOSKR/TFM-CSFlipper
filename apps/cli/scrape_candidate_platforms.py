@@ -17,12 +17,15 @@ from apps.acquisition.platform_workers import (
     latest_steamdt_candidates_path,
     load_steamdt_candidates,
     scrape_candidate_platforms,
-    worker_results_to_jsonable,
 )
 from apps.acquisition.steam_browser_market import SteamBrowserConnectorConfig
 from apps.acquisition.steam_market import SteamMarketConnectorConfig
+from apps.acquisition.steamdt_hanging import SteamDTCandidate
 from packages.persistence.connection import create_pool
-from packages.persistence.repositories import MarketObservationIngestionRepository
+from packages.persistence.simple_market import (
+    SimpleMarketSnapshot,
+    SimpleMarketSnapshotRepository,
+)
 
 
 async def run(args: argparse.Namespace) -> int:
@@ -63,7 +66,12 @@ async def run(args: argparse.Namespace) -> int:
         ),
     )
     results = await scrape_candidate_platforms(candidates, config=config, log=logger.info)
-    payload = worker_results_to_jsonable(results)
+    snapshots = build_simple_market_snapshots(
+        candidates,
+        results,
+        scraped_at=datetime.now(tz=UTC),
+    )
+    payload = simple_results_to_jsonable(snapshots, results)
 
     output_path = args.output or _default_output_path()
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -72,10 +80,10 @@ async def run(args: argparse.Namespace) -> int:
     logger.info("platform_observations_file=%s", output_path)
 
     if args.persist and not args.dry_run:
-        await _persist_results(results)
-        print(f"imported_platform_observations={len(payload['observations'])}")
+        await _persist_snapshots(snapshots)
+        print(f"imported_market_snapshots={len(snapshots)}")
     else:
-        print(f"platform_observations={len(payload['observations'])}")
+        print(f"market_snapshots={len(snapshots)}")
 
     for platform_id, summary in payload["summary"].items():
         print(
@@ -164,19 +172,105 @@ def main() -> None:
     asyncio.run(run(args))
 
 
-async def _persist_results(results: tuple[PlatformWorkerResult, ...]) -> None:
+def build_simple_market_snapshots(
+    candidates: tuple[SteamDTCandidate, ...],
+    results: tuple[PlatformWorkerResult, ...],
+    *,
+    scraped_at: datetime,
+) -> tuple[SimpleMarketSnapshot, ...]:
+    candidates_by_hash = {
+        candidate.market_hash_name: candidate
+        for candidate in candidates
+        if candidate.market_hash_name
+    }
+    grouped: dict[tuple[str, str, bool], dict[str, Any]] = {}
+
+    for result in results:
+        for record in result.observations:
+            market_hash_name = str(record.observation.raw_payload.get("market_hash_name") or "")
+            candidate = candidates_by_hash.get(market_hash_name)
+            name = _item_name(record, candidate)
+            quality = _quality(record, candidate)
+            stattrak = _stattrak(record, candidate, market_hash_name)
+            key = (name, quality, stattrak)
+            entry = grouped.setdefault(
+                key,
+                {
+                    "name": name,
+                    "quality": quality,
+                    "stattrak": stattrak,
+                    "scraped_at": scraped_at,
+                    "steam_url": candidate.steam_url if candidate else None,
+                    "buff_url": candidate.buff_url if candidate else None,
+                    "steam_price": None,
+                    "steam_currency": None,
+                    "buff_price": None,
+                    "buff_currency": None,
+                },
+            )
+            if candidate:
+                entry["steam_url"] = entry["steam_url"] or candidate.steam_url
+                entry["buff_url"] = entry["buff_url"] or candidate.buff_url
+
+            platform_id = record.observation.platform_id
+            if platform_id == "steam":
+                entry["steam_price"] = record.observation.price
+                entry["steam_currency"] = record.observation.currency
+                entry["steam_url"] = entry["steam_url"] or record.observation.source_reference
+            elif platform_id == "buff163":
+                entry["buff_price"] = record.observation.price
+                entry["buff_currency"] = record.observation.currency
+                entry["buff_url"] = entry["buff_url"] or record.observation.source_reference
+
+    return tuple(
+        SimpleMarketSnapshot(
+            name=str(entry["name"]),
+            quality=str(entry["quality"]),
+            stattrak=bool(entry["stattrak"]),
+            scraped_at=scraped_at,
+            steam_url=_optional_str(entry.get("steam_url")),
+            buff_url=_optional_str(entry.get("buff_url")),
+            steam_price=entry.get("steam_price"),
+            steam_currency=_optional_str(entry.get("steam_currency")),
+            buff_price=entry.get("buff_price"),
+            buff_currency=_optional_str(entry.get("buff_currency")),
+        )
+        for entry in grouped.values()
+    )
+
+
+def simple_results_to_jsonable(
+    snapshots: tuple[SimpleMarketSnapshot, ...],
+    results: tuple[PlatformWorkerResult, ...],
+) -> dict[str, Any]:
+    return {
+        "schema_version": "market_snapshot.v1",
+        "items": [_snapshot_to_jsonable(snapshot) for snapshot in snapshots],
+        "errors": [
+            {
+                "platform_id": error.platform_id,
+                "market_hash_name": error.market_hash_name,
+                "message": error.message,
+                "debug_log": list(error.debug_log),
+            }
+            for result in results
+            for error in result.errors
+        ],
+        "summary": {
+            result.platform_id: {
+                "observations": len(result.observations),
+                "errors": len(result.errors),
+            }
+            for result in results
+        },
+    }
+
+
+async def _persist_snapshots(snapshots: tuple[SimpleMarketSnapshot, ...]) -> None:
     pool = await create_pool(max_size=2)
     try:
         async with pool.acquire() as connection:
-            repository = MarketObservationIngestionRepository(connection)
-            for record in _iter_records(results):
-                await repository.record_observation(
-                    record.observation,
-                    asset_name=record.asset_name,
-                    category=record.category,
-                    quality=record.quality,
-                    variant_key=record.variant_key,
-                )
+            await SimpleMarketSnapshotRepository(connection).record_snapshots(snapshots)
     finally:
         await pool.close()
 
@@ -272,14 +366,6 @@ async def _login_platform(
         await context.close()
 
 
-def _iter_records(results: tuple[PlatformWorkerResult, ...]) -> list[Any]:
-    return [
-        record
-        for result in results
-        for record in result.observations
-    ]
-
-
 def _default_output_path() -> Path:
     run_id = datetime.now(tz=UTC).strftime("%Y%m%d_%H%M%S")
     return Path("data/flow-runs") / f"platform_observations_{run_id}.json"
@@ -306,6 +392,60 @@ def _configure_logging(args: argparse.Namespace) -> tuple[logging.Logger, Path]:
 def _default_log_path() -> Path:
     run_id = datetime.now(tz=UTC).strftime("%Y%m%d_%H%M%S")
     return Path("logs") / f"market_workers_{run_id}.log"
+
+
+def _item_name(record: Any, candidate: SteamDTCandidate | None) -> str:
+    return _required_text(record.asset_name or (candidate.item_name if candidate else None), "name")
+
+
+def _quality(record: Any, candidate: SteamDTCandidate | None) -> str:
+    return _required_text(record.quality or (candidate.quality if candidate else None), "quality")
+
+
+def _stattrak(
+    record: Any,
+    candidate: SteamDTCandidate | None,
+    market_hash_name: str,
+) -> bool:
+    if candidate is not None:
+        return candidate.stattrak
+    text = f"{market_hash_name} {record.observation.asset_id}".lower()
+    return "stattrak" in text
+
+
+def _snapshot_to_jsonable(snapshot: SimpleMarketSnapshot) -> dict[str, Any]:
+    return {
+        "name": snapshot.name,
+        "quality": snapshot.quality,
+        "stattrak": snapshot.stattrak,
+        "scraped_at": snapshot.scraped_at.isoformat(),
+        "steam": {
+            "url": snapshot.steam_url,
+            "price": str(snapshot.steam_price) if snapshot.steam_price is not None else None,
+            "currency": snapshot.steam_currency,
+            "recent_sales": list(snapshot.steam_recent_sales),
+            "buy_orders": list(snapshot.steam_buy_orders),
+        },
+        "buff": {
+            "url": snapshot.buff_url,
+            "price": str(snapshot.buff_price) if snapshot.buff_price is not None else None,
+            "currency": snapshot.buff_currency,
+            "recent_sales": list(snapshot.buff_recent_sales),
+            "buy_orders": list(snapshot.buff_buy_orders),
+        },
+    }
+
+
+def _required_text(value: object, field_name: str) -> str:
+    text = str(value or "").strip()
+    if not text:
+        raise ValueError(f"snapshot {field_name} cannot be empty")
+    return text
+
+
+def _optional_str(value: object) -> str | None:
+    text = str(value or "").strip()
+    return text or None
 
 
 if __name__ == "__main__":

@@ -9,6 +9,7 @@ from .repositories import (
     OutboxRepository,
     PlatformRepository,
 )
+from .simple_market import SimpleMarketSnapshot, SimpleMarketSnapshotRepository
 
 __all__ = [
     "AssetRepository",
@@ -17,6 +18,8 @@ __all__ = [
     "OutboxDispatcher",
     "OutboxRepository",
     "PlatformRepository",
+    "SimpleMarketSnapshot",
+    "SimpleMarketSnapshotRepository",
     "create_pool",
     "load_database_url",
     "normalize_asyncpg_dsn",

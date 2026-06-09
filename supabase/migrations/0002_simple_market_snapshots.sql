@@ -20,11 +20,12 @@ create table if not exists market_snapshots (
     quality text not null,
     stattrak boolean not null default false,
     scraped_at timestamptz not null,
-    currency char(3) not null default 'EUR',
     steam_price numeric(18, 6),
+    steam_currency char(3),
     steam_recent_sales jsonb not null default '[]'::jsonb,
     steam_buy_orders jsonb not null default '[]'::jsonb,
     buff_price numeric(18, 6),
+    buff_currency char(3),
     buff_recent_sales jsonb not null default '[]'::jsonb,
     buff_buy_orders jsonb not null default '[]'::jsonb,
     created_at timestamptz not null default now(),
@@ -33,7 +34,12 @@ create table if not exists market_snapshots (
         references market_items (name, quality, stattrak)
         on update cascade
         on delete restrict,
-    constraint market_snapshots_currency_chk check (currency = upper(currency)),
+    constraint market_snapshots_steam_currency_chk check (
+        steam_currency is null or steam_currency = upper(steam_currency)
+    ),
+    constraint market_snapshots_buff_currency_chk check (
+        buff_currency is null or buff_currency = upper(buff_currency)
+    ),
     constraint market_snapshots_steam_price_chk check (
         steam_price is null or steam_price > 0
     ),
@@ -54,6 +60,12 @@ create table if not exists market_snapshots (
     )
 );
 
+alter table market_snapshots
+    add column if not exists steam_currency char(3);
+
+alter table market_snapshots
+    add column if not exists buff_currency char(3);
+
 create index if not exists idx_market_snapshots_scraped_at
     on market_snapshots (scraped_at desc);
 
@@ -66,13 +78,14 @@ select
     s.quality,
     s.stattrak,
     s.scraped_at,
-    s.currency,
     i.steam_url,
     s.steam_price,
+    s.steam_currency,
     s.steam_recent_sales,
     s.steam_buy_orders,
     i.buff_url,
     s.buff_price,
+    s.buff_currency,
     s.buff_recent_sales,
     s.buff_buy_orders,
     s.created_at

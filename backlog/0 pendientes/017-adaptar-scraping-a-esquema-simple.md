@@ -33,13 +33,21 @@ El proyecto empieza sin datos existentes, asi que conviene evitar complejidad in
 
 ## Pasos realizados
 
-Pendiente.
+- Creada migracion `0002_simple_market_snapshots.sql` con `market_items`, `market_snapshots` y `market_snapshot_view`.
+- Separadas monedas por plataforma con `steam_currency` y `buff_currency`.
+- Creado `SimpleMarketSnapshotRepository` para persistir el esquema simple.
+- Adaptado `market_workers.py`/`apps.cli.scrape_candidate_platforms` para construir snapshots simples desde Steam + BUFF.
+- `--persist` ahora escribe en `market_items` y `market_snapshots`.
+- La salida JSON del worker usa `schema_version = market_snapshot.v1` e incluye `items`, `summary` y `errors`.
+- Aniadidos tests unitarios del mapeo y la persistencia simple.
 
 ## Pruebas ejecutadas
 
-Pendiente.
+- `python -m pytest tests/unit/test_simple_market_snapshots.py tests/unit/test_database_migration.py tests/unit/test_platform_workers.py`
+- `python -m ruff check apps/cli/scrape_candidate_platforms.py packages/persistence/simple_market.py packages/persistence/__init__.py tests/unit/test_simple_market_snapshots.py tests/unit/test_database_migration.py`
+- `python -m mypy apps/cli/scrape_candidate_platforms.py packages/persistence/simple_market.py packages/persistence/__init__.py`
 
 ## Bloqueos o riesgos
 
 - Falta implementar scraping fiable de buy orders y ultimas ventas para ambas plataformas.
-- Hay que decidir si el `scraped_at` del snapshot sera unico por ejecucion o por articulo.
+- El `scraped_at` del snapshot es unico por ejecucion del worker.

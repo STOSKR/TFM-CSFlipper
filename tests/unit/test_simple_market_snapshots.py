@@ -1,0 +1,157 @@
+from datetime import UTC, datetime
+from decimal import Decimal
+from typing import Any
+
+import pytest
+
+from apps.acquisition.platform_workers import PlatformWorkerResult
+from apps.acquisition.steam_market import SteamMarketObservation
+from apps.acquisition.steamdt_hanging import SteamDTCandidate
+from apps.cli.scrape_candidate_platforms import (
+    build_simple_market_snapshots,
+    simple_results_to_jsonable,
+)
+from packages.contracts.observations import MarketObservationContract
+from packages.domain.enums import SourceType
+from packages.persistence.simple_market import (
+    SimpleMarketSnapshot,
+    SimpleMarketSnapshotRepository,
+)
+
+
+def test_build_simple_market_snapshots_merges_platforms_by_item_variant() -> None:
+    scraped_at = datetime(2026, 6, 9, 12, 0, tzinfo=UTC)
+    candidate = SteamDTCandidate(
+        item_name="AK-47 | Slate",
+        market_hash_name="StatTrak AK-47 | Slate (Field-Tested)",
+        quality="Field-Tested",
+        stattrak=True,
+        steam_url="https://steamcommunity.com/market/listings/730/AK",
+        buff_url="https://buff.163.com/goods/875627",
+    )
+    steam_record = _record(
+        platform_id="steam",
+        price=Decimal("17.45"),
+        currency="EUR",
+        market_hash_name=candidate.market_hash_name,
+        source_reference=candidate.steam_url or "",
+    )
+    buff_record = _record(
+        platform_id="buff163",
+        price=Decimal("105.20"),
+        currency="CNY",
+        market_hash_name=candidate.market_hash_name,
+        source_reference=candidate.buff_url or "",
+    )
+
+    snapshots = build_simple_market_snapshots(
+        (candidate,),
+        (
+            PlatformWorkerResult("steam", (steam_record,)),
+            PlatformWorkerResult("buff163", (buff_record,)),
+        ),
+        scraped_at=scraped_at,
+    )
+
+    assert len(snapshots) == 1
+    snapshot = snapshots[0]
+    assert snapshot.name == "AK-47 | Slate"
+    assert snapshot.quality == "Field-Tested"
+    assert snapshot.stattrak is True
+    assert snapshot.steam_url == candidate.steam_url
+    assert snapshot.buff_url == candidate.buff_url
+    assert snapshot.steam_price == Decimal("17.45")
+    assert snapshot.steam_currency == "EUR"
+    assert snapshot.buff_price == Decimal("105.20")
+    assert snapshot.buff_currency == "CNY"
+
+
+def test_simple_results_to_jsonable_uses_public_snapshot_shape() -> None:
+    scraped_at = datetime(2026, 6, 9, 12, 0, tzinfo=UTC)
+    snapshot = SimpleMarketSnapshot(
+        name="AK-47 | Slate",
+        quality="Field-Tested",
+        stattrak=False,
+        scraped_at=scraped_at,
+        steam_url="https://steamcommunity.com/market/listings/730/AK",
+        steam_price=Decimal("5.41"),
+        steam_currency="EUR",
+    )
+
+    payload = simple_results_to_jsonable((snapshot,), ())
+
+    assert payload["schema_version"] == "market_snapshot.v1"
+    assert payload["items"][0]["name"] == "AK-47 | Slate"
+    assert payload["items"][0]["steam"]["price"] == "5.41"
+    assert payload["items"][0]["steam"]["buy_orders"] == []
+
+
+@pytest.mark.asyncio
+async def test_simple_market_snapshot_repository_upserts_item_and_snapshot() -> None:
+    connection = FakeConnection()
+    snapshot = SimpleMarketSnapshot(
+        name="AK-47 | Slate",
+        quality="Field-Tested",
+        stattrak=False,
+        scraped_at=datetime(2026, 6, 9, 12, 0, tzinfo=UTC),
+        steam_url="https://steamcommunity.com/market/listings/730/AK",
+        steam_price=Decimal("5.41"),
+        steam_currency="EUR",
+        steam_buy_orders=({"price": "5.00", "quantity": 12},),
+    )
+
+    await SimpleMarketSnapshotRepository(connection).record_snapshot(snapshot)  # type: ignore[arg-type]
+
+    assert len(connection.statements) == 2
+    assert "insert into market_items" in connection.statements[0].lower()
+    assert "insert into market_snapshots" in connection.statements[1].lower()
+    assert connection.transaction_opened is True
+
+
+def _record(
+    *,
+    platform_id: str,
+    price: Decimal,
+    currency: str,
+    market_hash_name: str,
+    source_reference: str,
+) -> SteamMarketObservation:
+    observation = MarketObservationContract(
+        correlation_id="test",
+        asset_id="ak_47_slate__field_tested__stattrak",
+        platform_id=platform_id,
+        observed_at=datetime(2026, 6, 9, 12, 0, tzinfo=UTC),
+        price=price,
+        currency=currency,
+        source_type=SourceType.SCRAPING,
+        source_reference=source_reference,
+        raw_payload={"market_hash_name": market_hash_name},
+    )
+    return SteamMarketObservation(
+        observation=observation,
+        asset_name="AK-47 | Slate",
+        category=None,
+        quality="Field-Tested",
+        variant_key="field-tested_st1",
+    )
+
+
+class FakeConnection:
+    def __init__(self) -> None:
+        self.statements: list[str] = []
+        self.transaction_opened = False
+
+    def transaction(self) -> "FakeTransaction":
+        self.transaction_opened = True
+        return FakeTransaction()
+
+    async def execute(self, query: str, *_args: Any) -> None:
+        self.statements.append(query)
+
+
+class FakeTransaction:
+    async def __aenter__(self) -> None:
+        return None
+
+    async def __aexit__(self, *_exc_info: object) -> None:
+        return None

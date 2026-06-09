@@ -2,4 +2,4 @@
 set -eu
 
 python steamdt.py 50 --show
-python market_workers.py --show-browser
+python market_workers.py --show-browser --persist
