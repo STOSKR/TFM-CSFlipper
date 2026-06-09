@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import random
 import re
 from collections.abc import Callable
@@ -26,9 +27,16 @@ from packages.domain.market_parsing import (
 
 STEAM_LISTING_URL = "https://steamcommunity.com/market/listings/730/{market_hash_name}"
 MONEY_PATTERN = re.compile(
-    r"(?:CNY|USD|EUR|GBP|\$|\u20ac|\u00a3|\u00a5|\uffe5)\s*\d[\d.,]*"
-    r"|\d[\d.,]*\s*(?:CNY|USD|EUR|GBP|\u20ac|\u00a3|\u00a5|\uffe5)",
+    r"(?:CNY|USD|EUR|GBP|PLN|\$|\u20ac|\u00a3|\u00a5|\uffe5|z\u0142)\s*\d[\d.,]*"
+    r"|\d[\d.,]*\s*(?:CNY|USD|EUR|GBP|PLN|\u20ac|\u00a3|\u00a5|\uffe5|z\u0142)",
     re.IGNORECASE,
+)
+QUALITY_NAMES = (
+    "Factory New",
+    "Minimal Wear",
+    "Field-Tested",
+    "Well-Worn",
+    "Battle-Scarred",
 )
 STEAM_PRICE_SELECTORS = (
     "[data-selected]",
@@ -169,9 +177,7 @@ class SteamBrowserConnector:
         debug_log: list[str],
     ) -> SteamBrowserObservation:
         await self._sleep_between_requests()
-        url = candidate.steam_url or STEAM_LISTING_URL.format(
-            market_hash_name=quote(candidate.market_hash_name)
-        )
+        url = _steam_listing_url(candidate)
         self._debug(candidate.market_hash_name, debug_log, f"opening {url}")
         page = await context.new_page()
         try:
@@ -190,6 +196,9 @@ class SteamBrowserConnector:
                   url: location.href,
                   title: document.title,
                   bodyText: document.body ? document.body.innerText : "",
+                  ssrLoaderData: globalThis.SSR && Array.isArray(globalThis.SSR.loaderData)
+                    ? globalThis.SSR.loaderData
+                    : [],
                   selectorTexts: {list(STEAM_PRICE_SELECTORS)!r}.flatMap((selector) =>
                     Array.from(document.querySelectorAll(selector)).map((el) => ({{
                       selector,
@@ -204,6 +213,7 @@ class SteamBrowserConnector:
 
         title = str(payload.get("title") or "")
         body_text = str(payload.get("bodyText") or "")
+        ssr_loader_data = list(payload.get("ssrLoaderData") or [])
         selector_texts = list(payload.get("selectorTexts") or [])
         self._debug(candidate.market_hash_name, debug_log, f"title={title!r}")
         self._debug(
@@ -219,6 +229,8 @@ class SteamBrowserConnector:
             body_text,
             quality=quality,
             stattrak=stattrak,
+            market_hash_name=candidate.market_hash_name,
+            ssr_loader_data=ssr_loader_data,
             debug_log=debug_log,
         )
         if not price_text:
@@ -288,27 +300,44 @@ def extract_steam_price_text(
     *,
     quality: str | None = None,
     stattrak: bool = False,
+    market_hash_name: str | None = None,
+    ssr_loader_data: list[Any] | None = None,
     debug_log: list[str] | None = None,
 ) -> str | None:
     """Extract the first visible Steam sell price from selector hits or page text."""
 
+    bucket_price = _extract_bucket_price_text(
+        ssr_loader_data or (),
+        market_hash_name=market_hash_name,
+        quality=quality,
+        stattrak=stattrak,
+        debug_log=debug_log,
+    )
+    if bucket_price:
+        return bucket_price
+
     if quality:
-        quality_lower = quality.lower()
         for entry in selector_texts:
             text = str(entry.get("text") if isinstance(entry, dict) else entry)
-            lines = [line.strip() for line in text.splitlines() if line.strip()]
-            if not lines or lines[0].lower() != quality_lower:
-                continue
-            prices = [str(price) for price in MONEY_PATTERN.findall(text)]
-            if not prices:
-                _append_debug(debug_log, f"quality card had no money text={text!r}")
-                continue
-            price_index = 1 if stattrak and len(prices) > 1 else 0
-            _append_debug(
-                debug_log,
-                f"price matched quality card quality={quality!r} stattrak={stattrak}",
+            price = _extract_quality_block_price(
+                text,
+                quality=quality,
+                stattrak=stattrak,
+                debug_log=debug_log,
+                source="quality card",
             )
-            return prices[price_index]
+            if price:
+                return price
+
+        price = _extract_quality_block_price(
+            body_text,
+            quality=quality,
+            stattrak=stattrak,
+            debug_log=debug_log,
+            source="body quality block",
+        )
+        if price:
+            return price
 
     for entry in selector_texts:
         text = str(entry.get("text") if isinstance(entry, dict) else entry)
@@ -333,6 +362,117 @@ def extract_steam_price_text(
     return None
 
 
+def _extract_bucket_price_text(
+    ssr_loader_data: tuple[Any, ...] | list[Any],
+    *,
+    market_hash_name: str | None,
+    quality: str | None,
+    stattrak: bool,
+    debug_log: list[str] | None,
+) -> str | None:
+    for bucket in _iter_steam_buckets(ssr_loader_data):
+        if not isinstance(bucket, dict):
+            continue
+        bucket_name = str(bucket.get("bucket_id") or bucket.get("localized_name") or "")
+        group_name = str(bucket.get("localized_name_inside_group") or "")
+        if not _bucket_matches_candidate(
+            bucket_name,
+            group_name,
+            market_hash_name=market_hash_name,
+            quality=quality,
+            stattrak=stattrak,
+        ):
+            continue
+        price_text = str(bucket.get("strPrice") or "").strip()
+        if price_text:
+            _append_debug(debug_log, f"price matched SSR bucket bucket_id={bucket_name!r}")
+            return price_text
+        _append_debug(debug_log, f"SSR bucket had no strPrice bucket_id={bucket_name!r}")
+    return None
+
+
+def _iter_steam_buckets(values: tuple[Any, ...] | list[Any]) -> tuple[dict[str, Any], ...]:
+    buckets: list[dict[str, Any]] = []
+    stack = list(values)
+    while stack:
+        value = stack.pop()
+        if isinstance(value, str):
+            if "buckets" not in value:
+                continue
+            try:
+                value = json.loads(value)
+            except ValueError:
+                continue
+        if isinstance(value, dict):
+            nested_buckets = value.get("buckets")
+            if isinstance(nested_buckets, list):
+                buckets.extend(bucket for bucket in nested_buckets if isinstance(bucket, dict))
+            stack.extend(value.values())
+        elif isinstance(value, list):
+            stack.extend(value)
+    return tuple(buckets)
+
+
+def _bucket_matches_candidate(
+    bucket_name: str,
+    group_name: str,
+    *,
+    market_hash_name: str | None,
+    quality: str | None,
+    stattrak: bool,
+) -> bool:
+    if market_hash_name and _normalize_market_name(bucket_name) == _normalize_market_name(
+        market_hash_name
+    ):
+        return True
+    if not quality:
+        return False
+    normalized_group = _normalize_market_name(group_name)
+    if _normalize_market_name(quality) not in normalized_group:
+        return False
+    group_is_stattrak = "stattrak" in normalized_group
+    group_is_souvenir = "souvenir" in normalized_group
+    return group_is_stattrak == stattrak and not group_is_souvenir
+
+
+def _normalize_market_name(value: str) -> str:
+    text = value.replace("\u2122", "")
+    text = re.sub(r"\s+", " ", text).strip().lower()
+    return text
+
+
+def _extract_quality_block_price(
+    text: str,
+    *,
+    quality: str,
+    stattrak: bool,
+    debug_log: list[str] | None,
+    source: str,
+) -> str | None:
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    quality_lower = quality.lower()
+    for index, line in enumerate(lines):
+        if line.lower() != quality_lower:
+            continue
+        block = [line]
+        for next_line in lines[index + 1 :]:
+            if next_line.lower() in {name.lower() for name in QUALITY_NAMES}:
+                break
+            block.append(next_line)
+        block_text = "\n".join(block)
+        prices = [str(price) for price in MONEY_PATTERN.findall(block_text)]
+        if not prices:
+            _append_debug(debug_log, f"{source} had no money text={block_text!r}")
+            continue
+        price_index = 1 if stattrak and len(prices) > 1 else 0
+        _append_debug(
+            debug_log,
+            f"price matched {source} quality={quality!r} stattrak={stattrak}",
+        )
+        return prices[price_index]
+    return None
+
+
 def _find_volume_text(body_text: str) -> str | None:
     for line in body_text.splitlines():
         lowered = line.lower()
@@ -344,3 +484,30 @@ def _find_volume_text(body_text: str) -> str | None:
 def _append_debug(debug_log: list[str] | None, message: str) -> None:
     if debug_log is not None:
         debug_log.append(message)
+
+
+def _steam_listing_url(candidate: SteamBrowserCandidate) -> str:
+    market_hash_name = _steam_url_market_hash_name(candidate.market_hash_name)
+    if candidate.steam_url:
+        parsed_name = candidate.steam_url.rsplit("/market/listings/730/", maxsplit=1)[-1]
+        parsed_name_lower = parsed_name.lower()
+        if (
+            candidate.stattrak
+            and "stattrak" in parsed_name_lower
+            and "%e2%84%a2" not in parsed_name_lower
+        ):
+            return STEAM_LISTING_URL.format(market_hash_name=quote(market_hash_name))
+        return candidate.steam_url
+    return STEAM_LISTING_URL.format(market_hash_name=quote(market_hash_name))
+
+
+def _steam_url_market_hash_name(market_hash_name: str) -> str:
+    if re.match(r"^stattrak(?!\u2122)", market_hash_name, flags=re.IGNORECASE):
+        return re.sub(
+            r"^stattrak",
+            "StatTrak\u2122",
+            market_hash_name,
+            count=1,
+            flags=re.IGNORECASE,
+        )
+    return market_hash_name

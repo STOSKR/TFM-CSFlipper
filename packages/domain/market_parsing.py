@@ -61,6 +61,8 @@ def detect_currency(value: str, *, default: str | None = None) -> str | None:
         return "USD"
     if "\u00a3" in value or "gbp" in lowered:
         return "GBP"
+    if "pln" in lowered or "z\u0142" in lowered:
+        return "PLN"
     return default
 
 

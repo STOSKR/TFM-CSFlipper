@@ -31,4 +31,5 @@ def test_currency_and_integer_helpers() -> None:
     assert steam_currency_code("$1.23", "3") == "USD"
     assert steam_currency_code("12.34", "3") == "EUR"
     assert detect_currency("12.34 CNY") == "CNY"
+    assert detect_currency("22,90 zł") == "PLN"
     assert parse_int_from_text("volume 1,234") == 1234
