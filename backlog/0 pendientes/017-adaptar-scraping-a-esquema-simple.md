@@ -40,6 +40,10 @@ El proyecto empieza sin datos existentes, asi que conviene evitar complejidad in
 - `--persist` ahora escribe en `market_items` y `market_snapshots`.
 - La salida JSON del worker usa `schema_version = market_snapshot.v1` e incluye `items`, `summary` y `errors`.
 - Aniadidos tests unitarios del mapeo y la persistencia simple.
+- Desactivada por defecto la apertura de paginas detalle de SteamDT.
+- Anadida opcion `--enrich-links` para recuperar el comportamiento anterior solo si hace falta.
+- Bajada la velocidad de scraping por defecto con concurrencia 1 y delays con jitter.
+- Anadido procesamiento por lotes en `market_workers.py` para persistir resultados sin esperar a todos los articulos.
 
 ## Pruebas ejecutadas
 
@@ -51,3 +55,4 @@ El proyecto empieza sin datos existentes, asi que conviene evitar complejidad in
 
 - Falta implementar scraping fiable de buy orders y ultimas ventas para ambas plataformas.
 - El `scraped_at` del snapshot es unico por ejecucion del worker.
+- El streaming real SteamDT -> workers mientras la tabla aun se esta leyendo queda para una tarea especifica.

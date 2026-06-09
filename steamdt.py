@@ -15,6 +15,8 @@ import sys
 from datetime import UTC, datetime
 from pathlib import Path
 
+from packages.runtime_config import load_runtime_config
+
 DEFAULT_OUTPUT_DIR = Path("data/flow-runs")
 
 
@@ -24,8 +26,15 @@ def default_candidates_path() -> Path:
 
 
 def main() -> int:
+    runtime_config = load_runtime_config()
     parser = argparse.ArgumentParser(description="Short SteamDT scraper wrapper.")
-    parser.add_argument("limit", nargs="?", type=int, default=5, help="Number of items to print")
+    parser.add_argument(
+        "limit",
+        nargs="?",
+        type=int,
+        default=runtime_config.discovery.candidates_limit,
+        help="Number of items to print",
+    )
     parser.add_argument("--fast", action="store_true", help="Use platform_arbitrage_fast profile")
     parser.add_argument("--show", action="store_true", help="Show browser while scraping")
     parser.add_argument("--json", action="store_true", help="Print JSON instead of table")
@@ -50,13 +59,32 @@ def main() -> int:
         default=120,
         help="Seconds to wait for manual login when --login is enabled",
     )
-    parser.add_argument("--currency", default="EUR", help="Currency to select in SteamDT")
+    parser.add_argument(
+        "--currency",
+        default=runtime_config.discovery.currency,
+        help="Currency to select in SteamDT",
+    )
     parser.add_argument("--min", dest="min_price", type=float, help="Minimum price filter")
     parser.add_argument("--max", dest="max_price", type=float, help="Maximum price filter")
     parser.add_argument("--vol", dest="min_volume", type=int, help="Minimum volume filter")
     parser.add_argument("--no-buff", action="store_true", help="Disable BUFF")
     parser.add_argument("--no-uu", action="store_true", help="Disable UU")
     parser.add_argument("--c5", action="store_true", help="Enable C5GAME")
+    parser.add_argument(
+        "--enrich-links",
+        action="store_true",
+        help="Open SteamDT detail pages only when platform links are missing",
+    )
+    parser.add_argument(
+        "--steam-fee-percent",
+        type=float,
+        default=float(runtime_config.fees.steam_sale_percent),
+    )
+    parser.add_argument(
+        "--withdrawal-fee-percent",
+        type=float,
+        default=float(runtime_config.fees.withdrawal_percent),
+    )
     args = parser.parse_args()
 
     command = [
@@ -75,12 +103,20 @@ def main() -> int:
     ]
     if args.min_price is not None:
         command.extend(["--min-price", str(args.min_price)])
+    elif runtime_config.discovery.min_price is not None:
+        command.extend(["--min-price", str(runtime_config.discovery.min_price)])
     if args.max_price is not None:
         command.extend(["--max-price", str(args.max_price)])
     if args.min_volume is not None:
         command.extend(["--min-volume", str(args.min_volume)])
+    elif runtime_config.discovery.min_volume is not None:
+        command.extend(["--min-volume", str(runtime_config.discovery.min_volume)])
+    command.extend(["--steam-fee-percent", str(args.steam_fee_percent)])
+    command.extend(["--withdrawal-fee-percent", str(args.withdrawal_fee_percent)])
     if args.show:
         command.append("--show-browser")
+    if args.enrich_links:
+        command.append("--enrich-links")
     if args.json:
         command.extend(["--format", "json"])
     if not args.no_output:

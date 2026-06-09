@@ -4,7 +4,7 @@ from typing import Any
 
 import pytest
 
-from apps.acquisition.platform_workers import PlatformWorkerResult
+from apps.acquisition.platform_workers import PlatformWorkerResult, WorkerError
 from apps.acquisition.steam_market import SteamMarketObservation
 from apps.acquisition.steamdt_hanging import SteamDTCandidate
 from apps.cli.scrape_candidate_platforms import (
@@ -84,6 +84,24 @@ def test_simple_results_to_jsonable_uses_public_snapshot_shape() -> None:
     assert payload["items"][0]["name"] == "AK-47 | Slate"
     assert payload["items"][0]["steam"]["price"] == "5.41"
     assert payload["items"][0]["steam"]["buy_orders"] == []
+
+
+def test_simple_results_to_jsonable_aggregates_summary_across_batches() -> None:
+    payload = simple_results_to_jsonable(
+        (),
+        (
+            PlatformWorkerResult("steam", (), (WorkerError("steam", "a", "bad"),)),
+            PlatformWorkerResult("steam", (_record(
+                platform_id="steam",
+                price=Decimal("5.41"),
+                currency="EUR",
+                market_hash_name="AK-47 | Slate (Field-Tested)",
+                source_reference="steam-url",
+            ),)),
+        ),
+    )
+
+    assert payload["summary"]["steam"] == {"observations": 1, "errors": 1}
 
 
 @pytest.mark.asyncio

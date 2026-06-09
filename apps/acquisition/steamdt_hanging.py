@@ -54,8 +54,10 @@ class SteamDTHangingFilters:
     wait_after_detail_ms: int = 1200
     manual_login_wait_ms: int = 0
     max_candidates: int = 50
-    enrich_missing_platform_links: bool = True
+    enrich_missing_platform_links: bool = False
     max_detail_concurrency: int = 2
+    steam_sale_fee_rate: Decimal = Decimal("0.13")
+    withdrawal_fee_rate: Decimal = Decimal("0.20")
     session_state_path: Path | None = Path("data/browser-state/steamdt_storage_state.json")
 
 
@@ -74,6 +76,9 @@ class SteamDTCandidate:
     steam_price: Decimal | None = None
     profit: Decimal | None = None
     profitability_percent: Decimal | None = None
+    net_profit: Decimal | None = None
+    net_roi_percent: Decimal | None = None
+    break_even_steam_price: Decimal | None = None
     volume: int | None = None
     raw_cells: tuple[str, ...] = ()
 
@@ -121,7 +126,12 @@ class SteamDTHangingDiscovery:
                 await page.wait_for_timeout(self.filters.initial_wait_ms)
                 await self._configure_filters(page)
                 rows = await self._extract_rows(page)
-                candidates = parse_steamdt_rows(rows, limit=self.filters.max_candidates)
+                candidates = parse_steamdt_rows(
+                    rows,
+                    limit=self.filters.max_candidates,
+                    steam_sale_fee_rate=self.filters.steam_sale_fee_rate,
+                    withdrawal_fee_rate=self.filters.withdrawal_fee_rate,
+                )
                 candidates = await self._enrich_missing_platform_links(context, candidates)
             finally:
                 await self._save_session_state(context)
@@ -221,10 +231,16 @@ def parse_steamdt_rows(
     rows: list[dict[str, Any]],
     *,
     limit: int | None = None,
+    steam_sale_fee_rate: Decimal = Decimal("0.13"),
+    withdrawal_fee_rate: Decimal = Decimal("0.20"),
 ) -> tuple[SteamDTCandidate, ...]:
     candidates: list[SteamDTCandidate] = []
     for row in rows:
-        candidate = parse_steamdt_row(row)
+        candidate = parse_steamdt_row(
+            row,
+            steam_sale_fee_rate=steam_sale_fee_rate,
+            withdrawal_fee_rate=withdrawal_fee_rate,
+        )
         if candidate is None:
             continue
         candidates.append(candidate)
@@ -233,7 +249,12 @@ def parse_steamdt_rows(
     return tuple(candidates)
 
 
-def parse_steamdt_row(row: dict[str, Any]) -> SteamDTCandidate | None:
+def parse_steamdt_row(
+    row: dict[str, Any],
+    *,
+    steam_sale_fee_rate: Decimal = Decimal("0.13"),
+    withdrawal_fee_rate: Decimal = Decimal("0.20"),
+) -> SteamDTCandidate | None:
     cells = tuple(clean_text(value) for value in row.get("cells", ()))
     links = tuple(str(value) for value in row.get("links", ()))
     if len(cells) < 4:
@@ -256,6 +277,9 @@ def parse_steamdt_row(row: dict[str, Any]) -> SteamDTCandidate | None:
     if _should_skip_item(item_name):
         return None
 
+    buy_price = parse_market_decimal(cells[2]) if len(cells) > 2 else None
+    sell_price = parse_market_decimal(cells[3]) if len(cells) > 3 else None
+
     return SteamDTCandidate(
         item_name=item_name,
         market_hash_name=candidate_market_hash,
@@ -266,13 +290,123 @@ def parse_steamdt_row(row: dict[str, Any]) -> SteamDTCandidate | None:
         buff_url=buff_url,
         steam_url=steam_url,
         currency=detect_currency(" ".join(cells[2:5])),
-        buff_price=parse_market_decimal(cells[2]) if len(cells) > 2 else None,
-        steam_price=parse_market_decimal(cells[3]) if len(cells) > 3 else None,
-        profit=parse_market_decimal(cells[4]) if len(cells) > 4 else None,
-        profitability_percent=parse_market_decimal(cells[6]) if len(cells) > 6 else None,
+        buff_price=buy_price,
+        steam_price=sell_price,
+        profit=calculate_gross_profit(buy_price, sell_price),
+        profitability_percent=calculate_gross_roi_percent(buy_price, sell_price),
+        net_profit=calculate_net_profit(
+            buy_price,
+            sell_price,
+            steam_sale_fee_rate=steam_sale_fee_rate,
+            withdrawal_fee_rate=withdrawal_fee_rate,
+        ),
+        net_roi_percent=calculate_net_roi_percent(
+            buy_price,
+            sell_price,
+            steam_sale_fee_rate=steam_sale_fee_rate,
+            withdrawal_fee_rate=withdrawal_fee_rate,
+        ),
+        break_even_steam_price=calculate_break_even_steam_price(
+            buy_price,
+            steam_sale_fee_rate=steam_sale_fee_rate,
+            withdrawal_fee_rate=withdrawal_fee_rate,
+        ),
         volume=parse_int_from_text(cells[5]) if len(cells) > 5 else None,
         raw_cells=cells,
     )
+
+
+def calculate_gross_profit(
+    buy_price: Decimal | None,
+    sell_price: Decimal | None,
+) -> Decimal | None:
+    if buy_price is None or sell_price is None:
+        return None
+    return sell_price - buy_price
+
+
+def calculate_gross_roi_percent(
+    buy_price: Decimal | None,
+    sell_price: Decimal | None,
+) -> Decimal | None:
+    profit = calculate_gross_profit(buy_price, sell_price)
+    if profit is None or buy_price is None or buy_price == 0:
+        return None
+    return (profit / buy_price) * Decimal("100")
+
+
+def calculate_net_received(
+    sell_price: Decimal | None,
+    *,
+    steam_sale_fee_rate: Decimal,
+    withdrawal_fee_rate: Decimal,
+) -> Decimal | None:
+    if sell_price is None:
+        return None
+    return sell_price * _net_multiplier(
+        steam_sale_fee_rate=steam_sale_fee_rate,
+        withdrawal_fee_rate=withdrawal_fee_rate,
+    )
+
+
+def calculate_net_profit(
+    buy_price: Decimal | None,
+    sell_price: Decimal | None,
+    *,
+    steam_sale_fee_rate: Decimal,
+    withdrawal_fee_rate: Decimal,
+) -> Decimal | None:
+    net_received = calculate_net_received(
+        sell_price,
+        steam_sale_fee_rate=steam_sale_fee_rate,
+        withdrawal_fee_rate=withdrawal_fee_rate,
+    )
+    if buy_price is None or net_received is None:
+        return None
+    return net_received - buy_price
+
+
+def calculate_net_roi_percent(
+    buy_price: Decimal | None,
+    sell_price: Decimal | None,
+    *,
+    steam_sale_fee_rate: Decimal,
+    withdrawal_fee_rate: Decimal,
+) -> Decimal | None:
+    net_profit = calculate_net_profit(
+        buy_price,
+        sell_price,
+        steam_sale_fee_rate=steam_sale_fee_rate,
+        withdrawal_fee_rate=withdrawal_fee_rate,
+    )
+    if buy_price is None or buy_price == 0 or net_profit is None:
+        return None
+    return (net_profit / buy_price) * Decimal("100")
+
+
+def calculate_break_even_steam_price(
+    buy_price: Decimal | None,
+    *,
+    steam_sale_fee_rate: Decimal,
+    withdrawal_fee_rate: Decimal,
+) -> Decimal | None:
+    if buy_price is None:
+        return None
+    multiplier = _net_multiplier(
+        steam_sale_fee_rate=steam_sale_fee_rate,
+        withdrawal_fee_rate=withdrawal_fee_rate,
+    )
+    if multiplier <= 0:
+        return None
+    return buy_price / multiplier
+
+
+def _net_multiplier(
+    *,
+    steam_sale_fee_rate: Decimal,
+    withdrawal_fee_rate: Decimal,
+) -> Decimal:
+    return (Decimal("1") - steam_sale_fee_rate) * (Decimal("1") - withdrawal_fee_rate)
 
 
 def merge_candidate_links(

@@ -3,6 +3,12 @@ from decimal import Decimal
 
 from apps.acquisition.steamdt_hanging import (
     SteamDTCandidate,
+    SteamDTHangingFilters,
+    calculate_break_even_steam_price,
+    calculate_gross_profit,
+    calculate_gross_roi_percent,
+    calculate_net_profit,
+    calculate_net_roi_percent,
     merge_candidate_links,
     parse_steamdt_rows,
     save_candidates,
@@ -41,8 +47,70 @@ def test_parse_steamdt_hanging_row_extracts_candidate() -> None:
     assert candidates[0].buff_price == Decimal("12.10")
     assert candidates[0].steam_price == Decimal("14.61")
     assert candidates[0].profit == Decimal("2.51")
-    assert candidates[0].profitability_percent == Decimal("61.54")
+    assert candidates[0].profitability_percent == Decimal("20.74380165289256198347107438")
     assert candidates[0].volume == 42
+
+
+def test_parse_steamdt_hanging_row_calculates_profit_instead_of_trusting_table_cell() -> None:
+    rows = [
+        {
+            "cells": [
+                "",
+                "Dual Berettas | Royal Consorts (Factory New)",
+                "€55.93 40 minutes ago",
+                "€58.36 an hour ago",
+                "€54.53",
+                "23",
+                "1.07",
+                "1.302",
+                "Platform Data",
+            ],
+            "links": [
+                "https://steamcommunity.com/market/listings/730/"
+                "Dual%20Berettas%20%7C%20Royal%20Consorts%20(Factory%20New)",
+            ],
+        }
+    ]
+
+    candidates = parse_steamdt_rows(rows)
+
+    assert candidates[0].profit == Decimal("2.43")
+    assert candidates[0].profitability_percent == Decimal("4.344716610048274629000536385")
+    assert candidates[0].net_profit == Decimal("-15.31144")
+    assert candidates[0].net_roi_percent == Decimal("-27.37607723940640085821562668")
+    assert candidates[0].break_even_steam_price == Decimal("80.35919540229885057471264368")
+
+
+def test_calculate_gross_profit_and_roi_percent() -> None:
+    assert calculate_gross_profit(Decimal("55.93"), Decimal("58.36")) == Decimal("2.43")
+    assert calculate_gross_roi_percent(
+        Decimal("55.93"),
+        Decimal("58.36"),
+    ) == Decimal("4.344716610048274629000536385")
+
+
+def test_calculate_net_profit_roi_and_break_even_with_configured_fees() -> None:
+    assert calculate_net_profit(
+        Decimal("55.93"),
+        Decimal("58.36"),
+        steam_sale_fee_rate=Decimal("0.13"),
+        withdrawal_fee_rate=Decimal("0.20"),
+    ) == Decimal("-15.31144")
+    assert calculate_net_roi_percent(
+        Decimal("55.93"),
+        Decimal("58.36"),
+        steam_sale_fee_rate=Decimal("0.13"),
+        withdrawal_fee_rate=Decimal("0.20"),
+    ) == Decimal("-27.37607723940640085821562668")
+    assert calculate_break_even_steam_price(
+        Decimal("55.93"),
+        steam_sale_fee_rate=Decimal("0.13"),
+        withdrawal_fee_rate=Decimal("0.20"),
+    ) == Decimal("80.35919540229885057471264368")
+
+
+def test_steamdt_discovery_does_not_open_detail_pages_by_default() -> None:
+    assert SteamDTHangingFilters().enrich_missing_platform_links is False
 
 
 def test_parse_steamdt_hanging_row_prefers_steam_url_identity() -> None:

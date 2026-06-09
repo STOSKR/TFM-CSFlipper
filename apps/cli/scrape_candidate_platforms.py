@@ -20,12 +20,15 @@ from apps.acquisition.platform_workers import (
 )
 from apps.acquisition.steam_browser_market import SteamBrowserConnectorConfig
 from apps.acquisition.steam_market import SteamMarketConnectorConfig
-from apps.acquisition.steamdt_hanging import SteamDTCandidate
+from apps.acquisition.steamdt_hanging import (
+    SteamDTCandidate,
+)
 from packages.persistence.connection import create_pool
 from packages.persistence.simple_market import (
     SimpleMarketSnapshot,
     SimpleMarketSnapshotRepository,
 )
+from packages.runtime_config import load_runtime_config
 
 
 async def run(args: argparse.Namespace) -> int:
@@ -65,12 +68,25 @@ async def run(args: argparse.Namespace) -> int:
             max_delay_seconds=args.buff_max_delay,
         ),
     )
-    results = await scrape_candidate_platforms(candidates, config=config, log=logger.info)
-    snapshots = build_simple_market_snapshots(
-        candidates,
-        results,
-        scraped_at=datetime.now(tz=UTC),
-    )
+    all_results: list[PlatformWorkerResult] = []
+    all_snapshots: list[SimpleMarketSnapshot] = []
+    for batch_index, batch in enumerate(_chunks(candidates, args.batch_size), start=1):
+        logger.info("scraping_batch=%s size=%s", batch_index, len(batch))
+        print(f"scraping_batch={batch_index} size={len(batch)}")
+        batch_results = await scrape_candidate_platforms(batch, config=config, log=logger.info)
+        batch_snapshots = build_simple_market_snapshots(
+            batch,
+            batch_results,
+            scraped_at=datetime.now(tz=UTC),
+        )
+        if args.persist and not args.dry_run:
+            await _persist_snapshots(batch_snapshots)
+            print(f"imported_market_snapshots_batch={len(batch_snapshots)}")
+        all_results.extend(batch_results)
+        all_snapshots.extend(batch_snapshots)
+
+    results = tuple(all_results)
+    snapshots = tuple(all_snapshots)
     payload = simple_results_to_jsonable(snapshots, results)
 
     output_path = args.output or _default_output_path()
@@ -80,7 +96,6 @@ async def run(args: argparse.Namespace) -> int:
     logger.info("platform_observations_file=%s", output_path)
 
     if args.persist and not args.dry_run:
-        await _persist_snapshots(snapshots)
         print(f"imported_market_snapshots={len(snapshots)}")
     else:
         print(f"market_snapshots={len(snapshots)}")
@@ -104,10 +119,11 @@ async def run(args: argparse.Namespace) -> int:
             error["message"],
             " | ".join(error["debug_log"][-6:]),
         )
-    return len(payload["observations"])
+    return len(snapshots)
 
 
 def main() -> None:
+    runtime_config = load_runtime_config()
     parser = argparse.ArgumentParser(
         description="Scrape candidate prices with one worker per platform."
     )
@@ -158,12 +174,37 @@ def main() -> None:
         default=Path("data/browser-state/buff163_storage_state.json"),
     )
     parser.add_argument("--no-buff-session-state", action="store_true")
-    parser.add_argument("--steam-concurrency", type=int, default=2)
-    parser.add_argument("--buff-concurrency", type=int, default=1)
-    parser.add_argument("--steam-min-delay", type=float, default=0.0)
-    parser.add_argument("--steam-max-delay", type=float, default=0.0)
-    parser.add_argument("--buff-min-delay", type=float, default=0.5)
-    parser.add_argument("--buff-max-delay", type=float, default=2.0)
+    parser.add_argument(
+        "--steam-concurrency",
+        type=int,
+        default=runtime_config.workers.steam_concurrency,
+    )
+    parser.add_argument(
+        "--buff-concurrency",
+        type=int,
+        default=runtime_config.workers.buff_concurrency,
+    )
+    parser.add_argument(
+        "--steam-min-delay",
+        type=float,
+        default=runtime_config.delays.steam_min_seconds,
+    )
+    parser.add_argument(
+        "--steam-max-delay",
+        type=float,
+        default=runtime_config.delays.steam_max_seconds,
+    )
+    parser.add_argument(
+        "--buff-min-delay",
+        type=float,
+        default=runtime_config.delays.buff_min_seconds,
+    )
+    parser.add_argument(
+        "--buff-max-delay",
+        type=float,
+        default=runtime_config.delays.buff_max_seconds,
+    )
+    parser.add_argument("--batch-size", type=int, default=runtime_config.workers.batch_size)
     parser.add_argument("--log-file", type=Path, help="Where to write detailed scraper logs")
     parser.add_argument("--persist", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
@@ -243,6 +284,15 @@ def simple_results_to_jsonable(
     snapshots: tuple[SimpleMarketSnapshot, ...],
     results: tuple[PlatformWorkerResult, ...],
 ) -> dict[str, Any]:
+    summary: dict[str, dict[str, int]] = {}
+    for result in results:
+        platform_summary = summary.setdefault(
+            result.platform_id,
+            {"observations": 0, "errors": 0},
+        )
+        platform_summary["observations"] += len(result.observations)
+        platform_summary["errors"] += len(result.errors)
+
     return {
         "schema_version": "market_snapshot.v1",
         "items": [_snapshot_to_jsonable(snapshot) for snapshot in snapshots],
@@ -256,13 +306,7 @@ def simple_results_to_jsonable(
             for result in results
             for error in result.errors
         ],
-        "summary": {
-            result.platform_id: {
-                "observations": len(result.observations),
-                "errors": len(result.errors),
-            }
-            for result in results
-        },
+        "summary": summary,
     }
 
 
@@ -369,6 +413,14 @@ async def _login_platform(
 def _default_output_path() -> Path:
     run_id = datetime.now(tz=UTC).strftime("%Y%m%d_%H%M%S")
     return Path("data/flow-runs") / f"platform_observations_{run_id}.json"
+
+
+def _chunks(
+    candidates: tuple[SteamDTCandidate, ...],
+    batch_size: int,
+) -> tuple[tuple[SteamDTCandidate, ...], ...]:
+    size = max(1, batch_size)
+    return tuple(candidates[index : index + size] for index in range(0, len(candidates), size))
 
 
 def _configure_logging(args: argparse.Namespace) -> tuple[logging.Logger, Path]:

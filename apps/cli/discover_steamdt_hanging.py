@@ -19,6 +19,7 @@ from apps.acquisition.steamdt_hanging import (
 )
 from packages.persistence.connection import create_pool
 from packages.persistence.repositories import MarketObservationIngestionRepository
+from packages.runtime_config import load_runtime_config
 
 
 @dataclass(frozen=True, slots=True)
@@ -57,12 +58,21 @@ PROFILES = {
 
 async def discover(args: argparse.Namespace) -> int:
     profile = PROFILES[args.profile]
+    runtime_config = load_runtime_config()
     filters = SteamDTHangingFilters(
         headless=not args.show_browser,
         max_candidates=args.limit,
-        min_price=Decimal(str(args.min_price)) if args.min_price is not None else profile.min_price,
+        min_price=(
+            Decimal(str(args.min_price))
+            if args.min_price is not None
+            else runtime_config.discovery.min_price
+        ),
         max_price=Decimal(str(args.max_price)) if args.max_price is not None else profile.max_price,
-        min_volume=args.min_volume if args.min_volume is not None else profile.min_volume,
+        min_volume=(
+            args.min_volume
+            if args.min_volume is not None
+            else runtime_config.discovery.min_volume
+        ),
         currency_code=args.currency,
         balance_type=args.balance_type or profile.balance_type,
         sell_mode=args.sell_mode or profile.sell_mode,
@@ -70,6 +80,9 @@ async def discover(args: argparse.Namespace) -> int:
         platform_buff=args.platform_buff,
         platform_c5game=args.platform_c5game,
         platform_uu=args.platform_uu,
+        enrich_missing_platform_links=args.enrich_links,
+        steam_sale_fee_rate=Decimal(str(args.steam_fee_percent)) / Decimal("100"),
+        withdrawal_fee_rate=Decimal(str(args.withdrawal_fee_percent)) / Decimal("100"),
         manual_login_wait_ms=args.login_wait * 1000 if args.login else 0,
         session_state_path=None if args.no_session_state else args.session_state,
     )
@@ -86,7 +99,11 @@ async def discover(args: argparse.Namespace) -> int:
         for candidate in candidates:
             print(candidate.to_json())
     else:
-        _print_candidates_table(candidates)
+        _print_candidates_table(
+            candidates,
+            Decimal(str(args.steam_fee_percent)),
+            Decimal(str(args.withdrawal_fee_percent)),
+        )
     print(f"steamdt_candidates={len(candidates)}")
     return len(candidates)
 
@@ -136,7 +153,11 @@ async def _fetch_steam_prices(
     return len(observations)
 
 
-def _print_candidates_table(candidates: tuple[SteamDTCandidate, ...]) -> None:
+def _print_candidates_table(
+    candidates: tuple[SteamDTCandidate, ...],
+    steam_fee_percent: Decimal,
+    withdrawal_fee_percent: Decimal,
+) -> None:
     if not candidates:
         print("No SteamDT candidates found.")
         return
@@ -148,18 +169,36 @@ def _print_candidates_table(candidates: tuple[SteamDTCandidate, ...]) -> None:
             candidate.quality or "",
             _money(candidate.buff_price, candidate.currency),
             _money(candidate.steam_price, candidate.currency),
+            _money(candidate.break_even_steam_price, candidate.currency),
             _money(candidate.profit, candidate.currency),
             _percent(candidate.profitability_percent),
+            _money(candidate.net_profit, candidate.currency),
+            _percent(candidate.net_roi_percent),
             str(candidate.volume or ""),
         )
         for index, candidate in enumerate(candidates, start=1)
     ]
-    headers = ("#", "Item", "Quality", "Buy", "Sell", "Profit", "ROI", "Vol")
+    headers = (
+        "#",
+        "Item",
+        "Quality",
+        "Buy",
+        "Sell",
+        "Break-even",
+        "Gross P/L",
+        "Gross ROI",
+        "Net P/L",
+        "Net ROI",
+        "Vol",
+    )
     widths = [
         min(max(len(row[column]) for row in (*rows, headers)), 48)
         for column in range(len(headers))
     ]
     print(_format_row(headers, widths))
+    print(
+        f"Fees: Steam {steam_fee_percent}% + withdrawal {withdrawal_fee_percent}%"
+    )
     print(_format_row(tuple("-" * width for width in widths), widths))
     for row in rows:
         print(_format_row(row, widths))
@@ -176,14 +215,13 @@ def _money(value: Decimal | None, currency: str | None) -> str:
     if value is None:
         return ""
     suffix = f" {currency}" if currency else ""
-    return f"{value}{suffix}"
+    return f"{value.quantize(Decimal('0.01'))}{suffix}"
 
 
 def _percent(value: Decimal | None) -> str:
     if value is None:
         return ""
-    normalized = value * Decimal("100") if abs(value) <= Decimal("3") else value
-    return f"{normalized.quantize(Decimal('0.01'))}%"
+    return f"{value.quantize(Decimal('0.01'))}%"
 
 
 def _safe_console_text(value: str) -> str:
@@ -192,23 +230,30 @@ def _safe_console_text(value: str) -> str:
 
 
 def main() -> None:
+    runtime_config = load_runtime_config()
     parser = argparse.ArgumentParser(description="Discover candidates from SteamDT Hanging.")
     parser.add_argument(
         "--profile",
         choices=tuple(PROFILES),
         default="platform_arbitrage_safe",
     )
-    parser.add_argument("--limit", type=int, default=20)
+    parser.add_argument("--limit", type=int, default=runtime_config.discovery.candidates_limit)
     parser.add_argument("--min-price", type=float)
     parser.add_argument("--max-price", type=float)
     parser.add_argument("--min-volume", type=int)
-    parser.add_argument("--currency", default="EUR")
+    parser.add_argument("--currency", default=runtime_config.discovery.currency)
     parser.add_argument("--balance-type")
     parser.add_argument("--sell-mode")
     parser.add_argument("--buy-mode")
     parser.add_argument("--platform-buff", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--platform-c5game", action=argparse.BooleanOptionalAction, default=False)
     parser.add_argument("--platform-uu", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument(
+        "--enrich-links",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="Open SteamDT detail pages only when platform links are missing",
+    )
     parser.add_argument("--show-browser", action="store_true")
     parser.add_argument("--output", type=Path)
     parser.add_argument(
@@ -230,6 +275,16 @@ def main() -> None:
         help="Seconds to wait for manual login when --login is enabled",
     )
     parser.add_argument("--fetch-steam-prices", action="store_true")
+    parser.add_argument(
+        "--steam-fee-percent",
+        type=float,
+        default=float(runtime_config.fees.steam_sale_percent),
+    )
+    parser.add_argument(
+        "--withdrawal-fee-percent",
+        type=float,
+        default=float(runtime_config.fees.withdrawal_percent),
+    )
     parser.add_argument("--persist", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--format", choices=("table", "json"), default="table")

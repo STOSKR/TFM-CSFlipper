@@ -1,0 +1,20 @@
+[discovery]
+candidates_limit = 50
+min_price = 100
+min_volume = 12
+currency = "EUR"
+
+[fees]
+steam_sale_percent = 13
+withdrawal_percent = 20
+
+[workers]
+steam_concurrency = 1
+buff_concurrency = 1
+batch_size = 5
+
+[delays]
+steam_min_seconds = 1.5
+steam_max_seconds = 4.0
+buff_min_seconds = 2.5
+buff_max_seconds = 6.0
