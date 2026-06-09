@@ -26,6 +26,11 @@ def test_build_simple_market_snapshots_merges_platforms_by_item_variant() -> Non
         market_hash_name="StatTrak AK-47 | Slate (Field-Tested)",
         quality="Field-Tested",
         stattrak=True,
+        strategy_id="platform_arbitrage_safe",
+        strategy_label="Platform Balance | Buy via STEAM Buy Order | Sell at Platform Lowest Price",
+        balance_type="Platform Balance",
+        buy_mode="Buy via STEAM Buy Order",
+        sell_mode="Sell at Platform Lowest Price",
         steam_url="https://steamcommunity.com/market/listings/730/AK",
         buff_url="https://buff.163.com/goods/875627",
     )
@@ -42,6 +47,10 @@ def test_build_simple_market_snapshots_merges_platforms_by_item_variant() -> Non
         currency="CNY",
         market_hash_name=candidate.market_hash_name,
         source_reference=candidate.buff_url or "",
+        raw_payload={
+            "market_hash_name": candidate.market_hash_name,
+            "buy_orders": [{"price": "CNY 104.00", "quantity": 7}],
+        },
     )
 
     snapshots = build_simple_market_snapshots(
@@ -64,6 +73,8 @@ def test_build_simple_market_snapshots_merges_platforms_by_item_variant() -> Non
     assert snapshot.steam_currency == "EUR"
     assert snapshot.buff_price == Decimal("105.20")
     assert snapshot.buff_currency == "CNY"
+    assert snapshot.buff_buy_orders == ({"price": "CNY 104.00", "quantity": 7},)
+    assert snapshot.source_strategies[0]["strategy_id"] == "platform_arbitrage_safe"
 
 
 def test_simple_results_to_jsonable_uses_public_snapshot_shape() -> None:
@@ -84,6 +95,7 @@ def test_simple_results_to_jsonable_uses_public_snapshot_shape() -> None:
     assert payload["items"][0]["name"] == "AK-47 | Slate"
     assert payload["items"][0]["steam"]["price"] == "5.41"
     assert payload["items"][0]["steam"]["buy_orders"] == []
+    assert payload["items"][0]["source_strategies"] == []
 
 
 def test_simple_results_to_jsonable_aggregates_summary_across_batches() -> None:
@@ -133,6 +145,7 @@ def _record(
     currency: str,
     market_hash_name: str,
     source_reference: str,
+    raw_payload: dict[str, Any] | None = None,
 ) -> SteamMarketObservation:
     observation = MarketObservationContract(
         correlation_id="test",
@@ -143,7 +156,7 @@ def _record(
         currency=currency,
         source_type=SourceType.SCRAPING,
         source_reference=source_reference,
-        raw_payload={"market_hash_name": market_hash_name},
+        raw_payload=raw_payload or {"market_hash_name": market_hash_name},
     )
     return SteamMarketObservation(
         observation=observation,

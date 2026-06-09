@@ -65,6 +65,11 @@ class SteamDTHangingFilters:
 class SteamDTCandidate:
     item_name: str
     market_hash_name: str
+    strategy_id: str | None = None
+    strategy_label: str | None = None
+    balance_type: str | None = None
+    buy_mode: str | None = None
+    sell_mode: str | None = None
     display_name: str | None = None
     quality: str | None = None
     stattrak: bool = False

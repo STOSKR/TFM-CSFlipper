@@ -1,4 +1,7 @@
-from apps.acquisition.steam_browser_market import extract_steam_price_text
+from apps.acquisition.steam_browser_market import (
+    extract_steam_buy_orders,
+    extract_steam_price_text,
+)
 
 
 def test_extract_steam_price_text_prefers_selector_text() -> None:
@@ -89,3 +92,18 @@ def test_extract_steam_price_text_uses_fallback_line() -> None:
     )
 
     assert price == "12.34 EUR"
+
+
+def test_extract_steam_buy_orders_from_table_rows() -> None:
+    buy_orders = extract_steam_buy_orders(
+        [
+            ["Price", "Quantity"],
+            ["12,34€", "5"],
+            ["11,90€", "18"],
+        ]
+    )
+
+    assert buy_orders == (
+        {"price": "12,34€", "quantity": 5},
+        {"price": "11,90€", "quantity": 18},
+    )

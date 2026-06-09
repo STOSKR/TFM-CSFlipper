@@ -25,6 +25,14 @@ def test_load_steamdt_candidates_keeps_platform_links(tmp_path) -> None:
                     "item_name": "AK-47 | Slate",
                     "market_hash_name": "AK-47 | Slate (Field-Tested)",
                     "quality": "Field-Tested",
+                    "strategy_id": "platform_arbitrage_safe",
+                    "strategy_label": (
+                        "Platform Balance | Buy via STEAM Buy Order | "
+                        "Sell at Platform Lowest Price"
+                    ),
+                    "balance_type": "Platform Balance",
+                    "buy_mode": "Buy via STEAM Buy Order",
+                    "sell_mode": "Sell at Platform Lowest Price",
                     "buff_url": "https://buff.163.com/goods/875627",
                     "steam_url": "https://steamcommunity.com/market/listings/730/AK",
                 }
@@ -37,6 +45,9 @@ def test_load_steamdt_candidates_keeps_platform_links(tmp_path) -> None:
 
     assert candidates[0].buff_url == "https://buff.163.com/goods/875627"
     assert candidates[0].steam_url == "https://steamcommunity.com/market/listings/730/AK"
+    assert candidates[0].strategy_id == "platform_arbitrage_safe"
+    assert candidates[0].balance_type == "Platform Balance"
+    assert candidates[0].buy_mode == "Buy via STEAM Buy Order"
 
 
 def test_latest_steamdt_candidates_path_returns_newest_file(tmp_path) -> None:

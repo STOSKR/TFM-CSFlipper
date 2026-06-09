@@ -76,6 +76,12 @@ def main() -> int:
         help="Open SteamDT detail pages only when platform links are missing",
     )
     parser.add_argument(
+        "--all-profiles",
+        action=argparse.BooleanOptionalAction,
+        default=runtime_config.steamdt.run_all_profiles,
+        help="Run every SteamDT strategy configured in csflipper_config.toml",
+    )
+    parser.add_argument(
         "--steam-fee-percent",
         type=float,
         default=float(runtime_config.fees.steam_sale_percent),
@@ -83,7 +89,8 @@ def main() -> int:
     parser.add_argument(
         "--withdrawal-fee-percent",
         type=float,
-        default=float(runtime_config.fees.withdrawal_percent),
+        default=None,
+        help="Overrides the balance-specific withdrawal percent from csflipper_config.toml",
     )
     args = parser.parse_args()
 
@@ -112,11 +119,13 @@ def main() -> int:
     elif runtime_config.discovery.min_volume is not None:
         command.extend(["--min-volume", str(runtime_config.discovery.min_volume)])
     command.extend(["--steam-fee-percent", str(args.steam_fee_percent)])
-    command.extend(["--withdrawal-fee-percent", str(args.withdrawal_fee_percent)])
+    if args.withdrawal_fee_percent is not None:
+        command.extend(["--withdrawal-fee-percent", str(args.withdrawal_fee_percent)])
     if args.show:
         command.append("--show-browser")
     if args.enrich_links:
         command.append("--enrich-links")
+    command.append("--all-profiles" if args.all_profiles else "--no-all-profiles")
     if args.json:
         command.extend(["--format", "json"])
     if not args.no_output:

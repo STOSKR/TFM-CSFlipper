@@ -204,6 +204,11 @@ class SteamBrowserConnector:
                       selector,
                       text: el.innerText
                     }}))
+                  ),
+                  buyOrderRows: Array.from(
+                    document.querySelectorAll('#market_commodity_buyrequests tr')
+                  ).map((row) =>
+                    Array.from(row.querySelectorAll('td')).map((cell) => cell.innerText)
                   )
                 }})
                 """
@@ -215,6 +220,7 @@ class SteamBrowserConnector:
         body_text = str(payload.get("bodyText") or "")
         ssr_loader_data = list(payload.get("ssrLoaderData") or [])
         selector_texts = list(payload.get("selectorTexts") or [])
+        buy_order_rows = list(payload.get("buyOrderRows") or [])
         self._debug(candidate.market_hash_name, debug_log, f"title={title!r}")
         self._debug(
             candidate.market_hash_name,
@@ -258,6 +264,7 @@ class SteamBrowserConnector:
                 "market_hash_name": candidate.market_hash_name,
                 "steam_url": url,
                 "price_text": price_text,
+                "buy_orders": extract_steam_buy_orders(buy_order_rows),
                 "page_title": title,
                 "debug_log": tuple(debug_log),
             },
@@ -360,6 +367,30 @@ def extract_steam_price_text(
         _append_debug(debug_log, "price matched raw body fallback")
         return match.group(0)
     return None
+
+
+def extract_steam_buy_orders(rows: list[Any]) -> tuple[dict[str, str | int], ...]:
+    buy_orders: list[dict[str, str | int]] = []
+    for row in rows:
+        if not isinstance(row, list) or len(row) < 2:
+            continue
+        row_text = " ".join(str(cell) for cell in row)
+        price_match = MONEY_PATTERN.search(row_text)
+        if not price_match:
+            continue
+        quantity = _first_int_after(row_text, price_match.end())
+        if quantity is None:
+            continue
+        buy_orders.append({"price": price_match.group(0), "quantity": quantity})
+    return tuple(buy_orders)
+
+
+def _first_int_after(value: str, start: int) -> int | None:
+    match = re.search(r"\d[\d.,]*", value[start:])
+    if not match:
+        return None
+    digits = re.sub(r"[^0-9]", "", match.group(0))
+    return int(digits) if digits else None
 
 
 def _extract_bucket_price_text(

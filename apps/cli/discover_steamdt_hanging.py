@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import sys
-from dataclasses import dataclass
+from dataclasses import replace
 from decimal import Decimal
 from pathlib import Path
 from uuid import uuid4
@@ -19,74 +19,70 @@ from apps.acquisition.steamdt_hanging import (
 )
 from packages.persistence.connection import create_pool
 from packages.persistence.repositories import MarketObservationIngestionRepository
-from packages.runtime_config import load_runtime_config
-
-
-@dataclass(frozen=True, slots=True)
-class SteamDTProfile:
-    balance_type: str
-    sell_mode: str
-    buy_mode: str | None
-    min_price: Decimal | None = Decimal("300")
-    max_price: Decimal | None = None
-    min_volume: int | None = 12
-
-
-PROFILES = {
-    "steam_sell_slow": SteamDTProfile(
-        balance_type="STEAM Balance",
-        sell_mode="Sell at STEAM Lowest Price",
-        buy_mode=None,
-    ),
-    "steam_sell_fast": SteamDTProfile(
-        balance_type="STEAM Balance",
-        sell_mode="Sell to STEAM Highest Buy Order",
-        buy_mode=None,
-    ),
-    "platform_arbitrage_safe": SteamDTProfile(
-        balance_type="Platform Balance",
-        sell_mode="Sell at Platform Lowest Price",
-        buy_mode="Buy via STEAM Buy Order",
-    ),
-    "platform_arbitrage_fast": SteamDTProfile(
-        balance_type="Platform Balance",
-        sell_mode="Sell to Platform Highest Buy Order",
-        buy_mode="Buy at STEAM Lowest Price",
-    ),
-}
+from packages.runtime_config import SteamDTProfileConfig, load_runtime_config
 
 
 async def discover(args: argparse.Namespace) -> int:
-    profile = PROFILES[args.profile]
     runtime_config = load_runtime_config()
-    filters = SteamDTHangingFilters(
-        headless=not args.show_browser,
-        max_candidates=args.limit,
-        min_price=(
-            Decimal(str(args.min_price))
-            if args.min_price is not None
-            else runtime_config.discovery.min_price
-        ),
-        max_price=Decimal(str(args.max_price)) if args.max_price is not None else profile.max_price,
-        min_volume=(
-            args.min_volume
-            if args.min_volume is not None
-            else runtime_config.discovery.min_volume
-        ),
-        currency_code=args.currency,
-        balance_type=args.balance_type or profile.balance_type,
-        sell_mode=args.sell_mode or profile.sell_mode,
-        buy_mode=args.buy_mode if args.buy_mode is not None else profile.buy_mode,
-        platform_buff=args.platform_buff,
-        platform_c5game=args.platform_c5game,
-        platform_uu=args.platform_uu,
-        enrich_missing_platform_links=args.enrich_links,
-        steam_sale_fee_rate=Decimal(str(args.steam_fee_percent)) / Decimal("100"),
-        withdrawal_fee_rate=Decimal(str(args.withdrawal_fee_percent)) / Decimal("100"),
-        manual_login_wait_ms=args.login_wait * 1000 if args.login else 0,
-        session_state_path=None if args.no_session_state else args.session_state,
-    )
-    candidates = await SteamDTHangingDiscovery(filters).discover()
+    profile_items = _selected_profiles(args, runtime_config.steamdt.profiles)
+    all_candidates: list[SteamDTCandidate] = []
+    fee_summaries: list[str] = []
+
+    for strategy_id, profile in profile_items:
+        balance_type = args.balance_type or profile.balance_type
+        buy_mode = args.buy_mode if args.buy_mode is not None else profile.buy_mode
+        sell_mode = args.sell_mode or profile.sell_mode
+        withdrawal_fee_percent = (
+            Decimal(str(args.withdrawal_fee_percent))
+            if args.withdrawal_fee_percent is not None
+            else runtime_config.fees.withdrawal_percent_for_balance(balance_type)
+        )
+        filters = SteamDTHangingFilters(
+            headless=not args.show_browser,
+            max_candidates=args.limit,
+            min_price=(
+                Decimal(str(args.min_price))
+                if args.min_price is not None
+                else runtime_config.discovery.min_price
+            ),
+            max_price=Decimal(str(args.max_price)) if args.max_price is not None else None,
+            min_volume=(
+                args.min_volume
+                if args.min_volume is not None
+                else runtime_config.discovery.min_volume
+            ),
+            currency_code=args.currency,
+            balance_type=balance_type,
+            sell_mode=sell_mode,
+            buy_mode=buy_mode,
+            platform_buff=args.platform_buff,
+            platform_c5game=args.platform_c5game,
+            platform_uu=args.platform_uu,
+            enrich_missing_platform_links=args.enrich_links,
+            steam_sale_fee_rate=Decimal(str(args.steam_fee_percent)) / Decimal("100"),
+            withdrawal_fee_rate=withdrawal_fee_percent / Decimal("100"),
+            manual_login_wait_ms=args.login_wait * 1000 if args.login else 0,
+            session_state_path=None if args.no_session_state else args.session_state,
+        )
+        print(
+            "steamdt_strategy="
+            f"{strategy_id} balance={balance_type} buy={buy_mode or '-'} sell={sell_mode}"
+        )
+        candidates = await SteamDTHangingDiscovery(filters).discover()
+        all_candidates.extend(
+            _tag_candidates(
+                candidates,
+                strategy_id=strategy_id,
+                balance_type=balance_type,
+                buy_mode=buy_mode,
+                sell_mode=sell_mode,
+            )
+        )
+        fee_summaries.append(
+            f"{strategy_id}: Steam {args.steam_fee_percent}% + withdrawal {withdrawal_fee_percent}%"
+        )
+
+    candidates = tuple(all_candidates)
 
     if args.output:
         save_candidates(args.output, candidates)
@@ -101,8 +97,7 @@ async def discover(args: argparse.Namespace) -> int:
     else:
         _print_candidates_table(
             candidates,
-            Decimal(str(args.steam_fee_percent)),
-            Decimal(str(args.withdrawal_fee_percent)),
+            tuple(fee_summaries),
         )
     print(f"steamdt_candidates={len(candidates)}")
     return len(candidates)
@@ -155,8 +150,7 @@ async def _fetch_steam_prices(
 
 def _print_candidates_table(
     candidates: tuple[SteamDTCandidate, ...],
-    steam_fee_percent: Decimal,
-    withdrawal_fee_percent: Decimal,
+    fee_summaries: tuple[str, ...],
 ) -> None:
     if not candidates:
         print("No SteamDT candidates found.")
@@ -165,6 +159,7 @@ def _print_candidates_table(
     rows = [
         (
             str(index),
+            candidate.strategy_id or "",
             _safe_console_text(candidate.item_name),
             candidate.quality or "",
             _money(candidate.buff_price, candidate.currency),
@@ -180,6 +175,7 @@ def _print_candidates_table(
     ]
     headers = (
         "#",
+        "Strategy",
         "Item",
         "Quality",
         "Buy",
@@ -196,9 +192,8 @@ def _print_candidates_table(
         for column in range(len(headers))
     ]
     print(_format_row(headers, widths))
-    print(
-        f"Fees: Steam {steam_fee_percent}% + withdrawal {withdrawal_fee_percent}%"
-    )
+    for fee_summary in fee_summaries:
+        print(f"Fees[{fee_summary}]")
     print(_format_row(tuple("-" * width for width in widths), widths))
     for row in rows:
         print(_format_row(row, widths))
@@ -234,8 +229,14 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Discover candidates from SteamDT Hanging.")
     parser.add_argument(
         "--profile",
-        choices=tuple(PROFILES),
-        default="platform_arbitrage_safe",
+        choices=tuple(runtime_config.steamdt.profiles),
+        default=runtime_config.steamdt.default_profile,
+    )
+    parser.add_argument(
+        "--all-profiles",
+        action=argparse.BooleanOptionalAction,
+        default=runtime_config.steamdt.run_all_profiles,
+        help="Run every SteamDT strategy configured in csflipper_config.toml",
     )
     parser.add_argument("--limit", type=int, default=runtime_config.discovery.candidates_limit)
     parser.add_argument("--min-price", type=float)
@@ -283,7 +284,8 @@ def main() -> None:
     parser.add_argument(
         "--withdrawal-fee-percent",
         type=float,
-        default=float(runtime_config.fees.withdrawal_percent),
+        default=None,
+        help="Overrides the balance-specific withdrawal percent from csflipper_config.toml",
     )
     parser.add_argument("--persist", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
@@ -291,6 +293,37 @@ def main() -> None:
     args = parser.parse_args()
 
     asyncio.run(discover(args))
+
+
+def _selected_profiles(
+    args: argparse.Namespace,
+    profiles: dict[str, SteamDTProfileConfig],
+) -> tuple[tuple[str, SteamDTProfileConfig], ...]:
+    if args.all_profiles:
+        return tuple(profiles.items())
+    return ((args.profile, profiles[args.profile]),)
+
+
+def _tag_candidates(
+    candidates: tuple[SteamDTCandidate, ...],
+    *,
+    strategy_id: str,
+    balance_type: str,
+    buy_mode: str | None,
+    sell_mode: str,
+) -> tuple[SteamDTCandidate, ...]:
+    strategy_label = f"{balance_type} | {buy_mode or 'No purchase plan'} | {sell_mode}"
+    return tuple(
+        replace(
+            candidate,
+            strategy_id=strategy_id,
+            strategy_label=strategy_label,
+            balance_type=balance_type,
+            buy_mode=buy_mode,
+            sell_mode=sell_mode,
+        )
+        for candidate in candidates
+    )
 
 
 if __name__ == "__main__":

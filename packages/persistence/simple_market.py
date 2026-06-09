@@ -30,6 +30,7 @@ class SimpleMarketSnapshot:
     buff_currency: str | None = None
     buff_recent_sales: JsonRows = field(default_factory=tuple)
     buff_buy_orders: JsonRows = field(default_factory=tuple)
+    source_strategies: JsonRows = field(default_factory=tuple)
 
 
 @dataclass(slots=True)

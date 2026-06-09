@@ -159,7 +159,7 @@ async def _scrape_steam_api(
     correlation_id: str,
     log: LogCallback | None,
 ) -> PlatformWorkerResult:
-    steam_candidates = [
+    steam_candidates = _unique_steam_market_candidates([
         SteamMarketCandidate(
             market_hash_name=candidate.market_hash_name,
             asset_name=candidate.item_name,
@@ -168,7 +168,7 @@ async def _scrape_steam_api(
         )
         for candidate in candidates
         if candidate.market_hash_name
-    ]
+    ])
     observations: list[SteamMarketObservation] = []
     errors: list[WorkerError] = []
     semaphore = asyncio.Semaphore(config.max_concurrency)
@@ -206,7 +206,7 @@ async def _scrape_steam_browser(
     correlation_id: str,
     log: LogCallback | None,
 ) -> PlatformWorkerResult:
-    steam_candidates = [
+    steam_candidates = _unique_steam_browser_candidates([
         SteamBrowserCandidate(
             market_hash_name=candidate.market_hash_name,
             steam_url=candidate.steam_url,
@@ -216,7 +216,7 @@ async def _scrape_steam_browser(
         )
         for candidate in candidates
         if candidate.market_hash_name
-    ]
+    ])
     connector = SteamBrowserConnector(config, log=log)
     try:
         observations, steam_errors = await connector.fetch_candidates_lenient(
@@ -255,7 +255,7 @@ async def _scrape_buff(
     correlation_id: str,
     log: LogCallback | None,
 ) -> PlatformWorkerResult:
-    buff_candidates = [
+    buff_candidates = _unique_buff_candidates([
         Buff163Candidate(
             market_hash_name=candidate.market_hash_name,
             buff_url=candidate.buff_url,
@@ -265,7 +265,7 @@ async def _scrape_buff(
         )
         for candidate in candidates
         if candidate.market_hash_name and candidate.buff_url
-    ]
+    ])
     connector = Buff163Connector(config, log=log)
     try:
         observations, buff_errors = await connector.fetch_candidates_lenient(
@@ -302,6 +302,11 @@ def _candidate_from_row(row: dict[str, Any]) -> SteamDTCandidate:
     return SteamDTCandidate(
         item_name=str(row.get("item_name") or ""),
         market_hash_name=str(row.get("market_hash_name") or ""),
+        strategy_id=_optional_str(row.get("strategy_id")),
+        strategy_label=_optional_str(row.get("strategy_label")),
+        balance_type=_optional_str(row.get("balance_type")),
+        buy_mode=_optional_str(row.get("buy_mode")),
+        sell_mode=_optional_str(row.get("sell_mode")),
         display_name=_optional_str(row.get("display_name")),
         quality=_optional_str(row.get("quality")),
         stattrak=bool(row.get("stattrak", False)),
@@ -315,6 +320,44 @@ def _candidate_from_row(row: dict[str, Any]) -> SteamDTCandidate:
 def _optional_str(value: object) -> str | None:
     text = str(value or "").strip()
     return text or None
+
+
+def _unique_steam_market_candidates(
+    candidates: list[SteamMarketCandidate],
+) -> list[SteamMarketCandidate]:
+    seen: set[str] = set()
+    unique: list[SteamMarketCandidate] = []
+    for candidate in candidates:
+        if candidate.market_hash_name in seen:
+            continue
+        seen.add(candidate.market_hash_name)
+        unique.append(candidate)
+    return unique
+
+
+def _unique_steam_browser_candidates(
+    candidates: list[SteamBrowserCandidate],
+) -> list[SteamBrowserCandidate]:
+    seen: set[str] = set()
+    unique: list[SteamBrowserCandidate] = []
+    for candidate in candidates:
+        if candidate.market_hash_name in seen:
+            continue
+        seen.add(candidate.market_hash_name)
+        unique.append(candidate)
+    return unique
+
+
+def _unique_buff_candidates(candidates: list[Buff163Candidate]) -> list[Buff163Candidate]:
+    seen: set[tuple[str, str]] = set()
+    unique: list[Buff163Candidate] = []
+    for candidate in candidates:
+        key = (candidate.market_hash_name, candidate.buff_url)
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(candidate)
+    return unique
 
 
 def _emit(log: LogCallback | None, message: str) -> None:

@@ -224,15 +224,28 @@ def build_simple_market_snapshots(
         for candidate in candidates
         if candidate.market_hash_name
     }
+    strategies_by_hash: dict[str, list[dict[str, str | None]]] = {}
+    for candidate in candidates:
+        if not candidate.market_hash_name or not candidate.strategy_id:
+            continue
+        strategies_by_hash.setdefault(candidate.market_hash_name, []).append(
+            {
+                "strategy_id": candidate.strategy_id,
+                "strategy_label": candidate.strategy_label,
+                "balance_type": candidate.balance_type,
+                "buy_mode": candidate.buy_mode,
+                "sell_mode": candidate.sell_mode,
+            }
+        )
     grouped: dict[tuple[str, str, bool], dict[str, Any]] = {}
 
     for result in results:
         for record in result.observations:
             market_hash_name = str(record.observation.raw_payload.get("market_hash_name") or "")
-            candidate = candidates_by_hash.get(market_hash_name)
-            name = _item_name(record, candidate)
-            quality = _quality(record, candidate)
-            stattrak = _stattrak(record, candidate, market_hash_name)
+            matched_candidate = candidates_by_hash.get(market_hash_name)
+            name = _item_name(record, matched_candidate)
+            quality = _quality(record, matched_candidate)
+            stattrak = _stattrak(record, matched_candidate, market_hash_name)
             key = (name, quality, stattrak)
             entry = grouped.setdefault(
                 key,
@@ -241,27 +254,35 @@ def build_simple_market_snapshots(
                     "quality": quality,
                     "stattrak": stattrak,
                     "scraped_at": scraped_at,
-                    "steam_url": candidate.steam_url if candidate else None,
-                    "buff_url": candidate.buff_url if candidate else None,
+                    "steam_url": (
+                        matched_candidate.steam_url if matched_candidate else None
+                    ),
+                    "buff_url": matched_candidate.buff_url if matched_candidate else None,
                     "steam_price": None,
                     "steam_currency": None,
+                    "steam_buy_orders": [],
                     "buff_price": None,
                     "buff_currency": None,
+                    "buff_buy_orders": [],
+                    "strategies": [],
                 },
             )
-            if candidate:
-                entry["steam_url"] = entry["steam_url"] or candidate.steam_url
-                entry["buff_url"] = entry["buff_url"] or candidate.buff_url
+            entry["strategies"].extend(strategies_by_hash.get(market_hash_name, ()))
+            if matched_candidate:
+                entry["steam_url"] = entry["steam_url"] or matched_candidate.steam_url
+                entry["buff_url"] = entry["buff_url"] or matched_candidate.buff_url
 
             platform_id = record.observation.platform_id
             if platform_id == "steam":
                 entry["steam_price"] = record.observation.price
                 entry["steam_currency"] = record.observation.currency
                 entry["steam_url"] = entry["steam_url"] or record.observation.source_reference
+                entry["steam_buy_orders"] = record.observation.raw_payload.get("buy_orders") or []
             elif platform_id == "buff163":
                 entry["buff_price"] = record.observation.price
                 entry["buff_currency"] = record.observation.currency
                 entry["buff_url"] = entry["buff_url"] or record.observation.source_reference
+                entry["buff_buy_orders"] = record.observation.raw_payload.get("buy_orders") or []
 
     return tuple(
         SimpleMarketSnapshot(
@@ -273,8 +294,11 @@ def build_simple_market_snapshots(
             buff_url=_optional_str(entry.get("buff_url")),
             steam_price=entry.get("steam_price"),
             steam_currency=_optional_str(entry.get("steam_currency")),
+            steam_buy_orders=tuple(_json_rows(entry.get("steam_buy_orders"))),
             buff_price=entry.get("buff_price"),
             buff_currency=_optional_str(entry.get("buff_currency")),
+            buff_buy_orders=tuple(_json_rows(entry.get("buff_buy_orders"))),
+            source_strategies=tuple(_unique_strategy_rows(entry.get("strategies"))),
         )
         for entry in grouped.values()
     )
@@ -485,6 +509,7 @@ def _snapshot_to_jsonable(snapshot: SimpleMarketSnapshot) -> dict[str, Any]:
             "recent_sales": list(snapshot.buff_recent_sales),
             "buy_orders": list(snapshot.buff_buy_orders),
         },
+        "source_strategies": list(snapshot.source_strategies),
     }
 
 
@@ -498,6 +523,42 @@ def _required_text(value: object, field_name: str) -> str:
 def _optional_str(value: object) -> str | None:
     text = str(value or "").strip()
     return text or None
+
+
+def _unique_strategy_rows(value: object) -> tuple[dict[str, str | None], ...]:
+    if not isinstance(value, list):
+        return ()
+    seen: set[tuple[str | None, str | None, str | None, str | None, str | None]] = set()
+    rows: list[dict[str, str | None]] = []
+    for row in value:
+        if not isinstance(row, dict):
+            continue
+        key = (
+            _optional_str(row.get("strategy_id")),
+            _optional_str(row.get("strategy_label")),
+            _optional_str(row.get("balance_type")),
+            _optional_str(row.get("buy_mode")),
+            _optional_str(row.get("sell_mode")),
+        )
+        if key in seen:
+            continue
+        seen.add(key)
+        rows.append(
+            {
+                "strategy_id": key[0],
+                "strategy_label": key[1],
+                "balance_type": key[2],
+                "buy_mode": key[3],
+                "sell_mode": key[4],
+            }
+        )
+    return tuple(rows)
+
+
+def _json_rows(value: object) -> tuple[dict[str, Any], ...]:
+    if not isinstance(value, list | tuple):
+        return ()
+    return tuple(dict(row) for row in value if isinstance(row, dict))
 
 
 if __name__ == "__main__":

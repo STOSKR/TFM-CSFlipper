@@ -210,7 +210,16 @@ class Buff163Connector:
                       selector,
                       text: el.innerText
                     }}))
-                  )
+                  ),
+                  buyOrderRows: Array.from(
+                    document.querySelectorAll(
+                      "tr, li, [class*='buy'], [class*='order'], [class*='demand']"
+                    )
+                  ).map((el) => ({{
+                    tag: el.tagName,
+                    className: el.className || "",
+                    text: el.innerText || ""
+                  }}))
                 }})
                 """
             )
@@ -220,6 +229,7 @@ class Buff163Connector:
         title = str(payload.get("title") or "")
         body_text = str(payload.get("bodyText") or "")
         selector_texts = list(payload.get("selectorTexts") or [])
+        buy_order_rows = list(payload.get("buyOrderRows") or [])
         self._debug(candidate.market_hash_name, debug_log, f"title={title!r}")
         self._debug(
             candidate.market_hash_name,
@@ -252,6 +262,7 @@ class Buff163Connector:
                 "market_hash_name": candidate.market_hash_name,
                 "buff_url": candidate.buff_url,
                 "price_text": price_text,
+                "buy_orders": extract_buff_buy_orders(buy_order_rows, body_text),
                 "page_title": title,
                 "debug_log": tuple(debug_log),
             },
@@ -336,6 +347,68 @@ def extract_buff_price_text(
     if match:
         _append_debug(debug_log, "price matched raw body fallback")
     return match.group(0) if match else None
+
+
+def extract_buff_buy_orders(
+    rows: list[Any],
+    body_text: str = "",
+) -> tuple[dict[str, str | int], ...]:
+    buy_orders: list[dict[str, str | int]] = []
+    seen: set[tuple[str, int]] = set()
+    for text in _buy_order_candidate_texts(rows, body_text):
+        price_match = MONEY_PATTERN.search(text)
+        if not price_match:
+            continue
+        quantity = _first_int_after(text, price_match.end())
+        if quantity is None:
+            continue
+        key = (price_match.group(0), quantity)
+        if key in seen:
+            continue
+        seen.add(key)
+        buy_orders.append({"price": key[0], "quantity": key[1]})
+    return tuple(buy_orders)
+
+
+def _buy_order_candidate_texts(rows: list[Any], body_text: str) -> tuple[str, ...]:
+    labels = (
+        "buy",
+        "order",
+        "purchase",
+        "demand",
+        "\u6c42\u8d2d",
+        "\u6536\u8d2d",
+        "\u8d2d\u4e70",
+    )
+    texts: list[str] = []
+    for row in rows:
+        text = ""
+        if isinstance(row, dict):
+            text = " ".join(
+                str(row.get(key) or "")
+                for key in ("className", "text")
+            )
+        elif isinstance(row, list):
+            text = " ".join(str(cell) for cell in row)
+        else:
+            text = str(row)
+        normalized = " ".join(text.split())
+        if normalized and any(label in normalized.lower() for label in labels):
+            texts.append(normalized)
+
+    for line in body_text.splitlines():
+        normalized = " ".join(line.split())
+        if normalized and any(label in normalized.lower() for label in labels):
+            texts.append(normalized)
+    return tuple(texts)
+
+
+def _first_int_after(value: str, start: int) -> int | None:
+    match = re.search(r"\d[\d.,]*", value[start:])
+    if not match:
+        return None
+    digits = re.sub(r"[^0-9]", "", match.group(0))
+    return int(digits) if digits else None
 
 
 def _append_debug(debug_log: list[str] | None, message: str) -> None:

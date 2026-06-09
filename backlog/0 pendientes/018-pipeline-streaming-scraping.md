@@ -6,7 +6,7 @@ Convertir el flujo actual en un pipeline incremental donde los articulos descubi
 
 ## Contexto
 
-El flujo actual ya evita abrir paginas detalle de SteamDT, trabaja con batches en `market_workers.py` y persiste cada lote. Aun asi, sigue habiendo dos comandos: primero se extrae una lista de candidatos y despues se scrapean plataformas. Para escalar mejor y reducir tiempos muertos, conviene conectar ambas fases con una cola interna.
+El flujo actual ya evita abrir paginas detalle de SteamDT, trabaja con batches en `market_workers.py`, persiste cada lote y deduplica articulos repetidos por varias combinaciones de SteamDT. Aun asi, sigue habiendo dos comandos: primero se extrae una lista de candidatos y despues se scrapean plataformas. Para escalar mejor y reducir tiempos muertos, conviene conectar ambas fases con una cola interna.
 
 ## Alcance
 
