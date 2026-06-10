@@ -1,31 +1,31 @@
-# Adaptar scraping al esquema simple
+# Validar scraping e historicos Steam-BUFF
 
 ## Objetivo
 
-Modificar el flujo de scraping para guardar directamente en `market_items` y `market_snapshots`, eliminando la dependencia operativa del esquema canonico anterior para esta primera fase.
+Completar y validar el flujo de scraping para guardar snapshots comparables de Steam Market y Buff163 con historico suficiente para entrenamiento y simulacion.
 
 ## Contexto
 
-El proyecto empieza sin datos existentes, asi que conviene evitar complejidad innecesaria. La nueva estructura simple prioriza articulo, calidad, StatTrak, URLs, momento de scraping, precios, ultimas ventas y buy orders por plataforma.
+El flujo simple ya persiste `market_items` y `market_snapshots`, pero aun falta validar con datos reales los selectores, ultimas ventas, buy orders e historicos necesarios para entrenar el modelo supervisado y alimentar el entorno MARL.
 
 ## Alcance
 
-- Crear repositorio de persistencia para `market_items` y `market_snapshots`.
-- Hacer upsert de `market_items` con `name`, `quality`, `stattrak`, `steam_url` y `buff_url`.
-- Unificar las observaciones de Steam y BUFF de un mismo articulo en una fila de `market_snapshots`.
-- Guardar `scraped_at`, `currency`, `steam_price`, `buff_price`, `steam_recent_sales`, `steam_buy_orders`, `buff_recent_sales` y `buff_buy_orders`.
-- Simplificar la salida JSON del flujo para que coincida con la estructura de BD.
-- Ajustar `market_workers.py` para que sea el comando principal de scraping profundo.
-- Ejecutar SteamDT con varias combinaciones configurables de balance, compra y venta.
-- Etiquetar cada candidato con la combinacion usada para poder interpretar el precio y el flujo posterior.
+- Mantener `market_items` y `market_snapshots` como esquema operativo inicial.
+- Validar selectores reales de Steam y Buff163 para precio, buy orders, ultimas ventas y volumen.
+- Guardar o derivar series historicas por item, plataforma y timestamp.
+- Etiquetar cada snapshot con estrategia de descubrimiento, moneda, fuente y calidad de extraccion.
+- Ajustar `market_workers.py` como comando principal de scraping profundo.
+- Registrar errores por plataforma sin detener el flujo completo.
+- Documentar que `steamdt.py`, `market_workers.py` y conectores de adquisicion son extractores, no agentes MARL.
 
 ## Criterios de aceptacion
 
 - Ejecutar `python steamdt.py 50 --show` genera candidatos con nombre, calidad, StatTrak y URLs.
 - Ejecutar `python market_workers.py --show-browser --persist` guarda datos en `market_items` y `market_snapshots`.
-- No se insertan datos en tablas antiguas durante el flujo simple.
-- La vista `market_snapshot_view` muestra los datos listos para revision.
+- La vista `market_snapshot_view` muestra datos listos para revision.
+- Hay muestras reales con precio, spread, volumen y buy orders de Steam y Buff163.
 - Hay tests unitarios del mapeo candidato + observaciones -> snapshot simple.
+- Queda documentado que los scripts existentes alimentan datos, pero no sustituyen al entorno PettingZoo ni a los agentes Scout, Trader y Portfolio.
 
 ## Decisiones tecnicas
 
@@ -68,4 +68,5 @@ El proyecto empieza sin datos existentes, asi que conviene evitar complejidad in
 - Falta validar con datos reales los selectores de buy orders de Steam y BUFF.
 - Falta implementar scraping fiable de ultimas ventas/historico para Steam y BUFF.
 - El `scraped_at` del snapshot es unico por ejecucion del worker.
-- El streaming real SteamDT -> workers mientras la tabla aun se esta leyendo queda para una tarea especifica.
+- No debe considerarse una tarea MARL completada: solo estabiliza la capa de datos.
+

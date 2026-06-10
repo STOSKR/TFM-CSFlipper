@@ -2,7 +2,7 @@
 
 Sistema multiagente para simular decisiones de inversión en mercados de activos digitales de Counter-Strike 2.
 
-El proyecto observa precios, liquidez y señales de mercado de plataformas como Steam, Skinport y Buff; consolida histórico en Supabase/Postgres; calcula predicciones temporales; y decide operaciones simuladas mediante consenso entre agentes con perfiles de riesgo.
+El proyecto observa precios, liquidez y señales de mercado de plataformas como Steam Market y Buff163; consolida histórico en Supabase/Postgres; calcula probabilidades supervisadas calibradas sobre spreads; y entrena agentes MARL cooperativos para decidir operaciones simuladas.
 
 ## Estado del Proyecto
 
@@ -35,7 +35,8 @@ Para una vista rápida del árbol, agentes y flujo funcional, abre [ESTRUCTURA_P
 - Monorepo modular.
 - Supabase/Postgres como fuente de verdad.
 - Python asíncrono para I/O.
-- Agentes SPADE como coordinadores, no como contenedores de lógica de negocio.
+- Agentes extractores para adquisición de datos: scraping, OCR, CSV/API y SteamDT.
+- Agentes MARL de decisión: Scout, Trader y Portfolio, entrenados con PettingZoo/RLlib.
 - Contratos compartidos con Pydantic V2.
 - Decisiones siempre simuladas hasta nueva orden.
 - Código no repetido: lógica común en `packages/`, no duplicada en `apps/`.
@@ -49,5 +50,6 @@ Para una vista rápida del árbol, agentes y flujo funcional, abre [ESTRUCTURA_P
 - [Modelo de datos](docs/data-model.md)
 - [Flujo operativo](docs/operational-flow.md)
 - [Protocolos de agentes](docs/agent-protocols.md)
+- [Analisis del Excel operativo](docs/excel-operativo-analysis.md)
 - [Pipeline OCR](docs/ocr-pipeline.md)
 - [Simulación y evaluación](docs/simulation-model.md)

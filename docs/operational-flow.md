@@ -1,52 +1,51 @@
 # Flujo Operativo Objetivo
 
 Este documento aclara el flujo de trabajo esperado para adquisición, predicción,
-votación multiagente y simulación de cartera.
+decisión MARL y simulación de cartera.
 
 ## Principio Base
 
 El sistema no ejecuta compras reales. Todo termina en decisiones simuladas, posiciones
 simuladas, métricas y trazabilidad.
 
-Los scrapers, OCR runners y workers son automatizaciones de adquisición. Los agentes SPADE
-coordinan análisis, votación y decisión.
+Los scrapers, OCR runners, workers, importadores CSV/API y SteamDT son agentes extractores de adquisición. Su salida alimenta datasets, inferencia supervisada y observaciones del entorno, pero no forma parte del núcleo MARL entrenado con MAPPO.
 
 ## Flujo
 
 ```text
-1. Scheduler / Acquisition Runner
+1. Agentes extractores / Acquisition Runner
    -> scraping o capturas para OCR
    -> cookies/sesión
    -> clicks con delays aleatorios
    -> workers paralelos controlados
    -> lista de candidatos
 
-1.5 Candidate Prefilter
+1.5 Dataset / Feature Builder
    -> normalización mínima de candidatos
-   -> llamada al predictor/modelo entrenado
-   -> selección de candidatos con oportunidad razonable
+   -> historico Steam-BUFF alineado
+   -> features de spread, volumen, tendencia y liquidez
+   -> etiqueta de spread rentable a 7 dias
 
-2. Persistencia
+2. Persistencia e historico
    -> upsert de assets/plataformas si hace falta
-   -> inserción append-only de market_observations nuevas
-   -> outbox: MarketObservationCaptured / PredictionRequested
+   -> inserción append-only de snapshots/observaciones nuevas
+   -> trazabilidad de fuente, timestamp, moneda y calidad de dato
 
-3. Predicción
+3. Modelo supervisado calibrado
    -> lectura de histórico y candidatos
    -> features
-   -> probability_up, expected_return, confidence
-   -> persistencia de predictions
-   -> evento PredictionCompleted
+   -> probabilidad calibrada de spread rentable a 7 dias
+   -> persistencia de predicciones versionadas
 
-4. Votación Multiagente
-   -> Broker/Jefe recibe PredictionCompleted
-   -> convoca agentes de perfiles de riesgo
-   -> participa Risk/Portfolio Manager con capital disponible, exposición y trade hold
-   -> votos estructurados
+4. Entorno MARL
+   -> PettingZoo carga episodio historico
+   -> observaciones locales con probabilidad supervisada
+   -> Scout detecta oportunidades
+   -> Trader decide accion y tamaño
+   -> Portfolio controla riesgo y exposicion
 
 5. Decisión Simulada
-   -> consenso
-   -> investment_decisions
+   -> acciones descentralizadas de politicas entrenadas
    -> simulador abre/rechaza/mantiene observación
    -> métricas de cartera y evaluación
 ```
@@ -71,12 +70,11 @@ ritmo ni los mismos patrones de navegación.
 
 ## Prefiltro de Candidatos
 
-Antes de scrapear en profundidad todos los artículos, la capa de adquisición puede generar una
-lista de candidatos a partir de catálogo, listings, búsquedas o snapshots rápidos.
+Antes de scrapear en profundidad todos los artículos, la capa de adquisición puede generar una lista de candidatos a partir de catálogo, listings, búsquedas o snapshots rápidos.
 
 Esa lista debe pasar por un predictor ligero o por el modelo entrenado cuando exista suficiente
 histórico. El objetivo es priorizar qué artículos merecen scraping profundo, predicción completa
-o votación.
+o simulación.
 
 La salida del prefiltro no compra ni decide. Solo prioriza.
 
@@ -93,8 +91,9 @@ Patrón recomendado:
   moneda, variante, fuente y momento observado.
 - `outbox_events`: evento asociado a cada inserción relevante.
 - `predictions`: salida del predictor para un activo/plataforma/horizonte.
-- `votes`: votos por perfil.
-- `investment_decisions`: decisión simulada final.
+- `predictions`: salida del modelo supervisado calibrado.
+- `agent_actions`: acciones emitidas por Scout, Trader y Portfolio cuando exista la tabla.
+- `investment_decisions`: decisión simulada final o accion consolidada.
 - `simulated_positions`: posiciones simuladas y bloqueo por trade hold.
 
 Para evitar duplicados, usar una clave natural o fingerprint basado en:
@@ -111,17 +110,15 @@ del sistema debe trabajar con campos normalizados.
 
 ## Modelo y Agentes
 
-El modelo entrenado genera una predicción, no una orden. Esa predicción debe incluir:
+El modelo supervisado genera una probabilidad calibrada, no una orden. Esa predicción debe incluir:
 
-- probabilidad de subida;
-- retorno esperado;
-- confianza;
+- probabilidad de spread rentable a 7 dias;
+- version del modelo;
 - horizonte temporal;
 - snapshot de features;
 - `correlation_id`.
 
-El Broker/Jefe convoca votación con esa predicción. Los perfiles de riesgo votan según reglas
-propias y el Risk/Portfolio Manager añade restricciones de cartera simulada:
+Las politicas MARL usan esa probabilidad como feature de observacion. El agente Portfolio añade o aprende sobre restricciones de cartera simulada:
 
 - capital disponible;
 - capital bloqueado;

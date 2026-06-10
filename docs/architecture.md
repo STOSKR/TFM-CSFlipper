@@ -10,9 +10,9 @@ Construir una plataforma de simulación financiera con arquitectura multiagente 
 
 - adquirir datos de mercado mediante APIs, scraping y OCR;
 - consolidar histórico en Supabase/Postgres;
-- calcular señales predictivas sobre series temporales;
+- entrenar un modelo supervisado tabular que estime probabilidades calibradas de spread rentable;
 - simular operaciones respetando reglas reales del mercado;
-- tomar decisiones simuladas mediante consenso entre agentes especializados;
+- entrenar agentes MARL cooperativos para tomar decisiones simuladas;
 - evaluar rendimiento sobre periodos no vistos durante entrenamiento.
 
 ## Capas
@@ -28,7 +28,7 @@ Responsable de capturar datos desde:
 
 La adquisición valida y normaliza datos antes de guardarlos. Después registra eventos en la outbox.
 
-Los scrapers, conectores API, importadores CSV y procesos OCR son automatizaciones de adquisición. No son agentes SPADE por defecto: deben poder ejecutarse como jobs, comandos CLI o servicios programados. Si más adelante se necesita coordinación inteligente de fuentes, se podrá añadir un agente coordinador de adquisición.
+Los scrapers, conectores API, importadores CSV, SteamDT y procesos OCR pueden describirse como agentes extractores o agentes de adquisición: observan una fuente, extraen datos, controlan errores y publican observaciones. No forman parte del núcleo MARL ni se entrenan con MAPPO; deben poder ejecutarse como jobs, comandos CLI o servicios programados.
 
 ### 2. Persistencia
 
@@ -36,19 +36,19 @@ Supabase/Postgres es la fuente de verdad. El detalle de tablas vive en [data-mod
 
 ### 3. Predicción
 
-Calcula features sobre histórico de precio, volumen, liquidez, spread, float y plataforma.
+Calcula features sobre histórico de precio, volumen, liquidez, spread y plataforma.
 
-Puede empezar con modelos simples como medias móviles, momentum o regresión, y evolucionar a LSTM, Transformers de series temporales o modelos de aprendizaje por refuerzo.
+El componente supervisado compara modelos tabulares, selecciona el mejor con splits temporales, calibra probabilidades y serializa un artefacto de inferencia. Su salida principal es la probabilidad calibrada de que el spread siga siendo rentable en un horizonte de 7 días.
 
-### 4. Decisión Multiagente
+### 4. Decisión MARL
 
-Los agentes SPADE coordinan el flujo:
+El núcleo de decisión usa aprendizaje por refuerzo multiagente cooperativo:
 
-- el Agente Analista solicita o ejecuta predicciones;
-- el Agente Jefe convoca votaciones;
-- los agentes de perfil evalúan desde distintas estrategias.
+- Scout detecta y marca oportunidades;
+- Trader decide compra, venta, mantener y tamaño de posición;
+- Portfolio gestiona riesgo, exposición y capital bloqueado.
 
-La definición completa de agentes, mensajes y FIPA está en [agent-protocols.md](agent-protocols.md).
+El entrenamiento usa PettingZoo y RLlib con MAPPO bajo CTDE: crítico centralizado durante entrenamiento y ejecución descentralizada por actor local en inferencia. La probabilidad supervisada entra como feature de observación, no como decisión final.
 
 ### 5. Simulación y Evaluación
 
@@ -58,20 +58,18 @@ El simulador replica reglas de mercado como comisiones, liquidez y `trade hold`.
 
 ```text
 Fuente externa
-  -> adquisición OCR/scraping/API
-  -> market_observations
-  -> outbox: MarketObservationCaptured
-  -> Agente Analista
-  -> predictions
-  -> Agente Jefe
-  -> votación FIPA
-  -> votes
-  -> investment_decisions
+  -> agentes extractores OCR/scraping/API/SteamDT
+  -> market_snapshots / historico
+  -> dataset supervisado
+  -> modelo calibrado en inferencia
+  -> entorno PettingZoo
+  -> Scout / Trader / Portfolio
+  -> decision simulada
   -> simulador/evaluador
 ```
 
 El flujo operativo detallado, incluyendo scraping periódico, OCR, cookies, delays aleatorios,
-workers paralelos, prefiltro de candidatos, predicción, votación y cartera simulada, está en
+workers paralelos, predicción supervisada, entorno MARL y cartera simulada, está en
 [operational-flow.md](operational-flow.md).
 
 ## Regla de Dependencias
@@ -85,4 +83,4 @@ agents -> contracts/use cases
 domain -> nada externo
 ```
 
-SPADE, Supabase, OpenCV, Tesseract y TensorFlow son detalles de infraestructura o servicios especializados. No deben contaminar el dominio.
+PettingZoo, RLlib, Supabase, OpenCV, Tesseract y librerías ML son detalles de infraestructura o servicios especializados. No deben contaminar el dominio.

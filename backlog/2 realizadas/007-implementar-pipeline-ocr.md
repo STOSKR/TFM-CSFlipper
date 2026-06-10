@@ -51,3 +51,5 @@ El alcance del TFM anade OCR como via complementaria de adquisicion cuando no ex
 - Requiere el binario de Tesseract instalado en la maquina para procesar imagenes reales.
 - OCR puede ser fragil ante cambios visuales.
 - El entorno local actual no tenia `cv2` instalado; para prueba real con captura hay que instalar las dependencias del proyecto y Tesseract.
+- Revision MARL: el OCR no debe convertirse en agente MARL. Solo tiene sentido como fuente auxiliar de datos cuando scraping/API no sean suficientes.
+- Para integrarlo con el pipeline final falta normalizar sus salidas al mismo contrato temporal usado por el dataset supervisado y por el entorno PettingZoo.

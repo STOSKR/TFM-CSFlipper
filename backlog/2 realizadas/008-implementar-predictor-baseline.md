@@ -50,3 +50,5 @@ Un baseline permite probar el flujo completo adquisicion -> prediccion -> votaci
 
 - El baseline no aprende patrones; solo transforma senales estadisticas simples.
 - Requiere historico suficiente para que momentum y volatilidad tengan significado.
+- Revision MARL: `MomentumBaselinePredictor` no debe darse por valido como modelo supervisado final ni como agente. Puede usarse como baseline experimental, fallback de tests o comparador.
+- Para integrarlo correctamente en la arquitectura MARL falta entrenar y seleccionar un modelo supervisado con `TimeSeriesSplit`, calibrarlo con `CalibratedClassifierCV`, serializarlo para inferencia y exponer su probabilidad calibrada como feature de observacion.

@@ -66,3 +66,5 @@ Steam, Skinport, Buff u otras fuentes pueden requerir API, scraping o procesamie
 - El endpoint de Steam puede cambiar, limitar peticiones o devolver formatos localizados.
 - Para scraping profundo historico con `pricehistory` probablemente se necesitaran cookies/sesion y politicas de rate limit mas conservadoras.
 - Esta version no usa Playwright ni clicks simulados porque no son necesarios para `priceoverview`.
+- Revision MARL: los conectores y scripts de scraping no deben encapsularse como agentes Scout, Trader o Portfolio. Deben actuar como extractores de datos y alimentar datasets historicos, inferencia supervisada y observaciones del entorno.
+- Para integrarlos correctamente con PettingZoo/RLlib falta un adaptador que convierta snapshots historicos en timesteps reproducibles, con timestamps, monedas, spreads, volumen y trazabilidad por plataforma.

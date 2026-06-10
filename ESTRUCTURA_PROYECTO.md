@@ -5,12 +5,12 @@ Vista rápida del monorepo `CS2 Consorcio de Inversión`.
 ```text
 TFM-CSFlipper/
 ├── apps/
-│   ├── agents/              # Agentes SPADE y coordinación multiagente
-│   ├── acquisition/         # Ingesta por API, scraping, CSV/JSON y OCR
+│   ├── agents/              # Entrada futura para agentes MARL/coordinadores
+│   ├── acquisition/         # Agentes extractores: API, scraping, CSV/JSON, SteamDT y OCR
 │   └── cli/                 # Comandos manuales de desarrollo y diagnóstico
 ├── packages/
 │   ├── contracts/           # Contratos Pydantic V2 compartidos
-│   ├── decision/            # Perfiles de riesgo, votos y consenso
+│   ├── decision/            # Restricciones de riesgo y traducción de acciones simuladas
 │   ├── domain/              # Entidades y reglas puras del negocio
 │   ├── persistence/         # Supabase/Postgres, repositorios y outbox
 │   ├── prediction/          # Features, datasets e inferencia temporal
@@ -18,7 +18,7 @@ TFM-CSFlipper/
 │   └── vision/              # OpenCV, Tesseract, OCR y parsing visual
 ├── docs/
 │   ├── architecture.md      # Arquitectura general y flujo del sistema
-│   ├── agent-protocols.md   # Agentes, mensajes y protocolo FIPA
+│   ├── agent-protocols.md   # Agentes extractores, agentes MARL y contratos
 │   ├── data-model.md        # Modelo inicial de datos Supabase/Postgres
 │   ├── operational-flow.md  # Flujo operativo de adquisición, predicción y decisión
 │   ├── ocr-pipeline.md      # Flujo OCR añadido al alcance del TFM
@@ -72,39 +72,35 @@ reutilizables deben agruparse por tarea del backlog antes de migrarlas al códig
 
 ## Mapa Funcional
 
-El sistema se organiza como un consorcio de agentes que no compran ni venden de verdad: observan el mercado, predicen, votan y registran decisiones simuladas.
+El sistema se organiza en dos familias de agentes. Los agentes extractores observan el mercado y producen datos. Los agentes MARL Scout, Trader y Portfolio aprenden politicas cooperativas para tomar decisiones simuladas.
 
 ```text
-Adquisición de datos
-  -> Observaciones en Supabase/Postgres
-  -> Evento MarketObservationCaptured
-  -> Agente Analista
-  -> Predicción
-  -> Agente Jefe/Broker
-  -> Votación de perfiles
-  -> Decisión simulada
+Agentes extractores
+  -> Historico Steam Market / Buff163
+  -> Dataset supervisado
+  -> Modelo calibrado de spread rentable a 7 dias
+  -> Entorno PettingZoo
+  -> Scout / Trader / Portfolio
+  -> Acciones y decisión simulada
   -> Simulador y evaluación
 ```
 
 ## Agentes
 
-La definición detallada de agentes, mensajes y protocolo FIPA está en [docs/agent-protocols.md](docs/agent-protocols.md). Resumen rápido:
+La definición detallada de agentes y contratos está en [docs/agent-protocols.md](docs/agent-protocols.md). Resumen rápido:
 
 | Agente | Función |
 | --- | --- |
-| Analista | Convierte histórico de mercado en predicciones. |
-| Jefe/Broker | Convoca votación, calcula consenso y registra la decisión simulada. |
-| Conservador | Prioriza confianza alta, liquidez y baja exposición. |
-| Moderado | Equilibra riesgo, retorno esperado y calidad de datos. |
-| Arriesgado | Acepta más incertidumbre si el retorno esperado compensa. |
-| Liquidez | Evalúa si el activo podrá venderse razonablemente. |
-| Tendencia | Revisa momentum y consistencia temporal. |
-| Arbitrajista | Busca diferencias netas entre plataformas. |
-| Risk Manager | Supervisa capital, exposición y trade hold global. |
+| Steam/Buff extractor | Extrae precios, volumen, buy orders e historico. |
+| SteamDT extractor | Descubre candidatos de arbitraje para scraping profundo. |
+| OCR/CSV extractor | Incorpora datos visuales o manuales al historico. |
+| Scout | Detecta y marca oportunidades. |
+| Trader | Decide accion y tamaño de posicion. |
+| Portfolio | Gestiona riesgo, exposicion y capital bloqueado. |
 
 ---
 
-## Servicios que No Son Agentes
+## Servicios de Soporte
 
 | Servicio | Ubicación | Detalle |
 | --- | --- | --- |
@@ -113,34 +109,28 @@ La definición detallada de agentes, mensajes y protocolo FIPA está en [docs/ag
 | Predicción | `packages/prediction/` | Ver [docs/architecture.md](docs/architecture.md). |
 | Simulación | `packages/simulation/` | Ver [docs/simulation-model.md](docs/simulation-model.md). |
 
-Los scrapers, importadores CSV y procesos OCR se tratan como automatizaciones de adquisición, no como agentes SPADE. Solo tendría sentido crear un agente coordinador de adquisición si más adelante necesita negociar prioridades, horarios o fuentes con otros agentes.
+Los scrapers, importadores CSV y procesos OCR pueden describirse como agentes extractores, pero no como agentes MARL. Su objetivo es alimentar datasets, inferencia y simulacion.
 
 ---
 
-## Flujo de Comunicación entre Agentes
+## Flujo de Comunicación
 
 ```text
-1. Acquisition Service
-   guarda market_observations
-   crea MarketObservationCaptured
+1. Extractores
+   guardan snapshots/historico
+   trazan fuente, timestamp y calidad de dato
 
-2. Analyst Agent
-   recibe/lee evento
-   genera PredictionCompleted
+2. Modelo supervisado
+   genera probabilidad calibrada de spread rentable a 7 dias
 
-3. Broker Agent
-   recibe PredictionCompleted
-   envía VoteRequested a perfiles
+3. Entorno PettingZoo
+   construye observaciones locales para cada agente
 
-4. Risk Profile Agents
-   responden VoteSubmitted
+4. Scout / Trader / Portfolio
+   emiten acciones cooperativas
 
-5. Broker Agent
-   calcula consenso
-   guarda InvestmentDecisionMade
-
-6. Simulation Service
-   evalúa impacto de la decisión simulada
+5. Simulador
+   aplica trade hold, comisiones, liquidez y recompensa
 ```
 
 ## Contratos Compartidos
@@ -149,14 +139,14 @@ Todos los mensajes entre agentes deben definirse en `packages/contracts/`. La li
 
 ## Orden de Implementación Recomendado
 
-1. Crear modelos de dominio y contratos Pydantic.
-2. Crear modelo de datos y migraciones Supabase/Postgres.
-3. Implementar persistencia y outbox.
-4. Implementar adquisición mínima con datos manuales o CSV.
-5. Implementar OCR como segunda fuente de adquisición.
-6. Implementar predictor baseline.
-7. Implementar Agente Analista.
-8. Implementar reglas de perfiles de riesgo.
-9. Implementar Agente Jefe y votación.
-10. Implementar simulador con trade hold.
-11. Añadir evaluación y métricas.
+El orden vivo está en `backlog/0 pendientes/`. Resumen:
+
+1. Validar formulas, datos historicos y scraping Steam-Buff.
+2. Construir dataset supervisado con target de spread rentable a 7 dias.
+3. Experimentar, calibrar y serializar el modelo supervisado.
+4. Implementar simulador de cartera, trade hold y restricciones de riesgo.
+5. Implementar entorno PettingZoo con Scout, Trader y Portfolio.
+6. Integrar la probabilidad supervisada en observaciones.
+7. Diseñar recompensa cooperativa y entrenar MAPPO con RLlib bajo CTDE.
+8. Validar contra baseline single-agent y ablations.
+9. Implementar inferencia productiva y visualizacion.

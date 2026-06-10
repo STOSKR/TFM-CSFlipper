@@ -16,6 +16,7 @@ El flujo actual ya evita abrir paginas detalle de SteamDT, trabaja con batches e
 - Persistir cada snapshot cuando se completen los datos disponibles de un articulo.
 - Mantener backpressure para no saturar Steam, BUFF ni SteamDT.
 - Permitir cancelar y conservar lo ya persistido.
+- Generar trazabilidad por candidato para reconstruir datasets historicos despues.
 
 ## Criterios de aceptacion
 
@@ -24,6 +25,7 @@ El flujo actual ya evita abrir paginas detalle de SteamDT, trabaja con batches e
 - Cada articulo completado se persiste en `market_snapshots`.
 - Los errores por plataforma no detienen el resto del pipeline.
 - Hay logs por candidato, lote y plataforma.
+- El pipeline puede ejecutarse como extractor de datos, sin contener logica de decision ni politica MARL.
 
 ## Decisiones tecnicas
 
@@ -43,3 +45,4 @@ Pendiente.
 
 - SteamDT puede virtualizar la tabla y no exponer todas las filas de golpe.
 - Hay que medir si el cuello de botella real esta en SteamDT, Steam, BUFF o persistencia.
+

@@ -1,72 +1,81 @@
-# Protocolos de Agentes
+# Arquitectura de Agentes
 
 ## Objetivo
 
-Definir cómo se comunican los agentes sin duplicar contratos ni mezclar lógica de negocio con SPADE.
+Definir la separacion entre agentes extractores de datos y agentes MARL de decision, sin duplicar contratos ni mezclar logica de negocio con infraestructura.
 
-## Agentes Iniciales
+## Tipos de agentes
+
+### Agentes extractores
+
+Los scrapers, conectores API, OCR, importadores CSV y SteamDT pueden considerarse agentes extractores porque observan fuentes externas, extraen datos, controlan errores y publican observaciones. No se entrenan con reinforcement learning y no deciden operaciones.
+
+| Agente extractor | Responsabilidad | Paquetes principales |
+| --- | --- | --- |
+| Steam Market extractor | Captura precio, volumen, buy orders e historico disponible de Steam. | `apps/acquisition/`, `packages/persistence/` |
+| Buff163 extractor | Captura precio, volumen, buy orders e historico disponible de Buff163. | `apps/acquisition/`, `packages/persistence/` |
+| SteamDT extractor | Descubre candidatos y estrategias de busqueda. | `steamdt.py`, `market_workers.py` |
+| OCR extractor | Convierte capturas en observaciones estructuradas. | `packages/vision/`, `apps/acquisition/` |
+| CSV/API importer | Carga historicos o muestras controladas. | `apps/acquisition/`, `packages/contracts/` |
+
+### Agentes MARL
+
+Los agentes MARL son las politicas cooperativas entrenadas en el entorno PettingZoo/RLlib.
 
 | Agente | Responsabilidad | Paquetes principales |
 | --- | --- | --- |
-| Analista | Lee histórico, invoca predicción y emite `PredictionCompleted`. | `packages/prediction/`, `packages/persistence/`, `packages/contracts/` |
-| Jefe/Broker | Convoca votación, recoge votos, calcula consenso y registra la decisión simulada. | `packages/decision/`, `packages/persistence/`, `packages/contracts/` |
-| Conservador | Vota priorizando confianza alta, liquidez y baja exposición. | `packages/decision/` |
-| Moderado | Equilibra retorno esperado, confianza, liquidez y calidad de datos. | `packages/decision/` |
-| Arriesgado | Tolera más incertidumbre si el retorno esperado compensa. | `packages/decision/` |
-| Liquidez | Evalúa volumen, spread y capacidad de venta posterior. | `packages/decision/`, `packages/simulation/` |
-| Tendencia | Evalúa momentum, consistencia temporal y posibles reversiones. | `packages/prediction/`, `packages/decision/` |
-| Arbitrajista | Compara precios netos entre plataformas. | `packages/decision/`, `packages/simulation/`, `packages/persistence/` |
-| Risk Manager | Supervisa capital, exposición global y bloqueo por trade hold. | `packages/decision/`, `packages/simulation/`, `packages/persistence/` |
+| Scout | Detecta y marca oportunidades de arbitraje. | `packages/simulation/`, entorno PettingZoo |
+| Trader | Decide comprar, vender, mantener y tamaño de posicion. | `packages/simulation/`, entorno PettingZoo |
+| Portfolio | Gestiona capital, riesgo, exposicion y trade hold. | `packages/simulation/`, `packages/decision/` |
 
-Regla común: los agentes validan mensajes y coordinan; la lógica de inversión vive en `packages/decision/`, `packages/prediction/` o `packages/simulation/`.
+Regla comun: los agentes no contienen logica duplicada de extraccion, prediccion o simulacion. La logica comun vive en `packages/`, y los agentes consumen contratos estables.
 
-Los procesos de scraping, API, CSV y OCR no se modelan como agentes iniciales. Pertenecen a la capa de adquisición y publican eventos para que los agentes reaccionen.
+## Modelo supervisado
 
-El Risk Manager actúa como participante de la votación cuando exista una predicción accionable.
-Su voto debe considerar capital disponible, capital bloqueado, posiciones abiertas, fechas de
-liberación por `trade hold`, exposición máxima y liquidez mínima. No decide solo: aporta una
-restricción de cartera simulada al consenso del Broker.
+El modelo supervisado no es un agente. Es un servicio de inferencia que devuelve la probabilidad calibrada de que el spread sea rentable a 7 dias. Esa probabilidad se incorpora al espacio de observacion de Scout, Trader y Portfolio.
 
-## Mensajes Esperados
+## Contratos esperados
 
 Los modelos Pydantic deben vivir en `packages/contracts/`.
 
-### PredictionCompleted
+### MarketSnapshotCaptured
 
 Contenido mínimo:
+
+- `schema_version`
+- `correlation_id`
+- `asset_id`
+- `market_hash_name`
+- `steam_price`
+- `buff_price`
+- `volume`
+- `observed_at`
+- `source_type`
+
+### SupervisedPredictionCompleted
+
+Contenido minimo:
 
 - `schema_version`
 - `correlation_id`
 - `prediction_id`
 - `asset_id`
-- `platform_id`
-- `probability_up`
-- `expected_return`
-- `confidence`
-- `prediction_horizon`
+- `probability_spread_profitable_7d`
+- `model_name`
+- `model_version`
+- `features_snapshot`
 
-### VoteRequested
+### AgentActionRecorded
 
-Contenido mínimo:
-
-- `schema_version`
-- `correlation_id`
-- `prediction_id`
-- `risk_profile_id`
-- `deadline_seconds`
-
-### VoteSubmitted
-
-Contenido mínimo:
+Contenido minimo:
 
 - `schema_version`
 - `correlation_id`
-- `prediction_id`
-- `risk_profile_id`
-- `agent_jid`
-- `vote`
-- `confidence`
-- `reason`
+- `episode_id`
+- `agent_id`
+- `action`
+- `action_payload`
+- `policy_checkpoint`
 
 ### InvestmentDecisionMade
 
@@ -75,26 +84,31 @@ Contenido mínimo:
 - `schema_version`
 - `correlation_id`
 - `decision_id`
-- `prediction_id`
+- `asset_id`
 - `decision`
-- `consensus_score`
+- `model_version`
+- `policy_checkpoint`
 - `reason`
 
-## Protocolo FIPA
-
-El Agente Jefe debe usar una interacción tipo convocatoria:
+## Flujo MARL
 
 ```text
-Broker -> perfiles: call for proposal / vote request
-Perfiles -> Broker: proposal / vote submitted
-Broker -> persistencia: investment decision
-Broker -> interesados: decision notification
+Agentes extractores -> historico/snapshots
+Historico -> dataset supervisado
+Modelo calibrado -> probabilidad 7d
+PettingZoo env -> observaciones locales
+Scout/Trader/Portfolio -> acciones cooperativas
+Simulador -> recompensa compartida y metricas
 ```
+
+## SPADE/FIPA
+
+El diseño anterior basado en SPADE, Broker y votacion FIPA queda como antecedente arquitectonico, no como camino principal del TFM actual. Si se recupera, debe implementarse como capa de coordinacion externa y no sustituir al entrenamiento MARL.
 
 ## Reglas
 
-- Los agentes no deben contener reglas de inversión complejas.
-- Los agentes validan contratos y delegan en servicios.
-- Toda conversación debe usar `correlation_id`.
-- Los mensajes inválidos se registran y se responden de forma controlada.
+- Los agentes extractores no deciden compras.
+- Los agentes MARL no hacen scraping ni acceden a fuentes externas.
+- Toda accion o prediccion debe usar `correlation_id`.
+- Los datos invalidos se registran y se rechazan de forma controlada.
 - La decisión final siempre queda persistida.

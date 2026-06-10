@@ -17,6 +17,7 @@ El flujo futuro no solo debe recomendar compras, tambien debe llevar control de 
 - Marcar estado de cada compra: bloqueada, vendible, vendida, error de parseo.
 - Evitar duplicados si el mismo correo se procesa varias veces.
 - Registrar el contenido minimo necesario para auditar errores sin almacenar datos personales innecesarios.
+- Relacionar compras reales con decisiones MARL solo cuando exista trazabilidad suficiente.
 
 ## Criterios de aceptacion
 
