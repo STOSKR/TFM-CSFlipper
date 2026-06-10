@@ -38,7 +38,7 @@ Supabase/Postgres es la fuente de verdad. El detalle de tablas vive en [data-mod
 
 Calcula features sobre histórico de precio, volumen, liquidez, spread y plataforma.
 
-El componente supervisado compara modelos tabulares, selecciona el mejor con splits temporales, calibra probabilidades y serializa un artefacto de inferencia. Su salida principal es la probabilidad calibrada de que el spread siga siendo rentable en un horizonte de 7 días.
+El componente supervisado compara modelos tabulares, selecciona el mejor con splits temporales, calibra probabilidades y serializa un artefacto de inferencia. Su salida principal es la probabilidad calibrada de que el spread siga siendo rentable en un horizonte simplificado de 8 días.
 
 ### 4. Decisión MARL
 

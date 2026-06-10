@@ -88,8 +88,9 @@ Interpretacion:
 
 - La compra en BUFF se trata como CNY y se convierte a EUR dividiendo por un tipo de cambio fijo.
 - La venta en BUFF aplica fee neto de `0.975`.
-- La venta en STEAM no aplica fee en esta hoja; en otras hojas se usa factor `0.8` para convertir saldo Steam a valor efectivo.
-- El trade hold esta modelado como `Fecha C + 8`, aunque en el texto del TFM hablamos de 7 dias. Hay que confirmar si el +8 representa 7 dias completos mas el dia de compra, o si debe normalizarse a +7.
+- Steam cobra una comision de `0.87`.
+- Sacar saldo de Steam a banco aplica una perdida adicional asumida del 20% en el escenario conservador. Se conservan escenarios de referencia del 10%, 15% y 20%.
+- El trade hold se modela como `Fecha C + 8`: compra + 7 dias + X horas hasta la siguiente ventana de desbloqueo de las 09:00.
 
 ### Pagos
 
@@ -157,14 +158,14 @@ IF(venta en BUFF y existe compra Steam del mismo articulo, 1, 0)
 Items en espera STEAM =
 0.8 * SUMIFS(PrecioReal, Fecha desbloqueo >= TODAY(), Transaccion in CL/CR, Plataforma = STEAM)
 
-Items en espera BUFF/CSFLOAT/etc. =
+Items en espera BUFF/etc. =
 SUMIFS(PrecioReal, Fecha desbloqueo >= TODAY(), Transaccion in CL/CR, Plataforma = plataforma)
 ```
 
 Interpretacion:
 
 - `Pagos` resuelve matching entre compras y ventas con `XLOOKUP` hacia atras usando item, calidad, ST y contador acumulado.
-- Aplica un factor `0.8` a ventas o saldos Steam, probablemente para reflejar conversion/liquidez efectiva del saldo Steam.
+- Aplica un factor `0.8` a ventas o saldos Steam para reflejar la perdida conservadora al sacar saldo Steam a banco.
 - Tiene formulas con rangos amplios y algunos hardcodes de filas/personas/saldos, por lo que conviene migrar la logica y no la estructura exacta.
 
 ### Calculadora y Calculadora (2)
@@ -176,8 +177,6 @@ Constantes detectadas:
 ```text
 Steam venta 0,9 = 0.87 * 0.9
 Steam venta 0,8 = 0.87 * 0.8
-Skinport = 0.93
-CSFloat = 0.98
 BUFF = 0.975
 ```
 
@@ -198,6 +197,7 @@ Porcentaje = (Ganancia / precio_compra - 1) * 100
 Interpretacion:
 
 - Las calculadoras son utiles para extraer constantes iniciales de fees.
+- CSFloat y Skinport aparecen como referencia historica, pero quedan fuera del dominio principal del TFM.
 - Los tipos de cambio estan hardcodeados y cambian entre hojas (`8`, `8.1`, `8.25`, `D28`, `D35`). En el sistema deben ser parametros versionados por fecha.
 
 ### Buy Orders
@@ -256,12 +256,13 @@ net_sale = gross_sale * fee_factor[platform]
 Valores iniciales extraidos:
 
 ```text
+STEAM_SALE_FEE: 0.87
+STEAM_CASHOUT_LOSS_CONSERVATIVE: 20%
+STEAM_CASHOUT_LOSS_REFERENCE: 10%, 15%, 20%
+STEAM_TO_BANK_CONSERVATIVE: 0.87 * 0.8 = 0.696
+STEAM_TO_BANK_MEDIUM: 0.87 * 0.85 = 0.7395
+STEAM_TO_BANK_OPTIMISTIC: 0.87 * 0.9 = 0.783
 BUFF: 0.975
-CSFLOAT: 0.98
-SKINPORT: 0.93
-STEAM_TO_CASH_LOW: 0.87 * 0.8 = 0.696
-STEAM_TO_CASH_HIGH: 0.87 * 0.9 = 0.783
-STEAM_SALE_EFFECTIVE_IN_PAGOS: 0.8
 ```
 
 3. Fecha de desbloqueo.
@@ -270,7 +271,7 @@ STEAM_SALE_EFFECTIVE_IN_PAGOS: 0.8
 unlock_at = bought_at + trade_hold_days
 ```
 
-Pendiente de decidir si `trade_hold_days = 7` o si se replica el Excel con `+8`.
+Para el TFM se usara `trade_hold_days = 8` como simplificacion conservadora.
 
 4. Profit realizado.
 
@@ -297,16 +298,28 @@ is_locked = sold_at is None and unlock_at > today
 locked_capital = sum(position.buy_price_eur for position in positions if position.unlock_at >= today)
 ```
 
-El Excel aplica factor `0.8` a parte del saldo Steam; esto debe modelarse como valor efectivo/liquidez, no como precio original.
+El Excel aplica factor `0.8` a parte del saldo Steam; esto se modela como perdida de cash-out, no como precio original del mercado.
 
 ## Encaje con el TFM
+
+### Funcionalidades web derivadas
+
+Varias pestañas del Excel deben considerarse especificación funcional para la web futura:
+
+- `Historial de compras`: historial de artículos comprados/vendidos, estado de posición, profit y porcentaje.
+- `Calendario`: calendario visual de desbloqueo/liberación.
+- `Pagos`: dinero ingresado por persona, saldos, movimientos, capital en espera y profit agregado.
+- `Calculadora` y `Calculadora (2)`: calculadora de rentabilidad Steam-BUFF.
+- `Buy Orders`: seguimiento de candidatos, precio de compra, precio de venta actual, margen mínimo y margen restante.
+
+Estas vistas deben reconstruirse desde datos normalizados, no copiando la estructura exacta del Excel.
 
 ### Dataset supervisado
 
 Usar las formulas migradas para construir el target:
 
 ```text
-spread_profitable_7d = 1 si el spread neto tras fees, cambio y trade hold sigue siendo rentable en horizonte de 7 dias.
+spread_profitable_8d = 1 si el spread neto tras fees, cambio y trade hold sigue siendo rentable en horizonte simplificado de 8 dias.
 ```
 
 Features candidatas desde el Excel:
@@ -347,8 +360,8 @@ El Excel no define agentes MARL, pero si aporta:
 ## Riesgos detectados
 
 - Tipos de cambio hardcodeados en varias celdas (`8`, `8.1`, `8.25`, `D28`, `D35`).
-- Fees de Steam representados de varias formas (`0.8`, `0.87*0.8`, `0.87*0.9`).
-- `Fecha desbloqueo = Fecha C + 8`, que debe reconciliarse con el trade hold de 7 dias del TFM.
+- Fees de Steam representados en varias capas: fee de mercado `0.87` y cash-out `0.8`, `0.85` o `0.9`.
+- `Fecha desbloqueo = Fecha C + 8` se adopta como simplificacion conservadora del horizonte.
 - `Pagos` mezcla ledger, calculadora, saldos por persona y formulas de matching; no debe migrarse como tabla unica.
 - Hay formulas con `XLOOKUP`, por lo que la logica de matching debe reimplementarse explicitamente en Python.
 - Hay un enlace externo residual a `Calendario`.
@@ -363,9 +376,5 @@ El Excel no define agentes MARL, pero si aporta:
 
 ## Preguntas abiertas
 
-- Confirmar si `Fecha C + 8` debe mantenerse o cambiar a `Fecha C + 7`.
-- Confirmar que `0.8` es descuento de liquidez/conversion de saldo Steam, no fee directo de Steam Market.
-- Confirmar si `0.87` representa descuento al comprar/vender saldo Steam, intercambio externo o una regla operativa propia.
-- Confirmar si BUFF debe quedarse con `0.975` como fee neto inicial.
-- Confirmar si CSFloat y Skinport siguen dentro del alcance o solo son referencias historicas.
-
+- Definir si el escenario de salida Steam por defecto seguira siendo siempre 20% o si se expondra en configuracion de usuario.
+- Confirmar si el tipo de cambio debe venir de fuente externa, tabla manual versionada o configuracion fija por experimento.

@@ -38,6 +38,7 @@ El Excel ya resuelve parte del flujo manual: calculos, formulas y seguimiento op
 - Inventariadas 9 hojas: `Trades`, `Pagos`, `Calculadora`, `Historial de compras`, `Calculadora (2)`, `Fees`, `Buy Orders`, `TradeUps` y `Calendario`.
 - Identificadas tablas `Tabla2`, `Tabla3`, `Historial` y `Tabla35`.
 - Extraidas formulas clave de conversion EUR/CNY, fees por plataforma, profit, rentabilidad porcentual, trade hold, capital bloqueado y matching compra/venta.
+- Identificadas funcionalidades web derivadas: historial de compras, calendario de desbloqueo, dinero disponible/bloqueado, historial de ingresos y calculadora de rentabilidad.
 - Documentado el analisis inicial en `docs/excel-operativo-analysis.md`.
 - Creado `packages/simulation/economics.py` con formulas puras de conversion, fees, valor efectivo, fecha de desbloqueo, profit y rentabilidad.
 - Anadidos tests basados en ejemplos del Excel en `tests/unit/test_excel_economics.py`.
@@ -58,7 +59,9 @@ No completadas por estado previo del entorno/repositorio:
 
 ## Bloqueos o riesgos
 
-- Confirmar si `Fecha C + 8` debe replicarse o normalizarse al trade hold teorico de 7 dias.
-- Confirmar el significado operativo de los factores `0.8`, `0.87`, `0.975`, `0.98` y `0.93`.
+- `Fecha C + 8` queda aceptado como simplificacion conservadora: compra + 7 dias + desbloqueo a la siguiente ventana de las 09:00.
+- Steam se modela con fee de mercado `0.87` y cash-out conservador del 20%, conservando escenarios de referencia del 10%, 15% y 20%.
+- BUFF se modela con fee neto `0.975`.
+- CSFloat y Skinport quedan fuera del dominio principal del TFM por ahora.
 - Los tipos de cambio aparecen hardcodeados en varias formas (`8`, `8.1`, `8.25`, `D28`, `D35`) y deben versionarse por fecha.
 - Algunas formulas dependen de datos manuales que todavia no existen en Supabase.

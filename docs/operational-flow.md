@@ -24,7 +24,7 @@ Los scrapers, OCR runners, workers, importadores CSV/API y SteamDT son agentes e
    -> normalización mínima de candidatos
    -> historico Steam-BUFF alineado
    -> features de spread, volumen, tendencia y liquidez
-   -> etiqueta de spread rentable a 7 dias
+   -> etiqueta de spread rentable a 8 dias
 
 2. Persistencia e historico
    -> upsert de assets/plataformas si hace falta
@@ -34,7 +34,7 @@ Los scrapers, OCR runners, workers, importadores CSV/API y SteamDT son agentes e
 3. Modelo supervisado calibrado
    -> lectura de histórico y candidatos
    -> features
-   -> probabilidad calibrada de spread rentable a 7 dias
+   -> probabilidad calibrada de spread rentable a 8 dias
    -> persistencia de predicciones versionadas
 
 4. Entorno MARL
@@ -112,7 +112,7 @@ del sistema debe trabajar con campos normalizados.
 
 El modelo supervisado genera una probabilidad calibrada, no una orden. Esa predicción debe incluir:
 
-- probabilidad de spread rentable a 7 dias;
+- probabilidad de spread rentable a 8 dias;
 - version del modelo;
 - horizonte temporal;
 - snapshot de features;

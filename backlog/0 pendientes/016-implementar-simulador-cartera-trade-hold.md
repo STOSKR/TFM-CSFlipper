@@ -2,7 +2,7 @@
 
 ## Objetivo
 
-Crear el simulador de cartera que aplique trade hold de 7 dias, comisiones, liquidez y posiciones simuladas.
+Crear el simulador de cartera que aplique trade hold simplificado de 8 dias, comisiones, liquidez y posiciones simuladas.
 
 ## Contexto
 
@@ -11,7 +11,7 @@ El entorno PettingZoo y la recompensa MARL necesitan una dinamica de cartera fia
 ## Alcance
 
 - Modelar cartera y posiciones.
-- Aplicar bloqueo de 7 dias.
+- Aplicar bloqueo simplificado de 8 dias.
 - Calcular comisiones por plataforma.
 - Exponer estado consultable por el agente Portfolio: capital disponible, capital bloqueado, posiciones abiertas y fechas de liberacion.
 - Registrar posiciones abiertas/cerradas.
@@ -43,4 +43,3 @@ Pendiente.
 
 - Definir comisiones iniciales por plataforma.
 - Confirmar la regla exacta de trade hold y si varia por plataforma o tipo de item.
-

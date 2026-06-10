@@ -20,7 +20,7 @@ El entrenamiento y la experimentacion no deben ejecutarse dentro del flujo produ
 ## Criterios de aceptacion
 
 - El artefacto puede cargarse sin acceder al dataset de entrenamiento.
-- La inferencia devuelve probabilidad calibrada para `spread_profitable_7d`.
+- La inferencia devuelve probabilidad calibrada para `spread_profitable_8d`.
 - El loader falla con error claro si faltan features o cambia el esquema.
 - Hay tests con un artefacto pequeno o fixture controlado.
 - La documentacion separa entrenamiento, calibracion e inferencia.
@@ -41,4 +41,3 @@ Pendiente.
 ## Bloqueos o riesgos
 
 - Cambios en nombres o unidades de features pueden romper inferencia si no se valida el contrato.
-

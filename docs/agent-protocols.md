@@ -32,7 +32,7 @@ Regla comun: los agentes no contienen logica duplicada de extraccion, prediccion
 
 ## Modelo supervisado
 
-El modelo supervisado no es un agente. Es un servicio de inferencia que devuelve la probabilidad calibrada de que el spread sea rentable a 7 dias. Esa probabilidad se incorpora al espacio de observacion de Scout, Trader y Portfolio.
+El modelo supervisado no es un agente. Es un servicio de inferencia que devuelve la probabilidad calibrada de que el spread sea rentable a 8 dias. Esa probabilidad se incorpora al espacio de observacion de Scout, Trader y Portfolio.
 
 ## Contratos esperados
 
@@ -60,7 +60,7 @@ Contenido minimo:
 - `correlation_id`
 - `prediction_id`
 - `asset_id`
-- `probability_spread_profitable_7d`
+- `probability_spread_profitable_8d`
 - `model_name`
 - `model_version`
 - `features_snapshot`
@@ -95,7 +95,7 @@ Contenido mínimo:
 ```text
 Agentes extractores -> historico/snapshots
 Historico -> dataset supervisado
-Modelo calibrado -> probabilidad 7d
+Modelo calibrado -> probabilidad 8d
 PettingZoo env -> observaciones locales
 Scout/Trader/Portfolio -> acciones cooperativas
 Simulador -> recompensa compartida y metricas

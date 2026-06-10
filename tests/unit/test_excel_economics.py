@@ -5,8 +5,6 @@ import pytest
 
 from packages.simulation import (
     BUFF163,
-    CSFLOAT,
-    SKINPORT,
     STEAM,
     PositionStatus,
     calculate_trade_result,
@@ -14,9 +12,11 @@ from packages.simulation import (
     default_excel_economics_config,
     effective_cash_value,
     return_ratio,
+    steam_balance_cost_factor,
+    steam_cashout_factor,
     unlock_date,
 )
-from packages.simulation.economics import position_status, steam_balance_cost_factor
+from packages.simulation.economics import position_status
 
 
 def test_convert_currency_matches_excel_rate() -> None:
@@ -36,7 +36,7 @@ def test_convert_currency_matches_excel_rate() -> None:
     ) == Decimal("328.8")
 
 
-def test_buff_purchase_to_steam_sale_result_matches_historial_formula() -> None:
+def test_buff_purchase_to_steam_sale_applies_steam_fee() -> None:
     config = default_excel_economics_config(cny_per_eur=Decimal("8"))
 
     result = calculate_trade_result(
@@ -49,9 +49,9 @@ def test_buff_purchase_to_steam_sale_result_matches_historial_formula() -> None:
     )
 
     assert result.buy_price_eur == Decimal("23.5")
-    assert result.sell_price_eur == Decimal("69.99")
-    assert result.realized_profit_eur == Decimal("46.49")
-    assert result.return_ratio == Decimal("46.49") / Decimal("23.5")
+    assert result.sell_price_eur == Decimal("69.99") * Decimal("0.87")
+    assert result.realized_profit_eur == result.sell_price_eur - Decimal("23.5")
+    assert result.return_ratio == result.realized_profit_eur / Decimal("23.5")
 
 
 def test_steam_purchase_to_buff_sale_applies_buff_fee() -> None:
@@ -115,11 +115,14 @@ def test_effective_cash_and_fee_factors_match_calculators() -> None:
 
     assert effective_cash_value(Decimal("100"), platform=STEAM, config=config) == Decimal("80.0")
     assert effective_cash_value(Decimal("100"), platform=BUFF163, config=config) == Decimal("100")
+    assert steam_cashout_factor(config) == Decimal("0.80")
+    assert steam_cashout_factor(config, cashout_loss=Decimal("0.15")) == Decimal("0.85")
+    assert steam_cashout_factor(config, cashout_loss=Decimal("0.10")) == Decimal("0.90")
     assert steam_balance_cost_factor(config) == Decimal("0.696")
-    assert steam_balance_cost_factor(config, optimistic=True) == Decimal("0.783")
+    assert steam_balance_cost_factor(config, cashout_loss=Decimal("0.15")) == Decimal("0.7395")
+    assert steam_balance_cost_factor(config, cashout_loss=Decimal("0.10")) == Decimal("0.7830")
+    assert config.sale_fee_factors[STEAM] == Decimal("0.87")
     assert config.sale_fee_factors[BUFF163] == Decimal("0.975")
-    assert config.sale_fee_factors[CSFLOAT] == Decimal("0.98")
-    assert config.sale_fee_factors[SKINPORT] == Decimal("0.93")
 
 
 def test_return_ratio_guards_zero_invested_amount() -> None:
@@ -138,4 +141,3 @@ def test_unknown_sale_platform_fails_loudly() -> None:
             sell_platform="UNKNOWN",
             config=config,
         )
-

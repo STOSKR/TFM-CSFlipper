@@ -10,8 +10,6 @@ from types import MappingProxyType
 
 STEAM = "STEAM"
 BUFF163 = "BUFF"
-CSFLOAT = "CSFLOAT"
-SKINPORT = "SKINPORT"
 
 EUR = "EUR"
 CNY = "CNY"
@@ -30,14 +28,23 @@ class MarketEconomicsConfig:
     cny_per_eur: Decimal
     trade_hold_days: int
     sale_fee_factors: dict[str, Decimal] = field(default_factory=dict)
-    steam_cash_factor: Decimal = Decimal("0.8")
-    steam_balance_discount: Decimal = Decimal("0.87")
+    steam_cashout_loss: Decimal = Decimal("0.20")
+    steam_cashout_loss_scenarios: tuple[Decimal, ...] = (
+        Decimal("0.10"),
+        Decimal("0.15"),
+        Decimal("0.20"),
+    )
 
     def __post_init__(self) -> None:
         if self.cny_per_eur <= 0:
             raise ValueError("cny_per_eur must be greater than zero")
         if self.trade_hold_days < 0:
             raise ValueError("trade_hold_days must be non-negative")
+        if self.steam_cashout_loss < 0 or self.steam_cashout_loss >= 1:
+            raise ValueError("steam_cashout_loss must be in [0, 1)")
+        for scenario in self.steam_cashout_loss_scenarios:
+            if scenario < 0 or scenario >= 1:
+                raise ValueError("steam_cashout_loss_scenarios values must be in [0, 1)")
         for platform, factor in self.sale_fee_factors.items():
             if factor <= 0 or factor > 1:
                 raise ValueError(f"sale fee factor for {platform} must be in (0, 1]")
@@ -63,21 +70,23 @@ def default_excel_economics_config(
 ) -> MarketEconomicsConfig:
     """Return the initial assumptions observed in the operational workbook.
 
-    The workbook uses `Fecha C + 8`, so this default intentionally mirrors Excel.
-    The TFM model can pass `trade_hold_days=7` once that convention is confirmed.
+    The workbook uses `Fecha C + 8`. That also matches the simplified TFM target:
+    purchase day + 7 days + the next 09:00 unlock window, approximated as 8 days.
     """
 
     return MarketEconomicsConfig(
         cny_per_eur=cny_per_eur,
         trade_hold_days=trade_hold_days,
         sale_fee_factors={
-            STEAM: Decimal("1"),
+            STEAM: Decimal("0.87"),
             BUFF163: Decimal("0.975"),
-            CSFLOAT: Decimal("0.98"),
-            SKINPORT: Decimal("0.93"),
         },
-        steam_cash_factor=Decimal("0.8"),
-        steam_balance_discount=Decimal("0.87"),
+        steam_cashout_loss=Decimal("0.20"),
+        steam_cashout_loss_scenarios=(
+            Decimal("0.10"),
+            Decimal("0.15"),
+            Decimal("0.20"),
+        ),
     )
 
 
@@ -193,26 +202,44 @@ def effective_cash_value(
     platform: str,
     config: MarketEconomicsConfig,
 ) -> Decimal:
-    """Value platform balance as cash-equivalent EUR using workbook assumptions."""
+    """Value platform balance as cash-equivalent EUR using workbook assumptions.
+
+    For Steam, this assumes the amount is already Steam wallet balance. Selling an
+    item on Steam first applies the Steam sale fee, then this cash-out factor.
+    """
 
     _require_non_negative(amount, "amount")
     if platform.upper() == STEAM:
-        return amount * config.steam_cash_factor
+        return amount * steam_cashout_factor(config)
     return amount
 
 
 def steam_balance_cost_factor(
     config: MarketEconomicsConfig,
     *,
-    optimistic: bool = False,
+    cashout_loss: Decimal | None = None,
 ) -> Decimal:
-    """Return the workbook's Steam balance conversion factor.
+    """Return gross Steam sale value as bank-cash-equivalent factor.
 
-    The calculators use `0.87 * 0.8` and `0.87 * 0.9` variants.
+    Default is the conservative `0.87 * 0.8` assumption. Passing
+    `cashout_loss=Decimal("0.10")` gives the optimistic `0.87 * 0.9` scenario.
     """
 
-    cash_factor = Decimal("0.9") if optimistic else config.steam_cash_factor
-    return config.steam_balance_discount * cash_factor
+    return _sale_fee_factor(STEAM, config) * steam_cashout_factor(
+        config,
+        cashout_loss=cashout_loss,
+    )
+
+
+def steam_cashout_factor(
+    config: MarketEconomicsConfig,
+    *,
+    cashout_loss: Decimal | None = None,
+) -> Decimal:
+    loss = config.steam_cashout_loss if cashout_loss is None else cashout_loss
+    if loss < 0 or loss >= 1:
+        raise ValueError("cashout_loss must be in [0, 1)")
+    return Decimal("1") - loss
 
 
 def _sale_fee_factor(platform: str, config: MarketEconomicsConfig) -> Decimal:

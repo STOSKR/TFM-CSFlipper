@@ -17,6 +17,11 @@ Tras estabilizar datos, prediccion y politicas MARL, el siguiente paso operativo
 - Mostrar probabilidad calibrada del modelo supervisado.
 - Mostrar accion/recomendacion resultante de Scout, Trader y Portfolio.
 - Mostrar rentabilidad estimada cuando exista una formula validada.
+- Mostrar historial de articulos comprados y vendidos.
+- Mostrar calendario de desbloqueo/liberacion de articulos.
+- Mostrar dinero disponible, dinero bloqueado, saldo por plataforma y valor efectivo estimado.
+- Mostrar historial de dinero ingresado por persona/plataforma cuando exista el dato.
+- Incluir calculadora de rentabilidad Steam-BUFF con escenarios de cash-out Steam 10%, 15% y 20%.
 - Permitir ordenar o filtrar por rentabilidad, probabilidad, precio, fecha de scraping, calidad y StatTrak.
 - Distinguir estados basicos: recomendable, observar, descartado, datos insuficientes.
 
@@ -47,4 +52,3 @@ Pendiente.
 
 - Definir formula fiable de rentabilidad neta antes de usarla como criterio principal.
 - Decidir si la primera version sera local, desplegada o integrada directamente con Supabase.
-

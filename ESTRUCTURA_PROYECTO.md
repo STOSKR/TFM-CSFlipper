@@ -78,7 +78,7 @@ El sistema se organiza en dos familias de agentes. Los agentes extractores obser
 Agentes extractores
   -> Historico Steam Market / Buff163
   -> Dataset supervisado
-  -> Modelo calibrado de spread rentable a 7 dias
+  -> Modelo calibrado de spread rentable a 8 dias
   -> Entorno PettingZoo
   -> Scout / Trader / Portfolio
   -> Acciones y decisión simulada
@@ -121,7 +121,7 @@ Los scrapers, importadores CSV y procesos OCR pueden describirse como agentes ex
    trazan fuente, timestamp y calidad de dato
 
 2. Modelo supervisado
-   genera probabilidad calibrada de spread rentable a 7 dias
+   genera probabilidad calibrada de spread rentable a 8 dias
 
 3. Entorno PettingZoo
    construye observaciones locales para cada agente
@@ -142,7 +142,7 @@ Todos los mensajes entre agentes deben definirse en `packages/contracts/`. La li
 El orden vivo está en `backlog/0 pendientes/`. Resumen:
 
 1. Validar formulas, datos historicos y scraping Steam-Buff.
-2. Construir dataset supervisado con target de spread rentable a 7 dias.
+2. Construir dataset supervisado con target de spread rentable a 8 dias.
 3. Experimentar, calibrar y serializar el modelo supervisado.
 4. Implementar simulador de cartera, trade hold y restricciones de riesgo.
 5. Implementar entorno PettingZoo con Scout, Trader y Portfolio.

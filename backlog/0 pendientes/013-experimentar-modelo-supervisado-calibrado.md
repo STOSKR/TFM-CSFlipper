@@ -2,7 +2,7 @@
 
 ## Objetivo
 
-Entrenar, comparar y seleccionar el modelo supervisado de clasificacion tabular que mejor prediga la rentabilidad del spread a 7 dias con probabilidades calibradas.
+Entrenar, comparar y seleccionar el modelo supervisado de clasificacion tabular que mejor prediga la rentabilidad del spread a 8 dias con probabilidades calibradas.
 
 ## Contexto
 
@@ -22,7 +22,7 @@ El `MomentumBaselinePredictor` existente es util para pruebas tempranas, pero no
 
 - Hay un script o notebook reproducible de experimentacion.
 - Los splits respetan el orden temporal y quedan documentados.
-- El modelo seleccionado tiene probabilidades calibradas para el target de spread rentable a 7 dias.
+- El modelo seleccionado tiene probabilidades calibradas para el target de spread rentable a 8 dias.
 - Existe un reporte con metricas comparables entre modelos y baseline.
 - Queda justificado por que se elige el modelo ganador.
 
@@ -44,4 +44,3 @@ Pendiente.
 
 - La calibracion isotónica necesita suficientes muestras por periodo para no sobreajustar.
 - Si el dataset es pequeno o sesgado, el mejor modelo puede ser simple.
-
