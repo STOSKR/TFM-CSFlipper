@@ -2,7 +2,22 @@
 
 Este archivo sirve como menu para elegir como ejecutar el discovery de articulos desde SteamDT Hanging.
 
-Comando corto recomendado:
+Comando corto recomendado para flujo completo:
+
+```bash
+python scrape_flow.py
+```
+
+Este comando ejecuta SteamDT, guarda el JSON de candidatos y lanza automaticamente
+`market_workers.py` con ese archivo.
+
+Para ver navegadores y persistir snapshots:
+
+```bash
+python scrape_flow.py --show-browser --persist
+```
+
+Comando corto solo para discovery SteamDT:
 
 ```bash
 python steamdt.py
@@ -10,10 +25,10 @@ python steamdt.py
 
 Por defecto usa:
 
-- perfil `platform_arbitrage_safe`.
-- `--limit 5`.
+- perfil `steam_sell_slow`.
+- el limite configurado en `csflipper_config.toml`.
 - BUFF activado.
-- UU activado.
+- UU desactivado.
 - C5GAME desactivado.
 - salida en tabla.
 - `--dry-run`, sin persistir en base de datos.
@@ -29,12 +44,18 @@ En PowerShell tambien puedes usar:
 Comando largo equivalente:
 
 ```bash
-python -m apps.cli.discover_steamdt_hanging --profile platform_arbitrage_safe --limit 5 --dry-run
+python -m apps.cli.discover_steamdt_hanging --profile steam_sell_slow --limit 5 --dry-run
 ```
 
 ## Comprobacion Rapida
 
-Usa esto para comprobar que el sistema funciona sin guardar nada:
+Usa esto para comprobar que el sistema completo funciona sin guardar nada:
+
+```bash
+python scrape_flow.py
+```
+
+Usa esto si solo quieres comprobar SteamDT:
 
 ```bash
 python steamdt.py
@@ -85,10 +106,11 @@ python steamdt.py 15 --min 10 --max 300 --vol 20
 
 ## Plataformas
 
-Por defecto se usa BUFF y UU. C5GAME queda desactivado.
+Por defecto se usa BUFF. UU y C5GAME quedan desactivados.
 
 | Opcion | Descripcion |
 | --- | --- |
+| `--uu` | Activa UU desde el wrapper corto `steamdt.py`. |
 | `--platform-buff` | Activa BUFF. |
 | `--no-platform-buff` | Desactiva BUFF. |
 | `--platform-c5game` | Activa C5GAME. |
@@ -184,8 +206,7 @@ SteamDT se usa como discovery. Despues, el JSON guardado alimenta dos workers en
 Ejemplo completo:
 
 ```bash
-python steamdt.py 20 --show
-python market_workers.py
+python scrape_flow.py 20 --show-browser
 ```
 
 `market_workers.py` usa automaticamente el ultimo
@@ -210,13 +231,13 @@ logs/market_workers_YYYYMMDD_HHMMSS.log
 Para ver las interfaces de Steam y BUFF durante el scraping:
 
 ```bash
-python market_workers.py --show-browser
+python scrape_flow.py --show-browser
 ```
 
 Si alguna pagina necesita login manual:
 
 ```bash
-python market_workers.py --show-browser --steam-login --buff-login
+python scrape_flow.py --show-browser --steam-login --buff-login
 ```
 
 Para hacer login en BUFF una vez:

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 from dataclasses import asdict, dataclass, replace
 from decimal import Decimal
 from pathlib import Path
@@ -46,7 +47,7 @@ class SteamDTHangingFilters:
     min_volume: int | None = 12
     platform_buff: bool = True
     platform_c5game: bool = False
-    platform_uu: bool = True
+    platform_uu: bool = False
     headless: bool = True
     timeout_ms: int = 30000
     initial_wait_ms: int = 5000
@@ -174,11 +175,51 @@ class SteamDTHangingDiscovery:
     async def _extract_rows(self, page: Any) -> list[dict[str, Any]]:
         rows = await page.evaluate(
             """
-            () => Array.from(document.querySelectorAll('.el-table__body .el-table__row'))
-              .map((row) => ({
-                cells: Array.from(row.querySelectorAll('td')).map((td) => td.innerText),
-                links: Array.from(row.querySelectorAll('a')).map((a) => a.href)
-              }))
+            () => {
+              const clean = (value) => String(value || '').trim();
+              const linksFrom = (node) => Array.from(node.querySelectorAll('a[href]'))
+                .map((a) => a.href)
+                .filter(Boolean);
+              const textLinesFrom = (node) => clean(node.innerText)
+                .split('\\n')
+                .map(clean)
+                .filter(Boolean);
+              const tableRows = Array.from(
+                document.querySelectorAll('.el-table__body .el-table__row')
+              ).map((row) => ({
+                cells: Array.from(row.querySelectorAll('td'))
+                  .map((td) => td.innerText),
+                links: linksFrom(row),
+              }));
+              const cardScopes = new Map();
+              for (const card of document.querySelectorAll('.market-item')) {
+                const scope = card.closest('.el-table__expanded-cell, .el-table__row, tr')
+                  || card.parentElement
+                  || card;
+                if (!cardScopes.has(scope)) {
+                  cardScopes.set(scope, []);
+                }
+                cardScopes.get(scope).push(card);
+              }
+              const cardRows = Array.from(cardScopes.entries()).map(([scope, cards]) => ({
+                cells: textLinesFrom(scope),
+                links: linksFrom(scope),
+                market_cards: cards.map((card) => ({
+                  text: clean(card.innerText),
+                  links: linksFrom(card),
+                })),
+              }));
+              const rows = [...cardRows, ...tableRows];
+              const seen = new Set();
+              return rows.filter((row) => {
+                const key = JSON.stringify([row.cells, row.links]);
+                if (seen.has(key)) {
+                  return false;
+                }
+                seen.add(key);
+                return row.cells.length > 0 || row.links.length > 0;
+              });
+            }
             """
         )
         if not rows:
@@ -187,7 +228,7 @@ class SteamDTHangingDiscovery:
                 () => Array.from(document.querySelectorAll('tr'))
                   .map((row) => ({
                     cells: Array.from(row.querySelectorAll('td')).map((td) => td.innerText),
-                    links: Array.from(row.querySelectorAll('a')).map((a) => a.href)
+                    links: Array.from(row.querySelectorAll('a[href]')).map((a) => a.href)
                   }))
                 """
             )
@@ -240,6 +281,7 @@ def parse_steamdt_rows(
     withdrawal_fee_rate: Decimal = Decimal("0.20"),
 ) -> tuple[SteamDTCandidate, ...]:
     candidates: list[SteamDTCandidate] = []
+    seen: set[tuple[str, str | None, str | None]] = set()
     for row in rows:
         candidate = parse_steamdt_row(
             row,
@@ -248,6 +290,10 @@ def parse_steamdt_rows(
         )
         if candidate is None:
             continue
+        key = (candidate.market_hash_name, candidate.buff_url, candidate.steam_url)
+        if key in seen:
+            continue
+        seen.add(key)
         candidates.append(candidate)
         if limit is not None and len(candidates) >= limit:
             break
@@ -260,10 +306,23 @@ def parse_steamdt_row(
     steam_sale_fee_rate: Decimal = Decimal("0.13"),
     withdrawal_fee_rate: Decimal = Decimal("0.20"),
 ) -> SteamDTCandidate | None:
+    if row.get("market_cards"):
+        card_candidate = _parse_steamdt_card_row(
+            row,
+            steam_sale_fee_rate=steam_sale_fee_rate,
+            withdrawal_fee_rate=withdrawal_fee_rate,
+        )
+        if card_candidate is not None:
+            return card_candidate
+
     cells = tuple(clean_text(value) for value in row.get("cells", ()))
     links = tuple(str(value) for value in row.get("links", ()))
     if len(cells) < 4:
-        return None
+        return _parse_steamdt_card_row(
+            row,
+            steam_sale_fee_rate=steam_sale_fee_rate,
+            withdrawal_fee_rate=withdrawal_fee_rate,
+        )
 
     display_name, display_quality, display_stattrak = parse_item_text(cells[1])
     buff_url = _find_url(links, "buff.163.com")
@@ -280,6 +339,8 @@ def parse_steamdt_row(
         candidate_market_hash = market_hash_name(item_name, quality)
 
     if _should_skip_item(item_name):
+        return None
+    if quality is None:
         return None
 
     buy_price = parse_market_decimal(cells[2]) if len(cells) > 2 else None
@@ -317,6 +378,78 @@ def parse_steamdt_row(
             withdrawal_fee_rate=withdrawal_fee_rate,
         ),
         volume=parse_int_from_text(cells[5]) if len(cells) > 5 else None,
+        raw_cells=cells,
+    )
+
+
+def _parse_steamdt_card_row(
+    row: dict[str, Any],
+    *,
+    steam_sale_fee_rate: Decimal,
+    withdrawal_fee_rate: Decimal,
+) -> SteamDTCandidate | None:
+    cards = row.get("market_cards")
+    if not isinstance(cards, list):
+        return None
+
+    cells = tuple(clean_text(value) for value in row.get("cells", ()))
+    links = tuple(str(value) for value in row.get("links", ()))
+    buff_url = _find_url(links, "buff.163.com")
+    steam_url = _find_url(links, "steamcommunity.com/market/listings")
+    steam_market_hash = parse_market_hash_from_steam_url(steam_url)
+    display_text = _find_skin_like_text(cells)
+
+    if steam_market_hash:
+        item_name, quality, stattrak = parse_item_text(steam_market_hash)
+        candidate_market_hash = steam_market_hash
+    elif display_text:
+        item_name, quality, stattrak = parse_item_text(display_text)
+        candidate_market_hash = market_hash_name(item_name, quality)
+    else:
+        return None
+
+    if _should_skip_item(item_name):
+        return None
+    if quality is None:
+        return None
+
+    buff_price = _price_from_cards(cards, "buff.163.com", "buff")
+    steam_price = _price_from_cards(cards, "steamcommunity.com/market/listings", "steam")
+
+    return SteamDTCandidate(
+        item_name=item_name,
+        market_hash_name=candidate_market_hash,
+        display_name=(
+            display_text if display_text and display_text != candidate_market_hash else None
+        ),
+        quality=quality,
+        stattrak=stattrak,
+        item_url=_find_url(links, "steamdt.com") or _find_url(links, "/item/"),
+        buff_url=buff_url,
+        steam_url=steam_url,
+        currency=detect_currency(" ".join(cells)),
+        buff_price=buff_price,
+        steam_price=steam_price,
+        profit=calculate_gross_profit(buff_price, steam_price),
+        profitability_percent=calculate_gross_roi_percent(buff_price, steam_price),
+        net_profit=calculate_net_profit(
+            buff_price,
+            steam_price,
+            steam_sale_fee_rate=steam_sale_fee_rate,
+            withdrawal_fee_rate=withdrawal_fee_rate,
+        ),
+        net_roi_percent=calculate_net_roi_percent(
+            buff_price,
+            steam_price,
+            steam_sale_fee_rate=steam_sale_fee_rate,
+            withdrawal_fee_rate=withdrawal_fee_rate,
+        ),
+        break_even_steam_price=calculate_break_even_steam_price(
+            buff_price,
+            steam_sale_fee_rate=steam_sale_fee_rate,
+            withdrawal_fee_rate=withdrawal_fee_rate,
+        ),
+        volume=_volume_from_buff_card(cards),
         raw_cells=cells,
     )
 
@@ -432,6 +565,46 @@ def merge_candidate_links(
     return replace(candidate, buff_url=buff_url, steam_url=steam_url, item_url=item_url)
 
 
+def _find_skin_like_text(cells: tuple[str, ...]) -> str | None:
+    for cell in cells:
+        if " | " not in cell:
+            continue
+        lowered = cell.lower()
+        if "skin flip" in lowered or "arbitrage" in lowered:
+            continue
+        return cell
+    return None
+
+
+def _price_from_cards(
+    cards: list[Any],
+    url_pattern: str,
+    label_pattern: str,
+) -> Decimal | None:
+    for card in cards:
+        if not isinstance(card, dict):
+            continue
+        text = clean_text(card.get("text", ""))
+        links = tuple(str(value) for value in card.get("links", ()))
+        lowered = text.lower()
+        if _find_url(links, url_pattern) or label_pattern in lowered:
+            return parse_market_decimal(text)
+    return None
+
+
+def _volume_from_buff_card(cards: list[Any]) -> int | None:
+    for card in cards:
+        if not isinstance(card, dict):
+            continue
+        text = clean_text(card.get("text", ""))
+        links = tuple(str(value) for value in card.get("links", ()))
+        if _find_url(links, "buff.163.com") or "buff" in text.lower():
+            match = re.search(r"for\s+sale\s*[:：]?\s*([0-9][0-9,]*)", text, re.IGNORECASE)
+            if match:
+                return parse_int_from_text(match.group(1))
+    return None
+
+
 def _should_skip_item(item_name: str) -> bool:
     lowered = item_name.lower()
     return (
@@ -454,6 +627,40 @@ def save_candidates(path: str | Path, candidates: tuple[SteamDTCandidate, ...]) 
     output_path = Path(path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(
-        json.dumps([asdict(candidate) for candidate in candidates], default=str, indent=2),
+        json.dumps(
+            [_candidate_to_public_row(candidate) for candidate in candidates],
+            default=str,
+            indent=2,
+        ),
         encoding="utf-8",
     )
+
+
+def _candidate_to_public_row(candidate: SteamDTCandidate) -> dict[str, Any]:
+    row = {
+        "item_name": candidate.item_name,
+        "market_hash_name": candidate.market_hash_name,
+        "quality": candidate.quality,
+        "stattrak": candidate.stattrak,
+        "steam_url": candidate.steam_url,
+        "buff_url": candidate.buff_url,
+        "currency": candidate.currency,
+        "buff_price": candidate.buff_price,
+        "steam_price": candidate.steam_price,
+        "profit": candidate.profit,
+        "profitability_percent": candidate.profitability_percent,
+        "net_profit": candidate.net_profit,
+        "net_roi_percent": candidate.net_roi_percent,
+        "break_even_steam_price": candidate.break_even_steam_price,
+        "volume": candidate.volume,
+        "strategy_id": candidate.strategy_id,
+        "strategy_label": candidate.strategy_label,
+        "balance_type": candidate.balance_type,
+        "buy_mode": candidate.buy_mode,
+        "sell_mode": candidate.sell_mode,
+    }
+    return {
+        key: value
+        for key, value in row.items()
+        if value is not None and value != "" and value != ()
+    }

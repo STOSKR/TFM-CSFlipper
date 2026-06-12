@@ -15,6 +15,7 @@ param(
     [double]$Max,
     [int]$Vol,
     [switch]$NoBuff,
+    [switch]$Uu,
     [switch]$NoUu,
     [switch]$C5
 )
@@ -36,6 +37,7 @@ if ($PSBoundParameters.ContainsKey("Min")) { $argsList += @("--min", "$Min") }
 if ($PSBoundParameters.ContainsKey("Max")) { $argsList += @("--max", "$Max") }
 if ($PSBoundParameters.ContainsKey("Vol")) { $argsList += @("--vol", "$Vol") }
 if ($NoBuff) { $argsList += "--no-buff" }
+if ($Uu) { $argsList += "--uu" }
 if ($NoUu) { $argsList += "--no-uu" }
 if ($C5) { $argsList += "--c5" }
 

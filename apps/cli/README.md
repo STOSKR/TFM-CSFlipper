@@ -2,9 +2,25 @@
 
 Comandos manuales para desarrollo, diagnostico y tareas operativas.
 
-## SteamDT Hanging
+## Flujo Completo SteamDT -> Workers
 
 Guia completa de opciones: [../../docs/steamdt-scraping-options.md](../../docs/steamdt-scraping-options.md).
+
+Ejecuta discovery en SteamDT y despues Steam/BUFF workers con el JSON recien generado:
+
+```bash
+python scrape_flow.py
+```
+
+Para ver navegadores y persistir snapshots:
+
+```bash
+python scrape_flow.py --show-browser --persist
+```
+
+Por defecto no persiste y no muestra navegadores.
+
+## SteamDT Hanging
 
 Descubre candidatos desde SteamDT Hanging sin guardar nada:
 
@@ -15,25 +31,25 @@ python steamdt.py
 Equivalente largo:
 
 ```bash
-python -m apps.cli.discover_steamdt_hanging --profile platform_arbitrage_safe --limit 5 --dry-run
+python -m apps.cli.discover_steamdt_hanging --profile steam_sell_slow --limit 5 --dry-run
 ```
 
 La salida por defecto es una tabla con item, precios, beneficio, ROI y volumen. Para salida JSON:
 
 ```bash
-python -m apps.cli.discover_steamdt_hanging --profile platform_arbitrage_safe --limit 5 --dry-run --format json
+python -m apps.cli.discover_steamdt_hanging --profile steam_sell_slow --limit 5 --dry-run --format json
 ```
 
 Descubre candidatos y consulta sus precios actuales en Steam Market sin guardar nada:
 
 ```bash
-python -m apps.cli.discover_steamdt_hanging --profile platform_arbitrage_safe --limit 5 --fetch-steam-prices --dry-run
+python -m apps.cli.discover_steamdt_hanging --profile steam_sell_slow --limit 5 --fetch-steam-prices --dry-run
 ```
 
 Persistir observaciones en Supabase requiere hacerlo de forma explicita:
 
 ```bash
-python -m apps.cli.discover_steamdt_hanging --profile platform_arbitrage_safe --limit 5 --fetch-steam-prices --persist
+python -m apps.cli.discover_steamdt_hanging --profile steam_sell_slow --limit 5 --fetch-steam-prices --persist
 ```
 
 ## Workers Por Plataforma

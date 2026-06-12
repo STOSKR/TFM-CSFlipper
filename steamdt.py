@@ -68,6 +68,7 @@ def main() -> int:
     parser.add_argument("--max", dest="max_price", type=float, help="Maximum price filter")
     parser.add_argument("--vol", dest="min_volume", type=int, help="Minimum volume filter")
     parser.add_argument("--no-buff", action="store_true", help="Disable BUFF")
+    parser.add_argument("--uu", action="store_true", help="Enable UU")
     parser.add_argument("--no-uu", action="store_true", help="Disable UU")
     parser.add_argument("--c5", action="store_true", help="Enable C5GAME")
     parser.add_argument(
@@ -99,15 +100,15 @@ def main() -> int:
         "-m",
         "apps.cli.discover_steamdt_hanging",
         "--profile",
-        "platform_arbitrage_fast" if args.fast else "platform_arbitrage_safe",
+        "platform_arbitrage_fast" if args.fast else runtime_config.steamdt.default_profile,
         "--limit",
         str(args.limit),
         "--currency",
         args.currency,
         "--platform-buff" if not args.no_buff else "--no-platform-buff",
-        "--platform-uu" if not args.no_uu else "--no-platform-uu",
         "--platform-c5game" if args.c5 else "--no-platform-c5game",
     ]
+    command.append("--platform-uu" if args.uu and not args.no_uu else "--no-platform-uu")
     if args.min_price is not None:
         command.extend(["--min-price", str(args.min_price)])
     elif runtime_config.discovery.min_price is not None:

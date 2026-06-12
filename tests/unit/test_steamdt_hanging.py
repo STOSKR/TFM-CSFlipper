@@ -1,5 +1,6 @@
 import json
 from decimal import Decimal
+from pathlib import Path
 
 from apps.acquisition.steamdt_hanging import (
     SteamDTCandidate,
@@ -141,10 +142,56 @@ def test_parse_steamdt_hanging_row_prefers_steam_url_identity() -> None:
     assert candidates[0].steam_price == Decimal("23.83")
 
 
+def test_parse_steamdt_hanging_market_card_row_keeps_buff_url() -> None:
+    rows = [
+        {
+            "cells": [
+                "AK-47 | Slate (Field-Tested)",
+                "BUFF",
+                "Y 179.38",
+                "For Sale: 228",
+            ],
+            "links": [
+                "https://buff.163.com/goods/871595?from=market#tab=selling",
+                "https://steamcommunity.com/market/listings/730/"
+                "AK-47%20%7C%20Slate%20(Field-Tested)",
+            ],
+            "market_cards": [
+                {
+                    "text": "BUFF\nY 179.38\nFor Sale: 228\n7 minutes ago",
+                    "links": [
+                        "https://buff.163.com/goods/871595?from=market#tab=selling",
+                    ],
+                },
+                {
+                    "text": "STEAM\nY 185.60\nFor Sale: 92\n10 minutes ago",
+                    "links": [
+                        "https://steamcommunity.com/market/listings/730/"
+                        "AK-47%20%7C%20Slate%20(Field-Tested)",
+                    ],
+                },
+            ],
+        }
+    ]
+
+    candidates = parse_steamdt_rows(rows)
+
+    assert len(candidates) == 1
+    assert (
+        candidates[0].buff_url
+        == "https://buff.163.com/goods/871595?from=market#tab=selling"
+    )
+    assert candidates[0].market_hash_name == "AK-47 | Slate (Field-Tested)"
+    assert candidates[0].buff_price == Decimal("179.38")
+    assert candidates[0].steam_price == Decimal("185.60")
+    assert candidates[0].volume == 228
+
+
 def test_parse_steamdt_hanging_row_filters_non_skin_items() -> None:
     rows = [
         {"cells": ["1", "Sticker | Example", "1 EUR", "2 EUR"], "links": []},
         {"cells": ["2", "Music Kit | Example", "1 EUR", "2 EUR"], "links": []},
+        {"cells": ["3", "Trapper Aggressor | Guerrilla Warfare", "1 EUR", "2 EUR"], "links": []},
         {"cells": ["3", "AK-47 | Slate (Field-Tested)", "1 EUR", "2 EUR"], "links": []},
     ]
 
@@ -154,7 +201,7 @@ def test_parse_steamdt_hanging_row_filters_non_skin_items() -> None:
     assert candidates[0].market_hash_name == "AK-47 | Slate (Field-Tested)"
 
 
-def test_save_candidates_creates_parent_directory(tmp_path) -> None:
+def test_save_candidates_creates_parent_directory(tmp_path: Path) -> None:
     output_path = tmp_path / "nested" / "steamdt_candidates.json"
 
     save_candidates(
@@ -173,6 +220,8 @@ def test_save_candidates_creates_parent_directory(tmp_path) -> None:
 
     assert payload[0]["market_hash_name"] == "AK-47 | Slate (Field-Tested)"
     assert payload[0]["steam_price"] == "12.34"
+    assert "raw_cells" not in payload[0]
+    assert "display_name" not in payload[0]
 
 
 def test_merge_candidate_links_fills_missing_buff_url_from_detail_links() -> None:

@@ -30,6 +30,7 @@ El Excel ya resuelve parte del flujo manual: calculos, formulas y seguimiento op
 - No mezclar formulas operativas con scraping.
 - Mantener formulas de decision en un modulo propio, reutilizable por dataset, simulador, web y evaluacion.
 - Usar el Excel como especificacion inicial, no como fuente permanente de verdad.
+- No importar de momento historiales reales de compras/ingresos del Excel; quedan identificados como posibles funcionalidades web futuras, pero fuera de esta tarea.
 
 ## Pasos realizados
 

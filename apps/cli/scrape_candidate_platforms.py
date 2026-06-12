@@ -6,6 +6,7 @@ import argparse
 import asyncio
 import json
 import logging
+from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -23,6 +24,7 @@ from apps.acquisition.steam_market import SteamMarketConnectorConfig
 from apps.acquisition.steamdt_hanging import (
     SteamDTCandidate,
 )
+from packages.domain.market_parsing import quality_from_market_hash
 from packages.persistence.connection import create_pool
 from packages.persistence.simple_market import (
     SimpleMarketSnapshot,
@@ -33,15 +35,16 @@ from packages.runtime_config import load_runtime_config
 
 async def run(args: argparse.Namespace) -> int:
     logger, log_path = _configure_logging(args)
-    print(f"market_workers_log_file={log_path}")
+    print(f"log_file={log_path}")
     if args.login_only:
         return await _save_login_states(args, logger)
 
     candidates_path = args.candidates or latest_steamdt_candidates_path(args.candidates_dir)
-    print(f"steamdt_candidates_file={candidates_path}")
+    print(f"candidates_file={candidates_path}")
     logger.info("steamdt_candidates_file=%s", candidates_path)
     candidates = load_steamdt_candidates(candidates_path)
     logger.info("loaded_candidates=%s", len(candidates))
+    print(f"candidates_loaded={len(candidates)}")
     config = PlatformWorkerConfig(
         fetch_steam=args.steam,
         fetch_buff=args.buff,
@@ -72,7 +75,7 @@ async def run(args: argparse.Namespace) -> int:
     all_snapshots: list[SimpleMarketSnapshot] = []
     for batch_index, batch in enumerate(_chunks(candidates, args.batch_size), start=1):
         logger.info("scraping_batch=%s size=%s", batch_index, len(batch))
-        print(f"scraping_batch={batch_index} size={len(batch)}")
+        print(f"batch {batch_index}: candidates={len(batch)}")
         batch_results = await scrape_candidate_platforms(batch, config=config, log=logger.info)
         batch_snapshots = build_simple_market_snapshots(
             batch,
@@ -81,7 +84,8 @@ async def run(args: argparse.Namespace) -> int:
         )
         if args.persist and not args.dry_run:
             await _persist_snapshots(batch_snapshots)
-            print(f"imported_market_snapshots_batch={len(batch_snapshots)}")
+            print(f"batch {batch_index}: persisted_snapshots={len(batch_snapshots)}")
+        _print_batch_summary(batch_index, len(batch_snapshots), batch_results)
         all_results.extend(batch_results)
         all_snapshots.extend(batch_snapshots)
 
@@ -92,33 +96,30 @@ async def run(args: argparse.Namespace) -> int:
     output_path = args.output or _default_output_path()
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
-    print(f"platform_observations_file={output_path}")
     logger.info("platform_observations_file=%s", output_path)
 
-    if args.persist and not args.dry_run:
-        print(f"imported_market_snapshots={len(snapshots)}")
-    else:
-        print(f"market_snapshots={len(snapshots)}")
-
+    _print_final_summary(
+        output_path=output_path,
+        snapshots=len(snapshots),
+        summary=payload["summary"],
+        persisted=args.persist and not args.dry_run,
+    )
     for platform_id, summary in payload["summary"].items():
-        print(
-            f"{platform_id}_worker="
-            f"observations:{summary['observations']} errors:{summary['errors']}"
-        )
         logger.info(
             "%s_worker=observations:%s errors:%s",
             platform_id,
             summary["observations"],
             summary["errors"],
         )
-    for error in payload["errors"]:
-        logger.error(
-            "%s_error item=%s message=%s debug=%s",
-            error["platform_id"],
-            error["market_hash_name"],
-            error["message"],
-            " | ".join(error["debug_log"][-6:]),
-        )
+    for result in results:
+        for error in result.errors:
+            logger.error(
+                "%s_error item=%s message=%s debug=%s",
+                error.platform_id,
+                error.market_hash_name,
+                error.message,
+                " | ".join(error.debug_log[-6:]),
+            )
     return len(snapshots)
 
 
@@ -245,6 +246,8 @@ def build_simple_market_snapshots(
             matched_candidate = candidates_by_hash.get(market_hash_name)
             name = _item_name(record, matched_candidate)
             quality = _quality(record, matched_candidate)
+            if quality is None:
+                continue
             stattrak = _stattrak(record, matched_candidate, market_hash_name)
             key = (name, quality, stattrak)
             entry = grouped.setdefault(
@@ -325,7 +328,6 @@ def simple_results_to_jsonable(
                 "platform_id": error.platform_id,
                 "market_hash_name": error.market_hash_name,
                 "message": error.message,
-                "debug_log": list(error.debug_log),
             }
             for result in results
             for error in result.errors
@@ -458,10 +460,6 @@ def _configure_logging(args: argparse.Namespace) -> tuple[logging.Logger, Path]:
     file_handler = logging.FileHandler(log_path, encoding="utf-8")
     file_handler.setFormatter(formatter)
     logger.addHandler(file_handler)
-
-    console_handler = logging.StreamHandler()
-    console_handler.setFormatter(formatter)
-    logger.addHandler(console_handler)
     return logger, log_path
 
 
@@ -474,8 +472,14 @@ def _item_name(record: Any, candidate: SteamDTCandidate | None) -> str:
     return _required_text(record.asset_name or (candidate.item_name if candidate else None), "name")
 
 
-def _quality(record: Any, candidate: SteamDTCandidate | None) -> str:
-    return _required_text(record.quality or (candidate.quality if candidate else None), "quality")
+def _quality(record: Any, candidate: SteamDTCandidate | None) -> str | None:
+    market_hash_name = str(record.observation.raw_payload.get("market_hash_name") or "")
+    inferred_quality = quality_from_market_hash(
+        market_hash_name or (candidate.market_hash_name if candidate else "")
+    )
+    return _optional_str(
+        record.quality or (candidate.quality if candidate else None) or inferred_quality
+    )
 
 
 def _stattrak(
@@ -495,22 +499,79 @@ def _snapshot_to_jsonable(snapshot: SimpleMarketSnapshot) -> dict[str, Any]:
         "quality": snapshot.quality,
         "stattrak": snapshot.stattrak,
         "scraped_at": snapshot.scraped_at.isoformat(),
-        "steam": {
-            "url": snapshot.steam_url,
-            "price": str(snapshot.steam_price) if snapshot.steam_price is not None else None,
-            "currency": snapshot.steam_currency,
-            "recent_sales": list(snapshot.steam_recent_sales),
-            "buy_orders": list(snapshot.steam_buy_orders),
-        },
-        "buff": {
-            "url": snapshot.buff_url,
-            "price": str(snapshot.buff_price) if snapshot.buff_price is not None else None,
-            "currency": snapshot.buff_currency,
-            "recent_sales": list(snapshot.buff_recent_sales),
-            "buy_orders": list(snapshot.buff_buy_orders),
-        },
-        "source_strategies": list(snapshot.source_strategies),
+        "steam": _platform_snapshot_to_jsonable(
+            url=snapshot.steam_url,
+            price=snapshot.steam_price,
+            currency=snapshot.steam_currency,
+            recent_sales=snapshot.steam_recent_sales,
+            buy_orders=snapshot.steam_buy_orders,
+        ),
+        "buff": _platform_snapshot_to_jsonable(
+            url=snapshot.buff_url,
+            price=snapshot.buff_price,
+            currency=snapshot.buff_currency,
+            recent_sales=snapshot.buff_recent_sales,
+            buy_orders=snapshot.buff_buy_orders,
+        ),
+        **(
+            {"source_strategies": list(snapshot.source_strategies)}
+            if snapshot.source_strategies
+            else {}
+        ),
     }
+
+
+def _platform_snapshot_to_jsonable(
+    *,
+    url: str | None,
+    price: Any,
+    currency: str | None,
+    recent_sales: Sequence[Mapping[str, Any]],
+    buy_orders: Sequence[Mapping[str, Any]],
+) -> dict[str, Any]:
+    payload: dict[str, Any] = {}
+    if url:
+        payload["url"] = url
+    if price is not None:
+        payload["price"] = str(price)
+    if currency:
+        payload["currency"] = currency
+    if recent_sales:
+        payload["recent_sales"] = list(recent_sales)
+    if buy_orders:
+        payload["buy_orders"] = list(buy_orders)
+    return payload
+
+
+def _print_batch_summary(
+    batch_index: int,
+    snapshot_count: int,
+    results: tuple[PlatformWorkerResult, ...],
+) -> None:
+    parts = [
+        f"{result.platform_id}={len(result.observations)} ok/{len(result.errors)} err"
+        for result in results
+    ]
+    worker_summary = " | ".join(parts) if parts else "workers=disabled"
+    print(f"batch {batch_index}: snapshots={snapshot_count} | {worker_summary}")
+
+
+def _print_final_summary(
+    *,
+    output_path: Path,
+    snapshots: int,
+    summary: dict[str, dict[str, int]],
+    persisted: bool,
+) -> None:
+    mode = "persisted" if persisted else "dry_run"
+    print(f"done: snapshots={snapshots} mode={mode}")
+    for platform_id, platform_summary in summary.items():
+        print(
+            f"  {platform_id}: "
+            f"{platform_summary['observations']} observations, "
+            f"{platform_summary['errors']} errors"
+        )
+    print(f"output_file={output_path}")
 
 
 def _required_text(value: object, field_name: str) -> str:

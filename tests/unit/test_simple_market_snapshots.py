@@ -94,8 +94,54 @@ def test_simple_results_to_jsonable_uses_public_snapshot_shape() -> None:
     assert payload["schema_version"] == "market_snapshot.v1"
     assert payload["items"][0]["name"] == "AK-47 | Slate"
     assert payload["items"][0]["steam"]["price"] == "5.41"
-    assert payload["items"][0]["steam"]["buy_orders"] == []
-    assert payload["items"][0]["source_strategies"] == []
+    assert "buy_orders" not in payload["items"][0]["steam"]
+    assert "source_strategies" not in payload["items"][0]
+
+
+def test_build_simple_market_snapshots_infers_missing_quality_from_market_hash() -> None:
+    scraped_at = datetime(2026, 6, 10, 12, 0, tzinfo=UTC)
+    market_hash_name = "Souvenir XM1014 | Elegant Vines (Field-Tested)"
+    steam_record = _record(
+        platform_id="steam",
+        price=Decimal("170.47"),
+        currency="CNY",
+        market_hash_name=market_hash_name,
+        source_reference="https://steamcommunity.com/market/listings/730/Souvenir%20XM1014",
+        asset_name="Souvenir XM1014 | Elegant Vines",
+        quality=None,
+    )
+
+    snapshots = build_simple_market_snapshots(
+        (),
+        (PlatformWorkerResult("steam", (steam_record,)),),
+        scraped_at=scraped_at,
+    )
+
+    assert len(snapshots) == 1
+    assert snapshots[0].name == "Souvenir XM1014 | Elegant Vines"
+    assert snapshots[0].quality == "Field-Tested"
+
+
+def test_build_simple_market_snapshots_skips_items_without_quality() -> None:
+    scraped_at = datetime(2026, 6, 10, 12, 0, tzinfo=UTC)
+    market_hash_name = "Trapper Aggressor | Guerrilla Warfare"
+    steam_record = _record(
+        platform_id="steam",
+        price=Decimal("170.47"),
+        currency="CNY",
+        market_hash_name=market_hash_name,
+        source_reference="https://steamcommunity.com/market/listings/730/Trapper%20Aggressor",
+        asset_name=market_hash_name,
+        quality=None,
+    )
+
+    snapshots = build_simple_market_snapshots(
+        (),
+        (PlatformWorkerResult("steam", (steam_record,)),),
+        scraped_at=scraped_at,
+    )
+
+    assert snapshots == ()
 
 
 def test_simple_results_to_jsonable_aggregates_summary_across_batches() -> None:
@@ -114,6 +160,7 @@ def test_simple_results_to_jsonable_aggregates_summary_across_batches() -> None:
     )
 
     assert payload["summary"]["steam"] == {"observations": 1, "errors": 1}
+    assert "debug_log" not in payload["errors"][0]
 
 
 @pytest.mark.asyncio
@@ -130,7 +177,7 @@ async def test_simple_market_snapshot_repository_upserts_item_and_snapshot() -> 
         steam_buy_orders=({"price": "5.00", "quantity": 12},),
     )
 
-    await SimpleMarketSnapshotRepository(connection).record_snapshot(snapshot)  # type: ignore[arg-type]
+    await SimpleMarketSnapshotRepository(connection).record_snapshot(snapshot)
 
     assert len(connection.statements) == 2
     assert "insert into market_items" in connection.statements[0].lower()
@@ -146,6 +193,8 @@ def _record(
     market_hash_name: str,
     source_reference: str,
     raw_payload: dict[str, Any] | None = None,
+    asset_name: str = "AK-47 | Slate",
+    quality: str | None = "Field-Tested",
 ) -> SteamMarketObservation:
     observation = MarketObservationContract(
         correlation_id="test",
@@ -160,9 +209,9 @@ def _record(
     )
     return SteamMarketObservation(
         observation=observation,
-        asset_name="AK-47 | Slate",
+        asset_name=asset_name,
         category=None,
-        quality="Field-Tested",
+        quality=quality,
         variant_key="field-tested_st1",
     )
 

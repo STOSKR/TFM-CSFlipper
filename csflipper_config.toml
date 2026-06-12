@@ -9,12 +9,12 @@ steam_sale_percent = 13
 withdrawal_percent = 20
 
 [fees.withdrawal_percent_by_balance]
-steam_balance = 0
-platform_balance = 20
+steam_balance = 20
+platform_balance = 2.5
 
 [steamdt]
-default_profile = "platform_arbitrage_safe"
-run_all_profiles = true
+default_profile = "steam_sell_slow"
+run_all_profiles = false
 
 [steamdt.profiles.steam_sell_slow]
 balance_type = "STEAM Balance"

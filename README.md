@@ -1,3 +1,7 @@
+# Comandos utiles
+
+python scrape_flow.py --show-browser --persist
+
 # CS2 Consorcio de Inversión
 
 Sistema multiagente para simular decisiones de inversión en mercados de activos digitales de Counter-Strike 2.

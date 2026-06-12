@@ -248,7 +248,7 @@ def main() -> None:
     parser.add_argument("--buy-mode")
     parser.add_argument("--platform-buff", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--platform-c5game", action=argparse.BooleanOptionalAction, default=False)
-    parser.add_argument("--platform-uu", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--platform-uu", action=argparse.BooleanOptionalAction, default=False)
     parser.add_argument(
         "--enrich-links",
         action=argparse.BooleanOptionalAction,
