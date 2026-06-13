@@ -37,6 +37,18 @@ def main() -> int:
     )
     parser.add_argument("--fast", action="store_true", help="Use platform_arbitrage_fast profile")
     parser.add_argument("--show", action="store_true", help="Show browser while scraping")
+    parser.add_argument(
+        "--timeout",
+        type=int,
+        default=60,
+        help="Seconds to wait for SteamDT navigation and key selectors",
+    )
+    parser.add_argument(
+        "--retries",
+        type=int,
+        default=2,
+        help="Retries for the initial SteamDT page navigation",
+    )
     parser.add_argument("--json", action="store_true", help="Print JSON instead of table")
     parser.add_argument("--steam", action="store_true", help="Also fetch Steam Market prices")
     parser.add_argument("--persist", action="store_true", help="Persist fetched Steam prices")
@@ -105,6 +117,10 @@ def main() -> int:
         str(args.limit),
         "--currency",
         args.currency,
+        "--timeout",
+        str(args.timeout),
+        "--retries",
+        str(args.retries),
         "--platform-buff" if not args.no_buff else "--no-platform-buff",
         "--platform-c5game" if args.c5 else "--no-platform-c5game",
     ]

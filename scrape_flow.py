@@ -31,6 +31,16 @@ def main() -> int:
     )
     parser.add_argument("--persist", action="store_true", help="Persist market snapshots.")
     parser.add_argument("--fast", action="store_true", help="Use SteamDT fast profile override.")
+    parser.add_argument(
+        "--steamdt-timeout",
+        type=int,
+        help="Seconds to wait for SteamDT navigation and key selectors.",
+    )
+    parser.add_argument(
+        "--steamdt-retries",
+        type=int,
+        help="Retries for the initial SteamDT page navigation.",
+    )
     parser.add_argument("--min", dest="min_price", type=float, help="Minimum SteamDT price filter")
     parser.add_argument("--max", dest="max_price", type=float, help="Maximum SteamDT price filter")
     parser.add_argument("--vol", dest="min_volume", type=int, help="Minimum SteamDT volume filter")
@@ -81,6 +91,10 @@ def build_steamdt_command(args: argparse.Namespace, candidates_path: Path) -> li
         command.append("--show")
     if args.fast:
         command.append("--fast")
+    if args.steamdt_timeout is not None:
+        command.extend(["--timeout", str(args.steamdt_timeout)])
+    if args.steamdt_retries is not None:
+        command.extend(["--retries", str(args.steamdt_retries)])
     if args.min_price is not None:
         command.extend(["--min", str(args.min_price)])
     if args.max_price is not None:

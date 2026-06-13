@@ -10,6 +10,8 @@ def test_build_flow_commands_use_explicit_candidates_file() -> None:
         limit=10,
         show_browser=True,
         fast=False,
+        steamdt_timeout=None,
+        steamdt_retries=None,
         min_price=None,
         max_price=None,
         min_volume=None,
@@ -39,4 +41,35 @@ def test_build_flow_commands_use_explicit_candidates_file() -> None:
         str(candidates_path),
         "--show-browser",
         "--persist",
+    ]
+
+
+def test_build_flow_steamdt_command_passes_timeout_options() -> None:
+    args = argparse.Namespace(
+        limit=3,
+        show_browser=False,
+        fast=False,
+        steamdt_timeout=90,
+        steamdt_retries=3,
+        min_price=None,
+        max_price=None,
+        min_volume=None,
+        no_buff=False,
+        uu=False,
+        no_uu=False,
+        c5=False,
+        enrich_links=False,
+    )
+    candidates_path = Path("data/flow-runs/test_candidates.json")
+
+    assert build_steamdt_command(args, candidates_path) == [
+        sys.executable,
+        "steamdt.py",
+        "3",
+        "--timeout",
+        "90",
+        "--retries",
+        "3",
+        "--output",
+        str(candidates_path),
     ]

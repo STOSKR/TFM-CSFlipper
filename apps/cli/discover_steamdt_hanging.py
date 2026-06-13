@@ -63,6 +63,8 @@ async def discover(args: argparse.Namespace) -> int:
             withdrawal_fee_rate=withdrawal_fee_percent / Decimal("100"),
             manual_login_wait_ms=args.login_wait * 1000 if args.login else 0,
             session_state_path=None if args.no_session_state else args.session_state,
+            timeout_ms=args.timeout * 1000,
+            navigation_retries=args.retries,
         )
         print(
             "steamdt_strategy="
@@ -256,6 +258,18 @@ def main() -> None:
         help="Open SteamDT detail pages only when platform links are missing",
     )
     parser.add_argument("--show-browser", action="store_true")
+    parser.add_argument(
+        "--timeout",
+        type=int,
+        default=60,
+        help="Seconds to wait for SteamDT navigation and key selectors",
+    )
+    parser.add_argument(
+        "--retries",
+        type=int,
+        default=2,
+        help="Retries for the initial SteamDT page navigation",
+    )
     parser.add_argument("--output", type=Path)
     parser.add_argument(
         "--session-state",

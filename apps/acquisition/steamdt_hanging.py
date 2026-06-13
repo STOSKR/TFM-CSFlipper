@@ -49,7 +49,8 @@ class SteamDTHangingFilters:
     platform_c5game: bool = False
     platform_uu: bool = False
     headless: bool = True
-    timeout_ms: int = 30000
+    timeout_ms: int = 60000
+    navigation_retries: int = 2
     initial_wait_ms: int = 5000
     wait_after_search_ms: int = 3500
     wait_after_detail_ms: int = 1200
@@ -100,6 +101,7 @@ class SteamDTHangingDiscovery:
 
     async def discover(self) -> tuple[SteamDTCandidate, ...]:
         try:
+            from playwright.async_api import TimeoutError as PlaywrightTimeoutError
             from playwright.async_api import async_playwright
         except ModuleNotFoundError as exc:  # pragma: no cover - environment dependent
             raise SteamDTDiscoveryError(
@@ -120,11 +122,7 @@ class SteamDTHangingDiscovery:
             context = await browser.new_context(**context_options)
             page = await context.new_page()
             try:
-                await page.goto(
-                    self.filters.target_url,
-                    wait_until="domcontentloaded",
-                    timeout=self.filters.timeout_ms,
-                )
+                await self._goto_target(page, PlaywrightTimeoutError)
                 await close_modal(page)
                 if self.filters.manual_login_wait_ms > 0:
                     await page.wait_for_timeout(self.filters.manual_login_wait_ms)
@@ -144,6 +142,25 @@ class SteamDTHangingDiscovery:
                 await context.close()
                 await browser.close()
         return candidates
+
+    async def _goto_target(
+        self,
+        page: Any,
+        timeout_error_type: type[Exception],
+    ) -> None:
+        attempts = max(1, self.filters.navigation_retries + 1)
+        for attempt_index in range(attempts):
+            try:
+                await page.goto(
+                    self.filters.target_url,
+                    wait_until="domcontentloaded",
+                    timeout=self.filters.timeout_ms,
+                )
+                return
+            except timeout_error_type:
+                if attempt_index == attempts - 1:
+                    raise
+                await page.wait_for_timeout(min(1000 * (attempt_index + 1), 5000))
 
     async def _save_session_state(self, context: Any) -> None:
         if not self.filters.session_state_path:
