@@ -20,6 +20,21 @@ python scrape_flow.py --show-browser --persist
 
 Por defecto no persiste y no muestra navegadores.
 
+## Flujo Streaming Local
+
+Primera version del pipeline con cola interna. Consume un JSON de candidatos ya generado,
+deduplica, procesa por batches y conserva `scrape_flow.py` como comando estable:
+
+```bash
+python -m apps.cli.stream_scrape_flow --persist
+```
+
+Para validar solo el cableado sin llamar a plataformas:
+
+```bash
+python -m apps.cli.stream_scrape_flow --no-steam --no-buff
+```
+
 ## SteamDT Hanging
 
 Descubre candidatos desde SteamDT Hanging sin guardar nada:
