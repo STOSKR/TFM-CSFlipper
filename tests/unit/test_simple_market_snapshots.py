@@ -189,6 +189,15 @@ async def test_simple_market_snapshot_repository_upserts_item_and_snapshot() -> 
     assert len(connection.statements) == 2
     assert "insert into market_items" in connection.statements[0].lower()
     assert "insert into market_snapshots" in connection.statements[1].lower()
+    assert (
+        "on conflict (name, quality, stattrak) do update set"
+        in connection.statements[1].lower()
+    )
+    assert (
+        "on conflict (name, quality, stattrak, scraped_at)"
+        not in connection.statements[1].lower()
+    )
+    assert "scraped_at = excluded.scraped_at" in connection.statements[1].lower()
     assert connection.transaction_opened is True
 
 

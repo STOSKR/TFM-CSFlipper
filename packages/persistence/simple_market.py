@@ -91,7 +91,8 @@ class SimpleMarketSnapshotRepository:
                 $1, $2, $3, $4, $5, $6, $7::jsonb, $8::jsonb,
                 $9, $10, $11::jsonb, $12::jsonb
             )
-            on conflict (name, quality, stattrak, scraped_at) do update set
+            on conflict (name, quality, stattrak) do update set
+                scraped_at = excluded.scraped_at,
                 steam_price = excluded.steam_price,
                 steam_currency = excluded.steam_currency,
                 steam_recent_sales = excluded.steam_recent_sales,

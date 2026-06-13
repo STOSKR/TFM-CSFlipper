@@ -2,6 +2,9 @@ from pathlib import Path
 
 MIGRATION = Path("supabase/migrations/0001_initial_schema.sql")
 SIMPLE_MARKET_MIGRATION = Path("supabase/migrations/0002_simple_market_snapshots.sql")
+CURRENT_MARKET_SNAPSHOT_MIGRATION = Path(
+    "supabase/migrations/0003_market_snapshots_current_state.sql"
+)
 
 
 def test_initial_migration_defines_required_tables() -> None:
@@ -77,3 +80,13 @@ def test_simple_market_migration_keeps_platform_currencies_separate() -> None:
     assert "steam_buy_orders jsonb" in sql
     assert "buff_recent_sales jsonb" in sql
     assert "buff_buy_orders jsonb" in sql
+
+
+def test_current_market_snapshot_migration_keeps_latest_row_per_item() -> None:
+    sql = CURRENT_MARKET_SNAPSHOT_MIGRATION.read_text(encoding="utf-8").lower()
+
+    assert "distinct on (name, quality, stattrak)" in sql
+    assert "drop constraint if exists market_snapshots_pkey" in sql
+    assert "primary key (name, quality, stattrak)" in sql
+    assert "primary key (name, quality, stattrak, scraped_at)" not in sql
+    assert "create or replace view market_snapshot_view" in sql
