@@ -5,6 +5,9 @@ SIMPLE_MARKET_MIGRATION = Path("supabase/migrations/0002_simple_market_snapshots
 CURRENT_MARKET_SNAPSHOT_MIGRATION = Path(
     "supabase/migrations/0003_market_snapshots_current_state.sql"
 )
+DROP_MARKET_SNAPSHOT_COMPOSITE_FK_MIGRATION = Path(
+    "supabase/migrations/0004_drop_market_snapshots_composite_fk.sql"
+)
 
 
 def test_initial_migration_defines_required_tables() -> None:
@@ -92,3 +95,16 @@ def test_current_market_snapshot_migration_keeps_latest_row_per_item() -> None:
     assert "primary key (name, quality, stattrak)" in sql
     assert "primary key (name, quality, stattrak, scraped_at)" not in sql
     assert "create or replace view market_snapshot_view" in sql
+
+
+def test_drop_market_snapshot_composite_fk_migration_keeps_view_join() -> None:
+    sql = DROP_MARKET_SNAPSHOT_COMPOSITE_FK_MIGRATION.read_text(
+        encoding="utf-8"
+    ).lower()
+
+    assert "drop constraint if exists" in sql
+    assert "public.market_snapshots" in sql
+    assert "public.market_items" in sql
+    assert "contype = 'f'" in sql
+    assert "create or replace view market_snapshot_view" in sql
+    assert "and i.stattrak = s.stattrak" in sql
