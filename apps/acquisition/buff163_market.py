@@ -8,6 +8,7 @@ import re
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
@@ -17,6 +18,7 @@ from packages.domain.enums import SourceType
 from packages.domain.market_parsing import (
     asset_name_from_market_hash,
     detect_currency,
+    parse_market_decimal,
     parse_required_market_decimal,
     quality_from_market_hash,
     variant_key,
@@ -27,6 +29,7 @@ MONEY_PATTERN = re.compile(
     r"|\d[\d.,]*\s*(?:CNY|USD|EUR|GBP|\u20ac|\u00a3|\u00a5|\uffe5)",
     re.IGNORECASE,
 )
+LEADING_SYMBOL_MONEY_PATTERN = re.compile(r"(?:\$|\u20ac|\u00a3|\u00a5|\uffe5)\s*\d[\d.,]*")
 BUFF_PRICE_SELECTORS = (
     ".detail-tab-cont .f_Strong",
     ".list_tb_csgo .f_Strong",
@@ -262,7 +265,11 @@ class Buff163Connector:
                 "market_hash_name": candidate.market_hash_name,
                 "buff_url": candidate.buff_url,
                 "price_text": price_text,
-                "buy_orders": extract_buff_buy_orders(buy_order_rows, body_text),
+                "buy_orders": extract_buff_buy_orders(
+                    buy_order_rows,
+                    body_text,
+                    display_currency=currency,
+                ),
                 "page_title": title,
                 "debug_log": tuple(debug_log),
             },
@@ -352,22 +359,31 @@ def extract_buff_price_text(
 def extract_buff_buy_orders(
     rows: list[Any],
     body_text: str = "",
+    *,
+    display_currency: str | None = None,
 ) -> tuple[dict[str, str | int], ...]:
-    buy_orders: list[dict[str, str | int]] = []
+    buy_orders: dict[tuple[str, Decimal], dict[str, str | int]] = {}
     seen: set[tuple[str, int]] = set()
     for text in _buy_order_candidate_texts(rows, body_text):
-        price_match = MONEY_PATTERN.search(text)
-        if not price_match:
-            continue
-        quantity = _first_int_after(text, price_match.end())
-        if quantity is None:
-            continue
-        key = (price_match.group(0), quantity)
-        if key in seen:
-            continue
-        seen.add(key)
-        buy_orders.append({"price": key[0], "quantity": key[1]})
-    return tuple(buy_orders)
+        for price_text, price_end in _iter_money_candidates(text):
+            currency = detect_currency(price_text, default="CNY") or "CNY"
+            if display_currency and currency != display_currency.upper():
+                continue
+            price = parse_market_decimal(price_text)
+            if price is None or not _is_plausible_buff_order_price(price_text, price):
+                continue
+            quantity = _first_int_after(text, price_end)
+            if quantity is None:
+                continue
+            key = (price_text, quantity)
+            if key in seen:
+                continue
+            seen.add(key)
+            price_key = (currency, price)
+            current = buy_orders.get(price_key)
+            if current is None or quantity > int(current["quantity"]):
+                buy_orders[price_key] = {"price": price_text, "quantity": quantity}
+    return tuple(buy_orders.values())
 
 
 def _buy_order_candidate_texts(rows: list[Any], body_text: str) -> tuple[str, ...]:
@@ -409,6 +425,36 @@ def _first_int_after(value: str, start: int) -> int | None:
         return None
     digits = re.sub(r"[^0-9]", "", match.group(0))
     return int(digits) if digits else None
+
+
+def _iter_money_candidates(value: str) -> tuple[tuple[str, int], ...]:
+    candidates = [
+        (match.start(), match.end(), match.group(0))
+        for match in MONEY_PATTERN.finditer(value)
+    ]
+    candidates.extend(
+        (match.start(), match.end(), match.group(0))
+        for match in LEADING_SYMBOL_MONEY_PATTERN.finditer(value)
+    )
+    ordered: list[tuple[str, int]] = []
+    seen: set[tuple[str, int]] = set()
+    for _start, end, text in sorted(candidates):
+        key = (text, end)
+        if key in seen:
+            continue
+        seen.add(key)
+        ordered.append((text, end))
+    return tuple(ordered)
+
+
+def _is_plausible_buff_order_price(raw_value: str, value: Decimal) -> bool:
+    if value <= 0:
+        return False
+    if re.search(r"\d[\d.,]*\s*(?:\u00a5|\uffe5)\s*$", raw_value):
+        return False
+    if re.search(r"(?:\u00a5|\uffe5)\s*\d{5,}\s*$", raw_value):
+        return False
+    return value <= 1_000_000
 
 
 def _append_debug(debug_log: list[str] | None, message: str) -> None:

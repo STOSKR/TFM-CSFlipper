@@ -1,6 +1,7 @@
 from apps.acquisition.steam_browser_market import (
     extract_steam_buy_orders,
     extract_steam_price_text,
+    extract_steam_recent_sales,
 )
 
 
@@ -8,12 +9,12 @@ def test_extract_steam_price_text_prefers_selector_text() -> None:
     debug_log: list[str] = []
 
     price = extract_steam_price_text(
-        [{"selector": ".market_listing_price", "text": "Starting at: 12,34€"}],
+        [{"selector": ".market_listing_price", "text": "Starting at: 12,34\u20ac"}],
         "body without price",
         debug_log=debug_log,
     )
 
-    assert price == "12,34€"
+    assert price == "12,34\u20ac"
     assert "selector" in debug_log[0]
 
 
@@ -21,68 +22,69 @@ def test_extract_steam_price_text_uses_new_quality_card_normal_price() -> None:
     debug_log: list[str] = []
 
     price = extract_steam_price_text(
-        [{"text": "Factory New\n¥ 545.33\n¥ 106.34"}],
-        "Wallet ¥0.00 Factory New ¥ 545.33 ¥ 106.34",
+        [{"text": "Factory New\n\u00a5 545.33\n\u00a5 106.34"}],
+        "Wallet \u00a50.00 Factory New \u00a5 545.33 \u00a5 106.34",
         quality="Factory New",
         stattrak=False,
         debug_log=debug_log,
     )
 
-    assert price == "¥ 545.33"
+    assert price == "\u00a5 545.33"
     assert "quality card" in debug_log[0]
 
 
 def test_extract_steam_price_text_uses_new_quality_card_stattrak_price() -> None:
     price = extract_steam_price_text(
-        [{"text": "Factory New\n¥ 545.33\n¥ 106.34"}],
-        "Wallet ¥0.00 Factory New ¥ 545.33 ¥ 106.34",
+        [{"text": "Factory New\n\u00a5 545.33\n\u00a5 106.34"}],
+        "Wallet \u00a50.00 Factory New \u00a5 545.33 \u00a5 106.34",
         quality="Factory New",
         stattrak=True,
     )
 
-    assert price == "¥ 106.34"
+    assert price == "\u00a5 106.34"
 
 
 def test_extract_steam_price_text_prefers_new_market_ssr_bucket() -> None:
     price = extract_steam_price_text(
         [],
-        "Wallet €0,00\nField-Tested\n€5,41\n€17,45",
+        "Wallet \u20ac0,00\nField-Tested\n\u20ac5,41\n\u20ac17,45",
         quality="Field-Tested",
         stattrak=True,
         market_hash_name="StatTrak AK-47 | Slate (Field-Tested)",
         ssr_loader_data=[
             '{"success":true,"appid":730,"buckets":['
             '{"bucket_id":"AK-47 | Slate (Field-Tested)",'
-            '"localized_name_inside_group":"Field-Tested","strPrice":"€5,41"},'
-            '{"bucket_id":"StatTrak™ AK-47 | Slate (Field-Tested)",'
-            '"localized_name_inside_group":"StatTrak™ Field-Tested","strPrice":"€17,45"}'
+            '"localized_name_inside_group":"Field-Tested","strPrice":"\u20ac5,41"},'
+            '{"bucket_id":"StatTrak\u2122 AK-47 | Slate (Field-Tested)",'
+            '"localized_name_inside_group":"StatTrak\u2122 Field-Tested","strPrice":"\u20ac17,45"}'
             "]}",
         ],
     )
 
-    assert price == "€17,45"
+    assert price == "\u20ac17,45"
 
 
 def test_extract_steam_price_text_uses_body_quality_block() -> None:
     price = extract_steam_price_text(
         [],
-        "Wallet €0,00\nFactory New\n€21,00\n€84,00\nMinimal Wear\n€12,00\n€45,00",
+        "Wallet \u20ac0,00\nFactory New\n\u20ac21,00\n\u20ac84,00\n"
+        "Minimal Wear\n\u20ac12,00\n\u20ac45,00",
         quality="Minimal Wear",
         stattrak=False,
     )
 
-    assert price == "€12,00"
+    assert price == "\u20ac12,00"
 
 
 def test_extract_steam_price_text_handles_pln_prices() -> None:
     price = extract_steam_price_text(
-        [{"text": "Field-Tested\n22,90 zł\n67,32 zł"}],
+        [{"text": "Field-Tested\n22,90 z\u0142\n67,32 z\u0142"}],
         "",
         quality="Field-Tested",
         stattrak=False,
     )
 
-    assert price == "22,90 zł"
+    assert price == "22,90 z\u0142"
 
 
 def test_extract_steam_price_text_uses_fallback_line() -> None:
@@ -98,12 +100,48 @@ def test_extract_steam_buy_orders_from_table_rows() -> None:
     buy_orders = extract_steam_buy_orders(
         [
             ["Price", "Quantity"],
-            ["12,34€", "5"],
-            ["11,90€", "18"],
+            ["12,34\u20ac", "5"],
+            ["11,90\u20ac", "18"],
         ]
     )
 
     assert buy_orders == (
-        {"price": "12,34€", "quantity": 5},
-        {"price": "11,90€", "quantity": 18},
+        {"price": "12,34\u20ac", "quantity": 5},
+        {"price": "11,90\u20ac", "quantity": 18},
+    )
+
+
+def test_extract_steam_recent_sales_from_recharts_payload() -> None:
+    recent_sales = extract_steam_recent_sales(
+        {
+            "selected_range": "Month",
+            "price_line_path": "M10,90L20,50L30,10",
+            "price_ticks": [
+                {"text": "EUR 100.00", "y": 0},
+                {"text": "EUR 0.00", "y": 100},
+            ],
+            "time_ticks": [
+                {"text": "6/1/2026, 1 PM", "x": 10},
+                {"text": "6/2/2026, 1 PM", "x": 20},
+                {"text": "6/3/2026, 1 PM", "x": 30},
+            ],
+        },
+        limit=2,
+    )
+
+    assert recent_sales == (
+        {
+            "source": "steam_recharts",
+            "point_index": 1,
+            "price": "50.00",
+            "time_label": "6/2/2026, 1 PM",
+            "range": "Month",
+        },
+        {
+            "source": "steam_recharts",
+            "point_index": 2,
+            "price": "90.00",
+            "time_label": "6/3/2026, 1 PM",
+            "range": "Month",
+        },
     )

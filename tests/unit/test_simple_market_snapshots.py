@@ -40,6 +40,10 @@ def test_build_simple_market_snapshots_merges_platforms_by_item_variant() -> Non
         currency="EUR",
         market_hash_name=candidate.market_hash_name,
         source_reference=candidate.steam_url or "",
+        raw_payload={
+            "market_hash_name": candidate.market_hash_name,
+            "recent_sales": [{"price": "17.45", "time_label": "6/13/2026, 11 PM"}],
+        },
     )
     buff_record = _record(
         platform_id="buff163",
@@ -71,6 +75,9 @@ def test_build_simple_market_snapshots_merges_platforms_by_item_variant() -> Non
     assert snapshot.buff_url == candidate.buff_url
     assert snapshot.steam_price == Decimal("17.45")
     assert snapshot.steam_currency == "EUR"
+    assert snapshot.steam_recent_sales == (
+        {"price": "17.45", "time_label": "6/13/2026, 11 PM"},
+    )
     assert snapshot.buff_price == Decimal("105.20")
     assert snapshot.buff_currency == "CNY"
     assert snapshot.buff_buy_orders == ({"price": "CNY 104.00", "quantity": 7},)

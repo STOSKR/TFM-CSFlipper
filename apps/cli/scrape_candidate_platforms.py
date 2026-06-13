@@ -83,7 +83,7 @@ async def run(args: argparse.Namespace) -> int:
             scraped_at=datetime.now(tz=UTC),
         )
         if args.persist and not args.dry_run:
-            await _persist_snapshots(batch_snapshots)
+            await persist_simple_market_snapshots(batch_snapshots)
             print(f"batch {batch_index}: persisted_snapshots={len(batch_snapshots)}")
         _print_batch_summary(batch_index, len(batch_snapshots), batch_results)
         all_results.extend(batch_results)
@@ -263,9 +263,11 @@ def build_simple_market_snapshots(
                     "buff_url": matched_candidate.buff_url if matched_candidate else None,
                     "steam_price": None,
                     "steam_currency": None,
+                    "steam_recent_sales": [],
                     "steam_buy_orders": [],
                     "buff_price": None,
                     "buff_currency": None,
+                    "buff_recent_sales": [],
                     "buff_buy_orders": [],
                     "strategies": [],
                 },
@@ -280,11 +282,17 @@ def build_simple_market_snapshots(
                 entry["steam_price"] = record.observation.price
                 entry["steam_currency"] = record.observation.currency
                 entry["steam_url"] = entry["steam_url"] or record.observation.source_reference
+                entry["steam_recent_sales"] = (
+                    record.observation.raw_payload.get("recent_sales") or []
+                )
                 entry["steam_buy_orders"] = record.observation.raw_payload.get("buy_orders") or []
             elif platform_id == "buff163":
                 entry["buff_price"] = record.observation.price
                 entry["buff_currency"] = record.observation.currency
                 entry["buff_url"] = entry["buff_url"] or record.observation.source_reference
+                entry["buff_recent_sales"] = (
+                    record.observation.raw_payload.get("recent_sales") or []
+                )
                 entry["buff_buy_orders"] = record.observation.raw_payload.get("buy_orders") or []
 
     return tuple(
@@ -297,9 +305,11 @@ def build_simple_market_snapshots(
             buff_url=_optional_str(entry.get("buff_url")),
             steam_price=entry.get("steam_price"),
             steam_currency=_optional_str(entry.get("steam_currency")),
+            steam_recent_sales=tuple(_json_rows(entry.get("steam_recent_sales"))),
             steam_buy_orders=tuple(_json_rows(entry.get("steam_buy_orders"))),
             buff_price=entry.get("buff_price"),
             buff_currency=_optional_str(entry.get("buff_currency")),
+            buff_recent_sales=tuple(_json_rows(entry.get("buff_recent_sales"))),
             buff_buy_orders=tuple(_json_rows(entry.get("buff_buy_orders"))),
             source_strategies=tuple(_unique_strategy_rows(entry.get("strategies"))),
         )
@@ -336,7 +346,7 @@ def simple_results_to_jsonable(
     }
 
 
-async def _persist_snapshots(snapshots: tuple[SimpleMarketSnapshot, ...]) -> None:
+async def persist_simple_market_snapshots(snapshots: tuple[SimpleMarketSnapshot, ...]) -> None:
     pool = await create_pool(max_size=2)
     try:
         async with pool.acquire() as connection:

@@ -9,6 +9,7 @@ import re
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from decimal import Decimal
 from pathlib import Path
 from typing import Any
 from urllib.parse import quote
@@ -20,6 +21,7 @@ from packages.domain.market_parsing import (
     asset_name_from_market_hash,
     detect_currency,
     parse_int_from_text,
+    parse_market_decimal,
     parse_required_market_decimal,
     quality_from_market_hash,
     variant_key,
@@ -190,6 +192,18 @@ class SteamBrowserConnector:
                 )
                 await page.wait_for_timeout(self._config.manual_login_wait_ms)
             await page.wait_for_timeout(self._config.wait_after_load_ms)
+            quality = candidate.quality or quality_from_market_hash(candidate.market_hash_name)
+            stattrak = candidate.stattrak or candidate.market_hash_name.lower().startswith(
+                "stattrak"
+            )
+            souvenir = candidate.market_hash_name.lower().startswith("souvenir")
+            await _select_new_market_variant(
+                page,
+                quality=quality,
+                stattrak=stattrak,
+                souvenir=souvenir,
+                debug_log=debug_log,
+            )
             payload = await page.evaluate(
                 f"""
                 () => ({{
@@ -209,7 +223,50 @@ class SteamBrowserConnector:
                     document.querySelectorAll('#market_commodity_buyrequests tr')
                   ).map((row) =>
                     Array.from(row.querySelectorAll('td')).map((cell) => cell.innerText)
-                  )
+                  ),
+                  recentSalesChart: (() => {{
+                    const clean = (value) => String(value || "").replace(/\\s+/g, " ").trim();
+                    const moneyPattern = new RegExp(
+                      "(?:CNY|USD|EUR|GBP|PLN|[$€£¥￥]|zł)\\\\s*\\\\d"
+                      + "|\\\\d[\\\\d.,]*\\\\s*(?:CNY|USD|EUR|GBP|PLN|[$€£¥￥]|zł)",
+                      "i"
+                    );
+                    const svgs = Array.from(document.querySelectorAll("svg.recharts-surface"));
+                    const svg = svgs.find((node) => {{
+                      const text = clean(node.textContent);
+                      return text.includes("Price") && text.includes("Volume");
+                    }});
+                    if (!svg) {{
+                      return null;
+                    }}
+                    const texts = Array.from(svg.querySelectorAll("text")).map((node) => ({{
+                      text: clean(node.textContent),
+                      x: Number(node.getAttribute("x")),
+                      y: Number(node.getAttribute("y")),
+                    }}));
+                    const clipRect = svg.querySelector("defs clipPath rect");
+                    const selectedRange = Array.from(
+                      document.querySelectorAll('[data-selected="true"]')
+                    )
+                      .map((node) => clean(node.textContent))
+                      .find((text) => ["Week", "Month", "Year", "Lifetime"].includes(text));
+                    return {{
+                      selected_range: selectedRange || null,
+                      plot_area: clipRect ? {{
+                        x: Number(clipRect.getAttribute("x")),
+                        y: Number(clipRect.getAttribute("y")),
+                        width: Number(clipRect.getAttribute("width")),
+                        height: Number(clipRect.getAttribute("height")),
+                      }} : null,
+                      price_line_path: svg.querySelector("path.recharts-line-curve")
+                        ? svg.querySelector("path.recharts-line-curve").getAttribute("d")
+                        : null,
+                      price_ticks: texts.filter((entry) => moneyPattern.test(entry.text)),
+                      time_ticks: texts.filter((entry) =>
+                        /\\d{{1,2}}\\/\\d{{1,2}}\\/\\d{{4}}/.test(entry.text)
+                      ),
+                    }};
+                  }})()
                 }})
                 """
             )
@@ -221,6 +278,7 @@ class SteamBrowserConnector:
         ssr_loader_data = list(payload.get("ssrLoaderData") or [])
         selector_texts = list(payload.get("selectorTexts") or [])
         buy_order_rows = list(payload.get("buyOrderRows") or [])
+        chart_payload = payload.get("recentSalesChart")
         self._debug(candidate.market_hash_name, debug_log, f"title={title!r}")
         self._debug(
             candidate.market_hash_name,
@@ -265,6 +323,7 @@ class SteamBrowserConnector:
                 "steam_url": url,
                 "price_text": price_text,
                 "buy_orders": extract_steam_buy_orders(buy_order_rows),
+                "recent_sales": extract_steam_recent_sales(chart_payload),
                 "page_title": title,
                 "debug_log": tuple(debug_log),
             },
@@ -385,12 +444,152 @@ def extract_steam_buy_orders(rows: list[Any]) -> tuple[dict[str, str | int], ...
     return tuple(buy_orders)
 
 
+def extract_steam_recent_sales(
+    chart_payload: object,
+    *,
+    limit: int = 5,
+) -> tuple[dict[str, Any], ...]:
+    if not isinstance(chart_payload, dict):
+        return ()
+    price_line_path = chart_payload.get("price_line_path")
+    if not isinstance(price_line_path, str) or not price_line_path.strip():
+        return ()
+    price_scale = _price_scale_from_ticks(chart_payload.get("price_ticks"))
+    if price_scale is None:
+        return ()
+    time_ticks = _time_ticks(chart_payload.get("time_ticks"))
+    selected_range = _optional_str(chart_payload.get("selected_range"))
+    points = _path_points(price_line_path)
+    rows: list[dict[str, Any]] = []
+    for index, (x, y) in enumerate(points[-max(1, limit) :], start=max(0, len(points) - limit)):
+        row: dict[str, Any] = {
+            "source": "steam_recharts",
+            "point_index": index,
+            "price": str(_price_from_y(y, price_scale).quantize(Decimal("0.01"))),
+            "time_label": _nearest_time_label(x, time_ticks),
+        }
+        if selected_range:
+            row["range"] = selected_range
+        rows.append(row)
+    return tuple(rows)
+
+
 def _first_int_after(value: str, start: int) -> int | None:
     match = re.search(r"\d[\d.,]*", value[start:])
     if not match:
         return None
     digits = re.sub(r"[^0-9]", "", match.group(0))
     return int(digits) if digits else None
+
+
+async def _select_new_market_variant(
+    page: Any,
+    *,
+    quality: str | None,
+    stattrak: bool,
+    souvenir: bool,
+    debug_log: list[str],
+) -> None:
+    selected = await page.evaluate(
+        """
+        async ({quality, stattrak, souvenir}) => {
+          const clean = (value) => String(value || "").replace(/\\s+/g, " ").trim();
+          const click = (node) => {
+            if (!node) return false;
+            node.dispatchEvent(new MouseEvent("click", {
+              bubbles: true,
+              cancelable: true,
+              view: window
+            }));
+            return true;
+          };
+          const clickSwitchBeside = (label, shouldEnable) => {
+            const labels = Array.from(document.querySelectorAll("span, div"))
+              .filter((node) => clean(node.innerText || node.textContent) === label);
+            for (const labelNode of labels) {
+              const wrapper = labelNode.parentElement;
+              const switchNode = wrapper && wrapper.querySelector('[role="switch"]');
+              if (!switchNode) continue;
+              const enabled = switchNode.getAttribute("aria-checked") === "true";
+              if (enabled !== shouldEnable) {
+                return click(switchNode);
+              }
+              return true;
+            }
+            return false;
+          };
+          const stattrakClicked = clickSwitchBeside("StatTrak™", Boolean(stattrak));
+          const souvenirClicked = clickSwitchBeside("Souvenir", Boolean(souvenir));
+          await new Promise((resolve) => setTimeout(resolve, 750));
+          let qualityClicked = false;
+          if (quality) {
+            const tabs = Array.from(document.querySelectorAll("[data-selected]"))
+              .filter((node) => clean(node.innerText || node.textContent).includes(quality));
+            qualityClicked = click(tabs[0]);
+          }
+          await new Promise((resolve) => setTimeout(resolve, 1200));
+          return {stattrakClicked, souvenirClicked, qualityClicked};
+        }
+        """,
+        {"quality": quality, "stattrak": stattrak, "souvenir": souvenir},
+    )
+    debug_log.append(f"new_market_variant_selection={selected!r}")
+
+
+def _path_points(path_value: str) -> tuple[tuple[float, float], ...]:
+    matches = re.findall(r"[ML]\s*([0-9.]+),([0-9.]+)", path_value)
+    return tuple((float(x), float(y)) for x, y in matches)
+
+
+def _price_scale_from_ticks(value: object) -> tuple[tuple[float, Decimal], ...] | None:
+    if not isinstance(value, list):
+        return None
+    points: list[tuple[float, Decimal]] = []
+    for row in value:
+        if not isinstance(row, dict):
+            continue
+        y = row.get("y")
+        text = row.get("text")
+        price = parse_market_decimal(str(text or ""))
+        if not isinstance(y, int | float) or price is None:
+            continue
+        points.append((float(y), price))
+    unique = tuple(sorted(set(points), key=lambda item: item[0]))
+    return unique if len(unique) >= 2 else None
+
+
+def _price_from_y(y: float, scale: tuple[tuple[float, Decimal], ...]) -> Decimal:
+    y1, price1 = scale[0]
+    y2, price2 = scale[-1]
+    if y1 == y2:
+        return price1
+    ratio = Decimal(str((y - y1) / (y2 - y1)))
+    return price1 + (price2 - price1) * ratio
+
+
+def _time_ticks(value: object) -> tuple[tuple[float, str], ...]:
+    if not isinstance(value, list):
+        return ()
+    rows: list[tuple[float, str]] = []
+    for row in value:
+        if not isinstance(row, dict):
+            continue
+        x = row.get("x")
+        text = _optional_str(row.get("text"))
+        if isinstance(x, int | float) and text:
+            rows.append((float(x), text))
+    return tuple(rows)
+
+
+def _nearest_time_label(x: float, ticks: tuple[tuple[float, str], ...]) -> str | None:
+    if not ticks:
+        return None
+    return min(ticks, key=lambda item: abs(item[0] - x))[1]
+
+
+def _optional_str(value: object) -> str | None:
+    text = str(value or "").strip()
+    return text or None
 
 
 def _extract_bucket_price_text(

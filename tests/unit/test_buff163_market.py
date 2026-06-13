@@ -38,6 +38,39 @@ def test_extract_buff_buy_orders_from_labelled_rows() -> None:
     )
 
 
+def test_extract_buff_buy_orders_filters_concatenated_noise() -> None:
+    buy_orders = extract_buff_buy_orders(
+        [
+            {
+                "className": "buy-order-list",
+                "text": "Buy order ¥ 819.5 10456 57276831659 ¥ 820 ¥ 820 10462",
+            },
+        ]
+    )
+
+    assert buy_orders == (
+        {"price": "¥ 819.5", "quantity": 10456},
+        {"price": "¥ 820", "quantity": 10462},
+    )
+
+
+def test_extract_buff_buy_orders_keeps_display_currency_only() -> None:
+    buy_orders = extract_buff_buy_orders(
+        [
+            {
+                "className": "buy-order-list",
+                "text": "Buy order ¥ 200 2554 € 25.54 40 103 ¥ 20086 ¥ 200.86 2565",
+            },
+        ],
+        display_currency="CNY",
+    )
+
+    assert buy_orders == (
+        {"price": "¥ 200", "quantity": 2554},
+        {"price": "¥ 200.86", "quantity": 2565},
+    )
+
+
 @pytest.mark.asyncio
 async def test_buff_connector_lenient_empty_candidates() -> None:
     observations, errors = await Buff163Connector().fetch_candidates_lenient(
