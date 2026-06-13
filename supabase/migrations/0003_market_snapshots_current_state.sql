@@ -6,64 +6,22 @@ begin;
 
 drop view if exists market_snapshot_view;
 
-create temporary table latest_market_snapshots on commit drop as
-select distinct on (name, quality, stattrak)
-    name,
-    quality,
-    stattrak,
-    scraped_at,
-    steam_price,
-    steam_currency,
-    steam_recent_sales,
-    steam_buy_orders,
-    buff_price,
-    buff_currency,
-    buff_recent_sales,
-    buff_buy_orders,
-    created_at
-from market_snapshots
-order by
-    name,
-    quality,
-    stattrak,
-    scraped_at desc,
-    created_at desc;
-
-delete from market_snapshots;
+with ranked_market_snapshots as (
+    select
+        ctid as row_id,
+        row_number() over (
+            partition by name, quality, stattrak
+            order by scraped_at desc, created_at desc, ctid desc
+        ) as row_rank
+    from market_snapshots
+)
+delete from market_snapshots s
+using ranked_market_snapshots r
+where s.ctid = r.row_id
+    and r.row_rank > 1;
 
 alter table market_snapshots
     drop constraint if exists market_snapshots_pkey;
-
-insert into market_snapshots (
-    name,
-    quality,
-    stattrak,
-    scraped_at,
-    steam_price,
-    steam_currency,
-    steam_recent_sales,
-    steam_buy_orders,
-    buff_price,
-    buff_currency,
-    buff_recent_sales,
-    buff_buy_orders,
-    created_at
-)
-select
-    name,
-    quality,
-    stattrak,
-    scraped_at,
-    steam_price,
-    steam_currency,
-    steam_recent_sales,
-    steam_buy_orders,
-    buff_price,
-    buff_currency,
-    buff_recent_sales,
-    buff_buy_orders,
-    created_at
-from latest_market_snapshots;
 
 alter table market_snapshots
     add constraint market_snapshots_pkey

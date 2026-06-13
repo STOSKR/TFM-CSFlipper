@@ -85,7 +85,9 @@ def test_simple_market_migration_keeps_platform_currencies_separate() -> None:
 def test_current_market_snapshot_migration_keeps_latest_row_per_item() -> None:
     sql = CURRENT_MARKET_SNAPSHOT_MIGRATION.read_text(encoding="utf-8").lower()
 
-    assert "distinct on (name, quality, stattrak)" in sql
+    assert "row_number() over" in sql
+    assert "partition by name, quality, stattrak" in sql
+    assert "delete from market_snapshots" in sql
     assert "drop constraint if exists market_snapshots_pkey" in sql
     assert "primary key (name, quality, stattrak)" in sql
     assert "primary key (name, quality, stattrak, scraped_at)" not in sql
