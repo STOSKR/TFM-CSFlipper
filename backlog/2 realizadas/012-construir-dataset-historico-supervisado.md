@@ -54,6 +54,17 @@ El modelo supervisado predice la probabilidad calibrada de que el spread entre S
   52 columnas, 6 row groups y 2.980 variantes, con rango temporal hasta 2026-04-12.
 - Adaptado el importador del parquet para iterar por batches/row groups y escribir historico
   por lotes, evitando cargar todo el dataset en memoria.
+- Creado `packages.datasets.supervised` y el CLI `python -m apps.cli.build_supervised_dataset`
+  para generar splits temporales versionados desde el parquet completo.
+- Generado dataset local `data/datasets/supervised_direction_v1` con `train.parquet`,
+  `validation.parquet`, `test.parquet`, `metadata.json` y `feature_profile.json`.
+- Excluidas columnas de leakage/target (`future_*`, `direction`, `is_up`, `is_safe`, `y`,
+  `y_7d_direction`) antes de entrenar modelos.
+- Perfiladas features numericas y categoricas: 40 features finales, 33 numericas y
+  7 categoricas. La senal lineal individual parece moderada/debil; `rsi_14d` queda como
+  feature numerica mas correlacionada con el target en valor absoluto.
+- Definidos splits temporales: train hasta 2024-12-31, validation 2025 completo y test desde
+  2026-01-01 hasta 2026-04-12.
 
 ## Pruebas ejecutadas
 
@@ -62,6 +73,10 @@ El modelo supervisado predice la probabilidad calibrada de que el spread entre S
 - `python -m mypy packages/datasets/historical_parquet.py apps/cli/import_history_parquet.py apps/cli/refresh_market_history.py tests/unit/test_historical_parquet.py tests/unit/test_refresh_market_history.py`
 - `python -m apps.cli.import_history_parquet --input data/direction_dataset_model_sample.parquet --currency EUR`
 - `python -m apps.cli.import_history_parquet --input data/direction_dataset_engineered.parquet --currency EUR --limit-variants 3`
+- `python -m ruff check packages/datasets/supervised.py apps/cli/build_supervised_dataset.py tests/unit/test_supervised_dataset.py`
+- `python -m mypy packages/datasets/supervised.py apps/cli/build_supervised_dataset.py tests/unit/test_supervised_dataset.py`
+- `python -m pytest tests/unit/test_supervised_dataset.py`
+- `python -m apps.cli.build_supervised_dataset --input data/direction_dataset_engineered.parquet --output data/datasets/supervised_direction_v1`
 
 ## Bloqueos o riesgos
 
@@ -69,3 +84,6 @@ El modelo supervisado predice la probabilidad calibrada de que el spread entre S
 - El cambio de moneda o comisiones puede invalidar etiquetas si no queda versionado.
 - El parquet completo trae historico Steam/precio+ventas y targets direccionales, pero no trae
   BUFF; para el modelo de spread neto habra que alinearlo despues con historico BUFF.
+- `is_safe` parecia altamente correlacionada con el target y se excluyo como posible leakage.
+- La primera exploracion sugiere que las features individuales tienen senal debil; en la tarea
+  13 habra que comparar modelos no lineales, calibracion, tuning y posibles ensembles.
