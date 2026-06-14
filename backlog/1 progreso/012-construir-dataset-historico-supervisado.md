@@ -34,13 +34,33 @@ El modelo supervisado predice la probabilidad calibrada de que el spread entre S
 
 ## Pasos realizados
 
-Pendiente.
+- Movida a progreso tras normalizar el esquema operativo a `market_items` +
+  `market_history_points`.
+- Revisado `data/direction_dataset_model_sample.parquet`: 1000 filas, 1 variante
+  (`heavy_m249_aztec__FN_st0`), granularidad diaria, rango 2019-11-17 a 2022-08-12,
+  con features tecnicas y target direccional ya precomputado.
+- Confirmado que el parquet es un dataset direccional Steam/precio+ventas, no un historico
+  bruto Steam-BUFF alineado.
+- Creado `packages.datasets.historical_parquet` para inspeccionar el parquet, validar columnas
+  obligatorias y transformarlo a snapshots persistibles con historico Steam.
+- Creado CLI `python -m apps.cli.import_history_parquet` para inspeccionar/importar el parquet
+  a `market_items` y `market_history_points`; por defecto funciona en dry-run y requiere
+  `--persist` para escribir en BD.
+- Creado CLI `python -m apps.cli.refresh_market_history` para leer `market_items` desde BD,
+  reutilizar los workers de Steam/BUFF y actualizar estado actual + puntos historicos.
+- Definida decision: ROI, net profit y break-even se recalcularan bajo demanda para web,
+  recomendaciones o datasets; no se guardan como verdad persistida porque el precio cambia.
 
 ## Pruebas ejecutadas
 
-Pendiente.
+- `python -m pytest tests/unit/test_historical_parquet.py tests/unit/test_refresh_market_history.py tests/unit/test_simple_market_snapshots.py`
+- `python -m ruff check packages/datasets/historical_parquet.py apps/cli/import_history_parquet.py apps/cli/refresh_market_history.py tests/unit/test_historical_parquet.py tests/unit/test_refresh_market_history.py`
+- `python -m mypy packages/datasets/historical_parquet.py apps/cli/import_history_parquet.py apps/cli/refresh_market_history.py tests/unit/test_historical_parquet.py tests/unit/test_refresh_market_history.py`
+- `python -m apps.cli.import_history_parquet --input data/direction_dataset_model_sample.parquet --currency EUR`
 
 ## Bloqueos o riesgos
 
 - La calidad del dataset depende de disponer de historico real suficiente de ambas plataformas.
 - El cambio de moneda o comisiones puede invalidar etiquetas si no queda versionado.
+- El parquet actual solo contiene una variante y no trae BUFF; sirve para arrancar el pipeline
+  de importacion/dataset, pero no basta para entrenar un modelo robusto.
