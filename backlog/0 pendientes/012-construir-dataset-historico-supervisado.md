@@ -10,7 +10,7 @@ El modelo supervisado predice la probabilidad calibrada de que el spread entre S
 
 ## Alcance
 
-- Extraer historico desde `market_items`, `market_snapshots` y fuentes historicas validadas.
+- Extraer historico desde `market_items`, `market_history_points` y fuentes historicas validadas.
 - Alinear observaciones de Steam y Buff163 por item, timestamp, moneda y ventana temporal.
 - Calcular features de precio, spread neto, volumen, liquidez, tendencia, volatilidad y comisiones.
 - Construir la etiqueta supervisada: spread rentable a 8 dias segun formula versionada.
@@ -21,7 +21,7 @@ El modelo supervisado predice la probabilidad calibrada de que el spread entre S
 ## Criterios de aceptacion
 
 - Existe un comando reproducible para generar el dataset supervisado.
-- Cada fila tiene features, target de 8 dias y claves de trazabilidad al item y snapshots fuente.
+- Cada fila tiene features, target de 8 dias y claves de trazabilidad al item y puntos historicos fuente.
 - No se usan datos posteriores al timestamp de decision para construir features.
 - La etiqueta de rentabilidad neta usa comisiones y trade hold documentados.
 - El dataset puede consumirse por experimentos sin depender de scraping en vivo.

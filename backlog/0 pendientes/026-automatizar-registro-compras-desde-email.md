@@ -29,7 +29,7 @@ El flujo futuro no solo debe recomendar compras, tambien debe llevar control de 
 
 ## Decisiones tecnicas
 
-- Crear una tabla separada para compras reales, distinta de `market_snapshots`.
+- Crear una tabla separada para compras reales, distinta de `market_items` y `market_history_points`.
 - Usar una clave de deduplicacion basada en identificador del email o hash del contenido relevante.
 - Empezar con importacion manual/exportada si la conexion directa al correo retrasa demasiado la fase inicial.
 

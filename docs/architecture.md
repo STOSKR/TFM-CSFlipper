@@ -59,7 +59,7 @@ El simulador replica reglas de mercado como comisiones, liquidez y `trade hold`.
 ```text
 Fuente externa
   -> agentes extractores OCR/scraping/API/SteamDT
-  -> market_snapshots / historico
+  -> market_items / market_history_points
   -> dataset supervisado
   -> modelo calibrado en inferencia
   -> entorno PettingZoo

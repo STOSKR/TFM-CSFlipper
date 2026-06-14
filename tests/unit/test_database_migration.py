@@ -132,4 +132,4 @@ def test_normalized_market_migration_uses_item_id_and_history_points() -> None:
     assert "buff_buy_order_price numeric" in sql
     assert "buff_listing_count integer" in sql
     assert "steam_sell_price numeric" in sql
-    assert "create or replace view market_snapshot_view" in sql
+    assert "create or replace view market_snapshot_view" not in sql

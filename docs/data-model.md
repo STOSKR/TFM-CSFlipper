@@ -181,8 +181,6 @@ El scraping Steam/BUFF de fase 1 usa tablas operativas separadas del esquema can
 - `market_history_points`: serie temporal tabular por `item_id + observed_at`. Steam rellena
   `steam_sell_price`; BUFF rellena `buff_sell_price`, `buff_buy_order_price` y
   `buff_listing_count`.
-- `market_snapshot_view`: vista de compatibilidad para revisar el estado actual desde
-  `market_items`, sin duplicar datos en una tabla aparte.
 
 Repetir una clave surrogate (`item_id`) como FK en tablas hijas si tiene sentido en una BD
 relacional. Lo que se evita es repetir la identidad natural completa en cada tabla.

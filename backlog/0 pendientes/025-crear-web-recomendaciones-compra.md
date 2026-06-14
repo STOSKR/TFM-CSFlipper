@@ -36,7 +36,7 @@ Tras estabilizar datos, prediccion y politicas MARL, el siguiente paso operativo
 
 ## Decisiones tecnicas
 
-- Usar como base `market_snapshot_view` para una primera version simple.
+- Usar como base `market_items` para estado actual y `market_history_points` para historico.
 - Mantener predicciones, acciones MARL y recomendaciones en tablas o vistas separadas.
 - Priorizar una interfaz densa y operativa: tabla, filtros, estados y acciones.
 

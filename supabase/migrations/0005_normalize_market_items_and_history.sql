@@ -214,24 +214,4 @@ create table if not exists market_history_points (
 create index if not exists idx_market_history_points_item_time
     on market_history_points (item_id, observed_at desc);
 
-create or replace view market_snapshot_view as
-select
-    i.id as item_id,
-    i.representation_name,
-    i.name,
-    i.quality,
-    i.stattrak,
-    i.scraped_at,
-    i.steam_url,
-    i.steam_price,
-    i.steam_currency,
-    i.steam_buy_orders,
-    i.buff_url,
-    i.buff_price,
-    i.buff_currency,
-    i.buff_buy_orders,
-    i.created_at,
-    i.updated_at
-from market_items i;
-
 commit;
