@@ -8,6 +8,9 @@ CURRENT_MARKET_SNAPSHOT_MIGRATION = Path(
 DROP_MARKET_SNAPSHOT_COMPOSITE_FK_MIGRATION = Path(
     "supabase/migrations/0004_drop_market_snapshots_composite_fk.sql"
 )
+NORMALIZE_MARKET_ITEMS_MIGRATION = Path(
+    "supabase/migrations/0005_normalize_market_items_and_history.sql"
+)
 
 
 def test_initial_migration_defines_required_tables() -> None:
@@ -108,3 +111,23 @@ def test_drop_market_snapshot_composite_fk_migration_keeps_view_join() -> None:
     assert "contype = 'f'" in sql
     assert "create or replace view market_snapshot_view" in sql
     assert "and i.stattrak = s.stattrak" in sql
+
+
+def test_normalized_market_migration_uses_item_id_and_history_points() -> None:
+    sql = NORMALIZE_MARKET_ITEMS_MIGRATION.read_text(encoding="utf-8").lower()
+
+    assert "add column if not exists id uuid" in sql
+    assert "representation_name" in sql
+    assert "steam_price numeric" in sql
+    assert "steam_buy_orders jsonb" in sql
+    assert "buff_price numeric" in sql
+    assert "buff_buy_orders jsonb" in sql
+    assert "primary key (id)" in sql
+    assert "on market_items (name, quality, stattrak)" in sql
+    assert "drop table if exists market_snapshots" in sql
+    assert "create table if not exists market_history_points" in sql
+    assert "buff_sell_price numeric" in sql
+    assert "buff_buy_order_price numeric" in sql
+    assert "buff_listing_count integer" in sql
+    assert "steam_sell_price numeric" in sql
+    assert "create or replace view market_snapshot_view" in sql

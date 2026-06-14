@@ -1,6 +1,7 @@
 from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Any
+from uuid import uuid4
 
 import pytest
 
@@ -54,6 +55,14 @@ def test_build_simple_market_snapshots_merges_platforms_by_item_variant() -> Non
         raw_payload={
             "market_hash_name": candidate.market_hash_name,
             "buy_orders": [{"price": "CNY 104.00", "quantity": 7}],
+            "price_history": [
+                {
+                    "observed_at": "2026-06-13T16:00:00+00:00",
+                    "buff_sell_price": "105.20",
+                    "buff_buy_order_price": "104.00",
+                    "buff_listing_count": 42,
+                },
+            ],
         },
     )
 
@@ -81,6 +90,14 @@ def test_build_simple_market_snapshots_merges_platforms_by_item_variant() -> Non
     assert snapshot.buff_price == Decimal("105.20")
     assert snapshot.buff_currency == "CNY"
     assert snapshot.buff_buy_orders == ({"price": "CNY 104.00", "quantity": 7},)
+    assert snapshot.buff_price_history == (
+        {
+            "observed_at": "2026-06-13T16:00:00+00:00",
+            "buff_sell_price": "105.20",
+            "buff_buy_order_price": "104.00",
+            "buff_listing_count": 42,
+        },
+    )
     assert snapshot.source_strategies[0]["strategy_id"] == "platform_arbitrage_safe"
 
 
@@ -171,7 +188,7 @@ def test_simple_results_to_jsonable_aggregates_summary_across_batches() -> None:
 
 
 @pytest.mark.asyncio
-async def test_simple_market_snapshot_repository_upserts_item_and_snapshot() -> None:
+async def test_simple_market_snapshot_repository_upserts_item_current_state() -> None:
     connection = FakeConnection()
     snapshot = SimpleMarketSnapshot(
         name="AK-47 | Slate",
@@ -186,19 +203,50 @@ async def test_simple_market_snapshot_repository_upserts_item_and_snapshot() -> 
 
     await SimpleMarketSnapshotRepository(connection).record_snapshot(snapshot)
 
-    assert len(connection.statements) == 2
+    assert len(connection.statements) == 1
     assert "insert into market_items" in connection.statements[0].lower()
-    assert "insert into market_snapshots" in connection.statements[1].lower()
+    assert "steam_price" in connection.statements[0].lower()
+    assert "steam_buy_orders" in connection.statements[0].lower()
     assert (
         "on conflict (name, quality, stattrak) do update set"
-        in connection.statements[1].lower()
+        in connection.statements[0].lower()
     )
-    assert (
-        "on conflict (name, quality, stattrak, scraped_at)"
-        not in connection.statements[1].lower()
-    )
-    assert "scraped_at = excluded.scraped_at" in connection.statements[1].lower()
+    assert "scraped_at = excluded.scraped_at" in connection.statements[0].lower()
     assert connection.transaction_opened is True
+
+
+@pytest.mark.asyncio
+async def test_simple_market_snapshot_repository_persists_history_points() -> None:
+    connection = FakeConnection()
+    snapshot = SimpleMarketSnapshot(
+        name="AK-47 | Slate",
+        quality="Field-Tested",
+        stattrak=True,
+        scraped_at=datetime(2026, 6, 9, 12, 0, tzinfo=UTC),
+        steam_currency="EUR",
+        steam_recent_sales=(
+            {
+                "observed_at": "2026-06-09T10:00:00+00:00",
+                "price": "17.45",
+                "purchases": 3,
+            },
+        ),
+        buff_currency="EUR",
+        buff_price_history=(
+            {
+                "observed_at": "2026-06-09T10:00:00+00:00",
+                "buff_sell_price": "15.20",
+                "buff_buy_order_price": "14.80",
+                "buff_listing_count": 11,
+            },
+        ),
+    )
+
+    await SimpleMarketSnapshotRepository(connection).record_snapshot(snapshot)
+
+    assert len(connection.statements) == 2
+    assert "insert into market_history_points" in connection.statements[1].lower()
+    assert connection.args[0][3] == "AK-47 | Slate_FT_1"
 
 
 def _record(
@@ -235,6 +283,7 @@ def _record(
 class FakeConnection:
     def __init__(self) -> None:
         self.statements: list[str] = []
+        self.args: list[tuple[Any, ...]] = []
         self.transaction_opened = False
 
     def transaction(self) -> "FakeTransaction":
@@ -243,6 +292,12 @@ class FakeConnection:
 
     async def execute(self, query: str, *_args: Any) -> None:
         self.statements.append(query)
+        self.args.append(_args)
+
+    async def fetchrow(self, query: str, *_args: Any) -> dict[str, Any]:
+        self.statements.append(query)
+        self.args.append(_args)
+        return {"id": uuid4()}
 
 
 class FakeTransaction:

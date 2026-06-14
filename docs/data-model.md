@@ -169,6 +169,24 @@ La migracion inicial es `0001_initial_schema.sql` y crea el esquema canonico del
 La tabla `legacy_scraped_items` existe solo como staging para datos antiguos de `cs-tracker`.
 No sustituye a `assets`, `platforms` ni `market_observations`.
 
+## Esquema operativo simple
+
+El scraping Steam/BUFF de fase 1 usa tablas operativas separadas del esquema canonico:
+
+- `market_items`: una fila por variante real de articulo. La identidad natural sigue siendo
+  `name + quality + stattrak`, pero la relacion fisica usa `id`. Tambien guarda el estado
+  actual de cada plataforma: precio actual, moneda y buy orders actuales.
+- `representation_name`: nombre legible y estable para revision humana, por ejemplo
+  `Bowie Knife Freehand_FT_1`.
+- `market_history_points`: serie temporal tabular por `item_id + observed_at`. Steam rellena
+  `steam_sell_price`; BUFF rellena `buff_sell_price`, `buff_buy_order_price` y
+  `buff_listing_count`.
+- `market_snapshot_view`: vista de compatibilidad para revisar el estado actual desde
+  `market_items`, sin duplicar datos en una tabla aparte.
+
+Repetir una clave surrogate (`item_id`) como FK en tablas hijas si tiene sentido en una BD
+relacional. Lo que se evita es repetir la identidad natural completa en cada tabla.
+
 Para aplicar la migracion con `psql`:
 
 ```bash

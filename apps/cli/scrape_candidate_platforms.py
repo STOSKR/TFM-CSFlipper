@@ -269,6 +269,7 @@ def build_simple_market_snapshots(
                     "buff_currency": None,
                     "buff_recent_sales": [],
                     "buff_buy_orders": [],
+                    "buff_price_history": [],
                     "strategies": [],
                 },
             )
@@ -294,6 +295,9 @@ def build_simple_market_snapshots(
                     record.observation.raw_payload.get("recent_sales") or []
                 )
                 entry["buff_buy_orders"] = record.observation.raw_payload.get("buy_orders") or []
+                entry["buff_price_history"] = (
+                    record.observation.raw_payload.get("price_history") or []
+                )
 
     return tuple(
         SimpleMarketSnapshot(
@@ -311,6 +315,7 @@ def build_simple_market_snapshots(
             buff_currency=_optional_str(entry.get("buff_currency")),
             buff_recent_sales=tuple(_json_rows(entry.get("buff_recent_sales"))),
             buff_buy_orders=tuple(_json_rows(entry.get("buff_buy_orders"))),
+            buff_price_history=tuple(_json_rows(entry.get("buff_price_history"))),
             source_strategies=tuple(_unique_strategy_rows(entry.get("strategies"))),
         )
         for entry in grouped.values()
@@ -522,6 +527,7 @@ def _snapshot_to_jsonable(snapshot: SimpleMarketSnapshot) -> dict[str, Any]:
             currency=snapshot.buff_currency,
             recent_sales=snapshot.buff_recent_sales,
             buy_orders=snapshot.buff_buy_orders,
+            price_history=snapshot.buff_price_history,
         ),
         **(
             {"source_strategies": list(snapshot.source_strategies)}
@@ -538,6 +544,7 @@ def _platform_snapshot_to_jsonable(
     currency: str | None,
     recent_sales: Sequence[Mapping[str, Any]],
     buy_orders: Sequence[Mapping[str, Any]],
+    price_history: Sequence[Mapping[str, Any]] = (),
 ) -> dict[str, Any]:
     payload: dict[str, Any] = {}
     if url:
@@ -550,6 +557,8 @@ def _platform_snapshot_to_jsonable(
         payload["recent_sales"] = list(recent_sales)
     if buy_orders:
         payload["buy_orders"] = list(buy_orders)
+    if price_history:
+        payload["price_history"] = list(price_history)
     return payload
 
 

@@ -5,11 +5,14 @@ from __future__ import annotations
 import json
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Any
+from uuid import UUID
 
 import asyncpg
+
+from packages.domain.market_parsing import parse_market_decimal
 
 JsonRows = Sequence[Mapping[str, Any]]
 
@@ -30,7 +33,12 @@ class SimpleMarketSnapshot:
     buff_currency: str | None = None
     buff_recent_sales: JsonRows = field(default_factory=tuple)
     buff_buy_orders: JsonRows = field(default_factory=tuple)
+    buff_price_history: JsonRows = field(default_factory=tuple)
     source_strategies: JsonRows = field(default_factory=tuple)
+
+    @property
+    def representation_name(self) -> str:
+        return representation_name(self.name, self.quality, self.stattrak)
 
 
 @dataclass(slots=True)
@@ -39,82 +47,131 @@ class SimpleMarketSnapshotRepository:
 
     async def record_snapshot(self, snapshot: SimpleMarketSnapshot) -> None:
         async with self.connection.transaction():
-            await self.upsert_item(snapshot)
-            await self.upsert_snapshot(snapshot)
+            item_id = await self.upsert_item(snapshot)
+            await self.upsert_history_points(snapshot, item_id=item_id)
 
     async def record_snapshots(self, snapshots: Sequence[SimpleMarketSnapshot]) -> int:
         for snapshot in snapshots:
             await self.record_snapshot(snapshot)
         return len(snapshots)
 
-    async def upsert_item(self, snapshot: SimpleMarketSnapshot) -> None:
-        await self.connection.execute(
+    async def upsert_item(self, snapshot: SimpleMarketSnapshot) -> UUID:
+        row = await self.connection.fetchrow(
             """
             insert into market_items (
                 name,
                 quality,
                 stattrak,
+                representation_name,
                 steam_url,
-                buff_url
-            )
-            values ($1, $2, $3, $4, $5)
-            on conflict (name, quality, stattrak) do update set
-                steam_url = coalesce(excluded.steam_url, market_items.steam_url),
-                buff_url = coalesce(excluded.buff_url, market_items.buff_url),
-                updated_at = now()
-            """,
-            _required_text(snapshot.name, "name"),
-            _required_text(snapshot.quality, "quality"),
-            snapshot.stattrak,
-            snapshot.steam_url,
-            snapshot.buff_url,
-        )
-
-    async def upsert_snapshot(self, snapshot: SimpleMarketSnapshot) -> None:
-        await self.connection.execute(
-            """
-            insert into market_snapshots (
-                name,
-                quality,
-                stattrak,
+                buff_url,
                 scraped_at,
                 steam_price,
                 steam_currency,
-                steam_recent_sales,
                 steam_buy_orders,
                 buff_price,
                 buff_currency,
-                buff_recent_sales,
                 buff_buy_orders
             )
-            values (
-                $1, $2, $3, $4, $5, $6, $7::jsonb, $8::jsonb,
-                $9, $10, $11::jsonb, $12::jsonb
-            )
+            values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb, $11, $12, $13::jsonb)
             on conflict (name, quality, stattrak) do update set
+                representation_name = excluded.representation_name,
+                steam_url = coalesce(excluded.steam_url, market_items.steam_url),
+                buff_url = coalesce(excluded.buff_url, market_items.buff_url),
                 scraped_at = excluded.scraped_at,
                 steam_price = excluded.steam_price,
                 steam_currency = excluded.steam_currency,
-                steam_recent_sales = excluded.steam_recent_sales,
                 steam_buy_orders = excluded.steam_buy_orders,
                 buff_price = excluded.buff_price,
                 buff_currency = excluded.buff_currency,
-                buff_recent_sales = excluded.buff_recent_sales,
-                buff_buy_orders = excluded.buff_buy_orders
+                buff_buy_orders = excluded.buff_buy_orders,
+                updated_at = now()
+            returning id
             """,
             _required_text(snapshot.name, "name"),
             _required_text(snapshot.quality, "quality"),
             snapshot.stattrak,
+            snapshot.representation_name,
+            snapshot.steam_url,
+            snapshot.buff_url,
             snapshot.scraped_at,
             snapshot.steam_price,
             _currency(snapshot.steam_currency),
-            _jsonb(snapshot.steam_recent_sales),
             _jsonb(snapshot.steam_buy_orders),
             snapshot.buff_price,
             _currency(snapshot.buff_currency),
-            _jsonb(snapshot.buff_recent_sales),
             _jsonb(snapshot.buff_buy_orders),
         )
+        return UUID(str(row["id"]))
+
+    async def upsert_history_points(
+        self,
+        snapshot: SimpleMarketSnapshot,
+        *,
+        item_id: UUID,
+    ) -> int:
+        rows = _history_points_from_snapshot(snapshot)
+        for row in rows:
+            await self.connection.execute(
+                """
+                insert into market_history_points (
+                    item_id,
+                    observed_at,
+                    steam_sell_price,
+                    steam_sales_count,
+                    steam_currency,
+                    buff_sell_price,
+                    buff_buy_order_price,
+                    buff_listing_count,
+                    buff_currency,
+                    source_payload
+                )
+                values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb)
+                on conflict (item_id, observed_at) do update set
+                    steam_sell_price = coalesce(
+                        excluded.steam_sell_price,
+                        market_history_points.steam_sell_price
+                    ),
+                    steam_sales_count = coalesce(
+                        excluded.steam_sales_count,
+                        market_history_points.steam_sales_count
+                    ),
+                    steam_currency = coalesce(
+                        excluded.steam_currency,
+                        market_history_points.steam_currency
+                    ),
+                    buff_sell_price = coalesce(
+                        excluded.buff_sell_price,
+                        market_history_points.buff_sell_price
+                    ),
+                    buff_buy_order_price = coalesce(
+                        excluded.buff_buy_order_price,
+                        market_history_points.buff_buy_order_price
+                    ),
+                    buff_listing_count = coalesce(
+                        excluded.buff_listing_count,
+                        market_history_points.buff_listing_count
+                    ),
+                    buff_currency = coalesce(
+                        excluded.buff_currency,
+                        market_history_points.buff_currency
+                    ),
+                    source_payload = market_history_points.source_payload
+                        || excluded.source_payload,
+                    updated_at = now()
+                """,
+                item_id,
+                row["observed_at"],
+                row.get("steam_sell_price"),
+                row.get("steam_sales_count"),
+                row.get("steam_currency"),
+                row.get("buff_sell_price"),
+                row.get("buff_buy_order_price"),
+                row.get("buff_listing_count"),
+                row.get("buff_currency"),
+                _json(row["source_payload"]),
+            )
+        return len(rows)
 
 
 def _required_text(value: str, field_name: str) -> str:
@@ -133,3 +190,79 @@ def _currency(value: str | None) -> str | None:
 
 def _jsonb(value: JsonRows) -> str:
     return json.dumps([dict(row) for row in value], default=str)
+
+
+def _json(value: Mapping[str, Any]) -> str:
+    return json.dumps(dict(value), default=str)
+
+
+def representation_name(name: str, quality: str, stattrak: bool) -> str:
+    return f"{_required_text(name, 'name')}_{_quality_code(quality)}_{int(stattrak)}"
+
+
+def _quality_code(value: str) -> str:
+    text = _required_text(value, "quality")
+    return {
+        "Factory New": "FN",
+        "Minimal Wear": "MW",
+        "Field-Tested": "FT",
+        "Well-Worn": "WW",
+        "Battle-Scarred": "BS",
+    }.get(text, text.upper().replace(" ", "_"))
+
+
+def _history_points_from_snapshot(snapshot: SimpleMarketSnapshot) -> tuple[dict[str, Any], ...]:
+    grouped: dict[datetime, dict[str, Any]] = {}
+    for row in snapshot.steam_recent_sales:
+        observed_at = _history_observed_at(row)
+        price = _decimal_value(row.get("price"))
+        if observed_at is None or price is None:
+            continue
+        entry = grouped.setdefault(observed_at, {"observed_at": observed_at})
+        entry["steam_sell_price"] = price
+        entry["steam_currency"] = _currency(snapshot.steam_currency)
+        entry["steam_sales_count"] = _int_value(row.get("sales_count") or row.get("purchases"))
+        entry.setdefault("source_payload", {})["steam"] = dict(row)
+
+    for row in snapshot.buff_price_history:
+        observed_at = _history_observed_at(row)
+        if observed_at is None:
+            continue
+        entry = grouped.setdefault(observed_at, {"observed_at": observed_at})
+        entry["buff_sell_price"] = _decimal_value(row.get("buff_sell_price"))
+        entry["buff_buy_order_price"] = _decimal_value(row.get("buff_buy_order_price"))
+        entry["buff_listing_count"] = _int_value(row.get("buff_listing_count"))
+        entry["buff_currency"] = _currency(snapshot.buff_currency)
+        entry.setdefault("source_payload", {})["buff"] = dict(row)
+
+    return tuple(sorted(grouped.values(), key=lambda item: item["observed_at"]))
+
+
+def _history_observed_at(row: Mapping[str, Any]) -> datetime | None:
+    value = row.get("observed_at")
+    if isinstance(value, datetime):
+        return value.astimezone(UTC) if value.tzinfo else value.replace(tzinfo=UTC)
+    if isinstance(value, str) and value.strip():
+        try:
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError:
+            return None
+        return parsed.astimezone(UTC) if parsed.tzinfo else parsed.replace(tzinfo=UTC)
+    return None
+
+
+def _decimal_value(value: object) -> Decimal | None:
+    if value is None:
+        return None
+    if isinstance(value, Decimal):
+        return value
+    return parse_market_decimal(str(value))
+
+
+def _int_value(value: object) -> int | None:
+    if value is None:
+        return None
+    try:
+        return int(str(value))
+    except (TypeError, ValueError):
+        return None
