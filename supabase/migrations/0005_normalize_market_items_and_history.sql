@@ -48,35 +48,111 @@ where representation_name is null or btrim(representation_name) = '';
 alter table market_items
     alter column representation_name set not null;
 
-update market_items i
-set
-    scraped_at = s.scraped_at,
-    steam_price = s.steam_price,
-    steam_currency = s.steam_currency,
-    steam_buy_orders = s.steam_buy_orders,
-    buff_price = s.buff_price,
-    buff_currency = s.buff_currency,
-    buff_buy_orders = s.buff_buy_orders
-from market_snapshots s
-where i.name = s.name
-  and i.quality = s.quality
-  and i.stattrak = s.stattrak
-  and (
-    i.scraped_at is null
-    or s.scraped_at >= i.scraped_at
-  );
+do $$
+begin
+    if to_regclass('public.market_snapshots') is null then
+        return;
+    end if;
 
-alter table market_items
-    drop constraint if exists market_items_pkey;
+    if exists (
+        select 1
+        from information_schema.columns
+        where table_schema = 'public'
+          and table_name = 'market_snapshots'
+          and column_name = 'item_id'
+    ) then
+        execute $sql$
+            update market_items i
+            set
+                scraped_at = s.scraped_at,
+                steam_price = s.steam_price,
+                steam_currency = s.steam_currency,
+                steam_buy_orders = s.steam_buy_orders,
+                buff_price = s.buff_price,
+                buff_currency = s.buff_currency,
+                buff_buy_orders = s.buff_buy_orders
+            from market_snapshots s
+            where i.id = s.item_id
+              and (
+                i.scraped_at is null
+                or s.scraped_at >= i.scraped_at
+              )
+        $sql$;
+    elsif exists (
+        select 1
+        from information_schema.columns
+        where table_schema = 'public'
+          and table_name = 'market_snapshots'
+          and column_name = 'name'
+    ) then
+        execute $sql$
+            update market_items i
+            set
+                scraped_at = s.scraped_at,
+                steam_price = s.steam_price,
+                steam_currency = s.steam_currency,
+                steam_buy_orders = s.steam_buy_orders,
+                buff_price = s.buff_price,
+                buff_currency = s.buff_currency,
+                buff_buy_orders = s.buff_buy_orders
+            from market_snapshots s
+            where i.name = s.name
+              and i.quality = s.quality
+              and i.stattrak = s.stattrak
+              and (
+                i.scraped_at is null
+                or s.scraped_at >= i.scraped_at
+              )
+        $sql$;
+    end if;
+end $$;
 
-alter table market_items
-    add constraint market_items_pkey primary key (id);
+drop table if exists market_snapshots;
+
+do $$
+declare
+    primary_key_columns text[];
+begin
+    if to_regclass('public.market_history_points') is not null then
+        return;
+    end if;
+
+    select array_agg(attribute.attname order by key_position.ordinality)
+    into primary_key_columns
+    from pg_constraint constraint_row
+    join unnest(constraint_row.conkey) with ordinality as key_position(attnum, ordinality)
+        on true
+    join pg_attribute attribute
+        on attribute.attrelid = constraint_row.conrelid
+       and attribute.attnum = key_position.attnum
+    where constraint_row.conrelid = 'public.market_items'::regclass
+      and constraint_row.contype = 'p';
+
+    if primary_key_columns is distinct from array['id']::text[] then
+        alter table market_items
+            drop constraint if exists market_items_pkey;
+
+        alter table market_items
+            add constraint market_items_pkey primary key (id);
+    end if;
+end $$;
+
+create unique index if not exists market_items_id_uk
+    on market_items (id);
 
 create unique index if not exists market_items_variant_uk
     on market_items (name, quality, stattrak);
 
 create unique index if not exists market_items_representation_name_uk
     on market_items (representation_name);
+
+alter table market_items
+    drop constraint if exists market_items_steam_currency_chk,
+    drop constraint if exists market_items_buff_currency_chk,
+    drop constraint if exists market_items_steam_price_chk,
+    drop constraint if exists market_items_buff_price_chk,
+    drop constraint if exists market_items_steam_buy_orders_chk,
+    drop constraint if exists market_items_buff_buy_orders_chk;
 
 alter table market_items
     add constraint market_items_steam_currency_chk check (
@@ -137,8 +213,6 @@ create table if not exists market_history_points (
 
 create index if not exists idx_market_history_points_item_time
     on market_history_points (item_id, observed_at desc);
-
-drop table if exists market_snapshots;
 
 create or replace view market_snapshot_view as
 select

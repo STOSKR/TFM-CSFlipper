@@ -123,6 +123,8 @@ def test_normalized_market_migration_uses_item_id_and_history_points() -> None:
     assert "buff_price numeric" in sql
     assert "buff_buy_orders jsonb" in sql
     assert "primary key (id)" in sql
+    assert "market_items_id_uk" in sql
+    assert "to_regclass('public.market_history_points') is not null" in sql
     assert "on market_items (name, quality, stattrak)" in sql
     assert "drop table if exists market_snapshots" in sql
     assert "create table if not exists market_history_points" in sql
