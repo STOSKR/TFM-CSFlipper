@@ -1,5 +1,6 @@
 from apps.acquisition.steam_browser_market import (
     extract_steam_buy_orders,
+    extract_steam_orderbook_buy_orders,
     extract_steam_price_text,
     extract_steam_recent_sales,
 )
@@ -111,6 +112,23 @@ def test_extract_steam_buy_orders_from_table_rows() -> None:
     )
 
 
+def test_extract_steam_orderbook_buy_orders_from_compact_api_payload() -> None:
+    buy_orders = extract_steam_orderbook_buy_orders(
+        {
+            "success": True,
+            "data": {
+                "rgCompactBuyOrders": [61206, 2, 61197, 1],
+            },
+        },
+        currency="CNY",
+    )
+
+    assert buy_orders == (
+        {"source": "steam_orderbook", "price": "CNY 612.06", "quantity": 2},
+        {"source": "steam_orderbook", "price": "CNY 611.97", "quantity": 1},
+    )
+
+
 def test_extract_steam_recent_sales_from_recharts_payload() -> None:
     recent_sales = extract_steam_recent_sales(
         {
@@ -132,16 +150,64 @@ def test_extract_steam_recent_sales_from_recharts_payload() -> None:
     assert recent_sales == (
         {
             "source": "steam_recharts",
+            "granularity": "point",
             "point_index": 1,
             "price": "50.00",
             "time_label": "6/2/2026, 1 PM",
+            "observed_at": "2026-06-02T13:00:00+00:00",
             "range": "Month",
         },
         {
             "source": "steam_recharts",
+            "granularity": "point",
             "point_index": 2,
             "price": "90.00",
             "time_label": "6/3/2026, 1 PM",
+            "observed_at": "2026-06-03T13:00:00+00:00",
             "range": "Month",
+        },
+    )
+
+
+def test_extract_steam_recent_sales_uses_quality_curve_and_all_points() -> None:
+    recent_sales = extract_steam_recent_sales(
+        {
+            "selected_range": "Week",
+            "price_line_paths": [
+                "M10,90L20,90",
+                "M10,70L20,70",
+                "M10,50L20,50",
+            ],
+            "price_ticks": [
+                {"text": "EUR 100.00", "y": 0},
+                {"text": "EUR 0.00", "y": 100},
+            ],
+            "time_ticks": [
+                {"text": "6/1/2026, 1 PM", "x": 10},
+                {"text": "6/1/2026, 3 PM", "x": 20},
+            ],
+        },
+        quality="Field-Tested",
+        limit=None,
+    )
+
+    assert recent_sales == (
+        {
+            "source": "steam_recharts",
+            "granularity": "point",
+            "point_index": 0,
+            "price": "50.00",
+            "time_label": "6/1/2026, 1 PM",
+            "observed_at": "2026-06-01T13:00:00+00:00",
+            "range": "Week",
+        },
+        {
+            "source": "steam_recharts",
+            "granularity": "point",
+            "point_index": 1,
+            "price": "50.00",
+            "time_label": "6/1/2026, 3 PM",
+            "observed_at": "2026-06-01T15:00:00+00:00",
+            "range": "Week",
         },
     )

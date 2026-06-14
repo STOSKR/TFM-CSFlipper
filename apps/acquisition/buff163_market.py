@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import random
 import re
 from collections.abc import Callable
@@ -11,6 +12,7 @@ from datetime import UTC, datetime
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
+from urllib.parse import parse_qs, urlparse
 
 from packages.contracts.observations import MarketObservationContract
 from packages.domain.canonical_id import build_canonical_asset_id
@@ -204,7 +206,35 @@ class Buff163Connector:
             await page.wait_for_timeout(self._config.wait_after_load_ms)
             payload = await page.evaluate(
                 f"""
-                () => ({{
+                async (goodsId) => {{
+                  const fetchJson = async (path, params) => {{
+                    if (!goodsId) {{
+                      return {{ status: 0, text: "" }};
+                    }}
+                    const query = new URLSearchParams({{
+                      game: "csgo",
+                      goods_id: goodsId,
+                      ...params
+                    }});
+                    const url = `${{path}}?${{query.toString()}}`;
+                    try {{
+                      const response = await fetch(url, {{
+                        credentials: "include",
+                        headers: {{ accept: "application/json, text/plain, */*" }}
+                      }});
+                      return {{
+                        status: response.status,
+                        text: await response.text()
+                      }};
+                    }} catch (error) {{
+                      return {{
+                        status: 0,
+                        text: "",
+                        error: String(error)
+                      }};
+                    }}
+                  }};
+                  return {{
                   url: location.href,
                   title: document.title,
                   bodyText: document.body ? document.body.innerText : "",
@@ -222,9 +252,23 @@ class Buff163Connector:
                     tag: el.tagName,
                     className: el.className || "",
                     text: el.innerText || ""
-                  }}))
-                }})
-                """
+                  }})),
+                  apiPayloads: {{
+                    buyOrder: await fetchJson("/api/market/goods/buy_order", {{ page_num: "1" }}),
+                    billOrder: await fetchJson("/api/market/goods/bill_order", {{ page_num: "1" }}),
+                    priceHistory: await fetchJson(
+                      "/api/market/goods/price_history/buff/v2",
+                      {{
+                        currency: "EUR",
+                        days: "365",
+                        _: String(Date.now())
+                      }}
+                    )
+                  }}
+                  }};
+                }}
+                """,
+                _buff_goods_id(candidate.buff_url),
             )
         finally:
             await page.close()
@@ -233,6 +277,12 @@ class Buff163Connector:
         body_text = str(payload.get("bodyText") or "")
         selector_texts = list(payload.get("selectorTexts") or [])
         buy_order_rows = list(payload.get("buyOrderRows") or [])
+        api_payloads = (
+            payload.get("apiPayloads") if isinstance(payload.get("apiPayloads"), dict) else {}
+        )
+        buy_order_payload = _json_payload(api_payloads.get("buyOrder"))
+        bill_order_payload = _json_payload(api_payloads.get("billOrder"))
+        price_history_payload = _json_payload(api_payloads.get("priceHistory"))
         self._debug(candidate.market_hash_name, debug_log, f"title={title!r}")
         self._debug(
             candidate.market_hash_name,
@@ -252,6 +302,10 @@ class Buff163Connector:
         stattrak = candidate.stattrak or candidate.market_hash_name.lower().startswith("stattrak")
         asset_id = build_canonical_asset_id(name=asset_name, quality=quality, stattrak=stattrak)
         currency = detect_currency(price_text, default="CNY") or "CNY"
+        price_history = extract_buff_price_history(
+            price_history_payload,
+            display_currency="EUR",
+        )
         observation = MarketObservationContract(
             correlation_id=correlation_id,
             asset_id=asset_id,
@@ -265,11 +319,17 @@ class Buff163Connector:
                 "market_hash_name": candidate.market_hash_name,
                 "buff_url": candidate.buff_url,
                 "price_text": price_text,
-                "buy_orders": extract_buff_buy_orders(
+                "buy_orders": extract_buff_api_buy_orders(
+                    buy_order_payload,
+                    display_currency=currency,
+                )
+                or extract_buff_buy_orders(
                     buy_order_rows,
                     body_text,
                     display_currency=currency,
                 ),
+                "recent_sales": extract_buff_recent_sales(bill_order_payload),
+                "price_history": price_history,
                 "page_title": title,
                 "debug_log": tuple(debug_log),
             },
@@ -386,6 +446,245 @@ def extract_buff_buy_orders(
     return tuple(buy_orders.values())
 
 
+def extract_buff_api_buy_orders(
+    payload: object,
+    *,
+    display_currency: str | None = None,
+    limit: int = 20,
+) -> tuple[dict[str, str | int], ...]:
+    data = _ok_data(payload)
+    if not data:
+        return ()
+    items = data.get("items")
+    if not isinstance(items, list):
+        return ()
+    currency = (display_currency or "CNY").upper()
+    rows: list[dict[str, str | int]] = []
+    for item in items:
+        if len(rows) >= limit:
+            break
+        if not isinstance(item, dict):
+            continue
+        price = _optional_decimal_text(item.get("price"))
+        quantity = _optional_int(item.get("num"))
+        if price is None or quantity is None:
+            continue
+        row: dict[str, str | int] = {
+            "source": "buff_buy_order",
+            "price": f"{currency} {price}",
+            "quantity": quantity,
+        }
+        order_id = _optional_str(item.get("id"))
+        buyer_id = _optional_str(item.get("user_id"))
+        created_at = _unix_timestamp_iso(item.get("created_at"))
+        if order_id:
+            row["order_id"] = order_id
+        if buyer_id:
+            row["buyer_id"] = buyer_id
+        if created_at:
+            row["created_at"] = created_at
+        rows.append(row)
+    return tuple(rows)
+
+
+def extract_buff_recent_sales(
+    payload: object,
+    *,
+    display_currency: str = "CNY",
+    limit: int = 20,
+) -> tuple[dict[str, str | int], ...]:
+    data = _ok_data(payload)
+    if not data:
+        return ()
+    items = data.get("items")
+    if not isinstance(items, list):
+        return ()
+    rows: list[dict[str, str | int]] = []
+    for item in items:
+        if len(rows) >= limit:
+            break
+        if not isinstance(item, dict):
+            continue
+        price = _optional_decimal_text(item.get("price"))
+        if price is None:
+            continue
+        row: dict[str, str | int] = {
+            "source": "buff_bill_order",
+            "price": f"{display_currency.upper()} {price}",
+        }
+        sold_at = _unix_timestamp_iso(
+            item.get("buyer_pay_time") or item.get("transact_time") or item.get("created_at")
+        )
+        if sold_at:
+            row["sold_at"] = sold_at
+        asset_info = item.get("asset_info")
+        if isinstance(asset_info, dict):
+            asset_id = _optional_str(asset_info.get("assetid"))
+            if asset_id:
+                row["asset_id"] = asset_id
+        rows.append(row)
+    return tuple(rows)
+
+
+def extract_buff_price_history(
+    payload: object,
+    *,
+    display_currency: str = "EUR",
+    limit: int | None = None,
+) -> tuple[dict[str, str | int], ...]:
+    data = _ok_data(payload)
+    if not data:
+        return ()
+    series_by_kind = _buff_history_series_by_kind(data)
+    if not series_by_kind:
+        return ()
+
+    grouped: dict[str, dict[str, str | int]] = {}
+    for kind, points in series_by_kind.items():
+        selected_points = points[-max(1, limit) :] if limit is not None else points
+        for point in selected_points:
+            parsed = _buff_history_point(point, kind=kind)
+            if parsed is None:
+                continue
+            observed_at, value = parsed
+            row = grouped.setdefault(
+                observed_at,
+                {
+                    "source": "buff_price_history_v2",
+                    "observed_at": observed_at,
+                    "currency": display_currency.upper(),
+                },
+            )
+            if kind == "sell_price":
+                row["buff_sell_price"] = value
+            elif kind == "buy_order_price":
+                row["buff_buy_order_price"] = value
+            elif kind == "listing_count":
+                count = _optional_int(value)
+                if count is not None:
+                    row["buff_listing_count"] = count
+
+    return tuple(grouped[key] for key in sorted(grouped))
+
+
+def _buff_history_series_by_kind(data: dict[str, Any]) -> dict[str, list[Any]]:
+    series_by_kind: dict[str, list[Any]] = {}
+
+    def add_series(label: str, points: object) -> None:
+        kind = _buff_history_kind(label)
+        if kind is None or not isinstance(points, list):
+            return
+        series_by_kind.setdefault(kind, points)
+
+    for key, value in data.items():
+        if isinstance(value, list):
+            add_series(key, value)
+        elif isinstance(value, dict):
+            nested_points = (
+                value.get("data")
+                or value.get("values")
+                or value.get("points")
+                or value.get("history")
+            )
+            label = str(value.get("name") or value.get("type") or key)
+            add_series(label, nested_points)
+
+    for container_key in ("series", "legend", "lines", "datasets"):
+        container = data.get(container_key)
+        if not isinstance(container, list):
+            continue
+        for entry in container:
+            if not isinstance(entry, dict):
+                continue
+            label = str(
+                entry.get("name")
+                or entry.get("label")
+                or entry.get("type")
+                or entry.get("key")
+                or ""
+            )
+            points = (
+                entry.get("data")
+                or entry.get("values")
+                or entry.get("points")
+                or entry.get("history")
+            )
+            add_series(label, points)
+
+    return series_by_kind
+
+
+def _buff_history_kind(label: str) -> str | None:
+    normalized = label.strip().lower().replace("-", "_")
+    if not normalized:
+        return None
+    if any(token in normalized for token in ("buy", "bid", "offer", "求购", "收购")):
+        return "buy_order_price"
+    if any(
+        token in normalized
+        for token in (
+            "count",
+            "num",
+            "listing",
+            "exist",
+            "stock",
+            "inventory",
+            "在售",
+            "出售数量",
+        )
+    ):
+        return "listing_count"
+    if any(
+        token in normalized
+        for token in ("price_history", "sell", "sale", "lowest", "buff", "出售")
+    ):
+        return "sell_price"
+    return None
+
+
+def _buff_history_point(point: object, *, kind: str) -> tuple[str, str] | None:
+    timestamp: object
+    value: object
+    if isinstance(point, dict):
+        timestamp = (
+            point.get("time")
+            or point.get("timestamp")
+            or point.get("date")
+            or point.get("observed_at")
+            or point.get("t")
+        )
+        if kind == "listing_count":
+            value = (
+                point.get("count")
+                or point.get("num")
+                or point.get("value")
+                or point.get("y")
+            )
+        else:
+            value = (
+                point.get("price")
+                or point.get("value")
+                or point.get("y")
+                or point.get("sell_price")
+                or point.get("buy_order_price")
+            )
+    elif isinstance(point, list | tuple) and len(point) >= 2:
+        timestamp = point[0]
+        value = point[1]
+    else:
+        return None
+
+    observed_at = _unix_timestamp_iso_auto(timestamp)
+    normalized_value = (
+        str(_optional_int(value))
+        if kind == "listing_count"
+        else _optional_decimal_text(value)
+    )
+    if observed_at is None or normalized_value is None:
+        return None
+    return observed_at, normalized_value
+
+
 def _buy_order_candidate_texts(rows: list[Any], body_text: str) -> tuple[str, ...]:
     labels = (
         "buy",
@@ -460,3 +759,96 @@ def _is_plausible_buff_order_price(raw_value: str, value: Decimal) -> bool:
 def _append_debug(debug_log: list[str] | None, message: str) -> None:
     if debug_log is not None:
         debug_log.append(message)
+
+
+def _buff_goods_id(buff_url: str) -> str | None:
+    parsed = urlparse(buff_url)
+    path_match = re.search(r"/goods/(\d+)", parsed.path)
+    if path_match:
+        return path_match.group(1)
+    query = parse_qs(parsed.query)
+    for key in ("goods_id", "id"):
+        values = query.get(key)
+        if values and values[0].isdigit():
+            return values[0]
+    return None
+
+
+def _json_payload(value: object) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        return {}
+    text = value.get("text")
+    if not isinstance(text, str) or not text.strip():
+        return {}
+    try:
+        payload = json.loads(text)
+    except ValueError:
+        return {}
+    return payload if isinstance(payload, dict) else {}
+
+
+def _ok_data(payload: object) -> dict[str, Any]:
+    if not isinstance(payload, dict) or payload.get("code") != "OK":
+        return {}
+    data = payload.get("data")
+    return data if isinstance(data, dict) else {}
+
+
+def _optional_decimal_text(value: object) -> str | None:
+    try:
+        number = Decimal(str(value))
+    except Exception:
+        return None
+    return format(number.normalize(), "f")
+
+
+def _optional_int(value: object) -> int | None:
+    try:
+        return int(str(value))
+    except (TypeError, ValueError):
+        return None
+
+
+def _optional_str(value: object) -> str | None:
+    text = str(value or "").strip()
+    return text or None
+
+
+def _unix_timestamp_iso(value: object) -> str | None:
+    timestamp = _optional_int(value)
+    if timestamp is None or timestamp <= 0:
+        return None
+    return datetime.fromtimestamp(timestamp, tz=UTC).isoformat()
+
+
+def _unix_timestamp_iso_ms(value: object) -> str | None:
+    try:
+        timestamp_ms = int(str(value))
+    except (TypeError, ValueError):
+        return None
+    if timestamp_ms <= 0:
+        return None
+    return datetime.fromtimestamp(timestamp_ms / 1000, tz=UTC).isoformat()
+
+
+def _unix_timestamp_iso_auto(value: object) -> str | None:
+    if isinstance(value, str):
+        text = value.strip()
+        if not text:
+            return None
+        if not text.isdigit():
+            try:
+                parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+            except ValueError:
+                return None
+            return (parsed if parsed.tzinfo else parsed.replace(tzinfo=UTC)).isoformat()
+        value = text
+    try:
+        timestamp = int(str(value))
+    except (TypeError, ValueError):
+        return None
+    if timestamp <= 0:
+        return None
+    if timestamp > 10_000_000_000:
+        timestamp = timestamp // 1000
+    return datetime.fromtimestamp(timestamp, tz=UTC).isoformat()

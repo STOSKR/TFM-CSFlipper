@@ -2,8 +2,11 @@ import pytest
 
 from apps.acquisition.buff163_market import (
     Buff163Connector,
+    extract_buff_api_buy_orders,
     extract_buff_buy_orders,
+    extract_buff_price_history,
     extract_buff_price_text,
+    extract_buff_recent_sales,
 )
 
 
@@ -68,6 +71,109 @@ def test_extract_buff_buy_orders_keeps_display_currency_only() -> None:
     assert buy_orders == (
         {"price": "¥ 200", "quantity": 2554},
         {"price": "¥ 200.86", "quantity": 2565},
+    )
+
+
+def test_extract_buff_api_buy_orders_keeps_individual_orders() -> None:
+    buy_orders = extract_buff_api_buy_orders(
+        {
+            "code": "OK",
+            "data": {
+                "items": [
+                    {
+                        "id": "260614T1",
+                        "user_id": "U1",
+                        "price": "429",
+                        "num": 1,
+                        "created_at": 1781395233,
+                    },
+                    {
+                        "id": "260614T2",
+                        "user_id": "U2",
+                        "price": "429",
+                        "num": 1,
+                        "created_at": 1781395458,
+                    },
+                    {"id": "260614T3", "price": "428", "num": 8},
+                ],
+            },
+        }
+    )
+
+    assert buy_orders[:2] == (
+        {
+            "source": "buff_buy_order",
+            "price": "CNY 429",
+            "quantity": 1,
+            "order_id": "260614T1",
+            "buyer_id": "U1",
+            "created_at": "2026-06-14T00:00:33+00:00",
+        },
+        {
+            "source": "buff_buy_order",
+            "price": "CNY 429",
+            "quantity": 1,
+            "order_id": "260614T2",
+            "buyer_id": "U2",
+            "created_at": "2026-06-14T00:04:18+00:00",
+        },
+    )
+    assert buy_orders[2] == {
+        "source": "buff_buy_order",
+        "price": "CNY 428",
+        "quantity": 8,
+        "order_id": "260614T3",
+    }
+
+
+def test_extract_buff_recent_sales_from_bill_order_payload() -> None:
+    recent_sales = extract_buff_recent_sales(
+        {
+            "code": "OK",
+            "data": {
+                "items": [
+                    {
+                        "price": "459",
+                        "buyer_pay_time": 1781366400,
+                        "asset_info": {"assetid": "52142244274"},
+                    },
+                ],
+            },
+        }
+    )
+
+    assert recent_sales == (
+        {
+            "source": "buff_bill_order",
+            "price": "CNY 459",
+            "sold_at": "2026-06-13T16:00:00+00:00",
+            "asset_id": "52142244274",
+        },
+    )
+
+
+def test_extract_buff_price_history_v2_splits_three_series() -> None:
+    history = extract_buff_price_history(
+        {
+            "code": "OK",
+            "data": {
+                "price_history": [[1781366400000, "459.5"]],
+                "buy_order_price_history": [[1781366400000, "450.25"]],
+                "sell_order_count_history": [[1781366400000, 33]],
+            },
+        },
+        display_currency="EUR",
+    )
+
+    assert history == (
+        {
+            "source": "buff_price_history_v2",
+            "observed_at": "2026-06-13T16:00:00+00:00",
+            "currency": "EUR",
+            "buff_sell_price": "459.5",
+            "buff_buy_order_price": "450.25",
+            "buff_listing_count": 33,
+        },
     )
 
 

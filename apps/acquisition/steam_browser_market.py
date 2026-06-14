@@ -8,7 +8,7 @@ import random
 import re
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
@@ -204,9 +204,33 @@ class SteamBrowserConnector:
                 souvenir=souvenir,
                 debug_log=debug_log,
             )
+            await _select_chart_range(page, range_label="Week", debug_log=debug_log)
             payload = await page.evaluate(
                 f"""
-                () => ({{
+                async (marketHashName) => {{
+                  const fetchOrderBook = async () => {{
+                    const params = new URLSearchParams({{
+                      q: "Load",
+                      qp: JSON.stringify([730, marketHashName])
+                    }});
+                    try {{
+                      const response = await fetch(`/market/orderbook?${{params.toString()}}`, {{
+                        credentials: "include",
+                        headers: {{ accept: "application/json" }}
+                      }});
+                      return {{
+                        status: response.status,
+                        text: await response.text()
+                      }};
+                    }} catch (error) {{
+                      return {{
+                        status: 0,
+                        text: "",
+                        error: String(error)
+                      }};
+                    }}
+                  }};
+                  return {{
                   url: location.href,
                   title: document.title,
                   bodyText: document.body ? document.body.innerText : "",
@@ -239,6 +263,9 @@ class SteamBrowserConnector:
                     if (!svg) {{
                       return null;
                     }}
+                    const priceLinePaths = Array.from(
+                      svg.querySelectorAll("path.recharts-line-curve")
+                    ).map((path) => path.getAttribute("d"));
                     const texts = Array.from(svg.querySelectorAll("text")).map((node) => ({{
                       text: clean(node.textContent),
                       x: Number(node.getAttribute("x")),
@@ -258,17 +285,19 @@ class SteamBrowserConnector:
                         width: Number(clipRect.getAttribute("width")),
                         height: Number(clipRect.getAttribute("height")),
                       }} : null,
-                      price_line_path: svg.querySelector("path.recharts-line-curve")
-                        ? svg.querySelector("path.recharts-line-curve").getAttribute("d")
-                        : null,
+                      price_line_path: priceLinePaths[0] || null,
+                      price_line_paths: priceLinePaths,
                       price_ticks: texts.filter((entry) => moneyPattern.test(entry.text)),
                       time_ticks: texts.filter((entry) =>
                         /\\d{{1,2}}\\/\\d{{1,2}}\\/\\d{{4}}/.test(entry.text)
                       ),
                     }};
-                  }})()
-                }})
-                """
+                  }})(),
+                  orderBook: await fetchOrderBook()
+                  }};
+                }}
+                """,
+                candidate.market_hash_name,
             )
         finally:
             await page.close()
@@ -279,6 +308,7 @@ class SteamBrowserConnector:
         selector_texts = list(payload.get("selectorTexts") or [])
         buy_order_rows = list(payload.get("buyOrderRows") or [])
         chart_payload = payload.get("recentSalesChart")
+        orderbook_payload = _json_payload(payload.get("orderBook"))
         self._debug(candidate.market_hash_name, debug_log, f"title={title!r}")
         self._debug(
             candidate.market_hash_name,
@@ -322,8 +352,16 @@ class SteamBrowserConnector:
                 "market_hash_name": candidate.market_hash_name,
                 "steam_url": url,
                 "price_text": price_text,
-                "buy_orders": extract_steam_buy_orders(buy_order_rows),
-                "recent_sales": extract_steam_recent_sales(chart_payload),
+                "buy_orders": extract_steam_orderbook_buy_orders(
+                    orderbook_payload,
+                    currency=currency,
+                )
+                or extract_steam_buy_orders(buy_order_rows),
+                "recent_sales": extract_steam_recent_sales(
+                    chart_payload,
+                    quality=quality,
+                    limit=None,
+                ),
                 "page_title": title,
                 "debug_log": tuple(debug_log),
             },
@@ -444,14 +482,50 @@ def extract_steam_buy_orders(rows: list[Any]) -> tuple[dict[str, str | int], ...
     return tuple(buy_orders)
 
 
+def extract_steam_orderbook_buy_orders(
+    payload: object,
+    *,
+    currency: str | None = None,
+    limit: int = 20,
+) -> tuple[dict[str, str | int], ...]:
+    if not isinstance(payload, dict) or payload.get("success") is not True:
+        return ()
+    data = payload.get("data")
+    if not isinstance(data, dict):
+        return ()
+    compact_orders = data.get("rgCompactBuyOrders")
+    if not isinstance(compact_orders, list):
+        return ()
+
+    rows: list[dict[str, str | int]] = []
+    currency_prefix = (currency or "").strip().upper()
+    for index in range(0, len(compact_orders) - 1, 2):
+        if len(rows) >= limit:
+            break
+        amount = _decimal_from_compact_order_value(compact_orders[index])
+        quantity = _int_from_compact_order_value(compact_orders[index + 1])
+        if amount is None or quantity is None:
+            continue
+        price = str(amount.quantize(Decimal("0.01")))
+        rows.append(
+            {
+                "source": "steam_orderbook",
+                "price": f"{currency_prefix} {price}" if currency_prefix else price,
+                "quantity": quantity,
+            }
+        )
+    return tuple(rows)
+
+
 def extract_steam_recent_sales(
     chart_payload: object,
     *,
-    limit: int = 5,
+    quality: str | None = None,
+    limit: int | None = None,
 ) -> tuple[dict[str, Any], ...]:
     if not isinstance(chart_payload, dict):
         return ()
-    price_line_path = chart_payload.get("price_line_path")
+    price_line_path = _price_line_path_for_quality(chart_payload, quality=quality)
     if not isinstance(price_line_path, str) or not price_line_path.strip():
         return ()
     price_scale = _price_scale_from_ticks(chart_payload.get("price_ticks"))
@@ -460,14 +534,25 @@ def extract_steam_recent_sales(
     time_ticks = _time_ticks(chart_payload.get("time_ticks"))
     selected_range = _optional_str(chart_payload.get("selected_range"))
     points = _path_points(price_line_path)
+    if limit is not None:
+        selected_points = points[-max(1, limit) :]
+        start_index = max(0, len(points) - limit)
+    else:
+        selected_points = points
+        start_index = 0
     rows: list[dict[str, Any]] = []
-    for index, (x, y) in enumerate(points[-max(1, limit) :], start=max(0, len(points) - limit)):
+    for index, (x, y) in enumerate(selected_points, start=start_index):
+        estimated_at = _interpolated_time_label(x, time_ticks)
         row: dict[str, Any] = {
             "source": "steam_recharts",
+            "granularity": "point",
             "point_index": index,
             "price": str(_price_from_y(y, price_scale).quantize(Decimal("0.01"))),
-            "time_label": _nearest_time_label(x, time_ticks),
+            "time_label": estimated_at or _nearest_time_label(x, time_ticks),
         }
+        observed_at = _steam_time_label_iso(row["time_label"])
+        if observed_at:
+            row["observed_at"] = observed_at
         if selected_range:
             row["range"] = selected_range
         rows.append(row)
@@ -536,6 +621,40 @@ async def _select_new_market_variant(
     debug_log.append(f"new_market_variant_selection={selected!r}")
 
 
+async def _select_chart_range(
+    page: Any,
+    *,
+    range_label: str,
+    debug_log: list[str],
+) -> None:
+    selected = await page.evaluate(
+        """
+        async (rangeLabel) => {
+          const clean = (value) => String(value || "").replace(/\\s+/g, " ").trim();
+          const options = Array.from(document.querySelectorAll("[data-selected]"));
+          const node = options.find((element) =>
+            clean(element.innerText || element.textContent) === rangeLabel
+          );
+          if (!node) {
+            return {clicked: false};
+          }
+          const alreadySelected = node.getAttribute("data-selected") === "true";
+          if (!alreadySelected) {
+            node.dispatchEvent(new MouseEvent("click", {
+              bubbles: true,
+              cancelable: true,
+              view: window
+            }));
+            await new Promise((resolve) => setTimeout(resolve, 1600));
+          }
+          return {clicked: !alreadySelected, alreadySelected};
+        }
+        """,
+        range_label,
+    )
+    debug_log.append(f"chart_range_selection={selected!r}")
+
+
 def _path_points(path_value: str) -> tuple[tuple[float, float], ...]:
     matches = re.findall(r"[ML]\s*([0-9.]+),([0-9.]+)", path_value)
     return tuple((float(x), float(y)) for x, y in matches)
@@ -587,9 +706,95 @@ def _nearest_time_label(x: float, ticks: tuple[tuple[float, str], ...]) -> str |
     return min(ticks, key=lambda item: abs(item[0] - x))[1]
 
 
+def _interpolated_time_label(x: float, ticks: tuple[tuple[float, str], ...]) -> str | None:
+    if len(ticks) < 2:
+        return None
+    sorted_ticks = sorted(ticks, key=lambda item: item[0])
+    lower = sorted_ticks[0]
+    upper = sorted_ticks[-1]
+    for index, tick in enumerate(sorted_ticks):
+        if tick[0] <= x:
+            lower = tick
+        if tick[0] >= x:
+            upper = tick
+            break
+        if index == len(sorted_ticks) - 1:
+            upper = tick
+    lower_time = _parse_steam_time_label(lower[1])
+    upper_time = _parse_steam_time_label(upper[1])
+    if lower_time is None or upper_time is None or upper[0] == lower[0]:
+        return None
+    ratio = (x - lower[0]) / (upper[0] - lower[0])
+    interpolated = lower_time + timedelta(
+        seconds=(upper_time - lower_time).total_seconds() * ratio
+    )
+    return _format_steam_time_label(interpolated)
+
+
+def _parse_steam_time_label(value: str) -> datetime | None:
+    for date_format in ("%m/%d/%Y, %I %p", "%d/%m/%Y, %H", "%m/%d/%Y, %H"):
+        try:
+            return datetime.strptime(value, date_format)
+        except ValueError:
+            continue
+    return None
+
+
+def _format_steam_time_label(value: datetime) -> str:
+    return f"{value.month}/{value.day}/{value.year}, {value.strftime('%I').lstrip('0')} {value:%p}"
+
+
+def _steam_time_label_iso(value: object) -> str | None:
+    text = str(value or "").strip()
+    if not text:
+        return None
+    parsed = _parse_steam_time_label(text)
+    if parsed is None:
+        return None
+    return parsed.replace(tzinfo=UTC).isoformat()
+
+
+def _price_line_path_for_quality(chart_payload: dict[str, Any], *, quality: str | None) -> object:
+    paths = chart_payload.get("price_line_paths")
+    if not isinstance(paths, list) or not paths:
+        return chart_payload.get("price_line_path")
+    if quality in QUALITY_NAMES:
+        index = QUALITY_NAMES.index(quality)
+        if index < len(paths):
+            return paths[index]
+    return chart_payload.get("price_line_path") or paths[0]
+
+
 def _optional_str(value: object) -> str | None:
     text = str(value or "").strip()
     return text or None
+
+
+def _decimal_from_compact_order_value(value: object) -> Decimal | None:
+    try:
+        return Decimal(str(value)) / Decimal("100")
+    except Exception:
+        return None
+
+
+def _int_from_compact_order_value(value: object) -> int | None:
+    try:
+        return int(str(value))
+    except (TypeError, ValueError):
+        return None
+
+
+def _json_payload(value: object) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        return {}
+    text = value.get("text")
+    if not isinstance(text, str) or not text.strip():
+        return {}
+    try:
+        payload = json.loads(text)
+    except ValueError:
+        return {}
+    return payload if isinstance(payload, dict) else {}
 
 
 def _extract_bucket_price_text(
