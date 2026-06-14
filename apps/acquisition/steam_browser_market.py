@@ -204,7 +204,7 @@ class SteamBrowserConnector:
                 souvenir=souvenir,
                 debug_log=debug_log,
             )
-            await _select_chart_range(page, range_label="Week", debug_log=debug_log)
+            await _select_chart_range(page, range_label="Lifetime", debug_log=debug_log)
             payload = await page.evaluate(
                 f"""
                 async (marketHashName) => {{

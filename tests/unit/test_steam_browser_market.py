@@ -1,4 +1,5 @@
 from apps.acquisition.steam_browser_market import (
+    _select_chart_range,
     extract_steam_buy_orders,
     extract_steam_orderbook_buy_orders,
     extract_steam_price_text,
@@ -211,3 +212,21 @@ def test_extract_steam_recent_sales_uses_quality_curve_and_all_points() -> None:
             "range": "Week",
         },
     )
+
+
+async def test_select_chart_range_requests_lifetime() -> None:
+    page = FakeRangePage()
+    debug_log: list[str] = []
+
+    await _select_chart_range(page, range_label="Lifetime", debug_log=debug_log)
+
+    assert page.requested_range == "Lifetime"
+    assert "alreadySelected" in debug_log[0]
+
+
+class FakeRangePage:
+    requested_range: str | None = None
+
+    async def evaluate(self, _script: str, range_label: str) -> dict[str, bool]:
+        self.requested_range = range_label
+        return {"clicked": False, "alreadySelected": True}
