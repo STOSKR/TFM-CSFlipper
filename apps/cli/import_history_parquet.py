@@ -8,10 +8,13 @@ from pathlib import Path
 
 from packages.datasets.historical_parquet import (
     inspect_direction_parquet,
-    snapshots_from_direction_parquet,
+    iter_snapshots_from_direction_parquet,
 )
 from packages.persistence.connection import create_pool
-from packages.persistence.simple_market import SimpleMarketSnapshotRepository
+from packages.persistence.simple_market import (
+    SimpleMarketSnapshot,
+    SimpleMarketSnapshotRepository,
+)
 
 
 async def run(args: argparse.Namespace) -> int:
@@ -28,35 +31,64 @@ async def run(args: argparse.Namespace) -> int:
         print(f"missing_columns={','.join(report.missing_columns)}")
         return 2
 
-    snapshots = snapshots_from_direction_parquet(
+    snapshots = iter_snapshots_from_direction_parquet(
         args.input,
         currency=args.currency,
         limit_variants=args.limit_variants,
     )
-    print(f"snapshots_ready={len(snapshots)}")
-    print(f"history_points_ready={sum(len(snapshot.steam_recent_sales) for snapshot in snapshots)}")
-    if snapshots:
-        sample = snapshots[0]
-        print(
-            "sample_item="
-            f"{sample.representation_name} "
-            f"steam_points={len(sample.steam_recent_sales)} "
-            f"latest_price={sample.steam_price} {sample.steam_currency}"
-        )
 
     if not args.persist:
+        snapshots_ready = 0
+        history_points_ready = 0
+        sample: SimpleMarketSnapshot | None = None
+        for snapshot in snapshots:
+            sample = sample or snapshot
+            snapshots_ready += 1
+            history_points_ready += len(snapshot.steam_recent_sales)
+        print(f"snapshots_ready={snapshots_ready}")
+        print(f"history_points_ready={history_points_ready}")
+        _print_sample(sample)
         print("mode=dry_run")
         return 0
 
     pool = await create_pool(max_size=2)
+    persisted = 0
+    history_points_persisted = 0
+    sample = None
     try:
         async with pool.acquire() as connection:
-            persisted = await SimpleMarketSnapshotRepository(connection).record_snapshots(snapshots)
+            repository = SimpleMarketSnapshotRepository(connection)
+            batch: list[SimpleMarketSnapshot] = []
+            for snapshot in snapshots:
+                sample = sample or snapshot
+                history_points_persisted += len(snapshot.steam_recent_sales)
+                batch.append(snapshot)
+                if len(batch) >= args.batch_size:
+                    persisted += await repository.record_snapshots(tuple(batch))
+                    print(
+                        f"progress snapshots={persisted} "
+                        f"history_points={history_points_persisted}"
+                    )
+                    batch.clear()
+            if batch:
+                persisted += await repository.record_snapshots(tuple(batch))
     finally:
         await pool.close()
 
-    print(f"mode=persisted snapshots={persisted}")
+    _print_sample(sample)
+    print(f"mode=persisted snapshots={persisted} history_points={history_points_persisted}")
     return persisted
+
+
+def _print_sample(sample: SimpleMarketSnapshot | None) -> None:
+    if sample is None:
+        return
+    print(
+        "sample_item="
+        f"{sample.representation_name} "
+        f"steam_points={len(sample.steam_recent_sales)} "
+        f"latest_price={sample.steam_price} {sample.steam_currency}"
+    )
 
 
 def main() -> None:
@@ -70,6 +102,7 @@ def main() -> None:
     )
     parser.add_argument("--currency", default="EUR")
     parser.add_argument("--limit-variants", type=int)
+    parser.add_argument("--batch-size", type=int, default=50)
     parser.add_argument("--persist", action="store_true")
     args = parser.parse_args()
 

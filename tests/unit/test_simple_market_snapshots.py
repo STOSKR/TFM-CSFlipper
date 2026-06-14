@@ -294,6 +294,10 @@ class FakeConnection:
         self.statements.append(query)
         self.args.append(_args)
 
+    async def executemany(self, query: str, args: tuple[tuple[Any, ...], ...]) -> None:
+        self.statements.append(query)
+        self.args.append(args)
+
     async def fetchrow(self, query: str, *_args: Any) -> dict[str, Any]:
         self.statements.append(query)
         self.args.append(_args)

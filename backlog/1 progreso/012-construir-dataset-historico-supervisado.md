@@ -50,6 +50,10 @@ El modelo supervisado predice la probabilidad calibrada de que el spread entre S
   reutilizar los workers de Steam/BUFF y actualizar estado actual + puntos historicos.
 - Definida decision: ROI, net profit y break-even se recalcularan bajo demanda para web,
   recomendaciones o datasets; no se guardan como verdad persistida porque el precio cambia.
+- Incorporado el parquet completo `data/direction_dataset_engineered.parquet`: 6.017.042 filas,
+  52 columnas, 6 row groups y 2.980 variantes, con rango temporal hasta 2026-04-12.
+- Adaptado el importador del parquet para iterar por batches/row groups y escribir historico
+  por lotes, evitando cargar todo el dataset en memoria.
 
 ## Pruebas ejecutadas
 
@@ -57,10 +61,11 @@ El modelo supervisado predice la probabilidad calibrada de que el spread entre S
 - `python -m ruff check packages/datasets/historical_parquet.py apps/cli/import_history_parquet.py apps/cli/refresh_market_history.py tests/unit/test_historical_parquet.py tests/unit/test_refresh_market_history.py`
 - `python -m mypy packages/datasets/historical_parquet.py apps/cli/import_history_parquet.py apps/cli/refresh_market_history.py tests/unit/test_historical_parquet.py tests/unit/test_refresh_market_history.py`
 - `python -m apps.cli.import_history_parquet --input data/direction_dataset_model_sample.parquet --currency EUR`
+- `python -m apps.cli.import_history_parquet --input data/direction_dataset_engineered.parquet --currency EUR --limit-variants 3`
 
 ## Bloqueos o riesgos
 
 - La calidad del dataset depende de disponer de historico real suficiente de ambas plataformas.
 - El cambio de moneda o comisiones puede invalidar etiquetas si no queda versionado.
-- El parquet actual solo contiene una variante y no trae BUFF; sirve para arrancar el pipeline
-  de importacion/dataset, pero no basta para entrenar un modelo robusto.
+- El parquet completo trae historico Steam/precio+ventas y targets direccionales, pero no trae
+  BUFF; para el modelo de spread neto habra que alinearlo despues con historico BUFF.

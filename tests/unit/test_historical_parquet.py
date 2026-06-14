@@ -7,6 +7,7 @@ import pyarrow.parquet as pq
 
 from packages.datasets.historical_parquet import (
     inspect_direction_parquet,
+    iter_snapshots_from_direction_parquet,
     snapshots_from_direction_parquet,
 )
 
@@ -63,7 +64,18 @@ def test_snapshots_from_direction_parquet_maps_rows_to_steam_history(tmp_path: P
     )
 
 
-def _write_sample_parquet(path: Path) -> None:
+def test_iter_snapshots_keeps_variant_rows_across_parquet_row_groups(tmp_path: Path) -> None:
+    path = tmp_path / "history.parquet"
+    _write_sample_parquet(path, row_group_size=1)
+
+    snapshots = tuple(iter_snapshots_from_direction_parquet(path, currency="EUR"))
+
+    assert len(snapshots) == 1
+    assert len(snapshots[0].steam_recent_sales) == 2
+    assert snapshots[0].scraped_at == datetime(2026, 1, 2, tzinfo=UTC)
+
+
+def _write_sample_parquet(path: Path, *, row_group_size: int | None = None) -> None:
     table = pa.table(
         {
             "variant_id": ["heavy_m249_aztec__FN_st0", "heavy_m249_aztec__FN_st0"],
@@ -82,4 +94,4 @@ def _write_sample_parquet(path: Path) -> None:
             "is_up": [0, 1],
         }
     )
-    pq.write_table(table, path)  # type: ignore[no-untyped-call]
+    pq.write_table(table, path, row_group_size=row_group_size)  # type: ignore[no-untyped-call]

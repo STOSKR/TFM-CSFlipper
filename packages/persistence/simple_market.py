@@ -111,66 +111,73 @@ class SimpleMarketSnapshotRepository:
         item_id: UUID,
     ) -> int:
         rows = _history_points_from_snapshot(snapshot)
-        for row in rows:
-            await self.connection.execute(
-                """
-                insert into market_history_points (
-                    item_id,
-                    observed_at,
-                    steam_sell_price,
-                    steam_sales_count,
-                    steam_currency,
-                    buff_sell_price,
-                    buff_buy_order_price,
-                    buff_listing_count,
-                    buff_currency,
-                    source_payload
-                )
-                values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb)
-                on conflict (item_id, observed_at) do update set
-                    steam_sell_price = coalesce(
-                        excluded.steam_sell_price,
-                        market_history_points.steam_sell_price
-                    ),
-                    steam_sales_count = coalesce(
-                        excluded.steam_sales_count,
-                        market_history_points.steam_sales_count
-                    ),
-                    steam_currency = coalesce(
-                        excluded.steam_currency,
-                        market_history_points.steam_currency
-                    ),
-                    buff_sell_price = coalesce(
-                        excluded.buff_sell_price,
-                        market_history_points.buff_sell_price
-                    ),
-                    buff_buy_order_price = coalesce(
-                        excluded.buff_buy_order_price,
-                        market_history_points.buff_buy_order_price
-                    ),
-                    buff_listing_count = coalesce(
-                        excluded.buff_listing_count,
-                        market_history_points.buff_listing_count
-                    ),
-                    buff_currency = coalesce(
-                        excluded.buff_currency,
-                        market_history_points.buff_currency
-                    ),
-                    source_payload = market_history_points.source_payload
-                        || excluded.source_payload,
-                    updated_at = now()
-                """,
+        if not rows:
+            return 0
+
+        await self.connection.executemany(
+            """
+            insert into market_history_points (
                 item_id,
-                row["observed_at"],
-                row.get("steam_sell_price"),
-                row.get("steam_sales_count"),
-                row.get("steam_currency"),
-                row.get("buff_sell_price"),
-                row.get("buff_buy_order_price"),
-                row.get("buff_listing_count"),
-                row.get("buff_currency"),
-                _json(row["source_payload"]),
+                observed_at,
+                steam_sell_price,
+                steam_sales_count,
+                steam_currency,
+                buff_sell_price,
+                buff_buy_order_price,
+                buff_listing_count,
+                buff_currency,
+                source_payload
             )
+            values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb)
+            on conflict (item_id, observed_at) do update set
+                steam_sell_price = coalesce(
+                    excluded.steam_sell_price,
+                    market_history_points.steam_sell_price
+                ),
+                steam_sales_count = coalesce(
+                    excluded.steam_sales_count,
+                    market_history_points.steam_sales_count
+                ),
+                steam_currency = coalesce(
+                    excluded.steam_currency,
+                    market_history_points.steam_currency
+                ),
+                buff_sell_price = coalesce(
+                    excluded.buff_sell_price,
+                    market_history_points.buff_sell_price
+                ),
+                buff_buy_order_price = coalesce(
+                    excluded.buff_buy_order_price,
+                    market_history_points.buff_buy_order_price
+                ),
+                buff_listing_count = coalesce(
+                    excluded.buff_listing_count,
+                    market_history_points.buff_listing_count
+                ),
+                buff_currency = coalesce(
+                    excluded.buff_currency,
+                    market_history_points.buff_currency
+                ),
+                source_payload = market_history_points.source_payload
+                    || excluded.source_payload,
+                updated_at = now()
+            """,
+            tuple(
+                (
+                    item_id,
+                    row["observed_at"],
+                    row.get("steam_sell_price"),
+                    row.get("steam_sales_count"),
+                    row.get("steam_currency"),
+                    row.get("buff_sell_price"),
+                    row.get("buff_buy_order_price"),
+                    row.get("buff_listing_count"),
+                    row.get("buff_currency"),
+                    _json(row["source_payload"]),
+                )
+                for row in rows
+            ),
+        )
         return len(rows)
 
 
