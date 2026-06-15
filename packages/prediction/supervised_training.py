@@ -30,6 +30,9 @@ class SupervisedTrainingConfig:
     models: tuple[str, ...] = ("dummy", "logistic", "random_forest", "hist_gradient_boosting")
     exclude_features: tuple[str, ...] = ()
     exclude_feature_suffixes: tuple[str, ...] = ()
+    selection_metric: str = "roc_auc"
+    selection_threshold: float = 0.8
+    min_selection_signals: int = 50
 
 
 def train_supervised_models(config: SupervisedTrainingConfig) -> dict[str, Any]:
@@ -123,7 +126,12 @@ def train_supervised_models(config: SupervisedTrainingConfig) -> dict[str, Any]:
             }
         )
 
-    best_report = _select_best_candidate(candidate_reports)
+    best_report = _select_best_candidate(
+        candidate_reports,
+        metric=config.selection_metric,
+        threshold=config.selection_threshold,
+        min_signals=config.min_selection_signals,
+    )
     best_pipeline = dict(candidates)[str(best_report["candidate"])]
     calibrated = sklearn["CalibratedClassifierCV"](
         estimator=best_pipeline,
@@ -173,7 +181,14 @@ def train_supervised_models(config: SupervisedTrainingConfig) -> dict[str, Any]:
         },
         "candidate_reports": candidate_reports,
         "selected_candidate": best_report["candidate"],
-        "selection_reason": "highest validation ROC-AUC, then lowest validation Brier score",
+        "selection": {
+            "metric": config.selection_metric,
+            "threshold": config.selection_threshold,
+            "min_signals": config.min_selection_signals,
+            "reason": best_report["selection_reason"],
+            "score": best_report["selection_score"],
+        },
+        "selection_reason": best_report["selection_reason"],
         "calibration": {
             "method": config.calibration_method,
             "validation": calibrated_validation,
@@ -575,13 +590,107 @@ def _percentile_or_none(values: list[float], percentile: float) -> float | None:
     return float(np.percentile(np.asarray(values, dtype=np.float64), percentile))
 
 
-def _select_best_candidate(candidate_reports: list[dict[str, Any]]) -> dict[str, Any]:
-    return max(
-        candidate_reports,
+def _select_best_candidate(
+    candidate_reports: list[dict[str, Any]],
+    *,
+    metric: str,
+    threshold: float,
+    min_signals: int,
+) -> dict[str, Any]:
+    if metric == "roc_auc":
+        return _with_selection(
+            max(
+                candidate_reports,
+                key=lambda item: (
+                    float(item["validation"]["roc_auc"] or 0.0),
+                    -float(item["validation"]["brier_score"] or 1.0),
+                ),
+            ),
+            reason="highest validation ROC-AUC, then lowest validation Brier score",
+            score_name="roc_auc",
+        )
+    if metric == "average_precision":
+        return _with_selection(
+            max(
+                candidate_reports,
+                key=lambda item: (
+                    float(item["validation"]["average_precision"] or 0.0),
+                    -float(item["validation"]["brier_score"] or 1.0),
+                ),
+            ),
+            reason=(
+                "highest validation average precision, then lowest validation Brier score"
+            ),
+            score_name="average_precision",
+        )
+    if metric == "precision_at_threshold":
+        return _select_by_threshold_precision(
+            candidate_reports,
+            threshold=threshold,
+            min_signals=min_signals,
+        )
+    raise ValueError(f"unknown selection metric: {metric}")
+
+
+def _with_selection(
+    report: dict[str, Any],
+    *,
+    reason: str,
+    score_name: str,
+) -> dict[str, Any]:
+    selected = dict(report)
+    selected["selection_reason"] = reason
+    selected["selection_score"] = selected["validation"].get(score_name)
+    return selected
+
+
+def _select_by_threshold_precision(
+    candidate_reports: list[dict[str, Any]],
+    *,
+    threshold: float,
+    min_signals: int,
+) -> dict[str, Any]:
+    scored = []
+    for report in candidate_reports:
+        threshold_report = _threshold_report(report["validation"], threshold=threshold)
+        signals = int(threshold_report["predicted_positive"])
+        precision = float(threshold_report["precision"])
+        recall = float(threshold_report["recall"])
+        eligible = signals >= min_signals
+        scored.append((eligible, precision, signals, recall, report))
+
+    selected = max(
+        scored,
         key=lambda item: (
-            float(item["validation"]["roc_auc"] or 0.0),
-            -float(item["validation"]["brier_score"] or 1.0),
+            int(item[0]),
+            item[1],
+            item[2],
+            item[3],
+            float(item[4]["validation"]["average_precision"] or 0.0),
         ),
+    )
+    selected_report = dict(selected[4])
+    selected_report["selection_reason"] = (
+        f"highest validation precision at threshold {threshold:g} with at least "
+        f"{min_signals} validation signals; falls back to highest precision if none qualify"
+    )
+    selected_report["selection_score"] = {
+        "eligible": bool(selected[0]),
+        "precision": selected[1],
+        "signals": selected[2],
+        "recall": selected[3],
+        "threshold": threshold,
+    }
+    return selected_report
+
+
+def _threshold_report(report: dict[str, Any], *, threshold: float) -> dict[str, Any]:
+    thresholds = report.get("thresholds") or []
+    if not thresholds:
+        raise ValueError("candidate report has no threshold metrics")
+    return min(
+        thresholds,
+        key=lambda row: abs(float(row["threshold"]) - threshold),
     )
 
 

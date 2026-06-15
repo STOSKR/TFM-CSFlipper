@@ -27,6 +27,9 @@ def run(args: argparse.Namespace) -> int:
             models=tuple(args.models),
             exclude_features=tuple(args.exclude_features),
             exclude_feature_suffixes=tuple(args.exclude_feature_suffixes),
+            selection_metric=args.selection_metric,
+            selection_threshold=args.selection_threshold,
+            min_selection_signals=args.min_selection_signals,
         )
     )
     print(f"output_dir={report['output_dir']}")
@@ -75,6 +78,13 @@ def main() -> None:
         default=(),
         help="Drop every training feature ending with one of these suffixes.",
     )
+    parser.add_argument(
+        "--selection-metric",
+        choices=("roc_auc", "average_precision", "precision_at_threshold"),
+        default="roc_auc",
+    )
+    parser.add_argument("--selection-threshold", type=float, default=0.8)
+    parser.add_argument("--min-selection-signals", type=int, default=50)
     args = parser.parse_args()
     raise SystemExit(run(args))
 
