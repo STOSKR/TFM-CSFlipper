@@ -17,6 +17,9 @@ SIMPLIFY_MARKET_HISTORY_POINTS_MIGRATION = Path(
 LONG_MARKET_HISTORY_POINTS_MIGRATION = Path(
     "supabase/migrations/0007_long_market_history_points.sql"
 )
+METRIC_MARKET_HISTORY_POINTS_MIGRATION = Path(
+    "supabase/migrations/0008_metric_market_history_points.sql"
+)
 
 
 def test_initial_migration_defines_required_tables() -> None:
@@ -165,4 +168,18 @@ def test_long_market_history_points_migration_uses_platform_rows() -> None:
     assert "observed_at" in sql
     assert "'steam'" in sql
     assert "'buff163'" in sql
+    assert "drop table market_history_points" in sql
+
+
+def test_metric_market_history_points_migration_uses_metric_rows() -> None:
+    sql = METRIC_MARKET_HISTORY_POINTS_MIGRATION.read_text(encoding="utf-8").lower()
+
+    assert "metric_name text not null" in sql
+    assert "metric_value numeric" in sql
+    assert "primary key (" in sql
+    assert "metric_name" in sql
+    assert "'sell_price'" in sql
+    assert "'buy_order_price'" in sql
+    assert "'sales_count'" in sql
+    assert "'listing_count'" in sql
     assert "drop table market_history_points" in sql

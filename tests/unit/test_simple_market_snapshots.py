@@ -58,6 +58,7 @@ def test_build_simple_market_snapshots_merges_platforms_by_item_variant() -> Non
             "price_history": [
                 {
                     "observed_at": "2026-06-13T16:00:00+00:00",
+                    "currency": "CNY",
                     "buff_sell_price": "105.20",
                     "buff_buy_order_price": "104.00",
                     "buff_listing_count": 42,
@@ -93,6 +94,7 @@ def test_build_simple_market_snapshots_merges_platforms_by_item_variant() -> Non
     assert snapshot.buff_price_history == (
         {
             "observed_at": "2026-06-13T16:00:00+00:00",
+            "currency": "CNY",
             "buff_sell_price": "105.20",
             "buff_buy_order_price": "104.00",
             "buff_listing_count": 42,
@@ -231,10 +233,11 @@ async def test_simple_market_snapshot_repository_persists_history_points() -> No
                 "purchases": 3,
             },
         ),
-        buff_currency="EUR",
+        buff_currency="CNY",
         buff_price_history=(
             {
                 "observed_at": "2026-06-09T10:00:00+00:00",
+                "currency": "CNY",
                 "buff_sell_price": "15.20",
                 "buff_buy_order_price": "14.80",
                 "buff_listing_count": 11,
@@ -247,19 +250,31 @@ async def test_simple_market_snapshot_repository_persists_history_points() -> No
     assert len(connection.statements) == 2
     assert "insert into market_history_points" in connection.statements[1].lower()
     assert "platform_id" in connection.statements[1].lower()
-    assert "on conflict (item_id, platform_id, observed_at)" in connection.statements[1].lower()
+    assert (
+        "on conflict (item_id, platform_id, observed_at, metric_name)"
+        in connection.statements[1].lower()
+    )
     assert connection.args[0][3] == "AK-47 | Slate_FT_1"
     history_rows = connection.args[1]
-    assert len(history_rows) == 2
+    assert len(history_rows) == 5
     assert history_rows[0][1] == "buff163"
-    assert history_rows[0][3] == Decimal("15.20")
+    assert history_rows[0][3] == "buy_order_price"
     assert history_rows[0][4] == Decimal("14.80")
-    assert history_rows[0][6] == 11
-    assert history_rows[0][7] == "EUR"
-    assert history_rows[1][1] == "steam"
-    assert history_rows[1][3] == Decimal("17.45")
-    assert history_rows[1][5] == 3
-    assert history_rows[1][7] == "EUR"
+    assert history_rows[0][5] == "CNY"
+    assert history_rows[1][1] == "buff163"
+    assert history_rows[1][3] == "listing_count"
+    assert history_rows[1][4] == Decimal("11")
+    assert history_rows[2][1] == "buff163"
+    assert history_rows[2][3] == "sell_price"
+    assert history_rows[2][4] == Decimal("15.20")
+    assert history_rows[2][5] == "CNY"
+    assert history_rows[3][1] == "steam"
+    assert history_rows[3][3] == "sales_count"
+    assert history_rows[3][4] == Decimal("3")
+    assert history_rows[4][1] == "steam"
+    assert history_rows[4][3] == "sell_price"
+    assert history_rows[4][4] == Decimal("17.45")
+    assert history_rows[4][5] == "EUR"
 
 
 def _record(

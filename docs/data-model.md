@@ -180,10 +180,10 @@ El scraping Steam/BUFF de fase 1 usa tablas operativas separadas del esquema can
 - `representation_name`: nombre legible y estable para revision humana, por ejemplo
   `Bowie Knife Freehand_FT_1`.
 - `market_history_points`: serie temporal tabular en formato largo por
-  `item_id + platform_id + observed_at`. Las metricas comunes viven en columnas genericas
-  (`sell_price`, `buy_order_price`, `sales_count`, `listing_count`, `currency`) y cualquier
-  detalle especifico de la fuente queda en `raw_payload`. Las listas completas de buy orders
-  actuales no se guardan aqui.
+  `item_id + platform_id + observed_at + metric_name`. Cada fila contiene una unica metrica
+  (`metric_name`, `metric_value`, `currency`) y cualquier detalle especifico de la fuente queda
+  en `raw_payload`. Las listas completas de buy orders actuales no se guardan aqui.
+  El historico de BUFF se captura en `CNY`, que es la moneda nativa del endpoint.
 
 Repetir una clave surrogate (`item_id`) como FK en tablas hijas si tiene sentido en una BD
 relacional. Lo que se evita es repetir la identidad natural completa en cada tabla.

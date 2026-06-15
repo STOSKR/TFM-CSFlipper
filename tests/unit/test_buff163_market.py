@@ -161,15 +161,14 @@ def test_extract_buff_price_history_v2_splits_three_series() -> None:
                 "buy_order_price_history": [[1781366400000, "450.25"]],
                 "sell_order_count_history": [[1781366400000, 33]],
             },
-        },
-        display_currency="EUR",
+        }
     )
 
     assert history == (
         {
             "source": "buff_price_history_v2",
             "observed_at": "2026-06-13T16:00:00+00:00",
-            "currency": "EUR",
+            "currency": "CNY",
             "buff_sell_price": "459.5",
             "buff_buy_order_price": "450.25",
             "buff_listing_count": 33,

@@ -40,6 +40,7 @@ BUFF_PRICE_SELECTORS = (
     "[class*='price']",
 )
 LogCallback = Callable[[str], None]
+DEFAULT_BUFF_CURRENCY = "CNY"
 
 
 class Buff163Error(RuntimeError):
@@ -259,7 +260,7 @@ class Buff163Connector:
                     priceHistory: await fetchJson(
                       "/api/market/goods/price_history/buff/v2",
                       {{
-                        currency: "EUR",
+                        currency: "{DEFAULT_BUFF_CURRENCY}",
                         days: "365",
                         _: String(Date.now())
                       }}
@@ -301,10 +302,13 @@ class Buff163Connector:
         quality = candidate.quality or quality_from_market_hash(candidate.market_hash_name)
         stattrak = candidate.stattrak or candidate.market_hash_name.lower().startswith("stattrak")
         asset_id = build_canonical_asset_id(name=asset_name, quality=quality, stattrak=stattrak)
-        currency = detect_currency(price_text, default="CNY") or "CNY"
+        currency = (
+            detect_currency(price_text, default=DEFAULT_BUFF_CURRENCY)
+            or DEFAULT_BUFF_CURRENCY
+        )
         price_history = extract_buff_price_history(
             price_history_payload,
-            display_currency="EUR",
+            display_currency=DEFAULT_BUFF_CURRENCY,
         )
         observation = MarketObservationContract(
             correlation_id=correlation_id,
@@ -426,7 +430,10 @@ def extract_buff_buy_orders(
     seen: set[tuple[str, int]] = set()
     for text in _buy_order_candidate_texts(rows, body_text):
         for price_text, price_end in _iter_money_candidates(text):
-            currency = detect_currency(price_text, default="CNY") or "CNY"
+            currency = (
+                detect_currency(price_text, default=DEFAULT_BUFF_CURRENCY)
+                or DEFAULT_BUFF_CURRENCY
+            )
             if display_currency and currency != display_currency.upper():
                 continue
             price = parse_market_decimal(price_text)
@@ -458,7 +465,7 @@ def extract_buff_api_buy_orders(
     items = data.get("items")
     if not isinstance(items, list):
         return ()
-    currency = (display_currency or "CNY").upper()
+    currency = (display_currency or DEFAULT_BUFF_CURRENCY).upper()
     rows: list[dict[str, str | int]] = []
     for item in items:
         if len(rows) >= limit:
@@ -490,7 +497,7 @@ def extract_buff_api_buy_orders(
 def extract_buff_recent_sales(
     payload: object,
     *,
-    display_currency: str = "CNY",
+    display_currency: str = DEFAULT_BUFF_CURRENCY,
     limit: int = 20,
 ) -> tuple[dict[str, str | int], ...]:
     data = _ok_data(payload)
@@ -529,7 +536,7 @@ def extract_buff_recent_sales(
 def extract_buff_price_history(
     payload: object,
     *,
-    display_currency: str = "EUR",
+    display_currency: str = DEFAULT_BUFF_CURRENCY,
     limit: int | None = None,
 ) -> tuple[dict[str, str | int], ...]:
     data = _ok_data(payload)

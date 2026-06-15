@@ -120,32 +120,15 @@ class SimpleMarketSnapshotRepository:
                 item_id,
                 platform_id,
                 observed_at,
-                sell_price,
-                buy_order_price,
-                sales_count,
-                listing_count,
+                metric_name,
+                metric_value,
                 currency,
                 raw_payload,
                 updated_at
             )
-            values ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, now())
-            on conflict (item_id, platform_id, observed_at) do update set
-                sell_price = coalesce(
-                    excluded.sell_price,
-                    market_history_points.sell_price
-                ),
-                buy_order_price = coalesce(
-                    excluded.buy_order_price,
-                    market_history_points.buy_order_price
-                ),
-                sales_count = coalesce(
-                    excluded.sales_count,
-                    market_history_points.sales_count
-                ),
-                listing_count = coalesce(
-                    excluded.listing_count,
-                    market_history_points.listing_count
-                ),
+            values ($1, $2, $3, $4, $5, $6, $7::jsonb, now())
+            on conflict (item_id, platform_id, observed_at, metric_name) do update set
+                metric_value = excluded.metric_value,
                 currency = coalesce(
                     excluded.currency,
                     market_history_points.currency
@@ -158,10 +141,8 @@ class SimpleMarketSnapshotRepository:
                     item_id,
                     row["platform_id"],
                     row["observed_at"],
-                    row.get("sell_price"),
-                    row.get("buy_order_price"),
-                    row.get("sales_count"),
-                    row.get("listing_count"),
+                    row["metric_name"],
+                    row["metric_value"],
                     row.get("currency"),
                     _json(row.get("raw_payload") or {}),
                 )
@@ -219,12 +200,23 @@ def _history_points_from_snapshot(snapshot: SimpleMarketSnapshot) -> tuple[dict[
             {
                 "platform_id": "steam",
                 "observed_at": observed_at,
-                "sell_price": price,
-                "sales_count": _int_value(row.get("sales_count") or row.get("purchases")),
+                "metric_name": "sell_price",
+                "metric_value": price,
                 "currency": _currency(snapshot.steam_currency),
                 "raw_payload": {"steam": dict(row)},
             }
         )
+        sales_count = _int_value(row.get("sales_count") or row.get("purchases"))
+        if sales_count is not None:
+            rows.append(
+                {
+                    "platform_id": "steam",
+                    "observed_at": observed_at,
+                    "metric_name": "sales_count",
+                    "metric_value": Decimal(sales_count),
+                    "raw_payload": {"steam": dict(row)},
+                }
+            )
 
     for row in snapshot.buff_price_history:
         observed_at = _history_observed_at(row)
@@ -235,21 +227,50 @@ def _history_points_from_snapshot(snapshot: SimpleMarketSnapshot) -> tuple[dict[
         listing_count = _int_value(row.get("buff_listing_count"))
         if sell_price is None and buy_order_price is None and listing_count is None:
             continue
-        rows.append(
-            {
-                "platform_id": "buff163",
-                "observed_at": observed_at,
-                "sell_price": sell_price,
-                "buy_order_price": buy_order_price,
-                "listing_count": listing_count,
-                "currency": _currency(
-                    _optional_text(row.get("currency")) or snapshot.buff_currency
-                ),
-                "raw_payload": {"buff163": dict(row)},
-            }
-        )
+        currency = _currency(_optional_text(row.get("currency")) or snapshot.buff_currency)
+        if sell_price is not None:
+            rows.append(
+                {
+                    "platform_id": "buff163",
+                    "observed_at": observed_at,
+                    "metric_name": "sell_price",
+                    "metric_value": sell_price,
+                    "currency": currency,
+                    "raw_payload": {"buff163": dict(row)},
+                }
+            )
+        if buy_order_price is not None:
+            rows.append(
+                {
+                    "platform_id": "buff163",
+                    "observed_at": observed_at,
+                    "metric_name": "buy_order_price",
+                    "metric_value": buy_order_price,
+                    "currency": currency,
+                    "raw_payload": {"buff163": dict(row)},
+                }
+            )
+        if listing_count is not None:
+            rows.append(
+                {
+                    "platform_id": "buff163",
+                    "observed_at": observed_at,
+                    "metric_name": "listing_count",
+                    "metric_value": Decimal(listing_count),
+                    "raw_payload": {"buff163": dict(row)},
+                }
+            )
 
-    return tuple(sorted(rows, key=lambda item: (item["observed_at"], item["platform_id"])))
+    return tuple(
+        sorted(
+            rows,
+            key=lambda item: (
+                item["observed_at"],
+                item["platform_id"],
+                item["metric_name"],
+            ),
+        )
+    )
 
 
 def _history_observed_at(row: Mapping[str, Any]) -> datetime | None:
