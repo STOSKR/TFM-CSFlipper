@@ -19,6 +19,7 @@ def run(args: argparse.Namespace) -> int:
         SupervisedDatasetBuildConfig(
             input_path=args.input,
             output_dir=args.output,
+            start_date=args.start_date,
             validation_start=args.validation_start,
             test_start=args.test_start,
             batch_size=args.batch_size,
@@ -57,6 +58,7 @@ def main() -> None:
         type=_date_arg,
         default=DEFAULT_VALIDATION_START,
     )
+    parser.add_argument("--start-date", type=_date_arg)
     parser.add_argument("--test-start", type=_date_arg, default=DEFAULT_TEST_START)
     parser.add_argument("--batch-size", type=int, default=65_536)
     args = parser.parse_args()

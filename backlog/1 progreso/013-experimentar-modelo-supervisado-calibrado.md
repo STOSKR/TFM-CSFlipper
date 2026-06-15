@@ -53,6 +53,10 @@ El `MomentumBaselinePredictor` existente es util para pruebas tempranas, pero no
 - Primer smoke de entrenamiento en `model-runs/supervised_direction_v1/smoke_20260615` usando muestra de train/validation/test: ganador `random_forest_depth10`. Validation ROC-AUC 0,6334, PR-AUC 0,5192, Brier 0,2222. Test ROC-AUC 0,6493, PR-AUC 0,5549, Brier 0,2229.
 - Los artefactos intermedios de entrenamiento quedan en `model-runs/`, carpeta ignorada por git. El modelo final se versionara solo cuando se seleccione explicitamente.
 - Para el dataset actual el precio usado sigue siendo `price_cents` de Steam; cuando generemos el dataset desde Supabase con `price_eur`/`price_cny`, el entrenamiento debe usar preferentemente `price_eur` para el modelo base y conservar `price_cny` como feature alternativa/ablation si aporta senal del mercado BUFF.
+- Anadido soporte de ventana reciente al builder con `--start-date`, para poder entrenar solo con datos contemporaneos y evitar que mercados antiguos dominen el ajuste.
+- Generado `data/datasets/supervised_direction_recent_1y` con datos desde 2025-04-12, validation desde 2026-01-01 y test desde 2026-03-01. Split: train 522.132 filas, validation 115.508, test 73.646. Cobertura: 2.530 variantes en los tres splits y solo 10 variantes no vistas en train para validation/test.
+- Smoke reciente en `model-runs/supervised_direction_recent_1y/smoke_20260615`: ganador `random_forest_depth18`. Validation ROC-AUC 0,6540, PR-AUC 0,5365, Brier 0,2178. Test ROC-AUC 0,6163, PR-AUC 0,5645, Brier 0,2368.
+- Anadida curva de umbrales al reporte de entrenamiento para optimizar precision frente a numero de senales. En el smoke reciente, test a umbral 0,5 da precision 0,713 con 1.360 senales; a umbral 0,8 da precision 0,946 con 92 senales; a umbral 0,9 da precision 1,0 con 16 senales, demasiado pocas para confiar aun sin validacion adicional.
 
 ## Pruebas ejecutadas
 
@@ -66,6 +70,9 @@ El `MomentumBaselinePredictor` existente es util para pruebas tempranas, pero no
 - `python -m mypy packages/datasets/supervised_coverage.py apps/cli/analyze_supervised_coverage.py packages/prediction/supervised_training.py apps/cli/train_supervised_model.py tests/unit/test_supervised_coverage.py`
 - `python -m pytest tests/unit`
 - `python -m apps.cli.train_supervised_model --dataset-dir data/datasets/supervised_direction_v1 --output-dir model-runs/supervised_direction_v1/check_20260615 --max-train-rows 3000 --max-validation-rows 1200 --max-test-rows 1200 --cv-splits 3 --models dummy logistic random_forest hist_gradient_boosting`
+- `python -m apps.cli.build_supervised_dataset --input data/direction_dataset_engineered.parquet --output data/datasets/supervised_direction_recent_1y --start-date 2025-04-12 --validation-start 2026-01-01 --test-start 2026-03-01`
+- `python -m apps.cli.analyze_supervised_coverage --dataset-dir data/datasets/supervised_direction_recent_1y --output model-runs/supervised_direction_recent_1y/coverage_report.json`
+- `python -m apps.cli.train_supervised_model --dataset-dir data/datasets/supervised_direction_recent_1y --output-dir model-runs/supervised_direction_recent_1y/smoke_20260615 --max-train-rows 50000 --max-validation-rows 20000 --max-test-rows 20000 --cv-splits 3 --models dummy logistic random_forest hist_gradient_boosting`
 
 ## Bloqueos o riesgos
 

@@ -68,6 +68,33 @@ def test_supervised_feature_columns_excludes_trace_and_leakage_columns() -> None
     assert features == ("price_cents",)
 
 
+def test_build_supervised_dataset_can_filter_to_recent_window(tmp_path: Path) -> None:
+    input_path = tmp_path / "engineered.parquet"
+    output_dir = tmp_path / "dataset"
+    _write_engineered_parquet(input_path)
+
+    metadata = build_supervised_dataset(
+        SupervisedDatasetBuildConfig(
+            input_path=input_path,
+            output_dir=output_dir,
+            start_date=datetime(2025, 1, 1),
+            validation_start=datetime(2026, 1, 1),
+            test_start=datetime(2026, 2, 1),
+            batch_size=2,
+        )
+    )
+
+    assert metadata["source_rows"] == 4
+    assert metadata["rows_included"] == 2
+    assert metadata["split_policy"]["start"] == "ds >= 2025-01-01"
+    assert metadata["splits"]["train"]["rows"] == 1
+    assert metadata["splits"]["validation"]["rows"] == 0
+    assert metadata["splits"]["test"]["rows"] == 1
+
+    profile = json.loads((output_dir / "feature_profile.json").read_text(encoding="utf-8"))
+    assert profile["rows_observed"] == 2
+
+
 def _write_engineered_parquet(path: Path) -> None:
     table = pa.table(
         {

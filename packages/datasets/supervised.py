@@ -44,6 +44,7 @@ NON_FEATURE_COLUMNS = frozenset((*TRACE_COLUMNS, "day"))
 class SupervisedDatasetBuildConfig:
     input_path: Path
     output_dir: Path
+    start_date: datetime | None = None
     validation_start: datetime = DEFAULT_VALIDATION_START
     test_start: datetime = DEFAULT_TEST_START
     target_column: str = TARGET_COLUMN
@@ -76,6 +77,7 @@ def build_supervised_dataset(config: SupervisedDatasetBuildConfig) -> dict[str, 
     }
     writers: dict[str, pq.ParquetWriter | None] = {name: None for name in split_paths}
     split_stats = {name: _empty_split_stats() for name in split_paths}
+    rows_included = 0
     profiler = _FeatureProfiler(
         numeric_features=numeric_features,
         categorical_features=categorical_features,
@@ -89,6 +91,10 @@ def build_supervised_dataset(config: SupervisedDatasetBuildConfig) -> dict[str, 
             columns=output_columns,
         ):
             table = pa.Table.from_batches([batch])
+            table = _filter_start_table(table, config=config)
+            if table.num_rows == 0:
+                continue
+            rows_included += table.num_rows
             profiler.observe(table)
             for split_name, split_table in _split_table(table, config=config).items():
                 if split_table.num_rows == 0:
@@ -122,12 +128,19 @@ def build_supervised_dataset(config: SupervisedDatasetBuildConfig) -> dict[str, 
     metadata = {
         "schema_version": "supervised_direction_dataset.v1",
         "source_path": str(config.input_path),
+        "source_rows": parquet_file.metadata.num_rows,
+        "rows_included": rows_included,
         "output_dir": str(config.output_dir),
         "created_at": datetime.now(tz=UTC).isoformat(),
         "date_column": config.date_column,
         "target_column": config.target_column,
         "target_semantics": "1 when future directional return is up, 0 otherwise",
         "split_policy": {
+            "start": (
+                f"{config.date_column} >= {config.start_date.date().isoformat()}"
+                if config.start_date is not None
+                else None
+            ),
             "train": f"{config.date_column} < {config.validation_start.date().isoformat()}",
             "validation": (
                 f"{config.validation_start.date().isoformat()} <= {config.date_column} "
@@ -141,10 +154,9 @@ def build_supervised_dataset(config: SupervisedDatasetBuildConfig) -> dict[str, 
         "numeric_features": list(numeric_features),
         "categorical_features": list(categorical_features),
         "excluded_columns": sorted(LEAKAGE_COLUMNS | NON_FEATURE_COLUMNS),
-        "source_rows": parquet_file.metadata.num_rows,
         "source_columns": list(source_columns),
     }
-    feature_profile = profiler.profile(total_rows=parquet_file.metadata.num_rows)
+    feature_profile = profiler.profile(total_rows=rows_included)
 
     _write_json(config.output_dir / "metadata.json", metadata)
     _write_json(config.output_dir / "feature_profile.json", feature_profile)
@@ -177,6 +189,8 @@ def _validate_columns(
         raise ValueError(f"missing required dataset columns: {', '.join(missing)}")
     if config.validation_start >= config.test_start:
         raise ValueError("validation_start must be before test_start")
+    if config.start_date is not None and config.start_date >= config.validation_start:
+        raise ValueError("start_date must be before validation_start")
     if config.batch_size <= 0:
         raise ValueError("batch_size must be positive")
 
@@ -212,6 +226,18 @@ def _split_table(
         "validation": table.filter(validation_mask),
         "test": table.filter(test_mask),
     }
+
+
+def _filter_start_table(
+    table: pa.Table,
+    *,
+    config: SupervisedDatasetBuildConfig,
+) -> pa.Table:
+    if config.start_date is None:
+        return table
+    dates = table[config.date_column]
+    start = pa.scalar(config.start_date, type=dates.type)
+    return table.filter(pc.greater_equal(dates, start))  # type: ignore[attr-defined]
 
 
 def _empty_split_stats() -> dict[str, Any]:

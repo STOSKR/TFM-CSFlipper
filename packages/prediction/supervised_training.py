@@ -13,6 +13,8 @@ import numpy as np
 import pandas as pd  # type: ignore[import-untyped]
 import pyarrow.parquet as pq
 
+EVALUATION_THRESHOLDS = (0.5, 0.6, 0.7, 0.8, 0.9)
+
 
 @dataclass(frozen=True, slots=True)
 class SupervisedTrainingConfig:
@@ -409,7 +411,46 @@ def _evaluate_classifier(
         "precision_at_0_5": float(precision),
         "recall_at_0_5": float(recall),
         "f1_at_0_5": float(f1),
+        "thresholds": _threshold_metrics(
+            sklearn,
+            y_true=y_true,
+            probabilities=probabilities,
+            thresholds=EVALUATION_THRESHOLDS,
+        ),
     }
+
+
+def _threshold_metrics(
+    sklearn: dict[str, Any],
+    *,
+    y_true: np.ndarray[Any, Any],
+    probabilities: np.ndarray[Any, Any],
+    thresholds: tuple[float, ...],
+) -> list[dict[str, Any]]:
+    rows = len(y_true)
+    metrics = []
+    for threshold in thresholds:
+        predictions = (probabilities >= threshold).astype(int)
+        precision, recall, f1, _support = sklearn["precision_recall_fscore_support"](
+            y_true,
+            predictions,
+            average="binary",
+            zero_division=0,
+        )
+        predicted_positive = int(np.sum(predictions))
+        metrics.append(
+            {
+                "threshold": threshold,
+                "predicted_positive": predicted_positive,
+                "predicted_positive_rate": (
+                    float(predicted_positive) / rows if rows else None
+                ),
+                "precision": float(precision),
+                "recall": float(recall),
+                "f1": float(f1),
+            }
+        )
+    return metrics
 
 
 def _select_best_candidate(candidate_reports: list[dict[str, Any]]) -> dict[str, Any]:
