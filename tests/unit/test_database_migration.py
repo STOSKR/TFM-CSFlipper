@@ -199,6 +199,10 @@ def test_market_price_currency_derivatives_migration_adds_excel_price_columns() 
     assert "buff_price_cny numeric" in sql
     assert "price_eur numeric" in sql
     assert "price_cny numeric" in sql
-    assert "upper(steam_currency) = 'cny' then steam_price / 8" in sql
-    assert "upper(buff_currency) = 'eur' then buff_price * 8" in sql
+    assert "create table if not exists market_currency_rates" in sql
+    assert "insert into market_currency_rates" in sql
+    assert "'excel_operativo_initial'" in sql
+    assert "rate as cny_per_eur" in sql
+    assert "steam_price / latest_eur_cny.cny_per_eur" in sql
+    assert "buff_price * latest_eur_cny.cny_per_eur" in sql
     assert "metric_name not in ('sell_price', 'buy_order_price')" in sql

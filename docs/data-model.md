@@ -190,7 +190,15 @@ El scraping Steam/BUFF de fase 1 usa tablas operativas separadas del esquema can
   nativa del endpoint.
 
 La conversion inicial replica la simplificacion del Excel operativo: `1 EUR = 8 CNY`. En una
-fase posterior debe versionarse por fecha si se incorporan tipos FX historicos.
+fase posterior debe versionarse por fecha si se incorporan tipos FX historicos. Ese tipo inicial
+queda registrado en SQL en `market_currency_rates`, y el backfill de `market_items` y
+`market_history_points` lee esa tabla.
+
+Para entrenamiento no se deben mezclar precios originales en EUR y CNY en la misma feature. La
+feature canónica recomendada es `price_eur`, porque el Excel y las reglas de profit/capital del
+simulador calculan `Precio CE`, `Precio VE`, `realized_profit_eur` y ROI sobre EUR. `price_cny`
+se conserva para auditoría, análisis de sensibilidad y modelos alternativos si se decide entrenar
+todo en yuanes.
 
 Repetir una clave surrogate (`item_id`) como FK en tablas hijas si tiene sentido en una BD
 relacional. Lo que se evita es repetir la identidad natural completa en cada tabla.
