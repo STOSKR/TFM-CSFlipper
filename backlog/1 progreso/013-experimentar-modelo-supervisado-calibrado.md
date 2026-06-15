@@ -57,6 +57,11 @@ El `MomentumBaselinePredictor` existente es util para pruebas tempranas, pero no
 - Generado `data/datasets/supervised_direction_recent_1y` con datos desde 2025-04-12, validation desde 2026-01-01 y test desde 2026-03-01. Split: train 522.132 filas, validation 115.508, test 73.646. Cobertura: 2.530 variantes en los tres splits y solo 10 variantes no vistas en train para validation/test.
 - Smoke reciente en `model-runs/supervised_direction_recent_1y/smoke_20260615`: ganador `random_forest_depth18`. Validation ROC-AUC 0,6540, PR-AUC 0,5365, Brier 0,2178. Test ROC-AUC 0,6163, PR-AUC 0,5645, Brier 0,2368.
 - Anadida curva de umbrales al reporte de entrenamiento para optimizar precision frente a numero de senales. En el smoke reciente, test a umbral 0,5 da precision 0,713 con 1.360 senales; a umbral 0,8 da precision 0,946 con 92 senales; a umbral 0,9 da precision 1,0 con 16 senales, demasiado pocas para confiar aun sin validacion adicional.
+- Anadidas features derivadas alineadas con la clave primaria operativa: `primary_item_key = item_key + calidad + stattrak`, ademas de claves combinadas por arma/desgaste, skin/desgaste, coleccion/rareza y rareza/desgaste.
+- Anadidas features numericas candidatas para ablation: `price_eur`, edad logaritmica, liquidez baja, turnover EUR, ventas por EUR y versiones capadas de retornos, price-vs-MA y sales z-score para controlar outliers extremos.
+- El trainer ahora permite ablations sin reconstruir dataset con `--exclude-features` y `--exclude-feature-suffixes`, y reporta resumen por `primary_item_key` en cada umbral.
+- Smoke con identidad/derivadas en `model-runs/supervised_direction_recent_1y/identity_features_smoke_20260615`: ganador `random_forest_depth18`. Test ROC-AUC 0,6185, PR-AUC 0,5643, Brier 0,2369. En test, umbral 0,8 da precision 0,935 con 92 senales.
+- Ablation quitando identidad/derivadas en `model-runs/supervised_direction_recent_1y/drop_identity_features_smoke_20260615`: reproduce el resultado anterior y mantiene mejor precision alta en test, umbral 0,8 precision 0,946 con 92 senales. Decision provisional: conservar las features nuevas para experimentos, pero no asumir que mejoran el modelo final hasta probar seleccion orientada a precision y mas ventanas temporales.
 
 ## Pruebas ejecutadas
 
@@ -73,6 +78,8 @@ El `MomentumBaselinePredictor` existente es util para pruebas tempranas, pero no
 - `python -m apps.cli.build_supervised_dataset --input data/direction_dataset_engineered.parquet --output data/datasets/supervised_direction_recent_1y --start-date 2025-04-12 --validation-start 2026-01-01 --test-start 2026-03-01`
 - `python -m apps.cli.analyze_supervised_coverage --dataset-dir data/datasets/supervised_direction_recent_1y --output model-runs/supervised_direction_recent_1y/coverage_report.json`
 - `python -m apps.cli.train_supervised_model --dataset-dir data/datasets/supervised_direction_recent_1y --output-dir model-runs/supervised_direction_recent_1y/smoke_20260615 --max-train-rows 50000 --max-validation-rows 20000 --max-test-rows 20000 --cv-splits 3 --models dummy logistic random_forest hist_gradient_boosting`
+- `python -m apps.cli.train_supervised_model --dataset-dir data/datasets/supervised_direction_recent_1y --output-dir model-runs/supervised_direction_recent_1y/identity_features_smoke_20260615 --max-train-rows 50000 --max-validation-rows 20000 --max-test-rows 20000 --cv-splits 3 --models dummy logistic random_forest hist_gradient_boosting`
+- `python -m apps.cli.train_supervised_model --dataset-dir data/datasets/supervised_direction_recent_1y --output-dir model-runs/supervised_direction_recent_1y/drop_identity_features_smoke_20260615 --max-train-rows 50000 --max-validation-rows 20000 --max-test-rows 20000 --cv-splits 3 --models dummy logistic random_forest hist_gradient_boosting --exclude-features primary_item_key weapon_wear_key skin_wear_key collection_rarity_key rarity_wear_key price_eur log_variant_age_days low_liquidity turnover_eur log_turnover_eur sales_per_price_eur --exclude-feature-suffixes _clipped`
 
 ## Bloqueos o riesgos
 

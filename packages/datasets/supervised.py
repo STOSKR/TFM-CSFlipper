@@ -7,7 +7,7 @@ import math
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 import pyarrow as pa
@@ -38,6 +38,36 @@ LEAKAGE_COLUMNS = frozenset(
     }
 )
 NON_FEATURE_COLUMNS = frozenset((*TRACE_COLUMNS, "day"))
+DERIVED_CATEGORICAL_FEATURES = (
+    "primary_item_key",
+    "weapon_wear_key",
+    "skin_wear_key",
+    "collection_rarity_key",
+    "rarity_wear_key",
+)
+DERIVED_NUMERIC_FEATURES = (
+    "price_eur",
+    "log_variant_age_days",
+    "low_liquidity",
+    "turnover_eur",
+    "log_turnover_eur",
+    "sales_per_price_eur",
+    "ret_1d_clipped",
+    "ret_3d_clipped",
+    "ret_7d_clipped",
+    "ret_14d_clipped",
+    "ret_30d_clipped",
+    "price_vs_ma_7d_clipped",
+    "price_vs_ma_14d_clipped",
+    "price_vs_ma_30d_clipped",
+    "sales_z_7d_clipped",
+    "sales_z_14d_clipped",
+    "sales_z_30d_clipped",
+)
+DERIVED_FEATURE_TYPES = {
+    **{name: pa.string() for name in DERIVED_CATEGORICAL_FEATURES},
+    **{name: pa.float64() for name in DERIVED_NUMERIC_FEATURES},
+}
 
 
 @dataclass(frozen=True, slots=True)
@@ -58,14 +88,25 @@ def build_supervised_dataset(config: SupervisedDatasetBuildConfig) -> dict[str, 
     source_columns = tuple(parquet_file.schema_arrow.names)
     _validate_columns(source_columns, config)
 
-    feature_columns = supervised_feature_columns(parquet_file.schema_arrow, config=config)
+    source_feature_columns = supervised_feature_columns(parquet_file.schema_arrow, config=config)
+    derived_feature_columns = derived_supervised_feature_columns(source_columns)
+    feature_columns = (*source_feature_columns, *derived_feature_columns)
     output_columns = _ordered_existing_columns(
         source_columns,
-        (*TRACE_COLUMNS, *feature_columns, config.target_column),
+        (*TRACE_COLUMNS, *source_feature_columns, config.target_column),
     )
+    output_columns = (*output_columns, *derived_feature_columns)
     output_schema = _schema_for_columns(parquet_file.schema_arrow, output_columns)
     numeric_features = tuple(
-        name for name in feature_columns if _is_numeric(parquet_file.schema_arrow.field(name).type)
+        name
+        for name in feature_columns
+        if (
+            name in DERIVED_NUMERIC_FEATURES
+            or (
+                name not in DERIVED_CATEGORICAL_FEATURES
+                and _is_numeric(parquet_file.schema_arrow.field(name).type)
+            )
+        )
     )
     categorical_features = tuple(name for name in feature_columns if name not in numeric_features)
 
@@ -94,6 +135,7 @@ def build_supervised_dataset(config: SupervisedDatasetBuildConfig) -> dict[str, 
             table = _filter_start_table(table, config=config)
             if table.num_rows == 0:
                 continue
+            table = _append_derived_features(table, derived_feature_columns)
             rows_included += table.num_rows
             profiler.observe(table)
             for split_name, split_table in _split_table(table, config=config).items():
@@ -153,6 +195,9 @@ def build_supervised_dataset(config: SupervisedDatasetBuildConfig) -> dict[str, 
         "feature_columns": list(feature_columns),
         "numeric_features": list(numeric_features),
         "categorical_features": list(categorical_features),
+        "primary_group_column": (
+            "primary_item_key" if "primary_item_key" in derived_feature_columns else None
+        ),
         "excluded_columns": sorted(LEAKAGE_COLUMNS | NON_FEATURE_COLUMNS),
         "source_columns": list(source_columns),
     }
@@ -174,6 +219,39 @@ def supervised_feature_columns(
     )
     excluded = LEAKAGE_COLUMNS | NON_FEATURE_COLUMNS | {active_config.target_column}
     return tuple(name for name in schema.names if name not in excluded)
+
+
+def derived_supervised_feature_columns(source_columns: tuple[str, ...]) -> tuple[str, ...]:
+    columns = set(source_columns)
+    derived: list[str] = []
+    if {"item_key", "w", "st"} <= columns:
+        derived.append("primary_item_key")
+    if {"weapon_key", "w"} <= columns:
+        derived.append("weapon_wear_key")
+    if {"skin_key", "w"} <= columns:
+        derived.append("skin_wear_key")
+    if {"collection", "rarity"} <= columns:
+        derived.append("collection_rarity_key")
+    if {"rarity", "w"} <= columns:
+        derived.append("rarity_wear_key")
+    if "price_cents" in columns:
+        derived.append("price_eur")
+    if "variant_age_days" in columns:
+        derived.append("log_variant_age_days")
+    if "sales" in columns:
+        derived.append("low_liquidity")
+    if {"price_cents", "sales"} <= columns:
+        derived.extend(("turnover_eur", "log_turnover_eur", "sales_per_price_eur"))
+    for name in ("ret_1d", "ret_3d", "ret_7d", "ret_14d", "ret_30d"):
+        if name in columns:
+            derived.append(f"{name}_clipped")
+    for name in ("price_vs_ma_7d", "price_vs_ma_14d", "price_vs_ma_30d"):
+        if name in columns:
+            derived.append(f"{name}_clipped")
+    for name in ("sales_z_7d", "sales_z_14d", "sales_z_30d"):
+        if name in columns:
+            derived.append(f"{name}_clipped")
+    return tuple(derived)
 
 
 def _validate_columns(
@@ -204,7 +282,96 @@ def _ordered_existing_columns(
 
 
 def _schema_for_columns(schema: pa.Schema, columns: tuple[str, ...]) -> pa.Schema:
-    return pa.schema([schema.field(name) for name in columns])
+    fields = [
+        schema.field(name) if name in schema.names else pa.field(name, DERIVED_FEATURE_TYPES[name])
+        for name in columns
+    ]
+    return pa.schema(fields)
+
+
+def _append_derived_features(
+    table: pa.Table,
+    derived_columns: tuple[str, ...],
+) -> pa.Table:
+    if not derived_columns:
+        return table
+    result = table
+    for name in derived_columns:
+        result = result.append_column(name, _derived_array(table, name))
+    return result
+
+
+def _derived_array(table: pa.Table, name: str) -> pa.Array:
+    if name == "primary_item_key":
+        return _string_key(table, ("item_key", "w", "st"))
+    if name == "weapon_wear_key":
+        return _string_key(table, ("weapon_key", "w"))
+    if name == "skin_wear_key":
+        return _string_key(table, ("skin_key", "w"))
+    if name == "collection_rarity_key":
+        return _string_key(table, ("collection", "rarity"))
+    if name == "rarity_wear_key":
+        return _string_key(table, ("rarity", "w"))
+    if name == "price_eur":
+        return _float_array(_numeric_values(table, "price_cents") / 100.0)
+    if name == "log_variant_age_days":
+        return _float_array(np.log1p(np.maximum(_numeric_values(table, "variant_age_days"), 0.0)))
+    if name == "low_liquidity":
+        return _float_array((_numeric_values(table, "sales") < 10.0).astype(float))
+    if name == "turnover_eur":
+        turnover = (_numeric_values(table, "price_cents") / 100.0) * _numeric_values(
+            table,
+            "sales",
+        )
+        return _float_array(turnover)
+    if name == "log_turnover_eur":
+        turnover = (_numeric_values(table, "price_cents") / 100.0) * _numeric_values(table, "sales")
+        return _float_array(np.log1p(np.maximum(turnover, 0.0)))
+    if name == "sales_per_price_eur":
+        price_eur = _numeric_values(table, "price_cents") / 100.0
+        return _float_array(
+            _safe_divide(_numeric_values(table, "sales"), np.maximum(price_eur, 0.01))
+        )
+    if name.endswith("_clipped"):
+        source = name.removesuffix("_clipped")
+        if source.startswith("sales_z_"):
+            return _float_array(np.clip(_numeric_values(table, source), -5.0, 5.0))
+        return _float_array(np.clip(_numeric_values(table, source), -1.0, 3.0))
+    raise ValueError(f"unknown derived feature: {name}")
+
+
+def _string_key(table: pa.Table, columns: tuple[str, ...]) -> pa.Array:
+    values = [_string_values(table, column) for column in columns]
+    combined = values[0]
+    for value in values[1:]:
+        combined = np.char.add(np.char.add(combined, "__"), value)
+    return pa.array(combined.tolist(), type=pa.string())
+
+
+def _string_values(table: pa.Table, column: str) -> np.ndarray[Any, np.dtype[np.str_]]:
+    series = table[column].to_pandas().astype("string").fillna("unknown")
+    return np.asarray(series.astype(str), dtype=np.str_)
+
+
+def _numeric_values(table: pa.Table, column: str) -> np.ndarray[Any, np.dtype[np.float64]]:
+    return np.asarray(table[column].to_pandas(), dtype=np.float64)
+
+
+def _float_array(values: np.ndarray[Any, np.dtype[np.float64]]) -> pa.Array:
+    return pa.array(values, type=pa.float64())
+
+
+def _safe_divide(
+    numerator: np.ndarray[Any, np.dtype[np.float64]],
+    denominator: np.ndarray[Any, np.dtype[np.float64]],
+) -> np.ndarray[Any, np.dtype[np.float64]]:
+    result = np.divide(
+        numerator,
+        denominator,
+        out=np.zeros_like(numerator, dtype=np.float64),
+        where=denominator != 0,
+    )
+    return cast(np.ndarray[Any, np.dtype[np.float64]], result)
 
 
 def _split_table(

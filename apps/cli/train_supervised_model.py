@@ -25,6 +25,8 @@ def run(args: argparse.Namespace) -> int:
             cv_splits=args.cv_splits,
             calibration_method=args.calibration_method,
             models=tuple(args.models),
+            exclude_features=tuple(args.exclude_features),
+            exclude_feature_suffixes=tuple(args.exclude_feature_suffixes),
         )
     )
     print(f"output_dir={report['output_dir']}")
@@ -60,6 +62,18 @@ def main() -> None:
         nargs="+",
         choices=("dummy", "logistic", "random_forest", "hist_gradient_boosting"),
         default=("dummy", "logistic", "random_forest", "hist_gradient_boosting"),
+    )
+    parser.add_argument(
+        "--exclude-features",
+        nargs="*",
+        default=(),
+        help="Exact feature names to drop from training while still loading trace columns.",
+    )
+    parser.add_argument(
+        "--exclude-feature-suffixes",
+        nargs="*",
+        default=(),
+        help="Drop every training feature ending with one of these suffixes.",
     )
     args = parser.parse_args()
     raise SystemExit(run(args))

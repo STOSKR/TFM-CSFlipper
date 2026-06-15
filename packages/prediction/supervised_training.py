@@ -28,6 +28,8 @@ class SupervisedTrainingConfig:
     calibration_method: str = "isotonic"
     random_state: int = 42
     models: tuple[str, ...] = ("dummy", "logistic", "random_forest", "hist_gradient_boosting")
+    exclude_features: tuple[str, ...] = ()
+    exclude_feature_suffixes: tuple[str, ...] = ()
 
 
 def train_supervised_models(config: SupervisedTrainingConfig) -> dict[str, Any]:
@@ -35,28 +37,46 @@ def train_supervised_models(config: SupervisedTrainingConfig) -> dict[str, Any]:
     metadata = _read_json(config.dataset_dir / "metadata.json")
     target_column = str(metadata["target_column"])
     date_column = str(metadata["date_column"])
-    numeric_features = tuple(str(column) for column in metadata["numeric_features"])
-    categorical_features = tuple(str(column) for column in metadata["categorical_features"])
+    primary_group_column = metadata.get("primary_group_column")
+    group_column = str(primary_group_column) if primary_group_column else None
+    numeric_features = _filter_features(
+        tuple(str(column) for column in metadata["numeric_features"]),
+        exclude_features=config.exclude_features,
+        exclude_feature_suffixes=config.exclude_feature_suffixes,
+    )
+    categorical_features = _filter_features(
+        tuple(str(column) for column in metadata["categorical_features"]),
+        exclude_features=config.exclude_features,
+        exclude_feature_suffixes=config.exclude_feature_suffixes,
+    )
     trace_columns = tuple(str(column) for column in metadata["trace_columns"])
-    columns = (*trace_columns, *numeric_features, *categorical_features, target_column)
+    feature_columns = (*numeric_features, *categorical_features)
+    loaded_columns = _unique_columns(
+        (
+            *trace_columns,
+            *feature_columns,
+            *((group_column,) if group_column else ()),
+            target_column,
+        )
+    )
 
     train = _sample_parquet(
         config.dataset_dir / "train.parquet",
-        columns=columns,
+        columns=loaded_columns,
         max_rows=config.max_train_rows,
         batch_size=config.batch_size,
         sort_column=date_column,
     )
     validation = _sample_parquet(
         config.dataset_dir / "validation.parquet",
-        columns=columns,
+        columns=loaded_columns,
         max_rows=config.max_validation_rows,
         batch_size=config.batch_size,
         sort_column=date_column,
     )
     test = _sample_parquet(
         config.dataset_dir / "test.parquet",
-        columns=columns,
+        columns=loaded_columns,
         max_rows=config.max_test_rows,
         batch_size=config.batch_size,
         sort_column=date_column,
@@ -67,7 +87,6 @@ def train_supervised_models(config: SupervisedTrainingConfig) -> dict[str, Any]:
         "test": test,
     }
     _validate_training_frames(datasets, target_column=target_column)
-    feature_columns = (*numeric_features, *categorical_features)
 
     candidates = _candidate_pipelines(
         model_names=config.models,
@@ -83,6 +102,7 @@ def train_supervised_models(config: SupervisedTrainingConfig) -> dict[str, Any]:
             train,
             feature_columns=feature_columns,
             target_column=target_column,
+            group_column=group_column,
             cv_splits=config.cv_splits,
         )
         fitted = sklearn["clone"](pipeline)
@@ -93,6 +113,7 @@ def train_supervised_models(config: SupervisedTrainingConfig) -> dict[str, Any]:
             validation,
             feature_columns=feature_columns,
             target_column=target_column,
+            group_column=group_column,
         )
         candidate_reports.append(
             {
@@ -116,6 +137,7 @@ def train_supervised_models(config: SupervisedTrainingConfig) -> dict[str, Any]:
         validation,
         feature_columns=feature_columns,
         target_column=target_column,
+        group_column=group_column,
     )
     calibrated_test = _evaluate_classifier(
         sklearn,
@@ -123,12 +145,14 @@ def train_supervised_models(config: SupervisedTrainingConfig) -> dict[str, Any]:
         test,
         feature_columns=feature_columns,
         target_column=target_column,
+        group_column=group_column,
     )
 
     config.output_dir.mkdir(parents=True, exist_ok=True)
     model_path = config.output_dir / "calibrated_model.joblib"
     sklearn["joblib"].dump(calibrated, model_path)
-    report = {
+    report = dict[str, Any](
+        {
         "schema_version": "supervised_training_experiment.v1",
         "created_at": datetime.now(tz=UTC).isoformat(),
         "dataset_dir": str(config.dataset_dir),
@@ -138,6 +162,10 @@ def train_supervised_models(config: SupervisedTrainingConfig) -> dict[str, Any]:
         "feature_columns": list(feature_columns),
         "numeric_features": list(numeric_features),
         "categorical_features": list(categorical_features),
+        "primary_group_column": group_column,
+        "excluded_training_features": sorted(
+            set(str(column) for column in metadata["feature_columns"]) - set(feature_columns)
+        ),
         "row_counts": {split: int(len(frame)) for split, frame in datasets.items()},
         "target_rates": {
             split: float(frame[target_column].astype(float).mean())
@@ -151,7 +179,8 @@ def train_supervised_models(config: SupervisedTrainingConfig) -> dict[str, Any]:
             "validation": calibrated_validation,
             "test": calibrated_test,
         },
-    }
+        }
+    )
     (config.output_dir / "training_report.json").write_text(
         json.dumps(_jsonable(report), indent=2, sort_keys=True),
         encoding="utf-8",
@@ -280,6 +309,32 @@ def _candidate_pipelines(
     return pipelines
 
 
+def _filter_features(
+    features: tuple[str, ...],
+    *,
+    exclude_features: tuple[str, ...],
+    exclude_feature_suffixes: tuple[str, ...],
+) -> tuple[str, ...]:
+    excluded = set(exclude_features)
+    return tuple(
+        feature
+        for feature in features
+        if feature not in excluded
+        and not any(feature.endswith(suffix) for suffix in exclude_feature_suffixes)
+    )
+
+
+def _unique_columns(columns: tuple[str, ...]) -> tuple[str, ...]:
+    seen: set[str] = set()
+    unique = []
+    for column in columns:
+        if column in seen:
+            continue
+        seen.add(column)
+        unique.append(column)
+    return tuple(unique)
+
+
 @dataclass(frozen=True, slots=True)
 class DecimalFloat:
     raw: str
@@ -352,6 +407,7 @@ def _cross_validate_candidate(
     *,
     feature_columns: tuple[str, ...],
     target_column: str,
+    group_column: str | None,
     cv_splits: int,
 ) -> dict[str, Any]:
     if cv_splits < 2:
@@ -370,6 +426,7 @@ def _cross_validate_candidate(
             fold_frame,
             feature_columns=feature_columns,
             target_column=target_column,
+            group_column=group_column,
         )
         metrics["fold"] = fold_index
         fold_metrics.append(metrics)
@@ -389,6 +446,7 @@ def _evaluate_classifier(
     *,
     feature_columns: tuple[str, ...],
     target_column: str,
+    group_column: str | None = None,
 ) -> dict[str, Any]:
     y_true = frame[target_column].astype(int).to_numpy()
     probabilities = model.predict_proba(frame.loc[:, feature_columns])[:, 1]
@@ -399,7 +457,7 @@ def _evaluate_classifier(
         average="binary",
         zero_division=0,
     )
-    return {
+    report: dict[str, Any] = {
         "rows": int(len(frame)),
         "target_rate": float(np.mean(y_true)),
         "roc_auc": _metric_or_none(lambda: sklearn["roc_auc_score"](y_true, probabilities)),
@@ -418,6 +476,15 @@ def _evaluate_classifier(
             thresholds=EVALUATION_THRESHOLDS,
         ),
     }
+    if group_column is not None and group_column in frame:
+        report["primary_group"] = _primary_group_metrics(
+            y_true=y_true,
+            probabilities=probabilities,
+            groups=frame[group_column].astype(str).to_numpy(),
+            thresholds=EVALUATION_THRESHOLDS,
+            group_column=group_column,
+        )
+    return report
 
 
 def _threshold_metrics(
@@ -451,6 +518,61 @@ def _threshold_metrics(
             }
         )
     return metrics
+
+
+def _primary_group_metrics(
+    *,
+    y_true: np.ndarray[Any, Any],
+    probabilities: np.ndarray[Any, Any],
+    groups: np.ndarray[Any, Any],
+    thresholds: tuple[float, ...],
+    group_column: str,
+) -> dict[str, Any]:
+    summaries = []
+    for threshold in thresholds:
+        selected = probabilities >= threshold
+        selected_groups = groups[selected]
+        selected_true = y_true[selected]
+        group_precisions = []
+        group_signal_counts = []
+        for group in np.unique(selected_groups):
+            group_mask = selected_groups == group
+            signals = int(np.count_nonzero(group_mask))
+            if signals == 0:
+                continue
+            group_signal_counts.append(signals)
+            group_precisions.append(float(np.mean(selected_true[group_mask])))
+
+        enough_signal_precisions = [
+            precision
+            for precision, signals in zip(group_precisions, group_signal_counts, strict=True)
+            if signals >= 5
+        ]
+        summaries.append(
+            {
+                "threshold": threshold,
+                "groups_with_signals": int(len(group_precisions)),
+                "groups_with_at_least_5_signals": int(len(enough_signal_precisions)),
+                "signals": int(np.count_nonzero(selected)),
+                "overall_precision": (
+                    float(np.mean(selected_true)) if len(selected_true) else 0.0
+                ),
+                "group_precision_p10": _percentile_or_none(enough_signal_precisions, 10),
+                "group_precision_p50": _percentile_or_none(enough_signal_precisions, 50),
+                "group_precision_p90": _percentile_or_none(enough_signal_precisions, 90),
+            }
+        )
+    return {
+        "column": group_column,
+        "groups": int(len(np.unique(groups))),
+        "thresholds": summaries,
+    }
+
+
+def _percentile_or_none(values: list[float], percentile: float) -> float | None:
+    if not values:
+        return None
+    return float(np.percentile(np.asarray(values, dtype=np.float64), percentile))
 
 
 def _select_best_candidate(candidate_reports: list[dict[str, Any]]) -> dict[str, Any]:

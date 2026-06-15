@@ -8,6 +8,7 @@ import pyarrow.parquet as pq
 from packages.datasets.supervised import (
     SupervisedDatasetBuildConfig,
     build_supervised_dataset,
+    derived_supervised_feature_columns,
     supervised_feature_columns,
 )
 
@@ -36,6 +37,11 @@ def test_build_supervised_dataset_writes_temporal_splits_and_metadata(tmp_path: 
     assert "is_safe" not in metadata["feature_columns"]
     assert "is_up" not in metadata["feature_columns"]
     assert "ret_7d" in metadata["feature_columns"]
+    assert "primary_item_key" in metadata["categorical_features"]
+    assert metadata["primary_group_column"] == "primary_item_key"
+    assert "price_eur" in metadata["numeric_features"]
+    assert "ret_7d_clipped" in metadata["numeric_features"]
+    assert "log_turnover_eur" in metadata["numeric_features"]
     assert (output_dir / "train.parquet").exists()
     assert (output_dir / "validation.parquet").exists()
     assert (output_dir / "test.parquet").exists()
@@ -68,6 +74,31 @@ def test_supervised_feature_columns_excludes_trace_and_leakage_columns() -> None
     assert features == ("price_cents",)
 
 
+def test_derived_supervised_feature_columns_adds_primary_item_group() -> None:
+    features = derived_supervised_feature_columns(
+        (
+            "item_key",
+            "weapon_key",
+            "skin_key",
+            "collection",
+            "rarity",
+            "w",
+            "st",
+            "price_cents",
+            "sales",
+            "ret_7d",
+            "sales_z_30d",
+        )
+    )
+
+    assert "primary_item_key" in features
+    assert "weapon_wear_key" in features
+    assert "price_eur" in features
+    assert "turnover_eur" in features
+    assert "ret_7d_clipped" in features
+    assert "sales_z_30d_clipped" in features
+
+
 def test_build_supervised_dataset_can_filter_to_recent_window(tmp_path: Path) -> None:
     input_path = tmp_path / "engineered.parquet"
     output_dir = tmp_path / "dataset"
@@ -91,6 +122,11 @@ def test_build_supervised_dataset_can_filter_to_recent_window(tmp_path: Path) ->
     assert metadata["splits"]["validation"]["rows"] == 0
     assert metadata["splits"]["test"]["rows"] == 1
 
+    train = pq.read_table(output_dir / "train.parquet").to_pandas()  # type: ignore[no-untyped-call]
+    assert train["primary_item_key"].tolist() == ["item-b__FT__0"]
+    assert train["price_eur"].tolist() == [0.9]
+    assert train["ret_7d_clipped"].tolist() == [0.3]
+
     profile = json.loads((output_dir / "feature_profile.json").read_text(encoding="utf-8"))
     assert profile["rows_observed"] == 2
 
@@ -110,6 +146,11 @@ def _write_engineered_parquet(path: Path) -> None:
             "day": [1, 2, 3, 4],
             "category": ["rifle", "rifle", "pistol", "pistol"],
             "weapon_key": ["ak_47", "ak_47", "p250", "p250"],
+            "skin_key": ["slate", "slate", "sand_dune", "sand_dune"],
+            "collection": ["snakebite", "snakebite", "dust_2", "dust_2"],
+            "rarity": ["restricted", "restricted", "consumer_grade", "consumer_grade"],
+            "w": ["FT", "FT", "FT", "FN"],
+            "st": [1, 1, 0, 0],
             "price_cents": [100, 120, 90, 150],
             "ret_7d": [0.1, -0.2, 0.3, 0.4],
             "sales": [10, 11, 12, 13],
