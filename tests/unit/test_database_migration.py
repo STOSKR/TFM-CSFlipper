@@ -11,6 +11,12 @@ DROP_MARKET_SNAPSHOT_COMPOSITE_FK_MIGRATION = Path(
 NORMALIZE_MARKET_ITEMS_MIGRATION = Path(
     "supabase/migrations/0005_normalize_market_items_and_history.sql"
 )
+SIMPLIFY_MARKET_HISTORY_POINTS_MIGRATION = Path(
+    "supabase/migrations/0006_simplify_market_history_points.sql"
+)
+LONG_MARKET_HISTORY_POINTS_MIGRATION = Path(
+    "supabase/migrations/0007_long_market_history_points.sql"
+)
 
 
 def test_initial_migration_defines_required_tables() -> None:
@@ -133,3 +139,30 @@ def test_normalized_market_migration_uses_item_id_and_history_points() -> None:
     assert "buff_listing_count integer" in sql
     assert "steam_sell_price numeric" in sql
     assert "create or replace view market_snapshot_view" not in sql
+
+
+def test_simplify_market_history_points_drops_redundant_columns() -> None:
+    sql = SIMPLIFY_MARKET_HISTORY_POINTS_MIGRATION.read_text(encoding="utf-8").lower()
+
+    assert "drop column if exists steam_sales_count" in sql
+    assert "drop column if exists steam_currency" in sql
+    assert "drop column if exists buff_listing_count" in sql
+    assert "drop column if exists buff_currency" in sql
+    assert "drop column if exists source_payload" in sql
+    assert "market_items as jsonb arrays" in sql
+
+
+def test_long_market_history_points_migration_uses_platform_rows() -> None:
+    sql = LONG_MARKET_HISTORY_POINTS_MIGRATION.read_text(encoding="utf-8").lower()
+
+    assert "platform_id text not null" in sql
+    assert "sell_price numeric" in sql
+    assert "buy_order_price numeric" in sql
+    assert "raw_payload jsonb" in sql
+    assert "primary key (" in sql
+    assert "item_id," in sql
+    assert "platform_id," in sql
+    assert "observed_at" in sql
+    assert "'steam'" in sql
+    assert "'buff163'" in sql
+    assert "drop table market_history_points" in sql

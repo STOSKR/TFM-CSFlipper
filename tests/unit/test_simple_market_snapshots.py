@@ -246,7 +246,20 @@ async def test_simple_market_snapshot_repository_persists_history_points() -> No
 
     assert len(connection.statements) == 2
     assert "insert into market_history_points" in connection.statements[1].lower()
+    assert "platform_id" in connection.statements[1].lower()
+    assert "on conflict (item_id, platform_id, observed_at)" in connection.statements[1].lower()
     assert connection.args[0][3] == "AK-47 | Slate_FT_1"
+    history_rows = connection.args[1]
+    assert len(history_rows) == 2
+    assert history_rows[0][1] == "buff163"
+    assert history_rows[0][3] == Decimal("15.20")
+    assert history_rows[0][4] == Decimal("14.80")
+    assert history_rows[0][6] == 11
+    assert history_rows[0][7] == "EUR"
+    assert history_rows[1][1] == "steam"
+    assert history_rows[1][3] == Decimal("17.45")
+    assert history_rows[1][5] == 3
+    assert history_rows[1][7] == "EUR"
 
 
 def _record(

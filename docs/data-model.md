@@ -175,12 +175,15 @@ El scraping Steam/BUFF de fase 1 usa tablas operativas separadas del esquema can
 
 - `market_items`: una fila por variante real de articulo. La identidad natural sigue siendo
   `name + quality + stattrak`, pero la relacion fisica usa `id`. Tambien guarda el estado
-  actual de cada plataforma: precio actual, moneda y buy orders actuales.
+  actual de cada plataforma: precio actual, moneda y buy orders actuales como un JSONB por
+  plataforma (`steam_buy_orders` y `buff_buy_orders`).
 - `representation_name`: nombre legible y estable para revision humana, por ejemplo
   `Bowie Knife Freehand_FT_1`.
-- `market_history_points`: serie temporal tabular por `item_id + observed_at`. Steam rellena
-  `steam_sell_price`; BUFF rellena `buff_sell_price`, `buff_buy_order_price` y
-  `buff_listing_count`.
+- `market_history_points`: serie temporal tabular en formato largo por
+  `item_id + platform_id + observed_at`. Las metricas comunes viven en columnas genericas
+  (`sell_price`, `buy_order_price`, `sales_count`, `listing_count`, `currency`) y cualquier
+  detalle especifico de la fuente queda en `raw_payload`. Las listas completas de buy orders
+  actuales no se guardan aqui.
 
 Repetir una clave surrogate (`item_id`) como FK en tablas hijas si tiene sentido en una BD
 relacional. Lo que se evita es repetir la identidad natural completa en cada tabla.

@@ -541,18 +541,28 @@ def extract_steam_recent_sales(
         selected_points = points
         start_index = 0
     rows: list[dict[str, Any]] = []
+    last_observed_at: datetime | None = None
     for index, (x, y) in enumerate(selected_points, start=start_index):
-        estimated_at = _interpolated_time_label(x, time_ticks)
+        observed_time = _steam_point_time(x, time_ticks)
+        if observed_time is not None:
+            observed_time = _normalize_steam_point_time(observed_time)
+            if last_observed_at is not None and observed_time <= last_observed_at:
+                observed_time = last_observed_at + timedelta(hours=1)
+            last_observed_at = observed_time
+        estimated_at = (
+            _format_steam_time_label(observed_time)
+            if observed_time is not None
+            else _nearest_time_label(x, time_ticks)
+        )
         row: dict[str, Any] = {
             "source": "steam_recharts",
             "granularity": "point",
             "point_index": index,
             "price": str(_price_from_y(y, price_scale).quantize(Decimal("0.01"))),
-            "time_label": estimated_at or _nearest_time_label(x, time_ticks),
+            "time_label": estimated_at,
         }
-        observed_at = _steam_time_label_iso(row["time_label"])
-        if observed_at:
-            row["observed_at"] = observed_at
+        if observed_time is not None:
+            row["observed_at"] = observed_time.replace(tzinfo=UTC).isoformat()
         if selected_range:
             row["range"] = selected_range
         rows.append(row)
@@ -706,7 +716,15 @@ def _nearest_time_label(x: float, ticks: tuple[tuple[float, str], ...]) -> str |
     return min(ticks, key=lambda item: abs(item[0] - x))[1]
 
 
-def _interpolated_time_label(x: float, ticks: tuple[tuple[float, str], ...]) -> str | None:
+def _steam_point_time(x: float, ticks: tuple[tuple[float, str], ...]) -> datetime | None:
+    interpolated = _interpolated_time(x, ticks)
+    if interpolated is not None:
+        return interpolated
+    nearest_label = _nearest_time_label(x, ticks)
+    return _parse_steam_time_label(nearest_label) if nearest_label else None
+
+
+def _interpolated_time(x: float, ticks: tuple[tuple[float, str], ...]) -> datetime | None:
     if len(ticks) < 2:
         return None
     sorted_ticks = sorted(ticks, key=lambda item: item[0])
@@ -725,14 +743,23 @@ def _interpolated_time_label(x: float, ticks: tuple[tuple[float, str], ...]) -> 
     if lower_time is None or upper_time is None or upper[0] == lower[0]:
         return None
     ratio = (x - lower[0]) / (upper[0] - lower[0])
-    interpolated = lower_time + timedelta(
+    return lower_time + timedelta(
         seconds=(upper_time - lower_time).total_seconds() * ratio
     )
-    return _format_steam_time_label(interpolated)
+
+
+def _normalize_steam_point_time(value: datetime) -> datetime:
+    return value.replace(minute=0, second=0, microsecond=0)
 
 
 def _parse_steam_time_label(value: str) -> datetime | None:
-    for date_format in ("%m/%d/%Y, %I %p", "%d/%m/%Y, %H", "%m/%d/%Y, %H"):
+    for date_format in (
+        "%m/%d/%Y, %I %p",
+        "%d/%m/%Y, %H",
+        "%m/%d/%Y, %H",
+        "%m/%d/%Y",
+        "%d/%m/%Y",
+    ):
         try:
             return datetime.strptime(value, date_format)
         except ValueError:

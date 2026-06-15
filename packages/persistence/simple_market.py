@@ -118,62 +118,52 @@ class SimpleMarketSnapshotRepository:
             """
             insert into market_history_points (
                 item_id,
+                platform_id,
                 observed_at,
-                steam_sell_price,
-                steam_sales_count,
-                steam_currency,
-                buff_sell_price,
-                buff_buy_order_price,
-                buff_listing_count,
-                buff_currency,
-                source_payload
+                sell_price,
+                buy_order_price,
+                sales_count,
+                listing_count,
+                currency,
+                raw_payload,
+                updated_at
             )
-            values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb)
-            on conflict (item_id, observed_at) do update set
-                steam_sell_price = coalesce(
-                    excluded.steam_sell_price,
-                    market_history_points.steam_sell_price
+            values ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, now())
+            on conflict (item_id, platform_id, observed_at) do update set
+                sell_price = coalesce(
+                    excluded.sell_price,
+                    market_history_points.sell_price
                 ),
-                steam_sales_count = coalesce(
-                    excluded.steam_sales_count,
-                    market_history_points.steam_sales_count
+                buy_order_price = coalesce(
+                    excluded.buy_order_price,
+                    market_history_points.buy_order_price
                 ),
-                steam_currency = coalesce(
-                    excluded.steam_currency,
-                    market_history_points.steam_currency
+                sales_count = coalesce(
+                    excluded.sales_count,
+                    market_history_points.sales_count
                 ),
-                buff_sell_price = coalesce(
-                    excluded.buff_sell_price,
-                    market_history_points.buff_sell_price
+                listing_count = coalesce(
+                    excluded.listing_count,
+                    market_history_points.listing_count
                 ),
-                buff_buy_order_price = coalesce(
-                    excluded.buff_buy_order_price,
-                    market_history_points.buff_buy_order_price
+                currency = coalesce(
+                    excluded.currency,
+                    market_history_points.currency
                 ),
-                buff_listing_count = coalesce(
-                    excluded.buff_listing_count,
-                    market_history_points.buff_listing_count
-                ),
-                buff_currency = coalesce(
-                    excluded.buff_currency,
-                    market_history_points.buff_currency
-                ),
-                source_payload = market_history_points.source_payload
-                    || excluded.source_payload,
+                raw_payload = market_history_points.raw_payload || excluded.raw_payload,
                 updated_at = now()
             """,
             tuple(
                 (
                     item_id,
+                    row["platform_id"],
                     row["observed_at"],
-                    row.get("steam_sell_price"),
-                    row.get("steam_sales_count"),
-                    row.get("steam_currency"),
-                    row.get("buff_sell_price"),
-                    row.get("buff_buy_order_price"),
-                    row.get("buff_listing_count"),
-                    row.get("buff_currency"),
-                    _json(row["source_payload"]),
+                    row.get("sell_price"),
+                    row.get("buy_order_price"),
+                    row.get("sales_count"),
+                    row.get("listing_count"),
+                    row.get("currency"),
+                    _json(row.get("raw_payload") or {}),
                 )
                 for row in rows
             ),
@@ -219,30 +209,47 @@ def _quality_code(value: str) -> str:
 
 
 def _history_points_from_snapshot(snapshot: SimpleMarketSnapshot) -> tuple[dict[str, Any], ...]:
-    grouped: dict[datetime, dict[str, Any]] = {}
+    rows: list[dict[str, Any]] = []
     for row in snapshot.steam_recent_sales:
         observed_at = _history_observed_at(row)
         price = _decimal_value(row.get("price"))
         if observed_at is None or price is None:
             continue
-        entry = grouped.setdefault(observed_at, {"observed_at": observed_at})
-        entry["steam_sell_price"] = price
-        entry["steam_currency"] = _currency(snapshot.steam_currency)
-        entry["steam_sales_count"] = _int_value(row.get("sales_count") or row.get("purchases"))
-        entry.setdefault("source_payload", {})["steam"] = dict(row)
+        rows.append(
+            {
+                "platform_id": "steam",
+                "observed_at": observed_at,
+                "sell_price": price,
+                "sales_count": _int_value(row.get("sales_count") or row.get("purchases")),
+                "currency": _currency(snapshot.steam_currency),
+                "raw_payload": {"steam": dict(row)},
+            }
+        )
 
     for row in snapshot.buff_price_history:
         observed_at = _history_observed_at(row)
         if observed_at is None:
             continue
-        entry = grouped.setdefault(observed_at, {"observed_at": observed_at})
-        entry["buff_sell_price"] = _decimal_value(row.get("buff_sell_price"))
-        entry["buff_buy_order_price"] = _decimal_value(row.get("buff_buy_order_price"))
-        entry["buff_listing_count"] = _int_value(row.get("buff_listing_count"))
-        entry["buff_currency"] = _currency(snapshot.buff_currency)
-        entry.setdefault("source_payload", {})["buff"] = dict(row)
+        sell_price = _decimal_value(row.get("buff_sell_price"))
+        buy_order_price = _decimal_value(row.get("buff_buy_order_price"))
+        listing_count = _int_value(row.get("buff_listing_count"))
+        if sell_price is None and buy_order_price is None and listing_count is None:
+            continue
+        rows.append(
+            {
+                "platform_id": "buff163",
+                "observed_at": observed_at,
+                "sell_price": sell_price,
+                "buy_order_price": buy_order_price,
+                "listing_count": listing_count,
+                "currency": _currency(
+                    _optional_text(row.get("currency")) or snapshot.buff_currency
+                ),
+                "raw_payload": {"buff163": dict(row)},
+            }
+        )
 
-    return tuple(sorted(grouped.values(), key=lambda item: item["observed_at"]))
+    return tuple(sorted(rows, key=lambda item: (item["observed_at"], item["platform_id"])))
 
 
 def _history_observed_at(row: Mapping[str, Any]) -> datetime | None:
@@ -273,3 +280,8 @@ def _int_value(value: object) -> int | None:
         return int(str(value))
     except (TypeError, ValueError):
         return None
+
+
+def _optional_text(value: object) -> str | None:
+    text = str(value or "").strip()
+    return text or None

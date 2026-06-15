@@ -214,6 +214,35 @@ def test_extract_steam_recent_sales_uses_quality_curve_and_all_points() -> None:
     )
 
 
+def test_extract_steam_recent_sales_interpolates_date_only_ticks_per_point() -> None:
+    recent_sales = extract_steam_recent_sales(
+        {
+            "selected_range": "Lifetime",
+            "price_line_path": "M10,90L10.2,80L20,50",
+            "price_ticks": [
+                {"text": "EUR 100.00", "y": 0},
+                {"text": "EUR 0.00", "y": 100},
+            ],
+            "time_ticks": [
+                {"text": "6/1/2026", "x": 10},
+                {"text": "6/2/2026", "x": 20},
+            ],
+        },
+        limit=None,
+    )
+
+    assert [row["observed_at"] for row in recent_sales] == [
+        "2026-06-01T00:00:00+00:00",
+        "2026-06-01T01:00:00+00:00",
+        "2026-06-02T00:00:00+00:00",
+    ]
+    assert [row["time_label"] for row in recent_sales] == [
+        "6/1/2026, 12 AM",
+        "6/1/2026, 1 AM",
+        "6/2/2026, 12 AM",
+    ]
+
+
 async def test_select_chart_range_requests_lifetime() -> None:
     page = FakeRangePage()
     debug_log: list[str] = []
