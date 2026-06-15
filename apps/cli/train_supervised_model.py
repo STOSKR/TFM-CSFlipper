@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any, cast
 
 from packages.prediction.supervised_training import (
     SupervisedTrainingConfig,
@@ -27,6 +28,7 @@ def run(args: argparse.Namespace) -> int:
             models=tuple(args.models),
             exclude_features=tuple(args.exclude_features),
             exclude_feature_suffixes=tuple(args.exclude_feature_suffixes),
+            include_group_identity_features=args.include_group_identity_features,
             selection_metric=args.selection_metric,
             selection_threshold=args.selection_threshold,
             min_selection_signals=args.min_selection_signals,
@@ -35,8 +37,10 @@ def run(args: argparse.Namespace) -> int:
     print(f"output_dir={report['output_dir']}")
     print(f"model_path={report['model_path']}")
     print(f"selected_candidate={report['selected_candidate']}")
-    print(f"validation={report['calibration']['validation']}")
-    print(f"test={report['calibration']['test']}")
+    print(f"selection={report['selection']}")
+    print(f"decision_threshold={report['decision_threshold']}")
+    _print_split_summary("validation", report["calibration"]["validation"])
+    _print_split_summary("test", report["calibration"]["test"])
     return 0
 
 
@@ -81,10 +85,18 @@ def main() -> None:
     parser.add_argument(
         "--selection-metric",
         choices=("roc_auc", "average_precision", "precision_at_threshold"),
-        default="roc_auc",
+        default="precision_at_threshold",
     )
     parser.add_argument("--selection-threshold", type=float, default=0.8)
     parser.add_argument("--min-selection-signals", type=int, default=50)
+    parser.add_argument(
+        "--include-group-identity-features",
+        action="store_true",
+        help=(
+            "Use identity/grouping keys as model features. By default they are kept only "
+            "for grouped evaluation."
+        ),
+    )
     args = parser.parse_args()
     raise SystemExit(run(args))
 
@@ -92,6 +104,23 @@ def main() -> None:
 def _default_output_dir() -> Path:
     run_id = datetime.now(tz=UTC).strftime("%Y%m%d_%H%M%S")
     return Path("model-runs") / "supervised_direction_v1" / run_id
+
+
+def _print_split_summary(split_name: str, metrics: dict[str, Any]) -> None:
+    print(
+        f"{split_name}=rows:{metrics['rows']} "
+        f"roc_auc:{metrics['roc_auc']} "
+        f"average_precision:{metrics['average_precision']} "
+        f"brier:{metrics['brier_score']}"
+    )
+    for threshold in cast(list[dict[str, Any]], metrics["thresholds"]):
+        row = dict(threshold)
+        print(
+            f"{split_name}@{row['threshold']}="
+            f"precision:{row['precision']} "
+            f"signals:{row['predicted_positive']} "
+            f"recall:{row['recall']}"
+        )
 
 
 if __name__ == "__main__":

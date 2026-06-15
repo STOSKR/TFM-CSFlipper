@@ -13,7 +13,14 @@ import numpy as np
 import pandas as pd  # type: ignore[import-untyped]
 import pyarrow.parquet as pq
 
-EVALUATION_THRESHOLDS = (0.5, 0.6, 0.7, 0.8, 0.9)
+EVALUATION_THRESHOLDS = (0.5, 0.6, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95)
+GROUP_ONLY_FEATURES = (
+    "primary_item_key",
+    "weapon_wear_key",
+    "skin_wear_key",
+    "collection_rarity_key",
+    "rarity_wear_key",
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -30,7 +37,8 @@ class SupervisedTrainingConfig:
     models: tuple[str, ...] = ("dummy", "logistic", "random_forest", "hist_gradient_boosting")
     exclude_features: tuple[str, ...] = ()
     exclude_feature_suffixes: tuple[str, ...] = ()
-    selection_metric: str = "roc_auc"
+    include_group_identity_features: bool = False
+    selection_metric: str = "precision_at_threshold"
     selection_threshold: float = 0.8
     min_selection_signals: int = 50
 
@@ -42,14 +50,18 @@ def train_supervised_models(config: SupervisedTrainingConfig) -> dict[str, Any]:
     date_column = str(metadata["date_column"])
     primary_group_column = metadata.get("primary_group_column")
     group_column = str(primary_group_column) if primary_group_column else None
+    default_excluded_features = (
+        () if config.include_group_identity_features else GROUP_ONLY_FEATURES
+    )
+    excluded_features = (*default_excluded_features, *config.exclude_features)
     numeric_features = _filter_features(
         tuple(str(column) for column in metadata["numeric_features"]),
-        exclude_features=config.exclude_features,
+        exclude_features=excluded_features,
         exclude_feature_suffixes=config.exclude_feature_suffixes,
     )
     categorical_features = _filter_features(
         tuple(str(column) for column in metadata["categorical_features"]),
-        exclude_features=config.exclude_features,
+        exclude_features=excluded_features,
         exclude_feature_suffixes=config.exclude_feature_suffixes,
     )
     trace_columns = tuple(str(column) for column in metadata["trace_columns"])
@@ -106,6 +118,8 @@ def train_supervised_models(config: SupervisedTrainingConfig) -> dict[str, Any]:
             feature_columns=feature_columns,
             target_column=target_column,
             group_column=group_column,
+            date_column=None,
+            include_time_windows=False,
             cv_splits=config.cv_splits,
         )
         fitted = sklearn["clone"](pipeline)
@@ -117,6 +131,8 @@ def train_supervised_models(config: SupervisedTrainingConfig) -> dict[str, Any]:
             feature_columns=feature_columns,
             target_column=target_column,
             group_column=group_column,
+            date_column=None,
+            include_time_windows=False,
         )
         candidate_reports.append(
             {
@@ -146,6 +162,8 @@ def train_supervised_models(config: SupervisedTrainingConfig) -> dict[str, Any]:
         feature_columns=feature_columns,
         target_column=target_column,
         group_column=group_column,
+        date_column=date_column,
+        include_time_windows=True,
     )
     calibrated_test = _evaluate_classifier(
         sklearn,
@@ -154,13 +172,19 @@ def train_supervised_models(config: SupervisedTrainingConfig) -> dict[str, Any]:
         feature_columns=feature_columns,
         target_column=target_column,
         group_column=group_column,
+        date_column=date_column,
+        include_time_windows=True,
+    )
+    decision_threshold = _select_decision_threshold(
+        validation_report=calibrated_validation,
+        test_report=calibrated_test,
+        min_signals=config.min_selection_signals,
     )
 
     config.output_dir.mkdir(parents=True, exist_ok=True)
     model_path = config.output_dir / "calibrated_model.joblib"
     sklearn["joblib"].dump(calibrated, model_path)
-    report = dict[str, Any](
-        {
+    report = dict[str, Any]({
         "schema_version": "supervised_training_experiment.v1",
         "created_at": datetime.now(tz=UTC).isoformat(),
         "dataset_dir": str(config.dataset_dir),
@@ -171,6 +195,7 @@ def train_supervised_models(config: SupervisedTrainingConfig) -> dict[str, Any]:
         "numeric_features": list(numeric_features),
         "categorical_features": list(categorical_features),
         "primary_group_column": group_column,
+        "group_only_features": list(default_excluded_features),
         "excluded_training_features": sorted(
             set(str(column) for column in metadata["feature_columns"]) - set(feature_columns)
         ),
@@ -189,13 +214,13 @@ def train_supervised_models(config: SupervisedTrainingConfig) -> dict[str, Any]:
             "score": best_report["selection_score"],
         },
         "selection_reason": best_report["selection_reason"],
+        "decision_threshold": decision_threshold,
         "calibration": {
             "method": config.calibration_method,
             "validation": calibrated_validation,
             "test": calibrated_test,
         },
-        }
-    )
+    })
     (config.output_dir / "training_report.json").write_text(
         json.dumps(_jsonable(report), indent=2, sort_keys=True),
         encoding="utf-8",
@@ -423,6 +448,8 @@ def _cross_validate_candidate(
     feature_columns: tuple[str, ...],
     target_column: str,
     group_column: str | None,
+    date_column: str | None,
+    include_time_windows: bool,
     cv_splits: int,
 ) -> dict[str, Any]:
     if cv_splits < 2:
@@ -442,6 +469,8 @@ def _cross_validate_candidate(
             feature_columns=feature_columns,
             target_column=target_column,
             group_column=group_column,
+            date_column=date_column,
+            include_time_windows=include_time_windows,
         )
         metrics["fold"] = fold_index
         fold_metrics.append(metrics)
@@ -462,6 +491,8 @@ def _evaluate_classifier(
     feature_columns: tuple[str, ...],
     target_column: str,
     group_column: str | None = None,
+    date_column: str | None = None,
+    include_time_windows: bool = False,
 ) -> dict[str, Any]:
     y_true = frame[target_column].astype(int).to_numpy()
     probabilities = model.predict_proba(frame.loc[:, feature_columns])[:, 1]
@@ -498,6 +529,15 @@ def _evaluate_classifier(
             groups=frame[group_column].astype(str).to_numpy(),
             thresholds=EVALUATION_THRESHOLDS,
             group_column=group_column,
+        )
+    if include_time_windows and date_column is not None and date_column in frame:
+        report["time_windows"] = _time_window_metrics(
+            sklearn,
+            frame=frame,
+            date_column=date_column,
+            y_true=y_true,
+            probabilities=probabilities,
+            thresholds=EVALUATION_THRESHOLDS,
         )
     return report
 
@@ -581,6 +621,90 @@ def _primary_group_metrics(
         "column": group_column,
         "groups": int(len(np.unique(groups))),
         "thresholds": summaries,
+    }
+
+
+def _time_window_metrics(
+    sklearn: dict[str, Any],
+    *,
+    frame: pd.DataFrame,
+    date_column: str,
+    y_true: np.ndarray[Any, Any],
+    probabilities: np.ndarray[Any, Any],
+    thresholds: tuple[float, ...],
+) -> list[dict[str, Any]]:
+    periods = pd.to_datetime(frame[date_column]).dt.to_period("M").astype(str)
+    windows = []
+    for period in sorted(periods.unique()):
+        mask = periods == period
+        mask_array = mask.to_numpy()
+        window_true = y_true[mask_array]
+        window_probabilities = probabilities[mask_array]
+        windows.append(
+            {
+                "period": period,
+                "rows": int(len(window_true)),
+                "target_rate": float(np.mean(window_true)) if len(window_true) else None,
+                "roc_auc": _window_metric(
+                    sklearn,
+                    "roc_auc_score",
+                    window_true,
+                    window_probabilities,
+                ),
+                "average_precision": _window_metric(
+                    sklearn,
+                    "average_precision_score",
+                    window_true,
+                    window_probabilities,
+                ),
+                "thresholds": _threshold_metrics(
+                    sklearn,
+                    y_true=window_true,
+                    probabilities=window_probabilities,
+                    thresholds=thresholds,
+                ),
+            }
+        )
+    return windows
+
+
+def _window_metric(
+    sklearn: dict[str, Any],
+    metric_name: str,
+    y_true: np.ndarray[Any, Any],
+    probabilities: np.ndarray[Any, Any],
+) -> float | None:
+    return _metric_or_none(lambda: sklearn[metric_name](y_true, probabilities))
+
+
+def _select_decision_threshold(
+    *,
+    validation_report: dict[str, Any],
+    test_report: dict[str, Any],
+    min_signals: int,
+) -> dict[str, Any]:
+    eligible = [
+        row
+        for row in validation_report["thresholds"]
+        if int(row["predicted_positive"]) >= min_signals
+    ]
+    candidates = eligible or list(validation_report["thresholds"])
+    selected = max(
+        candidates,
+        key=lambda row: (
+            float(row["precision"]),
+            int(row["predicted_positive"]),
+            float(row["recall"]),
+        ),
+    )
+    threshold = float(selected["threshold"])
+    return {
+        "selected_from": "validation",
+        "threshold": threshold,
+        "min_signals": min_signals,
+        "eligible": bool(eligible),
+        "validation": selected,
+        "test_at_same_threshold": _threshold_report(test_report, threshold=threshold),
     }
 
 
