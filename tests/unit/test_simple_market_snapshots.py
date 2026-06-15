@@ -208,12 +208,16 @@ async def test_simple_market_snapshot_repository_upserts_item_current_state() ->
     assert len(connection.statements) == 1
     assert "insert into market_items" in connection.statements[0].lower()
     assert "steam_price" in connection.statements[0].lower()
+    assert "steam_price_eur" in connection.statements[0].lower()
+    assert "steam_price_cny" in connection.statements[0].lower()
     assert "steam_buy_orders" in connection.statements[0].lower()
     assert (
         "on conflict (name, quality, stattrak) do update set"
         in connection.statements[0].lower()
     )
     assert "scraped_at = excluded.scraped_at" in connection.statements[0].lower()
+    assert connection.args[0][9] == Decimal("5.41")
+    assert connection.args[0][10] == Decimal("43.28")
     assert connection.transaction_opened is True
 
 
@@ -261,20 +265,30 @@ async def test_simple_market_snapshot_repository_persists_history_points() -> No
     assert history_rows[0][3] == "buy_order_price"
     assert history_rows[0][4] == Decimal("14.80")
     assert history_rows[0][5] == "CNY"
+    assert history_rows[0][6] == Decimal("1.85")
+    assert history_rows[0][7] == Decimal("14.80")
     assert history_rows[1][1] == "buff163"
     assert history_rows[1][3] == "listing_count"
     assert history_rows[1][4] == Decimal("11")
+    assert history_rows[1][6] is None
+    assert history_rows[1][7] is None
     assert history_rows[2][1] == "buff163"
     assert history_rows[2][3] == "sell_price"
     assert history_rows[2][4] == Decimal("15.20")
     assert history_rows[2][5] == "CNY"
+    assert history_rows[2][6] == Decimal("1.90")
+    assert history_rows[2][7] == Decimal("15.20")
     assert history_rows[3][1] == "steam"
     assert history_rows[3][3] == "sales_count"
     assert history_rows[3][4] == Decimal("3")
+    assert history_rows[3][6] is None
+    assert history_rows[3][7] is None
     assert history_rows[4][1] == "steam"
     assert history_rows[4][3] == "sell_price"
     assert history_rows[4][4] == Decimal("17.45")
     assert history_rows[4][5] == "EUR"
+    assert history_rows[4][6] == Decimal("17.45")
+    assert history_rows[4][7] == Decimal("139.60")
 
 
 def _record(

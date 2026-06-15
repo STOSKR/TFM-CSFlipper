@@ -13,8 +13,12 @@ from uuid import UUID
 import asyncpg
 
 from packages.domain.market_parsing import parse_market_decimal
+from packages.simulation.economics import convert_currency
 
 JsonRows = Sequence[Mapping[str, Any]]
+DEFAULT_CNY_PER_EUR = Decimal("8")
+PRICE_QUANTUM = Decimal("0.000001")
+PRICE_METRICS = frozenset({"sell_price", "buy_order_price"})
 
 
 @dataclass(frozen=True, slots=True)
@@ -44,6 +48,7 @@ class SimpleMarketSnapshot:
 @dataclass(slots=True)
 class SimpleMarketSnapshotRepository:
     connection: asyncpg.Connection
+    cny_per_eur: Decimal = DEFAULT_CNY_PER_EUR
 
     async def record_snapshot(self, snapshot: SimpleMarketSnapshot) -> None:
         async with self.connection.transaction():
@@ -68,12 +73,19 @@ class SimpleMarketSnapshotRepository:
                 scraped_at,
                 steam_price,
                 steam_currency,
+                steam_price_eur,
+                steam_price_cny,
                 steam_buy_orders,
                 buff_price,
                 buff_currency,
+                buff_price_eur,
+                buff_price_cny,
                 buff_buy_orders
             )
-            values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb, $11, $12, $13::jsonb)
+            values (
+                $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb, $12, $13, $14, $15,
+                $16::jsonb
+            )
             on conflict (name, quality, stattrak) do update set
                 representation_name = excluded.representation_name,
                 steam_url = coalesce(excluded.steam_url, market_items.steam_url),
@@ -81,9 +93,13 @@ class SimpleMarketSnapshotRepository:
                 scraped_at = excluded.scraped_at,
                 steam_price = excluded.steam_price,
                 steam_currency = excluded.steam_currency,
+                steam_price_eur = excluded.steam_price_eur,
+                steam_price_cny = excluded.steam_price_cny,
                 steam_buy_orders = excluded.steam_buy_orders,
                 buff_price = excluded.buff_price,
                 buff_currency = excluded.buff_currency,
+                buff_price_eur = excluded.buff_price_eur,
+                buff_price_cny = excluded.buff_price_cny,
                 buff_buy_orders = excluded.buff_buy_orders,
                 updated_at = now()
             returning id
@@ -97,9 +113,33 @@ class SimpleMarketSnapshotRepository:
             snapshot.scraped_at,
             snapshot.steam_price,
             _currency(snapshot.steam_currency),
+            _price_in_currency(
+                snapshot.steam_price,
+                snapshot.steam_currency,
+                target_currency="EUR",
+                cny_per_eur=self.cny_per_eur,
+            ),
+            _price_in_currency(
+                snapshot.steam_price,
+                snapshot.steam_currency,
+                target_currency="CNY",
+                cny_per_eur=self.cny_per_eur,
+            ),
             _jsonb(snapshot.steam_buy_orders),
             snapshot.buff_price,
             _currency(snapshot.buff_currency),
+            _price_in_currency(
+                snapshot.buff_price,
+                snapshot.buff_currency,
+                target_currency="EUR",
+                cny_per_eur=self.cny_per_eur,
+            ),
+            _price_in_currency(
+                snapshot.buff_price,
+                snapshot.buff_currency,
+                target_currency="CNY",
+                cny_per_eur=self.cny_per_eur,
+            ),
             _jsonb(snapshot.buff_buy_orders),
         )
         return UUID(str(row["id"]))
@@ -123,16 +163,20 @@ class SimpleMarketSnapshotRepository:
                 metric_name,
                 metric_value,
                 currency,
+                price_eur,
+                price_cny,
                 raw_payload,
                 updated_at
             )
-            values ($1, $2, $3, $4, $5, $6, $7::jsonb, now())
+            values ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, now())
             on conflict (item_id, platform_id, observed_at, metric_name) do update set
                 metric_value = excluded.metric_value,
                 currency = coalesce(
                     excluded.currency,
                     market_history_points.currency
                 ),
+                price_eur = excluded.price_eur,
+                price_cny = excluded.price_cny,
                 raw_payload = market_history_points.raw_payload || excluded.raw_payload,
                 updated_at = now()
             """,
@@ -144,6 +188,16 @@ class SimpleMarketSnapshotRepository:
                     row["metric_name"],
                     row["metric_value"],
                     row.get("currency"),
+                    _metric_price_in_currency(
+                        row,
+                        target_currency="EUR",
+                        cny_per_eur=self.cny_per_eur,
+                    ),
+                    _metric_price_in_currency(
+                        row,
+                        target_currency="CNY",
+                        cny_per_eur=self.cny_per_eur,
+                    ),
                     _json(row.get("raw_payload") or {}),
                 )
                 for row in rows
@@ -164,6 +218,46 @@ def _currency(value: str | None) -> str | None:
         return None
     text = value.strip().upper()
     return text or None
+
+
+def _price_in_currency(
+    amount: Decimal | None,
+    source_currency: str | None,
+    *,
+    target_currency: str,
+    cny_per_eur: Decimal,
+) -> Decimal | None:
+    currency = _currency(source_currency)
+    if amount is None or currency is None:
+        return None
+    try:
+        converted = convert_currency(
+            amount,
+            source_currency=currency,
+            target_currency=target_currency,
+            cny_per_eur=cny_per_eur,
+        )
+    except ValueError:
+        return None
+    return converted.quantize(PRICE_QUANTUM)
+
+
+def _metric_price_in_currency(
+    row: Mapping[str, Any],
+    *,
+    target_currency: str,
+    cny_per_eur: Decimal,
+) -> Decimal | None:
+    if row.get("metric_name") not in PRICE_METRICS:
+        return None
+    value = row.get("metric_value")
+    amount = value if isinstance(value, Decimal) else _decimal_value(value)
+    return _price_in_currency(
+        amount,
+        _optional_text(row.get("currency")),
+        target_currency=target_currency,
+        cny_per_eur=cny_per_eur,
+    )
 
 
 def _jsonb(value: JsonRows) -> str:

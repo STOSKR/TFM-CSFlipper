@@ -175,15 +175,22 @@ El scraping Steam/BUFF de fase 1 usa tablas operativas separadas del esquema can
 
 - `market_items`: una fila por variante real de articulo. La identidad natural sigue siendo
   `name + quality + stattrak`, pero la relacion fisica usa `id`. Tambien guarda el estado
-  actual de cada plataforma: precio actual, moneda y buy orders actuales como un JSONB por
-  plataforma (`steam_buy_orders` y `buff_buy_orders`).
+  actual de cada plataforma: precio actual y moneda original, precio normalizado a EUR/CNY
+  (`steam_price_eur`, `steam_price_cny`, `buff_price_eur`, `buff_price_cny`) y buy orders
+  actuales como un JSONB por plataforma (`steam_buy_orders` y `buff_buy_orders`).
 - `representation_name`: nombre legible y estable para revision humana, por ejemplo
   `Bowie Knife Freehand_FT_1`.
 - `market_history_points`: serie temporal tabular en formato largo por
   `item_id + platform_id + observed_at + metric_name`. Cada fila contiene una unica metrica
-  (`metric_name`, `metric_value`, `currency`) y cualquier detalle especifico de la fuente queda
-  en `raw_payload`. Las listas completas de buy orders actuales no se guardan aqui.
-  El historico de BUFF se captura en `CNY`, que es la moneda nativa del endpoint.
+  (`metric_name`, `metric_value`, `currency`) conservando el valor y divisa originales. Para
+  metricas de precio (`sell_price`, `buy_order_price`) se calculan ademas `price_eur` y
+  `price_cny`, equivalente a las columnas `Precio CE/CY` y `Precio VE/VY` del Excel operativo.
+  Cualquier detalle especifico de la fuente queda en `raw_payload`. Las listas completas de buy
+  orders actuales no se guardan aqui. El historico de BUFF se captura en `CNY`, que es la moneda
+  nativa del endpoint.
+
+La conversion inicial replica la simplificacion del Excel operativo: `1 EUR = 8 CNY`. En una
+fase posterior debe versionarse por fecha si se incorporan tipos FX historicos.
 
 Repetir una clave surrogate (`item_id`) como FK en tablas hijas si tiene sentido en una BD
 relacional. Lo que se evita es repetir la identidad natural completa en cada tabla.

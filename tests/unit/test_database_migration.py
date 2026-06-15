@@ -20,6 +20,9 @@ LONG_MARKET_HISTORY_POINTS_MIGRATION = Path(
 METRIC_MARKET_HISTORY_POINTS_MIGRATION = Path(
     "supabase/migrations/0008_metric_market_history_points.sql"
 )
+MARKET_PRICE_CURRENCY_DERIVATIVES_MIGRATION = Path(
+    "supabase/migrations/0009_market_price_currency_derivatives.sql"
+)
 
 
 def test_initial_migration_defines_required_tables() -> None:
@@ -183,3 +186,19 @@ def test_metric_market_history_points_migration_uses_metric_rows() -> None:
     assert "'sales_count'" in sql
     assert "'listing_count'" in sql
     assert "drop table market_history_points" in sql
+
+
+def test_market_price_currency_derivatives_migration_adds_excel_price_columns() -> None:
+    sql = MARKET_PRICE_CURRENCY_DERIVATIVES_MIGRATION.read_text(
+        encoding="utf-8"
+    ).lower()
+
+    assert "steam_price_eur numeric" in sql
+    assert "steam_price_cny numeric" in sql
+    assert "buff_price_eur numeric" in sql
+    assert "buff_price_cny numeric" in sql
+    assert "price_eur numeric" in sql
+    assert "price_cny numeric" in sql
+    assert "upper(steam_currency) = 'cny' then steam_price / 8" in sql
+    assert "upper(buff_currency) = 'eur' then buff_price * 8" in sql
+    assert "metric_name not in ('sell_price', 'buy_order_price')" in sql
