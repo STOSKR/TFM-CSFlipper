@@ -19,6 +19,7 @@ build/
 
 data/
 logs/
+model-runs/
 models/checkpoints/
 
 # Material local pendiente de revisar; no versionar repos/datos brutos.
