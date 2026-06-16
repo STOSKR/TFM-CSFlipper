@@ -14,5 +14,9 @@ def test_web_mvp_static_files_are_wired() -> None:
     assert "Crear web de recomendaciones" not in html
     assert "gradient" not in css.lower()
     assert "purple" not in css.lower()
+    assert 'get("data")' in js
+    assert "readDashboardJson(`./data/${dataFile}`)" in js
+    assert "XMLHttpRequest" in js
+    assert "fallbackDashboard" in js
     assert "trading_profit_v1" in js
     assert "buff/sell_price falta" in js

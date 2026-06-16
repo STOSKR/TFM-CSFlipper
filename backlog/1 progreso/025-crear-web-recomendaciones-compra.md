@@ -52,14 +52,21 @@ Tras estabilizar datos, prediccion y politicas MARL, el siguiente paso operativo
   real del entorno MARL minimo.
 - Anadida vista de limites de riesgo Portfolio desde la configuracion actual.
 - Documentado el MVP en `apps/web/README.md`.
+- Creado `packages.web.dashboard_payload` para construir el JSON consumido por
+  la web a partir de filas de `market_items`.
+- Creado `python -m apps.cli.export_web_dashboard`, que exporta
+  `apps/web/data/dashboard.json` desde Supabase.
+- La web carga `data/dashboard.json` al abrir con `?data=dashboard.json` y mantiene
+  fallback local honesto sin tocar red si no se pasa ese parametro.
 
 ## Pruebas ejecutadas
 
 - `python -m pytest tests/unit/test_web_mvp.py`
+- `python -m pytest tests/unit/test_web_dashboard_payload.py`
 
 ## Bloqueos o riesgos
 
 - Definir formula fiable de rentabilidad neta antes de usarla como criterio principal.
 - Decidir si la primera version sera local, desplegada o integrada directamente con Supabase.
-- Falta conectar Supabase/API real; por ahora es una consola local estatica.
+- Falta ejecutar el export contra Supabase y validar visualmente con datos reales.
 - Las filas de recomendaciones no deben interpretarse como senales reales de compra.

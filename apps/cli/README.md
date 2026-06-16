@@ -72,6 +72,17 @@ Para forzar manualmente la ventana historica de BUFF:
 python -m apps.cli.refresh_market_history --persist --buff-history-days 30
 ```
 
+## Export Web Dashboard
+
+Genera el JSON local que consume `apps/web`:
+
+```bash
+python -m apps.cli.export_web_dashboard
+```
+
+El archivo se escribe por defecto en `apps/web/data/dashboard.json`, ignorado por git porque
+contiene estado exportado desde la base de datos.
+
 ## SteamDT Hanging
 
 Descubre candidatos desde SteamDT Hanging sin guardar nada:

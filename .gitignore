@@ -21,6 +21,7 @@ data/
 logs/
 model-runs/
 models/checkpoints/
+apps/web/data/
 
 # Material local pendiente de revisar; no versionar repos/datos brutos.
 material_a_integrar/
