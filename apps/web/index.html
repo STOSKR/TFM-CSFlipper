@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CSFlipper Console</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="Navegacion principal">
+        <a class="brand" href="#overview" aria-label="CSFlipper Console">
+          <img src="./assets/ledger-mark.svg" alt="" width="36" height="36" />
+          <span>
+            <strong>CSFlipper</strong>
+            <small>Trading desk ledger</small>
+          </span>
+        </a>
+        <nav class="nav-list">
+          <a href="#overview" class="active">Overview</a>
+          <a href="#recommendations">Recomendaciones</a>
+          <a href="#agents">Agentes</a>
+          <a href="#portfolio">Portfolio</a>
+          <a href="#backlog">Backlog</a>
+        </nav>
+      </aside>
+
+      <main class="workspace">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Estado operativo</p>
+            <h1>Consola de decision simulada</h1>
+          </div>
+          <div class="run-state" aria-label="Estado de ultimo refresco">
+            <span class="dot ok"></span>
+            <span>Repo limpio tras ultimo commit</span>
+          </div>
+        </header>
+
+        <section id="overview" class="band overview-grid" aria-labelledby="overview-title">
+          <div class="section-heading">
+            <p class="eyebrow">Pipeline</p>
+            <h2 id="overview-title">Que funciona ahora</h2>
+          </div>
+          <div class="status-rail" id="pipeline-status"></div>
+          <div class="notice">
+            <strong>Decision honesta:</strong>
+            el modelo supervisado activo es experimental. Sirve como feature para MARL, no como
+            regla automatica de compra.
+          </div>
+        </section>
+
+        <section id="recommendations" class="band" aria-labelledby="recommendations-title">
+          <div class="section-toolbar">
+            <div>
+              <p class="eyebrow">Recomendaciones</p>
+              <h2 id="recommendations-title">Candidatos revisables</h2>
+            </div>
+            <div class="filters" aria-label="Filtros de recomendaciones">
+              <label>
+                Estado
+                <select id="status-filter">
+                  <option value="all">Todos</option>
+                  <option value="review">Revisar</option>
+                  <option value="observe">Observar</option>
+                  <option value="blocked">Bloqueado</option>
+                </select>
+              </label>
+              <label>
+                Buscar
+                <input id="search-filter" type="search" placeholder="Nombre o calidad" />
+              </label>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Articulo</th>
+                  <th>Estado</th>
+                  <th>Steam</th>
+                  <th>BUFF</th>
+                  <th>Modelo</th>
+                  <th>Agentes</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="recommendation-rows"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="agents" class="band split" aria-labelledby="agents-title">
+          <div>
+            <p class="eyebrow">MARL</p>
+            <h2 id="agents-title">Estado de agentes</h2>
+            <p class="muted">
+              El entorno minimo ya ejecuta acciones simultaneas. PettingZoo/RLlib queda pendiente.
+            </p>
+          </div>
+          <div class="agent-list" id="agent-list"></div>
+        </section>
+
+        <section id="portfolio" class="band split" aria-labelledby="portfolio-title">
+          <div>
+            <p class="eyebrow">Portfolio</p>
+            <h2 id="portfolio-title">Riesgo configurable</h2>
+            <p class="muted">
+              Los limites viven en <code>csflipper_config.toml</code> y alimentan al futuro agente
+              Portfolio.
+            </p>
+          </div>
+          <dl class="risk-grid" id="risk-grid"></dl>
+        </section>
+
+        <section id="backlog" class="band" aria-labelledby="backlog-title">
+          <div class="section-toolbar">
+            <div>
+              <p class="eyebrow">Backlog</p>
+              <h2 id="backlog-title">Progreso de producto</h2>
+            </div>
+            <span class="badge warning">025 en MVP local</span>
+          </div>
+          <ol class="timeline" id="backlog-list"></ol>
+        </section>
+      </main>
+    </div>
+
+    <script src="./app.js"></script>
+  </body>
+</html>

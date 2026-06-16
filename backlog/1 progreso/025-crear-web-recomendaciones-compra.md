@@ -42,13 +42,24 @@ Tras estabilizar datos, prediccion y politicas MARL, el siguiente paso operativo
 
 ## Pasos realizados
 
-Pendiente.
+- Iniciada la tarea como MVP local estatico en `apps/web`.
+- Creada la consola operativa con secciones de Overview, Recomendaciones, Agentes,
+  Portfolio y Backlog.
+- Anadidos filtros basicos por estado y busqueda en la tabla de candidatos.
+- Mostrada la limitacion principal sin maquillar: el modelo actual es experimental
+  y falta `buff163/sell_price` para entrenar bien la direccion operativa natural.
+- Anadido estado inicial de agentes Scout, Trader y Portfolio conectado al avance
+  real del entorno MARL minimo.
+- Anadida vista de limites de riesgo Portfolio desde la configuracion actual.
+- Documentado el MVP en `apps/web/README.md`.
 
 ## Pruebas ejecutadas
 
-Pendiente.
+- `python -m pytest tests/unit/test_web_mvp.py`
 
 ## Bloqueos o riesgos
 
 - Definir formula fiable de rentabilidad neta antes de usarla como criterio principal.
 - Decidir si la primera version sera local, desplegada o integrada directamente con Supabase.
+- Falta conectar Supabase/API real; por ahora es una consola local estatica.
+- Las filas de recomendaciones no deben interpretarse como senales reales de compra.
