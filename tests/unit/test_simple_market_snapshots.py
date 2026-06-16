@@ -1,3 +1,4 @@
+import json
 from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Any
@@ -285,6 +286,36 @@ async def test_simple_market_snapshot_repository_persists_history_points() -> No
     assert history_rows[4][3] == "sell_price"
     assert history_rows[4][4] == Decimal("17.45")
     assert history_rows[4][5] == "EUR"
+
+
+@pytest.mark.asyncio
+async def test_simple_market_snapshot_repository_persists_current_buff_price_as_history() -> None:
+    connection = FakeConnection()
+    snapshot = SimpleMarketSnapshot(
+        name="AK-47 | Slate",
+        quality="Field-Tested",
+        stattrak=False,
+        scraped_at=datetime(2026, 6, 9, 12, 0, tzinfo=UTC),
+        buff_price=Decimal("105.20"),
+        buff_currency="CNY",
+    )
+
+    await SimpleMarketSnapshotRepository(connection).record_snapshot(snapshot)
+
+    assert len(connection.statements) == 2
+    history_rows = connection.args[1]
+    assert len(history_rows) == 1
+    assert history_rows[0][1] == "buff163"
+    assert history_rows[0][2] == datetime(2026, 6, 9, 12, 0, tzinfo=UTC)
+    assert history_rows[0][3] == "sell_price"
+    assert history_rows[0][4] == Decimal("105.20")
+    assert history_rows[0][5] == "CNY"
+    assert json.loads(history_rows[0][6]) == {
+        "buff163": {
+            "source": "buff_current_sell_price",
+            "price": "105.20",
+        }
+    }
 
 
 def _record(

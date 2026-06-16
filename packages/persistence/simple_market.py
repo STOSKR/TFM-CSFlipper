@@ -307,6 +307,23 @@ def _history_points_from_snapshot(snapshot: SimpleMarketSnapshot) -> tuple[dict[
                 }
             )
 
+    if snapshot.buff_price is not None:
+        rows.append(
+            {
+                "platform_id": "buff163",
+                "observed_at": snapshot.scraped_at,
+                "metric_name": "sell_price",
+                "metric_value": snapshot.buff_price,
+                "currency": _currency(snapshot.buff_currency),
+                "raw_payload": {
+                    "buff163": {
+                        "source": "buff_current_sell_price",
+                        "price": str(snapshot.buff_price),
+                    }
+                },
+            }
+        )
+
     for row in snapshot.buff_price_history:
         observed_at = _history_observed_at(row)
         if observed_at is None:
