@@ -5,6 +5,12 @@ const fallbackDashboard = {
     ["Modelo", "Direccion experimental, no compra automatica"],
     ["MARL", "Entorno minimo iniciado, PettingZoo pendiente"],
   ],
+  summary: {
+    total: 2,
+    review: 0,
+    observe: 1,
+    blocked: 1,
+  },
   recommendations: [
     {
       name: "AK-47 | Asiimov",
@@ -13,6 +19,11 @@ const fallbackDashboard = {
       status: "observe",
       steam: "CNY 591.10",
       buff: "CNY 384",
+      steamEur: 73.89,
+      buffEur: 48,
+      profitEur: 16.28,
+      profit: "16.28 EUR",
+      scrapedAt: "Sin fecha",
       model: "Experimental, validar",
       agents: "Scout: revisar, Trader: esperar, Portfolio: ok",
       steamUrl: "https://steamcommunity.com/market/",
@@ -25,6 +36,11 @@ const fallbackDashboard = {
       status: "blocked",
       steam: "steam/sell_price ok",
       buff: "buff/sell_price falta",
+      steamEur: null,
+      buffEur: null,
+      profitEur: null,
+      profit: "Sin datos",
+      scrapedAt: "Sin fecha",
       model: "No usar metricas como precision final",
       agents: "Portfolio: bloquea decision real",
       steamUrl: "https://steamcommunity.com/market/",
@@ -111,11 +127,14 @@ function renderPipeline() {
 function renderRecommendations() {
   const status = document.querySelector("#status-filter").value;
   const search = document.querySelector("#search-filter").value.trim().toLowerCase();
-  const rows = dashboard.recommendations.filter((item) => {
-    const matchesStatus = status === "all" || item.status === status;
-    const haystack = `${item.name} ${item.quality}`.toLowerCase();
-    return matchesStatus && haystack.includes(search);
-  });
+  const sort = document.querySelector("#sort-select").value;
+  const rows = dashboard.recommendations
+    .filter((item) => {
+      const matchesStatus = status === "all" || item.status === status;
+      const haystack = `${item.name} ${item.quality}`.toLowerCase();
+      return matchesStatus && haystack.includes(search);
+    })
+    .sort((left, right) => compareRecommendations(left, right, sort));
   document.querySelector("#recommendation-rows").innerHTML = rows
     .map(
       (item) => `
@@ -129,6 +148,8 @@ function renderRecommendations() {
           <td><span class="badge ${escapeHtml(item.status)}">${escapeHtml(statusLabels[item.status] || item.status)}</span></td>
           <td>${escapeHtml(item.steam)}</td>
           <td>${escapeHtml(item.buff)}</td>
+          <td>${escapeHtml(item.profit)}</td>
+          <td><span class="subtle">${escapeHtml(formatDate(item.scrapedAt))}</span></td>
           <td><span class="subtle">${escapeHtml(item.model)}</span></td>
           <td><span class="subtle">${escapeHtml(item.agents)}</span></td>
           <td>
@@ -138,6 +159,25 @@ function renderRecommendations() {
             </span>
           </td>
         </tr>
+      `,
+    )
+    .join("");
+}
+
+function renderSummary() {
+  const summary = dashboard.summary || summarizeRecommendations(dashboard.recommendations);
+  document.querySelector("#recommendation-summary").innerHTML = [
+    ["Total", summary.total],
+    ["Revisar", summary.review],
+    ["Observar", summary.observe],
+    ["Bloqueado", summary.blocked],
+  ]
+    .map(
+      ([label, value]) => `
+        <div class="summary-pill">
+          <span>${escapeHtml(label)}</span>
+          <strong>${escapeHtml(value)}</strong>
+        </div>
       `,
     )
     .join("");
@@ -206,6 +246,7 @@ function escapeAttribute(value) {
 
 function renderAll() {
   renderPipeline();
+  renderSummary();
   renderRecommendations();
   renderAgents();
   renderRisk();
@@ -214,5 +255,50 @@ function renderAll() {
 
 document.querySelector("#status-filter").addEventListener("change", renderRecommendations);
 document.querySelector("#search-filter").addEventListener("input", renderRecommendations);
+document.querySelector("#sort-select").addEventListener("change", renderRecommendations);
 
 loadDashboard().then(renderAll);
+
+function compareRecommendations(left, right, sort) {
+  if (sort === "profit") {
+    return numericValue(right.profitEur) - numericValue(left.profitEur);
+  }
+  if (sort === "scraped") {
+    return Date.parse(right.scrapedAt || "") - Date.parse(left.scrapedAt || "");
+  }
+  if (sort === "steam") {
+    return numericValue(right.steamEur) - numericValue(left.steamEur);
+  }
+  return statusRank(left.status) - statusRank(right.status);
+}
+
+function statusRank(status) {
+  return { review: 0, observe: 1, blocked: 2 }[status] ?? 3;
+}
+
+function numericValue(value) {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) {
+    return Number.NEGATIVE_INFINITY;
+  }
+  return Number(value);
+}
+
+function summarizeRecommendations(items) {
+  return {
+    total: items.length,
+    review: items.filter((item) => item.status === "review").length,
+    observe: items.filter((item) => item.status === "observe").length,
+    blocked: items.filter((item) => item.status === "blocked").length,
+  };
+}
+
+function formatDate(value) {
+  const timestamp = Date.parse(value || "");
+  if (Number.isNaN(timestamp)) {
+    return value || "Sin fecha";
+  }
+  return new Intl.DateTimeFormat("es-ES", {
+    dateStyle: "short",
+    timeStyle: "short",
+  }).format(new Date(timestamp));
+}

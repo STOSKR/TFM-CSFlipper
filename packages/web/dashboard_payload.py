@@ -21,10 +21,12 @@ def build_dashboard_payload(
     backlog_root: Path = Path("backlog"),
     model_dir: Path = DEFAULT_SUPERVISED_MODEL_DIR,
 ) -> dict[str, Any]:
+    recommendations = [_recommendation(row) for row in market_rows]
     return {
         "generated_at": _datetime_text(generated_at or datetime.now(tz=UTC)),
         "pipeline": _pipeline(model_dir),
-        "recommendations": [_recommendation(row) for row in market_rows],
+        "summary": _summary(recommendations),
+        "recommendations": recommendations,
         "agents": _agents(),
         "risk": _risk(risk_config),
         "backlog": _backlog(backlog_root),
@@ -81,6 +83,11 @@ def _recommendation(row: Mapping[str, Any]) -> dict[str, Any]:
         "status": status,
         "steam": _price_text(row.get("steam_price"), row.get("steam_currency")),
         "buff": _price_text(row.get("buff_price"), row.get("buff_currency")),
+        "steamEur": _optional_float(steam_eur),
+        "buffEur": _optional_float(buff_eur),
+        "profitEur": _optional_float(profit),
+        "profit": _profit_text(profit),
+        "scrapedAt": _optional_datetime_text(row.get("scraped_at")),
         "model": model_text,
         "agents": _agent_text(status, profit),
         "steamUrl": str(row.get("steam_url") or "https://steamcommunity.com/market/"),
@@ -124,6 +131,15 @@ def _agent_text(status: str, profit_eur: Decimal | None) -> str:
     return f"Scout: revisar, Trader: esperar, Portfolio: profit actual {_money(profit_eur)} EUR"
 
 
+def _summary(recommendations: Sequence[Mapping[str, Any]]) -> dict[str, int]:
+    return {
+        "total": len(recommendations),
+        "review": sum(1 for item in recommendations if item.get("status") == "review"),
+        "observe": sum(1 for item in recommendations if item.get("status") == "observe"),
+        "blocked": sum(1 for item in recommendations if item.get("status") == "blocked"),
+    }
+
+
 def _risk(config: PortfolioRiskConfig) -> list[list[str]]:
     return [
         ["Max posicion", _percent(config.max_position_fraction)],
@@ -165,6 +181,12 @@ def _price_text(value: Any, currency: Any) -> str:
     return f"{str(currency or '').strip() or 'EUR'} {_money(amount)}"
 
 
+def _profit_text(value: Decimal | None) -> str:
+    if value is None:
+        return "Sin datos"
+    return f"{_money(value)} EUR"
+
+
 def _optional_decimal(value: Any) -> Decimal | None:
     if value is None:
         return None
@@ -172,6 +194,19 @@ def _optional_decimal(value: Any) -> Decimal | None:
     if not text:
         return None
     return Decimal(text)
+
+
+def _optional_float(value: Decimal | None) -> float | None:
+    return None if value is None else float(value)
+
+
+def _optional_datetime_text(value: Any) -> str:
+    if isinstance(value, datetime):
+        return _datetime_text(value)
+    if value is None:
+        return "Sin fecha"
+    text = str(value).strip()
+    return text or "Sin fecha"
 
 
 def _money(value: Decimal) -> str:

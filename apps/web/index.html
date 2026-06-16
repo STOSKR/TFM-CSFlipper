@@ -70,8 +70,18 @@
                 Buscar
                 <input id="search-filter" type="search" placeholder="Nombre o calidad" />
               </label>
+              <label>
+                Orden
+                <select id="sort-select">
+                  <option value="status">Estado</option>
+                  <option value="profit">Profit actual</option>
+                  <option value="scraped">Scraping reciente</option>
+                  <option value="steam">Precio Steam</option>
+                </select>
+              </label>
             </div>
           </div>
+          <div class="summary-strip" id="recommendation-summary" aria-label="Resumen de recomendaciones"></div>
 
           <div class="table-wrap">
             <table>
@@ -81,6 +91,8 @@
                   <th>Estado</th>
                   <th>Steam</th>
                   <th>BUFF</th>
+                  <th>Profit</th>
+                  <th>Scraping</th>
                   <th>Modelo</th>
                   <th>Agentes</th>
                   <th>Acciones</th>

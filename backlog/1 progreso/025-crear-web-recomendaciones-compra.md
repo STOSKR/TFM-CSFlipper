@@ -58,6 +58,8 @@ Tras estabilizar datos, prediccion y politicas MARL, el siguiente paso operativo
   `apps/web/data/dashboard.json` desde Supabase.
 - La web carga `data/dashboard.json` al abrir con `?data=dashboard.json` y mantiene
   fallback local honesto sin tocar red si no se pasa ese parametro.
+- Anadidos resumen por estado, ordenacion por estado/profit/scraping/precio Steam
+  y columnas de profit actual y fecha de scraping en la tabla.
 
 ## Pruebas ejecutadas
 

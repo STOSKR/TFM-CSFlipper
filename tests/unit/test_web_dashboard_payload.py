@@ -13,6 +13,7 @@ def test_build_dashboard_payload_marks_profitable_current_spread_as_review(tmp_p
                 "name": "AK-47 | Slate",
                 "quality": "Field-Tested",
                 "stattrak": False,
+                "scraped_at": datetime(2026, 6, 16, 10, 30, tzinfo=UTC),
                 "steam_price": Decimal("20"),
                 "steam_currency": "EUR",
                 "steam_price_eur": Decimal("20"),
@@ -33,7 +34,11 @@ def test_build_dashboard_payload_marks_profitable_current_spread_as_review(tmp_p
     assert item["status"] == "review"
     assert item["steam"] == "EUR 20.00"
     assert item["buff"] == "CNY 120.00"
+    assert item["profit"] == "2.40 EUR"
+    assert item["profitEur"] == 2.4
+    assert item["scrapedAt"] == "2026-06-16T10:30:00+00:00"
     assert "profit actual 2.40 EUR" in item["agents"]
+    assert payload["summary"] == {"total": 1, "review": 1, "observe": 0, "blocked": 0}
     assert payload["pipeline"][2] == ["Modelo", "Modelo no encontrado, uso experimental"]
 
 
@@ -60,6 +65,10 @@ def test_build_dashboard_payload_blocks_items_with_missing_prices(tmp_path: Path
     assert item["status"] == "blocked"
     assert item["model"] == "Datos insuficientes para decision"
     assert item["steam"] == "Pendiente"
+    assert item["profit"] == "Sin datos"
+    assert item["profitEur"] is None
+    assert item["scrapedAt"] == "Sin fecha"
+    assert payload["summary"] == {"total": 1, "review": 0, "observe": 0, "blocked": 1}
     assert ["Liquidez minima", "3 unidad"] in payload["risk"]
 
 
