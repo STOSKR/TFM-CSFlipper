@@ -255,17 +255,18 @@ async def test_simple_market_snapshot_repository_persists_history_points() -> No
 
     await SimpleMarketSnapshotRepository(connection).record_snapshot(snapshot)
 
-    assert len(connection.statements) == 2
-    assert "insert into market_history_points" in connection.statements[1].lower()
-    assert "platform_id" in connection.statements[1].lower()
+    assert len(connection.statements) == 3
+    assert "from market_history_points" in connection.statements[1].lower()
+    assert "insert into market_history_points" in connection.statements[2].lower()
+    assert "platform_id" in connection.statements[2].lower()
     assert (
         "on conflict (item_id, platform_id, observed_at, metric_name)"
-        in connection.statements[1].lower()
+        in connection.statements[2].lower()
     )
-    assert "from market_currency_rates" in connection.statements[1].lower()
-    assert "latest_eur_cny.cny_per_eur" in connection.statements[1].lower()
+    assert "from market_currency_rates" in connection.statements[2].lower()
+    assert "latest_eur_cny.cny_per_eur" in connection.statements[2].lower()
     assert connection.args[0][3] == "AK-47 | Slate_FT_1"
-    history_rows = connection.args[1]
+    history_rows = connection.args[2]
     assert len(history_rows) == 5
     assert history_rows[0][1] == "buff163"
     assert history_rows[0][3] == "buy_order_price"
@@ -302,8 +303,8 @@ async def test_simple_market_snapshot_repository_persists_current_buff_price_as_
 
     await SimpleMarketSnapshotRepository(connection).record_snapshot(snapshot)
 
-    assert len(connection.statements) == 2
-    history_rows = connection.args[1]
+    assert len(connection.statements) == 3
+    history_rows = connection.args[2]
     assert len(history_rows) == 1
     assert history_rows[0][1] == "buff163"
     assert history_rows[0][2] == datetime(2026, 6, 9, 12, 0, tzinfo=UTC)
@@ -315,6 +316,51 @@ async def test_simple_market_snapshot_repository_persists_current_buff_price_as_
             "source": "buff_current_sell_price",
             "price": "105.20",
         }
+    }
+
+
+@pytest.mark.asyncio
+async def test_simple_market_snapshot_repository_skips_existing_history_points() -> None:
+    connection = FakeConnection()
+    connection.latest_history_rows = (
+        {
+            "platform_id": "steam",
+            "metric_name": "sell_price",
+            "latest_observed_at": datetime(2026, 6, 10, 10, 0, tzinfo=UTC),
+        },
+        {
+            "platform_id": "steam",
+            "metric_name": "sales_count",
+            "latest_observed_at": datetime(2026, 6, 10, 10, 0, tzinfo=UTC),
+        },
+    )
+    snapshot = SimpleMarketSnapshot(
+        name="AK-47 | Slate",
+        quality="Field-Tested",
+        stattrak=True,
+        scraped_at=datetime(2026, 6, 11, 12, 0, tzinfo=UTC),
+        steam_currency="EUR",
+        steam_recent_sales=(
+            {
+                "observed_at": "2026-06-09T10:00:00+00:00",
+                "price": "17.45",
+                "purchases": 3,
+            },
+            {
+                "observed_at": "2026-06-11T10:00:00+00:00",
+                "price": "18.10",
+                "purchases": 4,
+            },
+        ),
+    )
+
+    await SimpleMarketSnapshotRepository(connection).record_snapshot(snapshot)
+
+    history_rows = connection.args[2]
+    assert len(history_rows) == 2
+    assert {row[3] for row in history_rows} == {"sell_price", "sales_count"}
+    assert {row[2] for row in history_rows} == {
+        datetime(2026, 6, 11, 10, 0, tzinfo=UTC)
     }
 
 
@@ -354,6 +400,7 @@ class FakeConnection:
         self.statements: list[str] = []
         self.args: list[tuple[Any, ...]] = []
         self.transaction_opened = False
+        self.latest_history_rows: tuple[dict[str, Any], ...] = ()
 
     def transaction(self) -> "FakeTransaction":
         self.transaction_opened = True
@@ -371,6 +418,11 @@ class FakeConnection:
         self.statements.append(query)
         self.args.append(_args)
         return {"id": uuid4()}
+
+    async def fetch(self, query: str, *_args: Any) -> tuple[dict[str, Any], ...]:
+        self.statements.append(query)
+        self.args.append(_args)
+        return self.latest_history_rows
 
 
 class FakeTransaction:

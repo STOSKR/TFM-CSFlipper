@@ -35,6 +35,26 @@ Para validar solo el cableado sin llamar a plataformas:
 python -m apps.cli.stream_scrape_flow --no-steam --no-buff
 ```
 
+## Refresco Semanal De Historial
+
+Refresca todos los articulos ya guardados en `market_items` que tengan URL de Steam o BUFF:
+
+```bash
+python -m apps.cli.refresh_market_history --persist
+```
+
+El comando carga los objetos desde la base de datos, lanza los workers de Steam/BUFF y persiste
+los snapshots resultantes. Antes de escribir puntos historicos consulta
+`market_history_points` para cada articulo y solo inserta los registros posteriores al ultimo
+`observed_at` guardado por plataforma y metrica. Si el articulo o la metrica no tienen historial
+previo, guarda todo el historial devuelto por el scraper.
+
+Para una ejecucion de prueba sin persistir:
+
+```bash
+python -m apps.cli.refresh_market_history --dry-run
+```
+
 ## SteamDT Hanging
 
 Descubre candidatos desde SteamDT Hanging sin guardar nada:
