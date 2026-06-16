@@ -22,3 +22,16 @@ La configuracion `default_excel_economics_config()` replica los supuestos confir
 - BUFF aplica fee neto `0.975`.
 
 CSFloat y Skinport quedan fuera del dominio principal del TFM por ahora.
+
+## Simulador de cartera
+
+`packages.simulation.portfolio` contiene el simulador determinista que usara el entorno MARL:
+
+- compras con descuento de capital disponible;
+- posiciones bloqueadas hasta `unlock_date`;
+- ventas solo cuando termina el trade hold;
+- comisiones por plataforma reutilizando `MarketEconomicsConfig`;
+- validacion minima de liquidez mediante cantidad disponible;
+- metricas de capital disponible, capital bloqueado, profit realizado, profit no realizado, equity y drawdown.
+
+El simulador no depende de PettingZoo, RLlib ni modelos ML. El entorno multiagente lo usara como motor de contabilidad.

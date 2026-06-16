@@ -15,13 +15,31 @@ from packages.simulation.economics import (
     steam_cashout_factor,
     unlock_date,
 )
+from packages.simulation.portfolio import (
+    InsufficientCapitalError,
+    MarketMark,
+    PortfolioError,
+    PortfolioMetrics,
+    PortfolioPosition,
+    PortfolioSimulator,
+    PositionNotSellableError,
+    UnknownPositionError,
+)
 
 __all__ = [
     "BUFF163",
     "STEAM",
     "EconomicResult",
+    "InsufficientCapitalError",
+    "MarketMark",
     "MarketEconomicsConfig",
+    "PortfolioError",
+    "PortfolioMetrics",
+    "PortfolioPosition",
+    "PortfolioSimulator",
     "PositionStatus",
+    "PositionNotSellableError",
+    "UnknownPositionError",
     "calculate_trade_result",
     "convert_currency",
     "default_excel_economics_config",
