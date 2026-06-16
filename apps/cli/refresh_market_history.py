@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import math
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -27,7 +28,15 @@ from packages.runtime_config import load_runtime_config
 async def run(args: argparse.Namespace) -> int:
     candidates = await load_market_item_candidates(limit=args.limit)
     print(f"market_items_loaded={len(candidates)}")
-    config = _worker_config(args)
+    buff_history_days = args.buff_history_days
+    if args.buff and buff_history_days is None:
+        buff_history_days = await recommended_buff_history_days(
+            limit=args.limit,
+            max_days=args.buff_history_max_days,
+        )
+    if args.buff:
+        print(f"buff_history_days={buff_history_days}")
+    config = _worker_config(args, buff_history_days=buff_history_days)
     results = await scrape_candidate_platforms(candidates, config=config, log=print)
     snapshots = build_simple_market_snapshots(
         candidates,
@@ -73,6 +82,77 @@ async def load_market_item_candidates(*, limit: int | None = None) -> tuple[Stea
     return tuple(candidate_from_market_item_row(dict(row)) for row in rows)
 
 
+async def recommended_buff_history_days(
+    *,
+    limit: int | None = None,
+    max_days: int = 365,
+    now: datetime | None = None,
+) -> int:
+    pool = await create_pool(max_size=2)
+    try:
+        async with pool.acquire() as connection:
+            row = await connection.fetchrow(
+                """
+                with items as (
+                    select id
+                    from market_items
+                    where buff_url is not null
+                    order by updated_at desc nulls last, created_at desc
+                    limit $1
+                ),
+                latest as (
+                    select
+                        item_id,
+                        max(observed_at) as latest_observed_at
+                    from market_history_points
+                    where platform_id = 'buff163'
+                      and metric_name in (
+                        'sell_price',
+                        'buy_order_price',
+                        'listing_count'
+                      )
+                    group by item_id
+                )
+                select
+                    count(items.id) as item_count,
+                    count(latest.latest_observed_at) as latest_count,
+                    min(latest.latest_observed_at) as oldest_latest_observed_at
+                from items
+                left join latest on latest.item_id = items.id
+                """,
+                limit,
+            )
+    finally:
+        await pool.close()
+    return buff_history_days_from_db_row(row, max_days=max_days, now=now)
+
+
+def buff_history_days_from_db_row(
+    row: Any,
+    *,
+    max_days: int = 365,
+    now: datetime | None = None,
+) -> int:
+    capped_max_days = max(1, max_days)
+    if row is None:
+        return capped_max_days
+    item_count = int(row["item_count"] or 0)
+    latest_count = int(row["latest_count"] or 0)
+    oldest_latest = row["oldest_latest_observed_at"]
+    if item_count == 0:
+        return capped_max_days
+    if latest_count < item_count or not isinstance(oldest_latest, datetime):
+        return capped_max_days
+    current_time = now or datetime.now(tz=UTC)
+    latest_utc = (
+        oldest_latest.astimezone(UTC)
+        if oldest_latest.tzinfo
+        else oldest_latest.replace(tzinfo=UTC)
+    )
+    elapsed_days = math.ceil(max(0.0, (current_time - latest_utc).total_seconds()) / 86400)
+    return min(capped_max_days, max(1, elapsed_days + 1))
+
+
 def candidate_from_market_item_row(row: dict[str, Any]) -> SteamDTCandidate:
     name = str(row.get("name") or "").strip()
     quality = _optional_str(row.get("quality"))
@@ -87,7 +167,11 @@ def candidate_from_market_item_row(row: dict[str, Any]) -> SteamDTCandidate:
     )
 
 
-def _worker_config(args: argparse.Namespace) -> PlatformWorkerConfig:
+def _worker_config(
+    args: argparse.Namespace,
+    *,
+    buff_history_days: int | None = None,
+) -> PlatformWorkerConfig:
     return PlatformWorkerConfig(
         fetch_steam=args.steam,
         fetch_buff=args.buff,
@@ -109,6 +193,7 @@ def _worker_config(args: argparse.Namespace) -> PlatformWorkerConfig:
             headless=not args.show_browser,
             manual_login_wait_ms=args.buff_login_wait * 1000 if args.buff_login else 0,
             session_state_path=None if args.no_buff_session_state else args.buff_session_state,
+            history_days=buff_history_days or args.buff_history_max_days,
             max_concurrency=args.buff_concurrency,
             min_delay_seconds=args.buff_min_delay,
             max_delay_seconds=args.buff_max_delay,
@@ -183,6 +268,8 @@ def main() -> None:
         type=float,
         default=runtime_config.delays.buff_max_seconds,
     )
+    parser.add_argument("--buff-history-days", type=int)
+    parser.add_argument("--buff-history-max-days", type=int, default=365)
     parser.add_argument("--persist", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()

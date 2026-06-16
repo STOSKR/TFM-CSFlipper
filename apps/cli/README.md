@@ -44,15 +44,26 @@ python -m apps.cli.refresh_market_history --persist
 ```
 
 El comando carga los objetos desde la base de datos, lanza los workers de Steam/BUFF y persiste
-los snapshots resultantes. Antes de escribir puntos historicos consulta
-`market_history_points` para cada articulo y solo inserta los registros posteriores al ultimo
-`observed_at` guardado por plataforma y metrica. Si el articulo o la metrica no tienen historial
-previo, guarda todo el historial devuelto por el scraper.
+los snapshots resultantes. Antes de scrapear BUFF consulta `market_history_points`: si todos
+los articulos ya tienen historial, pide solo los dias necesarios desde el articulo mas atrasado
+con un dia de solape; si algun articulo no tiene historial previo, pide la ventana completa de
+365 dias.
+
+Antes de escribir puntos historicos tambien consulta `market_history_points` para cada articulo
+y solo inserta los registros posteriores al ultimo `observed_at` guardado por plataforma y
+metrica. Si el articulo o la metrica no tienen historial previo, guarda todo el historial devuelto
+por el scraper.
 
 Para una ejecucion de prueba sin persistir:
 
 ```bash
 python -m apps.cli.refresh_market_history --dry-run
+```
+
+Para forzar manualmente la ventana historica de BUFF:
+
+```bash
+python -m apps.cli.refresh_market_history --persist --buff-history-days 30
 ```
 
 ## SteamDT Hanging

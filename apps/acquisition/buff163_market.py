@@ -79,6 +79,7 @@ class Buff163ConnectorConfig:
     timeout_ms: int = 30000
     wait_after_load_ms: int = 2500
     manual_login_wait_ms: int = 0
+    history_days: int = 365
     min_delay_seconds: float = 0.0
     max_delay_seconds: float = 0.0
     max_concurrency: int = 1
@@ -261,7 +262,7 @@ class Buff163Connector:
                       "/api/market/goods/price_history/buff/v2",
                       {{
                         currency: "{DEFAULT_BUFF_CURRENCY}",
-                        days: "365",
+                        days: "{max(1, self._config.history_days)}",
                         _: String(Date.now())
                       }}
                     )
