@@ -43,6 +43,8 @@ El sistema MARL cooperativo necesita un entorno reproducible que avance por vent
   limites de riesgo.
 - Anadido `MarketEpisodeStep.from_mapping()` para construir episodios pequenos
   desde filas/datasets.
+- Anadido `packages.marl.episodes.load_market_episode_steps()` para cargar episodios
+  desde un parquet directo o desde splits `train/validation/test` de un dataset versionado.
 - Documentado el paquete en `packages/marl/README.md`.
 
 ## Pruebas ejecutadas
@@ -50,10 +52,10 @@ El sistema MARL cooperativo necesita un entorno reproducible que avance por vent
 - `python -m ruff check packages/marl tests/unit/test_market_marl_env.py`
 - `python -m mypy packages/marl tests/unit/test_market_marl_env.py`
 - `python -m pytest tests/unit/test_market_marl_env.py`
+- `python -m pytest tests/unit/test_marl_episode_loader.py`
 
 ## Bloqueos o riesgos
 
 - Hay que decidir granularidad temporal y como manejar huecos de datos entre plataformas.
 - Falta anadir el wrapper formal PettingZoo/RLlib.
-- Falta cargar episodios completos desde datasets historicos versionados.
 - La recompensa compartida es provisional; debe cerrarse en la tarea `021`.

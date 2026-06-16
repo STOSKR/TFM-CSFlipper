@@ -14,3 +14,17 @@ Primer andamiaje del entorno multiagente.
 Todavia no es el wrapper final PettingZoo/RLlib. La intencion es estabilizar primero los
 contratos de observacion, accion, simulador y riesgo antes de anadir la dependencia formal y el
 entrenamiento.
+
+## Episodios
+
+`load_market_episode_steps()` carga pasos desde un parquet directo o desde un directorio de
+dataset con `train.parquet`, `validation.parquet` o `test.parquet`.
+
+Ejemplo:
+
+```python
+from packages.marl import MarketMARLEnvironment, load_market_episode_steps
+
+steps = load_market_episode_steps("data/datasets/trading_profit_v1", split="train", limit=100)
+env = MarketMARLEnvironment(steps)
+```
