@@ -13,15 +13,27 @@ from packages.prediction.supervised_inference import (
     SupervisedModelMetadata,
     SupervisedPrediction,
 )
+from packages.prediction.supervised_service import (
+    DEFAULT_SUPERVISED_MODEL_DIR,
+    SupervisedBatchInferenceResult,
+    SupervisedInferenceResult,
+    SupervisedInferenceService,
+    SupervisedPredictionSink,
+)
 
 __all__ = [
     "BaselineCandidate",
     "BaselinePredictionInput",
+    "DEFAULT_SUPERVISED_MODEL_DIR",
     "HistoricalPricePoint",
     "MomentumBaselinePredictor",
+    "SupervisedBatchInferenceResult",
     "SupervisedInferenceError",
+    "SupervisedInferenceResult",
+    "SupervisedInferenceService",
     "SupervisedModelArtifact",
     "SupervisedModelMetadata",
     "SupervisedPrediction",
+    "SupervisedPredictionSink",
     "prioritize_candidates",
 ]

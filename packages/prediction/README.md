@@ -28,3 +28,12 @@ Incluye:
 - `training_report.json`, trazabilidad completa del experimento.
 
 Este modelo predice `direction_up_probability` y debe usarse como feature para MARL, no como regla automatica de compra. El modelo final de trading se reentrenara cuando haya mas historico real de Steam/BUFF con beneficio neto.
+
+`packages.prediction.supervised_service` envuelve el artefacto en una interfaz de servicio:
+
+- recibe feature snapshots con el contrato exacto del artefacto;
+- devuelve probabilidad, threshold, version del modelo, timestamp y features usadas;
+- puede registrar resultados mediante un sink opcional;
+- no entrena, recalibra ni decide compras.
+
+La transformacion desde snapshots live completos a las 46 features del modelo actual sigue siendo una responsabilidad separada. Este servicio valida y ejecuta inferencia sobre features ya calculadas.

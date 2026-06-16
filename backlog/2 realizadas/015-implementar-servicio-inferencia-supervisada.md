@@ -34,13 +34,22 @@ La tarea antigua de Agente Analista SPADE se adapta a la arquitectura MARL. Ya n
 
 ## Pasos realizados
 
-Pendiente.
+- Creado `packages.prediction.supervised_service` como fachada inference-only sobre `SupervisedModelArtifact`.
+- Anadido `SupervisedInferenceService.load()` con ruta por defecto al artefacto versionado `models/supervised_direction_v1/20260615_operational_default`.
+- Anadidos contratos de salida `SupervisedInferenceResult` y `SupervisedBatchInferenceResult` con modelo, probabilidad, threshold, senal, target, timestamps, correlacion y snapshot de features usado.
+- Anadido `SupervisedPredictionSink` opcional para persistir o emitir predicciones sin acoplar el servicio a Supabase, SPADE ni outbox.
+- Exportado el servicio desde `packages.prediction`.
+- Documentado el servicio en `packages/prediction/README.md`.
+- Validado el servicio con el artefacto real y una fila de `data/datasets/supervised_direction_recent_1y/test.parquet`.
 
 ## Pruebas ejecutadas
 
-Pendiente.
+- `python -m ruff check packages/prediction/supervised_service.py packages/prediction/__init__.py tests/unit/test_supervised_service.py`
+- `python -m mypy packages/prediction/supervised_service.py packages/prediction/__init__.py tests/unit/test_supervised_service.py`
+- `python -m pytest tests/unit/test_supervised_service.py`
+- Prueba real: `SupervisedInferenceService.load().score_frame(...)` sobre una fila del dataset versionado local.
 
 ## Bloqueos o riesgos
 
-- Depende del artefacto supervisado calibrado y de la estabilidad del contrato de features.
-
+- El servicio consume feature snapshots ya calculados con el contrato exacto del modelo. La transformacion desde snapshots live completos a las 46 features actuales sigue siendo una responsabilidad separada del pipeline de features online.
+- El artefacto actual predice direccion (`is_up`), no beneficio neto real Steam/BUFF. Debe usarse como feature experimental para MARL, no como regla automatica de compra.
