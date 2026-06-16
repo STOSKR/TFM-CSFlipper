@@ -60,6 +60,12 @@ Para una ejecucion de prueba sin persistir:
 python -m apps.cli.refresh_market_history --dry-run
 ```
 
+Por defecto la salida es compacta. Para ver los logs internos del scraper:
+
+```bash
+python -m apps.cli.refresh_market_history --persist --verbose
+```
+
 Para forzar manualmente la ventana historica de BUFF:
 
 ```bash

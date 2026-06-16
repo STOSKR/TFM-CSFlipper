@@ -6,12 +6,19 @@ import argparse
 import asyncio
 import json
 import math
+from collections.abc import Sequence
 from datetime import UTC, datetime
+from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
 from apps.acquisition.buff163_market import Buff163ConnectorConfig
-from apps.acquisition.platform_workers import PlatformWorkerConfig, scrape_candidate_platforms
+from apps.acquisition.platform_workers import (
+    PlatformWorkerConfig,
+    PlatformWorkerResult,
+    WorkerError,
+    scrape_candidate_platforms,
+)
 from apps.acquisition.steam_browser_market import SteamBrowserConnectorConfig
 from apps.acquisition.steam_market import SteamMarketConnectorConfig
 from apps.acquisition.steamdt_hanging import SteamDTCandidate
@@ -37,12 +44,22 @@ async def run(args: argparse.Namespace) -> int:
     if args.buff:
         print(f"buff_history_days={buff_history_days}")
     config = _worker_config(args, buff_history_days=buff_history_days)
-    results = await scrape_candidate_platforms(candidates, config=config, log=print)
+    print(
+        "scrape_started "
+        f"steam={args.steam} buff={args.buff} verbose={args.verbose}"
+    )
+    results = await scrape_candidate_platforms(
+        candidates,
+        config=config,
+        log=print if args.verbose else None,
+    )
     snapshots = build_simple_market_snapshots(
         candidates,
         results,
         scraped_at=datetime.now(tz=UTC),
     )
+    for line in compact_refresh_lines(candidates, results):
+        print(line)
 
     if args.persist and not args.dry_run:
         pool = await create_pool(max_size=2)
@@ -57,8 +74,12 @@ async def run(args: argparse.Namespace) -> int:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
-    print(f"snapshots={len(snapshots)}")
-    print(f"mode={'persisted' if args.persist and not args.dry_run else 'dry_run'}")
+    print(
+        "summary "
+        f"loaded={len(candidates)} snapshots={len(snapshots)} "
+        f"{compact_platform_summary(results)} "
+        f"mode={'persisted' if args.persist and not args.dry_run else 'dry_run'}"
+    )
     print(f"output_file={output_path}")
     return len(snapshots)
 
@@ -167,6 +188,107 @@ def candidate_from_market_item_row(row: dict[str, Any]) -> SteamDTCandidate:
     )
 
 
+def compact_refresh_lines(
+    candidates: Sequence[SteamDTCandidate],
+    results: Sequence[PlatformWorkerResult],
+) -> tuple[str, ...]:
+    observations = _observations_by_platform_item(results)
+    errors = _errors_by_platform_item(results)
+    active_platforms = tuple(result.platform_id for result in results)
+    total = len(candidates)
+    lines: list[str] = []
+    for index, candidate in enumerate(candidates, start=1):
+        parts = [f"[{index}/{total}] {candidate.market_hash_name}"]
+        for platform_id in active_platforms:
+            parts.append(
+                _compact_platform_status(
+                    platform_id,
+                    candidate,
+                    observations=observations,
+                    errors=errors,
+                )
+            )
+        lines.append(" ".join(parts))
+    return tuple(lines)
+
+
+def compact_platform_summary(results: Sequence[PlatformWorkerResult]) -> str:
+    parts: list[str] = []
+    for result in results:
+        label = _platform_label(result.platform_id)
+        parts.append(f"{label}_ok={len(result.observations)}")
+        parts.append(f"{label}_errors={len(result.errors)}")
+    return " ".join(parts)
+
+
+def _compact_platform_status(
+    platform_id: str,
+    candidate: SteamDTCandidate,
+    *,
+    observations: dict[tuple[str, str], Any],
+    errors: dict[tuple[str, str], WorkerError],
+) -> str:
+    label = _platform_label(platform_id)
+    key = (platform_id, candidate.market_hash_name)
+    observation = observations.get(key)
+    if observation is not None:
+        contract = observation.observation
+        return f"{label}=ok price={_format_price(contract.price)} {contract.currency}"
+    error = errors.get(key)
+    if error is not None:
+        return f"{label}=error message={_compact_message(error.message)}"
+    if platform_id == "buff163" and not candidate.buff_url:
+        return f"{label}=skip"
+    return f"{label}=missing"
+
+
+def _observations_by_platform_item(
+    results: Sequence[PlatformWorkerResult],
+) -> dict[tuple[str, str], Any]:
+    observations: dict[tuple[str, str], Any] = {}
+    for result in results:
+        for record in result.observations:
+            market_hash = _observation_market_hash(record)
+            if market_hash:
+                observations[(result.platform_id, market_hash)] = record
+    return observations
+
+
+def _errors_by_platform_item(
+    results: Sequence[PlatformWorkerResult],
+) -> dict[tuple[str, str], WorkerError]:
+    errors: dict[tuple[str, str], WorkerError] = {}
+    for result in results:
+        for error in result.errors:
+            errors[(result.platform_id, error.market_hash_name)] = error
+    return errors
+
+
+def _observation_market_hash(record: Any) -> str | None:
+    observation = record.observation
+    raw_market_hash = observation.raw_payload.get("market_hash_name")
+    if raw_market_hash:
+        return str(raw_market_hash)
+    if observation.source_reference:
+        return str(observation.source_reference)
+    return None
+
+
+def _platform_label(platform_id: str) -> str:
+    return "buff" if platform_id == "buff163" else platform_id
+
+
+def _format_price(value: Decimal) -> str:
+    return format(value, "f")
+
+
+def _compact_message(message: str, *, max_length: int = 80) -> str:
+    text = " ".join(message.split())
+    if len(text) <= max_length:
+        return text
+    return f"{text[: max_length - 3]}..."
+
+
 def _worker_config(
     args: argparse.Namespace,
     *,
@@ -270,6 +392,7 @@ def main() -> None:
     )
     parser.add_argument("--buff-history-days", type=int)
     parser.add_argument("--buff-history-max-days", type=int, default=365)
+    parser.add_argument("--verbose", action="store_true")
     parser.add_argument("--persist", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()

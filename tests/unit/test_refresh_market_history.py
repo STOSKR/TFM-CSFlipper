@@ -1,9 +1,17 @@
 from datetime import UTC, datetime
+from decimal import Decimal
 
+from apps.acquisition.buff163_market import Buff163Observation
+from apps.acquisition.platform_workers import PlatformWorkerResult, WorkerError
+from apps.acquisition.steam_market import SteamMarketObservation
 from apps.cli.refresh_market_history import (
     buff_history_days_from_db_row,
     candidate_from_market_item_row,
+    compact_platform_summary,
+    compact_refresh_lines,
 )
+from packages.contracts.observations import MarketObservationContract
+from packages.domain.enums import SourceType
 
 
 def test_candidate_from_market_item_row_reuses_stored_platform_urls() -> None:
@@ -51,3 +59,96 @@ def test_buff_history_days_uses_full_window_when_any_item_has_no_history() -> No
     )
 
     assert days == 365
+
+
+def test_compact_refresh_lines_show_prices_errors_and_skips() -> None:
+    candidates = (
+        candidate_from_market_item_row(
+            {
+                "name": "AK-47 | Slate",
+                "quality": "Field-Tested",
+                "stattrak": False,
+                "steam_url": "https://steamcommunity.com/market/listings/730/AK",
+                "buff_url": "https://buff.163.com/goods/123",
+            }
+        ),
+        candidate_from_market_item_row(
+            {
+                "name": "M4A1-S | Nitro",
+                "quality": "Minimal Wear",
+                "stattrak": False,
+                "steam_url": "https://steamcommunity.com/market/listings/730/M4",
+                "buff_url": None,
+            }
+        ),
+    )
+    results = (
+        PlatformWorkerResult(
+            platform_id="steam",
+            observations=(
+                SteamMarketObservation(
+                    observation=_observation(
+                        platform_id="steam",
+                        market_hash_name="AK-47 | Slate (Field-Tested)",
+                        price=Decimal("12.34"),
+                        currency="EUR",
+                    ),
+                    asset_name="AK-47 | Slate",
+                    category=None,
+                    quality="Field-Tested",
+                    variant_key="field_tested_st0",
+                ),
+            ),
+            errors=(
+                WorkerError(
+                    platform_id="steam",
+                    market_hash_name="M4A1-S | Nitro (Minimal Wear)",
+                    message="Steam price not found: no selector contained money",
+                ),
+            ),
+        ),
+        PlatformWorkerResult(
+            platform_id="buff163",
+            observations=(
+                Buff163Observation(
+                    observation=_observation(
+                        platform_id="buff163",
+                        market_hash_name="AK-47 | Slate (Field-Tested)",
+                        price=Decimal("86"),
+                        currency="CNY",
+                    ),
+                    asset_name="AK-47 | Slate",
+                    category=None,
+                    quality="Field-Tested",
+                    variant_key="field_tested_st0",
+                ),
+            ),
+        ),
+    )
+
+    assert compact_refresh_lines(candidates, results) == (
+        "[1/2] AK-47 | Slate (Field-Tested) "
+        "steam=ok price=12.34 EUR buff=ok price=86 CNY",
+        "[2/2] M4A1-S | Nitro (Minimal Wear) "
+        "steam=error message=Steam price not found: no selector contained money buff=skip",
+    )
+    assert compact_platform_summary(results) == "steam_ok=1 steam_errors=1 buff_ok=1 buff_errors=0"
+
+
+def _observation(
+    *,
+    platform_id: str,
+    market_hash_name: str,
+    price: Decimal,
+    currency: str,
+) -> MarketObservationContract:
+    return MarketObservationContract(
+        correlation_id="test",
+        asset_id="asset",
+        platform_id=platform_id,
+        observed_at=datetime(2026, 6, 16, 12, 0, tzinfo=UTC),
+        price=price,
+        currency=currency,
+        source_type=SourceType.SCRAPING,
+        raw_payload={"market_hash_name": market_hash_name},
+    )
