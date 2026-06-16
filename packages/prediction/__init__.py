@@ -7,11 +7,21 @@ from packages.prediction.baseline import (
     MomentumBaselinePredictor,
     prioritize_candidates,
 )
+from packages.prediction.supervised_inference import (
+    SupervisedInferenceError,
+    SupervisedModelArtifact,
+    SupervisedModelMetadata,
+    SupervisedPrediction,
+)
 
 __all__ = [
     "BaselineCandidate",
     "BaselinePredictionInput",
     "HistoricalPricePoint",
     "MomentumBaselinePredictor",
+    "SupervisedInferenceError",
+    "SupervisedModelArtifact",
+    "SupervisedModelMetadata",
+    "SupervisedPrediction",
     "prioritize_candidates",
 ]

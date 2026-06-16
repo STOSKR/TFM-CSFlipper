@@ -12,3 +12,19 @@ Inferencia y scoring predictivo.
 - tendencia de volumen.
 
 Limitacion principal: no aprende patrones; solo convierte senales estadisticas simples en `probability_up`, `expected_return` y `confidence`.
+
+## Modelo supervisado versionado
+
+`packages.prediction.supervised_inference` carga artefactos ya entrenados desde `models/`.
+
+El artefacto promocionado actual es experimental:
+
+`models/supervised_direction_v1/20260615_operational_default`
+
+Incluye:
+
+- `calibrated_model.joblib`, gestionado con Git LFS;
+- `metadata.json`, contrato estable de inferencia;
+- `training_report.json`, trazabilidad completa del experimento.
+
+Este modelo predice `direction_up_probability` y debe usarse como feature para MARL, no como regla automatica de compra. El modelo final de trading se reentrenara cuando haya mas historico real de Steam/BUFF con beneficio neto.
