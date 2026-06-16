@@ -25,6 +25,14 @@ from packages.simulation.portfolio import (
     PositionNotSellableError,
     UnknownPositionError,
 )
+from packages.simulation.risk import (
+    PortfolioRiskConfig,
+    PortfolioRiskSnapshot,
+    RiskCandidate,
+    RiskLimitMetric,
+    default_portfolio_risk_config,
+    evaluate_portfolio_risk,
+)
 
 __all__ = [
     "BUFF163",
@@ -36,14 +44,20 @@ __all__ = [
     "PortfolioError",
     "PortfolioMetrics",
     "PortfolioPosition",
+    "PortfolioRiskConfig",
+    "PortfolioRiskSnapshot",
     "PortfolioSimulator",
     "PositionStatus",
     "PositionNotSellableError",
+    "RiskCandidate",
+    "RiskLimitMetric",
     "UnknownPositionError",
     "calculate_trade_result",
     "convert_currency",
     "default_excel_economics_config",
+    "default_portfolio_risk_config",
     "effective_cash_value",
+    "evaluate_portfolio_risk",
     "return_ratio",
     "steam_balance_cost_factor",
     "steam_cashout_factor",

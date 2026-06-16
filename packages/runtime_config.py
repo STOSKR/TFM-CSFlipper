@@ -8,6 +8,8 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
+from packages.simulation.risk import PortfolioRiskConfig
+
 DEFAULT_CONFIG_PATH = Path("csflipper_config.toml")
 
 
@@ -75,6 +77,7 @@ class RuntimeConfig:
     steamdt: SteamDTConfig
     workers: WorkerConfig
     delays: DelayConfig
+    risk: PortfolioRiskConfig
 
 
 def load_runtime_config(path: Path | str = DEFAULT_CONFIG_PATH) -> RuntimeConfig:
@@ -89,6 +92,7 @@ def load_runtime_config(path: Path | str = DEFAULT_CONFIG_PATH) -> RuntimeConfig
         steamdt=_steamdt_config(_section(payload, "steamdt")),
         workers=_worker_config(_section(payload, "workers")),
         delays=_delay_config(_section(payload, "delays")),
+        risk=_risk_config(_section(payload, "risk")),
     )
 
 
@@ -178,6 +182,23 @@ def _delay_config(section: dict[str, Any]) -> DelayConfig:
         steam_max_seconds=_float(section, "steam_max_seconds", 4.0),
         buff_min_seconds=_float(section, "buff_min_seconds", 2.5),
         buff_max_seconds=_float(section, "buff_max_seconds", 6.0),
+    )
+
+
+def _risk_config(section: dict[str, Any]) -> PortfolioRiskConfig:
+    return PortfolioRiskConfig(
+        max_position_fraction=_decimal(
+            section,
+            "max_position_fraction",
+            Decimal("0.20"),
+        ),
+        max_item_fraction=_decimal(section, "max_item_fraction", Decimal("0.30")),
+        max_platform_fraction=_decimal(section, "max_platform_fraction", Decimal("0.70")),
+        max_blocked_fraction=_decimal(section, "max_blocked_fraction", Decimal("0.60")),
+        min_cash_fraction=_decimal(section, "min_cash_fraction", Decimal("0.10")),
+        min_liquidity_quantity=_int(section, "min_liquidity_quantity", 1),
+        max_volatility=_optional_decimal(section, "max_volatility", None),
+        warning_usage_ratio=_decimal(section, "warning_usage_ratio", Decimal("0.80")),
     )
 
 

@@ -35,3 +35,19 @@ CSFloat y Skinport quedan fuera del dominio principal del TFM por ahora.
 - metricas de capital disponible, capital bloqueado, profit realizado, profit no realizado, equity y drawdown.
 
 El simulador no depende de PettingZoo, RLlib ni modelos ML. El entorno multiagente lo usara como motor de contabilidad.
+
+## Restricciones de riesgo
+
+`packages.simulation.risk` contiene reglas deterministas configurables para el futuro agente
+Portfolio:
+
+- limite por posicion;
+- limite agregado por articulo;
+- limite agregado por plataforma;
+- limite de capital bloqueado por trade hold;
+- caja minima disponible;
+- liquidez minima y volatilidad maxima opcional para candidatos.
+
+La salida de `evaluate_portfolio_risk()` incluye violaciones, avisos y un mapa numerico
+`observation` preparado para convertirse en features del espacio de observacion MARL. Estas
+reglas no sustituyen a la politica aprendida: controlan el entorno y exponen senales de riesgo.

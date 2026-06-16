@@ -1,9 +1,10 @@
 from decimal import Decimal
+from pathlib import Path
 
 from packages.runtime_config import load_runtime_config
 
 
-def test_load_runtime_config_reads_root_numeric_values(tmp_path) -> None:
+def test_load_runtime_config_reads_root_numeric_values(tmp_path: Path) -> None:
     config_path = tmp_path / "csflipper_config.toml"
     config_path.write_text(
         """
@@ -39,6 +40,16 @@ def test_load_runtime_config_reads_root_numeric_values(tmp_path) -> None:
         steam_max_seconds = 3.0
         buff_min_seconds = 2.0
         buff_max_seconds = 5.0
+
+        [risk]
+        max_position_fraction = 0.15
+        max_item_fraction = 0.25
+        max_platform_fraction = 0.65
+        max_blocked_fraction = 0.55
+        min_cash_fraction = 0.12
+        min_liquidity_quantity = 3
+        max_volatility = 0.30
+        warning_usage_ratio = 0.75
         """,
         encoding="utf-8",
     )
@@ -61,9 +72,19 @@ def test_load_runtime_config_reads_root_numeric_values(tmp_path) -> None:
     assert config.workers.steam_concurrency == 2
     assert config.workers.batch_size == 4
     assert config.delays.buff_max_seconds == 5.0
+    assert config.risk.max_position_fraction == Decimal("0.15")
+    assert config.risk.max_item_fraction == Decimal("0.25")
+    assert config.risk.max_platform_fraction == Decimal("0.65")
+    assert config.risk.max_blocked_fraction == Decimal("0.55")
+    assert config.risk.min_cash_fraction == Decimal("0.12")
+    assert config.risk.min_liquidity_quantity == 3
+    assert config.risk.max_volatility == Decimal("0.30")
+    assert config.risk.warning_usage_ratio == Decimal("0.75")
 
 
-def test_load_runtime_config_reads_all_profile_mode_and_multiple_profiles(tmp_path) -> None:
+def test_load_runtime_config_reads_all_profile_mode_and_multiple_profiles(
+    tmp_path: Path,
+) -> None:
     config_path = tmp_path / "csflipper_config.toml"
     config_path.write_text(
         """

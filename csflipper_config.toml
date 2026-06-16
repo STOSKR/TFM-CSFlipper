@@ -56,3 +56,12 @@ steam_min_seconds = 1.5
 steam_max_seconds = 4.0
 buff_min_seconds = 2.5
 buff_max_seconds = 6.0
+
+[risk]
+max_position_fraction = 0.20
+max_item_fraction = 0.30
+max_platform_fraction = 0.70
+max_blocked_fraction = 0.60
+min_cash_fraction = 0.10
+min_liquidity_quantity = 1
+warning_usage_ratio = 0.80
