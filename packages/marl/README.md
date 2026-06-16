@@ -6,6 +6,8 @@ Primer andamiaje del entorno multiagente.
 
 - `reset()` devuelve observaciones locales por agente;
 - `step(actions)` acepta acciones simultaneas;
+- `AGENT_SPECS` declara rol, campos locales, acciones y si el agente ejecuta operaciones;
+- `action_masks()` expone acciones validas para el candidato actual;
 - solo se ejecuta una compra si Scout marca, Trader compra y Portfolio aprueba;
 - la compra usa `PortfolioSimulator`;
 - la validacion usa `evaluate_portfolio_risk`;

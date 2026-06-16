@@ -34,14 +34,18 @@ La arquitectura objetivo usa Scout, Trader y Portfolio bajo CTDE. Estos agentes 
 
 ## Pasos realizados
 
-Pendiente.
+- Movida a progreso tras iniciar el contrato formal de agentes.
+- Anadido `AgentSpec` y `AGENT_SPECS` para Scout, Trader y Portfolio.
+- Declarados campos de observacion locales por agente y espacios de accion discretos.
+- Anadida validacion de acciones desconocidas o fuera de espacio en `MarketMARLEnvironment.step()`.
+- Anadidas mascaras de accion con `MarketMARLEnvironment.action_masks()` para bloquear compras/aprobaciones cuando riesgo rechaza el candidato.
+- Documentado en `packages/marl/README.md`.
 
 ## Pruebas ejecutadas
 
-Pendiente.
+- `python -m pytest tests/unit/test_market_marl_env.py`
 
 ## Bloqueos o riesgos
 
 - Acciones demasiado amplias pueden dificultar el aprendizaje.
 - Acciones demasiado discretas pueden ocultar oportunidades reales.
-

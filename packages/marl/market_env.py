@@ -26,6 +26,58 @@ AGENT_IDS = ("scout", "trader", "portfolio")
 ActionMap = Mapping[str, int]
 ObservationMap = dict[str, dict[str, float]]
 InfoMap = dict[str, dict[str, Any]]
+ActionMaskMap = dict[str, tuple[int, ...]]
+
+
+@dataclass(frozen=True, slots=True)
+class AgentSpec:
+    agent_id: str
+    role: str
+    observation_fields: tuple[str, ...]
+    action_space: dict[int, str]
+    executes_trades: bool
+
+
+AGENT_SPECS = {
+    "scout": AgentSpec(
+        agent_id="scout",
+        role="Detecta oportunidades y marca candidatos; no ejecuta operaciones.",
+        observation_fields=(
+            "buy_price_eur",
+            "current_return",
+            "supervised_probability",
+            "available_quantity",
+        ),
+        action_space={0: "ignore", 1: "mark_opportunity"},
+        executes_trades=False,
+    ),
+    "trader": AgentSpec(
+        agent_id="trader",
+        role="Decide mantener o comprar una unidad cuando Scout y Portfolio lo permiten.",
+        observation_fields=(
+            "buy_price_eur",
+            "current_exit_net_eur",
+            "current_return",
+            "cash_available_ratio",
+        ),
+        action_space={0: "hold", 1: "buy_one"},
+        executes_trades=True,
+    ),
+    "portfolio": AgentSpec(
+        agent_id="portfolio",
+        role="Aprueba o rechaza candidatos usando exposicion, liquidez y capital bloqueado.",
+        observation_fields=(
+            "cash_available_ratio",
+            "cash_after_candidate_ratio",
+            "blocked_capital_ratio",
+            "candidate_position_ratio",
+            "violation_count",
+            "warning_count",
+        ),
+        action_space={0: "reject", 1: "approve"},
+        executes_trades=False,
+    ),
+}
 
 
 @dataclass(frozen=True, slots=True)
@@ -60,32 +112,10 @@ class MarketEpisodeStep:
 class MarketMARLEnvironment:
     """Small deterministic parallel environment for the first MARL integration tests."""
 
-    action_spaces = {
-        "scout": {0: "ignore", 1: "mark_opportunity"},
-        "trader": {0: "hold", 1: "buy_one"},
-        "portfolio": {0: "reject", 1: "approve"},
-    }
+    agent_specs = AGENT_SPECS
+    action_spaces = {agent_id: spec.action_space for agent_id, spec in AGENT_SPECS.items()}
     observation_spaces = {
-        "scout": (
-            "buy_price_eur",
-            "current_return",
-            "supervised_probability",
-            "available_quantity",
-        ),
-        "trader": (
-            "buy_price_eur",
-            "current_exit_net_eur",
-            "current_return",
-            "cash_available_ratio",
-        ),
-        "portfolio": (
-            "cash_available_ratio",
-            "cash_after_candidate_ratio",
-            "blocked_capital_ratio",
-            "candidate_position_ratio",
-            "violation_count",
-            "warning_count",
-        ),
+        agent_id: spec.observation_fields for agent_id, spec in AGENT_SPECS.items()
     }
 
     def __init__(
@@ -123,6 +153,7 @@ class MarketMARLEnvironment:
         if self._terminated:
             return {}, {}, {}, {}, {}
 
+        normalized_actions = _validated_actions(actions)
         current = self._current_step()
         candidate = _risk_candidate(current)
         risk = evaluate_portfolio_risk(
@@ -131,7 +162,7 @@ class MarketMARLEnvironment:
             config=self._risk_config,
             candidate=candidate,
         )
-        executed_trade = _wants_buy(actions) and risk.candidate_allowed
+        executed_trade = _wants_buy(normalized_actions) and risk.candidate_allowed
         reward = Decimal("0")
         if executed_trade:
             self._simulator.buy(
@@ -158,6 +189,24 @@ class MarketMARLEnvironment:
         if self._terminated:
             self.agents = []
         return observations, rewards, terminations, truncations, infos
+
+    def action_masks(self) -> ActionMaskMap:
+        if self._terminated:
+            return {}
+
+        current = self._current_step()
+        risk = evaluate_portfolio_risk(
+            self._simulator,
+            as_of=current.observed_day,
+            config=self._risk_config,
+            candidate=_risk_candidate(current),
+        )
+        candidate_allowed = int(risk.candidate_allowed)
+        return {
+            "scout": (1, 1),
+            "trader": (1, candidate_allowed),
+            "portfolio": (1, candidate_allowed),
+        }
 
     def _observations(self) -> ObservationMap:
         current = self._current_step()
@@ -207,6 +256,7 @@ class MarketMARLEnvironment:
         risk_violations: tuple[str, ...] = (),
     ) -> InfoMap:
         step = self._episode_steps[min(self._index, len(self._episode_steps) - 1)]
+        action_masks = self.action_masks()
         payload = {
             "item_id": step.item_id,
             "representation_name": step.representation_name,
@@ -215,7 +265,13 @@ class MarketMARLEnvironment:
             "reward": float(reward),
             "risk_violations": risk_violations,
         }
-        return {agent_id: dict(payload) for agent_id in AGENT_IDS}
+        return {
+            agent_id: {
+                **payload,
+                "action_mask": action_masks.get(agent_id, ()),
+            }
+            for agent_id in AGENT_IDS
+        }
 
     def _current_step(self) -> MarketEpisodeStep:
         return self._episode_steps[self._index]
@@ -227,6 +283,22 @@ def _wants_buy(actions: ActionMap) -> bool:
         and actions.get("trader", 0) == 1
         and actions.get("portfolio", 0) == 1
     )
+
+
+def _validated_actions(actions: ActionMap) -> dict[str, int]:
+    unknown_agents = sorted(set(actions) - set(AGENT_IDS))
+    if unknown_agents:
+        raise ValueError(f"unknown agent action(s): {', '.join(unknown_agents)}")
+
+    normalized = {agent_id: int(actions.get(agent_id, 0)) for agent_id in AGENT_IDS}
+    invalid = [
+        f"{agent_id}={action}"
+        for agent_id, action in normalized.items()
+        if action not in AGENT_SPECS[agent_id].action_space
+    ]
+    if invalid:
+        raise ValueError(f"invalid action(s): {', '.join(invalid)}")
+    return normalized
 
 
 def _risk_candidate(step: MarketEpisodeStep) -> RiskCandidate:
