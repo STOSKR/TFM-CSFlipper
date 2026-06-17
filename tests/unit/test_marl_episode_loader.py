@@ -19,6 +19,8 @@ def test_load_market_episode_steps_from_dataset_split(tmp_path: Path) -> None:
                 "buy_price_eur": 20.0,
                 "current_exit_net_eur": 19.0,
                 "current_return": -0.05,
+                "current_cash_value_eur": 19.0,
+                "current_cash_return": -0.05,
                 "steam_sell_price_eur": 21.84,
                 "buff_buy_order_price_eur": 19.0,
             },
@@ -29,6 +31,8 @@ def test_load_market_episode_steps_from_dataset_split(tmp_path: Path) -> None:
                 "buy_price_eur": 10.0,
                 "current_exit_net_eur": 12.0,
                 "current_return": 0.2,
+                "current_cash_value_eur": 12.0,
+                "current_cash_return": 0.2,
                 "steam_sell_price_eur": 13.79,
                 "buff_buy_order_price_eur": 12.0,
             },
@@ -47,6 +51,9 @@ def test_load_market_episode_steps_from_dataset_split(tmp_path: Path) -> None:
     assert steps[0].buy_price_type == "listing"
     assert steps[0].sell_platform == "BUFF"
     assert steps[0].sell_price_type == "buy_order"
+    assert steps[0].cash_destination == "reinvest"
+    assert steps[0].current_cash_value_eur == Decimal("12.0")
+    assert steps[0].current_cash_return == Decimal("0.2")
 
     env = MarketMARLEnvironment(steps, initial_cash_eur=Decimal("100"))
     env.reset()
@@ -59,6 +66,7 @@ def test_load_market_episode_steps_from_dataset_split(tmp_path: Path) -> None:
     assert infos["scout"]["executed_trade"] is True
     assert infos["scout"]["sell_platform"] == "BUFF"
     assert infos["scout"]["sell_price_type"] == "buy_order"
+    assert infos["scout"]["cashflow"]["effective_cash_return"] == 0.2
 
 
 def test_load_market_episode_steps_respects_limit(tmp_path: Path) -> None:

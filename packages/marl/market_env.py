@@ -23,16 +23,21 @@ from packages.marl.rewards import (
 from packages.simulation import (
     BUFF163,
     STEAM,
+    MarketEconomicsConfig,
     PortfolioRiskConfig,
     PortfolioSimulator,
     RiskCandidate,
     default_portfolio_risk_config,
+    effective_cash_value,
     evaluate_portfolio_risk,
+    return_ratio,
 )
 
 AGENT_IDS = ("scout", "trader", "portfolio")
 PRICE_TYPE_LISTING = "listing"
 PRICE_TYPE_BUY_ORDER = "buy_order"
+CASH_DESTINATION_REINVEST = "reinvest"
+CASH_DESTINATION_CASHOUT = "cashout"
 ActionMap = Mapping[str, int]
 ObservationMap = dict[str, dict[str, float]]
 InfoMap = dict[str, dict[str, Any]]
@@ -72,6 +77,7 @@ AGENT_SPECS = {
             "sell_price_is_buy_order",
             "buy_price_eur",
             "current_return",
+            "current_cash_return",
             "supervised_probability",
             "available_quantity",
         ),
@@ -93,6 +99,10 @@ AGENT_SPECS = {
             "buy_price_eur",
             "current_exit_net_eur",
             "current_return",
+            "current_cash_value_eur",
+            "current_cash_return",
+            "cash_destination_is_reinvest",
+            "cash_destination_is_cashout",
             "cash_available_ratio",
         ),
         action_space={0: "hold", 1: "buy_one"},
@@ -128,6 +138,9 @@ class MarketEpisodeStep:
     buy_price_type: str = PRICE_TYPE_LISTING
     sell_platform: str = STEAM
     sell_price_type: str = PRICE_TYPE_LISTING
+    cash_destination: str = CASH_DESTINATION_REINVEST
+    current_cash_value_eur: Decimal | None = None
+    current_cash_return: Decimal | None = None
     steam_sell_price_eur: Decimal | None = None
     buff_buy_order_price_eur: Decimal | None = None
     available_quantity: int | None = None
@@ -136,24 +149,51 @@ class MarketEpisodeStep:
 
     @classmethod
     def from_mapping(cls, row: Mapping[str, Any]) -> MarketEpisodeStep:
+        buy_price_eur = _positive_decimal(row["buy_price_eur"], "buy_price_eur")
+        current_exit_net_eur = _decimal(row["current_exit_net_eur"])
+        current_cash_value_eur = _optional_decimal(row.get("current_cash_value_eur"))
+        current_cash_return = (
+            _optional_decimal(row.get("current_cash_return"))
+            if current_cash_value_eur is not None
+            else None
+        )
         return cls(
             item_id=_required_text(row, "item_id"),
             representation_name=_required_text(row, "representation_name"),
             observed_day=_date_value(row["observed_day"]),
-            buy_price_eur=_positive_decimal(row["buy_price_eur"], "buy_price_eur"),
-            current_exit_net_eur=_decimal(row["current_exit_net_eur"]),
+            buy_price_eur=buy_price_eur,
+            current_exit_net_eur=current_exit_net_eur,
             current_return=_decimal(row["current_return"]),
             buy_platform=_platform_text(row.get("buy_platform") or STEAM),
             buy_currency=str(row.get("buy_currency") or "EUR").upper(),
             buy_price_type=_price_type(row.get("buy_price_type") or row.get("buy_mode")),
             sell_platform=_platform_text(row.get("sell_platform") or STEAM),
             sell_price_type=_price_type(row.get("sell_price_type") or row.get("sell_mode")),
+            cash_destination=_cash_destination(row.get("cash_destination")),
+            current_cash_value_eur=current_cash_value_eur,
+            current_cash_return=current_cash_return
+            or (
+                return_ratio(current_cash_value_eur - buy_price_eur, buy_price_eur)
+                if current_cash_value_eur is not None
+                else None
+            ),
             steam_sell_price_eur=_optional_decimal(row.get("steam_sell_price_eur")),
             buff_buy_order_price_eur=_optional_decimal(row.get("buff_buy_order_price_eur")),
             available_quantity=_optional_int(row.get("available_quantity")),
             supervised_probability=_optional_decimal(row.get("supervised_probability")),
             volatility=_optional_decimal(row.get("volatility")),
         )
+
+    @property
+    def route_label(self) -> str:
+        return (
+            f"{self.buy_platform} {self.buy_price_type} -> "
+            f"{self.sell_platform} {self.sell_price_type}"
+        )
+
+    @property
+    def exit_balance_platform(self) -> str:
+        return self.sell_platform
 
 
 class MarketMARLEnvironment:
@@ -223,6 +263,13 @@ class MarketMARLEnvironment:
                 buy_price=current.buy_price_eur,
                 buy_currency=current.buy_currency,
                 purchased_at=current.observed_day,
+                metadata={
+                    "route_label": current.route_label,
+                    "buy_price_type": current.buy_price_type,
+                    "sell_platform": current.sell_platform,
+                    "sell_price_type": current.sell_price_type,
+                    "cash_destination": current.cash_destination,
+                },
             )
         after_metrics = self._simulator.metrics(as_of=current.observed_day)
         reward_breakdown = calculate_cooperative_reward(
@@ -300,6 +347,18 @@ class MarketMARLEnvironment:
             ),
             "current_exit_net_eur": _float(current.current_exit_net_eur),
             "current_return": _float(current.current_return),
+            "current_cash_value_eur": _float(
+                _effective_cash_value(current, self._simulator.config)
+            ),
+            "current_cash_return": _float(_effective_cash_return(current, self._simulator.config)),
+            "cash_destination_is_reinvest": _cash_destination_flag(
+                current.cash_destination,
+                CASH_DESTINATION_REINVEST,
+            ),
+            "cash_destination_is_cashout": _cash_destination_flag(
+                current.cash_destination,
+                CASH_DESTINATION_CASHOUT,
+            ),
             "steam_sell_price_eur": _float(current.steam_sell_price_eur),
             "buff_buy_order_price_eur": _float(current.buff_buy_order_price_eur),
             "available_quantity": float(current.available_quantity or 0),
@@ -344,10 +403,15 @@ class MarketMARLEnvironment:
             "item_id": resolved_step.item_id,
             "representation_name": resolved_step.representation_name,
             "observed_day": resolved_step.observed_day.isoformat(),
+            "route_label": resolved_step.route_label,
+            "route_selection": "candidate",
             "buy_platform": resolved_step.buy_platform,
             "buy_price_type": resolved_step.buy_price_type,
             "sell_platform": resolved_step.sell_platform,
             "sell_price_type": resolved_step.sell_price_type,
+            "exit_balance_platform": resolved_step.exit_balance_platform,
+            "cash_destination": resolved_step.cash_destination,
+            "cashflow": _cashflow_info(resolved_step, self._simulator.config),
             "executed_trade": executed_trade,
             "reward": float(reward),
             "reward_breakdown": reward_info(reward_breakdown or EMPTY_REWARD_BREAKDOWN),
@@ -439,6 +503,55 @@ def _price_type(value: Any) -> str:
 
 def _price_type_flag(price_type: str, expected: str) -> float:
     return 1.0 if price_type == expected else 0.0
+
+
+def _cash_destination(value: Any) -> str:
+    text = str(value or "").strip().lower()
+    if not text:
+        return CASH_DESTINATION_REINVEST
+    if text in {CASH_DESTINATION_REINVEST, "platform_balance", "balance"}:
+        return CASH_DESTINATION_REINVEST
+    if text in {CASH_DESTINATION_CASHOUT, "cash_out", "withdraw", "withdrawal"}:
+        return CASH_DESTINATION_CASHOUT
+    raise ValueError(f"unknown cash destination: {value}")
+
+
+def _cash_destination_flag(cash_destination: str, expected: str) -> float:
+    return 1.0 if cash_destination == expected else 0.0
+
+
+def _cashflow_info(step: MarketEpisodeStep, config: MarketEconomicsConfig) -> dict[str, Any]:
+    cash_value = _effective_cash_value(step, config)
+    cash_return = _effective_cash_return(step, config)
+    return {
+        "buy_value_eur": float(step.buy_price_eur),
+        "exit_balance_platform": step.exit_balance_platform,
+        "exit_balance_value_eur": float(step.current_exit_net_eur),
+        "effective_cash_value_eur": float(cash_value),
+        "effective_cash_return": float(cash_return),
+        "cash_destination": step.cash_destination,
+    }
+
+
+def _effective_cash_value(step: MarketEpisodeStep, config: MarketEconomicsConfig) -> Decimal:
+    if step.current_cash_value_eur is not None:
+        return step.current_cash_value_eur
+    if step.cash_destination == CASH_DESTINATION_CASHOUT:
+        return effective_cash_value(
+            step.current_exit_net_eur,
+            platform=step.exit_balance_platform,
+            config=config,
+        )
+    return step.current_exit_net_eur
+
+
+def _effective_cash_return(step: MarketEpisodeStep, config: MarketEconomicsConfig) -> Decimal:
+    if step.current_cash_return is not None:
+        return step.current_cash_return
+    return return_ratio(
+        _effective_cash_value(step, config) - step.buy_price_eur,
+        step.buy_price_eur,
+    )
 
 
 def _date_value(value: Any) -> date:

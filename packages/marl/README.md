@@ -27,6 +27,11 @@ son opcionales y por compatibilidad asumen `STEAM`; cuando el candidato venga de
 `BUFF`. `buy_price_type` y `sell_price_type` distinguen `listing` de `buy_order`, porque no es lo
 mismo comprar/vender al precio normal que contra una orden.
 
+La ruta es parte del candidato, no una accion aprendida todavia. Trader decide `hold` o `buy_one`
+sobre esa ruta preconstruida. El `info` de cada agente expone `route_label`, `route_selection` y
+`cashflow`, con valor neto de salida, plataforma donde queda el saldo y valor efectivo si se modela
+cash-out.
+
 Ejemplo:
 
 ```python

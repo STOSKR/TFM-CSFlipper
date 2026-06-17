@@ -34,9 +34,17 @@ TRADING_TRACE_COLUMNS = (
     "stattrak",
     TRADING_DATE_COLUMN,
 )
+TRADING_ROUTE_COLUMNS = (
+    "buy_platform",
+    "buy_price_type",
+    "sell_platform",
+    "sell_price_type",
+    "cash_destination",
+)
 TRADING_NON_FEATURE_COLUMNS = frozenset(
     (
         *TRADING_TRACE_COLUMNS,
+        *TRADING_ROUTE_COLUMNS,
         "future_day",
         "target_future_day",
         "future_steam_sell_price_eur",
@@ -45,6 +53,7 @@ TRADING_NON_FEATURE_COLUMNS = frozenset(
         "future_buff_buy_order_price_eur",
         "future_buff_buy_order_net_sale_eur",
         "future_exit_net_eur",
+        "future_cash_value_eur",
         "future_profit_eur",
         "future_cash_profit_eur",
         "future_return",
@@ -87,7 +96,12 @@ def build_trading_dataset_from_history(
         column for column in feature_columns if column not in numeric_features
     )
 
-    output_columns = (*TRADING_TRACE_COLUMNS, *feature_columns, TRADING_TARGET_COLUMN)
+    output_columns = (
+        *TRADING_TRACE_COLUMNS,
+        *TRADING_ROUTE_COLUMNS,
+        *feature_columns,
+        TRADING_TARGET_COLUMN,
+    )
     output_dir = config.output_dir
     output_dir.mkdir(parents=True, exist_ok=True)
     split_frames = _split_frames(frame, config=config)
@@ -137,6 +151,7 @@ def build_trading_dataset_from_history(
         },
         "splits": split_stats,
         "trace_columns": list(TRADING_TRACE_COLUMNS),
+        "route_columns": list(TRADING_ROUTE_COLUMNS),
         "feature_columns": list(feature_columns),
         "numeric_features": list(numeric_features),
         "categorical_features": list(categorical_features),
@@ -211,13 +226,16 @@ def trading_examples_from_history(
     )
     daily["buy_price_eur"] = _buy_price(daily, config.trade_direction)
     daily["current_exit_net_eur"] = _current_exit_value(daily, config.trade_direction)
+    daily["current_cash_value_eur"] = _current_cash_value(daily, config.trade_direction)
     daily["current_profit_eur"] = daily["current_exit_net_eur"] - daily["buy_price_eur"]
     daily["current_return"] = _safe_ratio(daily["current_profit_eur"], daily["buy_price_eur"])
-    daily["current_cash_profit_eur"] = daily["steam_cash_value_eur"] - daily["buy_price_eur"]
+    daily["current_cash_profit_eur"] = daily["current_cash_value_eur"] - daily["buy_price_eur"]
     daily["current_cash_return"] = _safe_ratio(
         daily["current_cash_profit_eur"],
         daily["buy_price_eur"],
     )
+    for column, value in _route_columns(config.trade_direction).items():
+        daily[column] = value
     daily["steam_buff_spread_eur"] = (
         daily["steam_sell_price_eur"] - daily["buff_sell_price_eur"]
     )
@@ -273,9 +291,10 @@ def trading_examples_from_history(
         tolerance=pd.Timedelta(days=config.future_tolerance_days),
     ).dropna(subset=["future_day"])
     examples["future_exit_net_eur"] = _future_exit_value(examples, config.trade_direction)
+    examples["future_cash_value_eur"] = _future_cash_value(examples, config.trade_direction)
     examples["future_profit_eur"] = examples["future_exit_net_eur"] - examples["buy_price_eur"]
     examples["future_cash_profit_eur"] = (
-        examples["future_steam_cash_value_eur"] - examples["buy_price_eur"]
+        examples["future_cash_value_eur"] - examples["buy_price_eur"]
     )
     examples["future_return"] = examples.apply(
         lambda row: float(
@@ -372,11 +391,47 @@ def _current_exit_value(frame: pd.DataFrame, trade_direction: str) -> pd.Series:
     raise ValueError(f"unknown trade_direction: {trade_direction}")
 
 
+def _current_cash_value(frame: pd.DataFrame, trade_direction: str) -> pd.Series:
+    if trade_direction == "buff_to_steam_sell":
+        return frame["steam_cash_value_eur"]
+    if trade_direction == "steam_to_buff_buy_order":
+        return frame["buff_buy_order_net_sale_eur"]
+    raise ValueError(f"unknown trade_direction: {trade_direction}")
+
+
 def _future_exit_value(frame: pd.DataFrame, trade_direction: str) -> pd.Series:
     if trade_direction == "buff_to_steam_sell":
         return frame["future_steam_net_sale_eur"]
     if trade_direction == "steam_to_buff_buy_order":
         return frame["future_buff_buy_order_net_sale_eur"]
+    raise ValueError(f"unknown trade_direction: {trade_direction}")
+
+
+def _future_cash_value(frame: pd.DataFrame, trade_direction: str) -> pd.Series:
+    if trade_direction == "buff_to_steam_sell":
+        return frame["future_steam_cash_value_eur"]
+    if trade_direction == "steam_to_buff_buy_order":
+        return frame["future_buff_buy_order_net_sale_eur"]
+    raise ValueError(f"unknown trade_direction: {trade_direction}")
+
+
+def _route_columns(trade_direction: str) -> dict[str, str]:
+    if trade_direction == "buff_to_steam_sell":
+        return {
+            "buy_platform": BUFF163,
+            "buy_price_type": "listing",
+            "sell_platform": STEAM,
+            "sell_price_type": "listing",
+            "cash_destination": "reinvest",
+        }
+    if trade_direction == "steam_to_buff_buy_order":
+        return {
+            "buy_platform": STEAM,
+            "buy_price_type": "listing",
+            "sell_platform": BUFF163,
+            "sell_price_type": "buy_order",
+            "cash_destination": "reinvest",
+        }
     raise ValueError(f"unknown trade_direction: {trade_direction}")
 
 

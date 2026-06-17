@@ -57,6 +57,7 @@ def _route_defaults_from_metadata(metadata: dict[str, Any]) -> dict[str, str]:
             "buy_price_type": "listing",
             "sell_platform": "BUFF",
             "sell_price_type": "buy_order",
+            "cash_destination": "reinvest",
         }
     if trade_direction == "buff_to_steam_sell":
         return {
@@ -64,5 +65,6 @@ def _route_defaults_from_metadata(metadata: dict[str, Any]) -> dict[str, str]:
             "buy_price_type": "listing",
             "sell_platform": "STEAM",
             "sell_price_type": "listing",
+            "cash_destination": "reinvest",
         }
     return {}

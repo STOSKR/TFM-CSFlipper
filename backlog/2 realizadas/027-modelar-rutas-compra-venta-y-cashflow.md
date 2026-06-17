@@ -51,6 +51,14 @@ El objetivo operativo no es comprar siempre desde una plataforma fija. La estrat
 - El loader MARL infiere ruta desde `metadata.json` cuando datasets antiguos no traen columnas
   explicitas de ruta. Por ejemplo, `steam_to_buff_buy_order` se carga como
   `STEAM listing -> BUFF buy_order`.
+- Anadido contrato explicito de ruta en el entorno: `route_label`, `route_selection = candidate`,
+  plataforma/tipo de entrada, plataforma/tipo de salida, destino de saldo y `cashflow`.
+- Decidido que, por ahora, la seleccion de ruta la hace el dataset/candidato. Trader solo decide
+  comprar o mantener esa ruta para evitar un espacio de acciones mayor sin datos suficientes.
+- Anadidas columnas de ruta a los datasets supervisados: `buy_platform`, `buy_price_type`,
+  `sell_platform`, `sell_price_type` y `cash_destination`.
+- Corregido el valor efectivo de cashflow por direccion: `BUFF -> Steam` usa valor cash-equivalent
+  de Steam, y `Steam -> BUFF buy_order` usa el neto de salida en BUFF.
 
 ## Pruebas ejecutadas
 
@@ -59,8 +67,15 @@ El objetivo operativo no es comprar siempre desde una plataforma fija. La estrat
 - `python -m pytest tests/unit/test_marl_episode_loader.py tests/unit/test_run_marl_episode_cli.py tests/unit/test_market_marl_env.py`
 - `python -m ruff check packages/marl/episodes.py tests/unit/test_marl_episode_loader.py apps/cli/run_marl_episode.py tests/unit/test_run_marl_episode_cli.py tests/unit/test_market_marl_env.py`
 - `python -m mypy packages/marl/episodes.py tests/unit/test_marl_episode_loader.py apps/cli/run_marl_episode.py tests/unit/test_run_marl_episode_cli.py tests/unit/test_market_marl_env.py`
+- `python -m pytest tests/unit/test_market_marl_env.py tests/unit/test_marl_episode_loader.py tests/unit/test_run_marl_episode_cli.py tests/unit/test_trading_dataset.py`
+- `python -m ruff check packages/marl/market_env.py packages/marl/episodes.py packages/datasets/trading.py tests/unit/test_market_marl_env.py tests/unit/test_marl_episode_loader.py tests/unit/test_trading_dataset.py`
+- `python -m mypy packages/marl/market_env.py packages/marl/episodes.py packages/datasets/trading.py tests/unit/test_market_marl_env.py tests/unit/test_marl_episode_loader.py tests/unit/test_trading_dataset.py`
+- `python -m apps.cli.run_marl_episode --dataset-dir data/datasets/trading_profit_v1 --split train --limit 1`
 
 ## Bloqueos o riesgos
 
 - Sin precios de listing/venta de BUFF, la ruta natural `BUFF -> Steam` queda incompleta.
-- Entrenar `022` antes de cerrar este contrato puede producir politicas sesgadas por una ruta incorrecta.
+- Las combinaciones adicionales de rutas quedan pendientes de datos suficientes antes de ampliar
+  acciones del agente.
+- Los datasets antiguos sin `current_cash_value_eur` se cargan recalculando el retorno efectivo
+  desde la ruta para evitar mezclar cash returns obsoletos.

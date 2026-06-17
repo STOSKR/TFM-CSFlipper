@@ -25,6 +25,10 @@ def test_market_marl_agent_specs_define_local_contracts() -> None:
         "buy_price_eur",
         "current_exit_net_eur",
         "current_return",
+        "current_cash_value_eur",
+        "current_cash_return",
+        "cash_destination_is_reinvest",
+        "cash_destination_is_cashout",
         "cash_available_ratio",
     )
 
@@ -45,9 +49,23 @@ def test_market_marl_env_reset_returns_agent_observations() -> None:
     assert observations["scout"]["sell_platform_is_steam"] == 1.0
     assert observations["scout"]["sell_price_is_listing"] == 1.0
     assert observations["scout"]["buy_price_eur"] == 10.0
+    assert observations["scout"]["current_cash_return"] == 0.2
     assert observations["scout"]["supervised_probability"] == 0.8
+    assert observations["trader"]["current_cash_value_eur"] == 12.0
+    assert observations["trader"]["cash_destination_is_reinvest"] == 1.0
+    assert observations["trader"]["cash_destination_is_cashout"] == 0.0
     assert observations["portfolio"]["candidate_position_ratio"] == 0.01
     assert infos["trader"]["representation_name"] == "AK-47 | Slate_FT_0"
+    assert infos["trader"]["route_label"] == "STEAM listing -> STEAM listing"
+    assert infos["trader"]["route_selection"] == "candidate"
+    assert infos["trader"]["cashflow"] == {
+        "buy_value_eur": 10.0,
+        "exit_balance_platform": "STEAM",
+        "exit_balance_value_eur": 12.0,
+        "effective_cash_value_eur": 12.0,
+        "effective_cash_return": 0.2,
+        "cash_destination": "reinvest",
+    }
     assert infos["trader"]["action_mask"] == (1, 1)
 
 
@@ -116,6 +134,7 @@ def test_market_marl_env_can_execute_buy_from_buff_candidate() -> None:
     assert observations["trader"]["sell_platform_is_steam"] == 1.0
     assert observations["trader"]["sell_price_is_buy_order"] == 1.0
     assert env.simulator.positions[0].buy_platform == "BUFF"
+    assert env.simulator.positions[0].metadata["route_label"] == "BUFF buy_order -> STEAM buy_order"
     assert infos["trader"]["buy_platform"] == "BUFF"
     assert infos["trader"]["buy_price_type"] == "buy_order"
     assert infos["trader"]["sell_platform"] == "STEAM"
@@ -218,6 +237,9 @@ def test_market_episode_step_can_be_built_from_mapping() -> None:
             "sell_mode": "Sell to STEAM Highest Buy Order",
             "current_exit_net_eur": "12",
             "current_return": "0.2",
+            "current_cash_value_eur": "11",
+            "current_cash_return": "0.1",
+            "cash_destination": "cashout",
             "available_quantity": "4",
             "supervised_probability": "0.8",
             "volatility": "0.3",
@@ -230,8 +252,55 @@ def test_market_episode_step_can_be_built_from_mapping() -> None:
     assert step.buy_price_type == "buy_order"
     assert step.sell_platform == "STEAM"
     assert step.sell_price_type == "buy_order"
+    assert step.current_cash_value_eur == Decimal("11")
+    assert step.current_cash_return == Decimal("0.1")
+    assert step.cash_destination == "cashout"
+    assert step.route_label == "BUFF buy_order -> STEAM buy_order"
     assert step.available_quantity == 4
     assert step.volatility == Decimal("0.3")
+
+
+def test_market_episode_step_ignores_legacy_cash_return_without_cash_value() -> None:
+    step = MarketEpisodeStep.from_mapping(
+        {
+            "item_id": "item-1",
+            "representation_name": "AK-47 | Slate_FT_0",
+            "observed_day": "2026-01-01",
+            "buy_price_eur": "10",
+            "current_exit_net_eur": "12",
+            "current_return": "0.2",
+            "current_cash_return": "-0.3",
+        }
+    )
+
+    assert step.current_cash_value_eur is None
+    assert step.current_cash_return is None
+
+
+def test_market_marl_env_values_cashout_destination_separately_from_platform_balance() -> None:
+    env = MarketMARLEnvironment(
+        (
+            MarketEpisodeStep(
+                item_id="item-1",
+                representation_name="AK-47 | Slate_FT_0",
+                observed_day=date(2026, 1, 1),
+                buy_price_eur=Decimal("10"),
+                current_exit_net_eur=Decimal("12"),
+                current_return=Decimal("0.2"),
+                cash_destination="cashout",
+            ),
+        ),
+        initial_cash_eur=Decimal("100"),
+    )
+
+    observations, infos = env.reset()
+
+    assert observations["trader"]["current_cash_value_eur"] == 9.6
+    assert observations["trader"]["current_cash_return"] == -0.04
+    assert observations["trader"]["cash_destination_is_reinvest"] == 0.0
+    assert observations["trader"]["cash_destination_is_cashout"] == 1.0
+    assert infos["scout"]["cashflow"]["exit_balance_value_eur"] == 12.0
+    assert infos["scout"]["cashflow"]["effective_cash_value_eur"] == 9.6
 
 
 def _episode() -> tuple[MarketEpisodeStep, ...]:

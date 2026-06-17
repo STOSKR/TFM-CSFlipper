@@ -28,10 +28,17 @@ def test_trading_examples_create_profit_target_from_future_steam_sale() -> None:
     )
 
     first = examples.iloc[0]
+    assert first["buy_platform"] == "BUFF"
+    assert first["buy_price_type"] == "listing"
+    assert first["sell_platform"] == "STEAM"
+    assert first["sell_price_type"] == "listing"
+    assert first["cash_destination"] == "reinvest"
     assert first["buff_sell_price_eur"] == 10.0
+    assert round(first["current_cash_value_eur"], 3) == 8.352
     assert first["future_steam_sell_price_eur"] == 13.0
     assert first["future_steam_net_sale_eur"] == 11.31
     assert round(first["future_profit_eur"], 2) == 1.31
+    assert round(first["future_cash_profit_eur"], 3) == -0.952
     assert first["is_profitable"] == 1
 
 
@@ -53,7 +60,15 @@ def test_build_trading_dataset_writes_splits_and_metadata(tmp_path: Path) -> Non
     assert metadata["schema_version"] == "trading_supervised_dataset.v1"
     assert metadata["target_column"] == "is_profitable"
     assert metadata["primary_group_column"] == "representation_name"
+    assert metadata["route_columns"] == [
+        "buy_platform",
+        "buy_price_type",
+        "sell_platform",
+        "sell_price_type",
+        "cash_destination",
+    ]
     assert "current_profit_eur" in metadata["numeric_features"]
+    assert "buy_platform" not in metadata["feature_columns"]
     assert "representation_name" not in metadata["feature_columns"]
     assert metadata["splits"]["train"]["rows"] == 1
     assert metadata["splits"]["validation"]["rows"] == 0
@@ -62,6 +77,8 @@ def test_build_trading_dataset_writes_splits_and_metadata(tmp_path: Path) -> Non
 
     train = pq.read_table(output_dir / "train.parquet").to_pandas()  # type: ignore[no-untyped-call]
     assert train["is_profitable"].tolist() == [1]
+    assert train["buy_platform"].tolist() == ["BUFF"]
+    assert train["sell_platform"].tolist() == ["STEAM"]
     assert train["steam_buff_spread_eur"].tolist() == [2.0]
 
 
@@ -82,9 +99,15 @@ def test_trading_examples_support_steam_to_buff_buy_order_direction() -> None:
     )
 
     first = examples.iloc[0]
+    assert first["buy_platform"] == "STEAM"
+    assert first["buy_price_type"] == "listing"
+    assert first["sell_platform"] == "BUFF"
+    assert first["sell_price_type"] == "buy_order"
     assert first["buy_price_eur"] == 12.0
+    assert first["current_cash_value_eur"] == 9.2625
     assert first["future_buff_buy_order_price_eur"] == 10.0
     assert first["future_exit_net_eur"] == 9.75
+    assert first["future_cash_value_eur"] == 9.75
     assert first["future_profit_eur"] == -2.25
     assert first["is_profitable"] == 0
 
