@@ -13,6 +13,13 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
 
+from packages.marl.rewards import (
+    CooperativeRewardBreakdown,
+    CooperativeRewardConfig,
+    calculate_cooperative_reward,
+    reward_info,
+    shared_reward_map,
+)
 from packages.simulation import (
     STEAM,
     PortfolioRiskConfig,
@@ -27,6 +34,15 @@ ActionMap = Mapping[str, int]
 ObservationMap = dict[str, dict[str, float]]
 InfoMap = dict[str, dict[str, Any]]
 ActionMaskMap = dict[str, tuple[int, ...]]
+EMPTY_REWARD_BREAKDOWN = CooperativeRewardBreakdown(
+    realized_profit=Decimal("0"),
+    executed_return=Decimal("0"),
+    inactivity=Decimal("0"),
+    risk_violation=Decimal("0"),
+    drawdown=Decimal("0"),
+    blocked_capital=Decimal("0"),
+    volatility=Decimal("0"),
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -92,6 +108,7 @@ class MarketEpisodeStep:
     buff_buy_order_price_eur: Decimal | None = None
     available_quantity: int | None = None
     supervised_probability: Decimal | None = None
+    volatility: Decimal | None = None
 
     @classmethod
     def from_mapping(cls, row: Mapping[str, Any]) -> MarketEpisodeStep:
@@ -106,6 +123,7 @@ class MarketEpisodeStep:
             buff_buy_order_price_eur=_optional_decimal(row.get("buff_buy_order_price_eur")),
             available_quantity=_optional_int(row.get("available_quantity")),
             supervised_probability=_optional_decimal(row.get("supervised_probability")),
+            volatility=_optional_decimal(row.get("volatility")),
         )
 
 
@@ -124,12 +142,14 @@ class MarketMARLEnvironment:
         *,
         initial_cash_eur: Decimal = Decimal("1000"),
         risk_config: PortfolioRiskConfig | None = None,
+        reward_config: CooperativeRewardConfig | None = None,
     ) -> None:
         if not episode_steps:
             raise ValueError("episode_steps cannot be empty")
         self._episode_steps = tuple(sorted(episode_steps, key=lambda step: step.observed_day))
         self._initial_cash_eur = initial_cash_eur
         self._risk_config = risk_config or default_portfolio_risk_config()
+        self._reward_config = reward_config or CooperativeRewardConfig()
         self.agents = list(AGENT_IDS)
         self._simulator = PortfolioSimulator(initial_cash_eur=initial_cash_eur)
         self._index = 0
@@ -163,8 +183,9 @@ class MarketMARLEnvironment:
             candidate=candidate,
         )
         action_masks = _action_masks_from_allowed(risk.candidate_allowed)
-        executed_trade = _wants_buy(normalized_actions) and risk.candidate_allowed
-        reward = Decimal("0")
+        wanted_buy = _wants_buy(normalized_actions)
+        executed_trade = wanted_buy and risk.candidate_allowed
+        before_metrics = self._simulator.metrics(as_of=current.observed_day)
         if executed_trade:
             self._simulator.buy(
                 item_id=current.item_id,
@@ -174,19 +195,30 @@ class MarketMARLEnvironment:
                 buy_currency="EUR",
                 purchased_at=current.observed_day,
             )
-            reward = current.current_return
+        after_metrics = self._simulator.metrics(as_of=current.observed_day)
+        reward_breakdown = calculate_cooperative_reward(
+            before_metrics=before_metrics,
+            after_metrics=after_metrics,
+            executed_trade=executed_trade,
+            opportunity_available=current.current_return > 0 and risk.candidate_allowed,
+            risk_violations=risk.violations if wanted_buy else (),
+            opportunity_return=current.current_return,
+            candidate_volatility=current.volatility if executed_trade else None,
+            config=self._reward_config,
+        )
 
         self._index += 1
         self._terminated = self._index >= len(self._episode_steps)
         observations = {} if self._terminated else self._observations()
-        rewards = {agent_id: float(reward) for agent_id in AGENT_IDS}
+        rewards = shared_reward_map(AGENT_IDS, reward_breakdown)
         terminations = {agent_id: self._terminated for agent_id in AGENT_IDS}
         truncations = {agent_id: False for agent_id in AGENT_IDS}
         infos = self._infos(
             step=current,
             action_masks=action_masks,
             executed_trade=executed_trade,
-            reward=reward,
+            reward=reward_breakdown.total,
+            reward_breakdown=reward_breakdown,
             risk_violations=risk.violations,
         )
         if self._terminated:
@@ -254,6 +286,7 @@ class MarketMARLEnvironment:
         action_masks: ActionMaskMap | None = None,
         executed_trade: bool,
         reward: Decimal = Decimal("0"),
+        reward_breakdown: CooperativeRewardBreakdown | None = None,
         risk_violations: tuple[str, ...] = (),
     ) -> InfoMap:
         resolved_step = step or self._episode_steps[min(self._index, len(self._episode_steps) - 1)]
@@ -264,6 +297,7 @@ class MarketMARLEnvironment:
             "observed_day": resolved_step.observed_day.isoformat(),
             "executed_trade": executed_trade,
             "reward": float(reward),
+            "reward_breakdown": reward_info(reward_breakdown or EMPTY_REWARD_BREAKDOWN),
             "risk_violations": risk_violations,
         }
         return {
@@ -317,6 +351,7 @@ def _risk_candidate(step: MarketEpisodeStep) -> RiskCandidate:
         buy_platform=STEAM,
         buy_value_eur=step.buy_price_eur,
         available_quantity=step.available_quantity,
+        volatility=step.volatility,
     )
 
 

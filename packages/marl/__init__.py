@@ -8,6 +8,11 @@ from packages.marl.market_env import (
     MarketEpisodeStep,
     MarketMARLEnvironment,
 )
+from packages.marl.rewards import (
+    CooperativeRewardBreakdown,
+    CooperativeRewardConfig,
+    calculate_cooperative_reward,
+)
 from packages.marl.rllib_adapter import market_env_creator, register_market_env
 
 __all__ = [
@@ -16,6 +21,9 @@ __all__ = [
     "AgentSpec",
     "MarketEpisodeStep",
     "MarketMARLEnvironment",
+    "CooperativeRewardBreakdown",
+    "CooperativeRewardConfig",
+    "calculate_cooperative_reward",
     "load_market_episode_steps",
     "market_env_creator",
     "register_market_env",

@@ -47,11 +47,13 @@ def test_market_marl_env_executes_buy_when_all_agents_accept() -> None:
 
     assert len(env.simulator.positions) == 1
     assert env.simulator.cash_available_eur == Decimal("90")
-    assert rewards == {"scout": 0.2, "trader": 0.2, "portfolio": 0.2}
+    assert rewards == {"scout": 0.195, "trader": 0.195, "portfolio": 0.195}
     assert observations["scout"]["buy_price_eur"] == 20.0
     assert terminations == {"scout": False, "trader": False, "portfolio": False}
     assert truncations == {"scout": False, "trader": False, "portfolio": False}
     assert infos["portfolio"]["executed_trade"] is True
+    assert infos["portfolio"]["reward_breakdown"]["executed_return"] == 0.2
+    assert infos["portfolio"]["reward_breakdown"]["blocked_capital"] == -0.005
 
 
 def test_market_marl_env_step_info_describes_processed_item() -> None:
@@ -65,7 +67,7 @@ def test_market_marl_env_step_info_describes_processed_item() -> None:
     assert observations["scout"]["buy_price_eur"] == 20.0
     assert infos["trader"]["item_id"] == "item-1"
     assert infos["trader"]["observed_day"] == "2026-01-01"
-    assert infos["trader"]["reward"] == 0.2
+    assert infos["trader"]["reward"] == 0.195
 
 
 @pytest.mark.parametrize(
@@ -85,8 +87,9 @@ def test_market_marl_env_requires_all_agents_to_accept_before_buy(
     _observations, rewards, _terminations, _truncations, infos = env.step(actions)
 
     assert env.simulator.positions == ()
-    assert rewards == {"scout": 0.0, "trader": 0.0, "portfolio": 0.0}
+    assert rewards == {"scout": -0.01, "trader": -0.01, "portfolio": -0.01}
     assert infos["trader"]["executed_trade"] is False
+    assert infos["trader"]["reward_breakdown"]["inactivity"] == -0.01
 
 
 def test_market_marl_env_blocks_buy_when_portfolio_risk_rejects() -> None:
@@ -102,9 +105,10 @@ def test_market_marl_env_blocks_buy_when_portfolio_risk_rejects() -> None:
     )
 
     assert env.simulator.positions == ()
-    assert rewards == {"scout": 0.0, "trader": 0.0, "portfolio": 0.0}
+    assert rewards == {"scout": -0.05, "trader": -0.05, "portfolio": -0.05}
     assert infos["portfolio"]["executed_trade"] is False
     assert infos["portfolio"]["risk_violations"] == ("position_fraction",)
+    assert infos["portfolio"]["reward_breakdown"]["risk_violation"] == -0.05
 
 
 def test_market_marl_env_masks_buy_when_risk_rejects_candidate() -> None:
@@ -160,12 +164,14 @@ def test_market_episode_step_can_be_built_from_mapping() -> None:
             "current_return": "0.2",
             "available_quantity": "4",
             "supervised_probability": "0.8",
+            "volatility": "0.3",
         }
     )
 
     assert step.observed_day == date(2026, 1, 1)
     assert step.buy_price_eur == Decimal("10")
     assert step.available_quantity == 4
+    assert step.volatility == Decimal("0.3")
 
 
 def _episode() -> tuple[MarketEpisodeStep, ...]:

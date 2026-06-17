@@ -11,7 +11,7 @@ Primer andamiaje del entorno multiagente.
 - solo se ejecuta una compra si Scout marca, Trader compra y Portfolio aprueba;
 - la compra usa `PortfolioSimulator`;
 - la validacion usa `evaluate_portfolio_risk`;
-- la recompensa compartida inicial usa el retorno inmediato del ejemplo.
+- la recompensa compartida usa `calculate_cooperative_reward()` y deja desglose en `info`;
 - `market_env_creator()` y `register_market_env()` preparan una fabrica registrable desde RLlib.
 
 Todavia no anade Ray/PettingZoo como dependencia obligatoria. La integracion formal de entrenamiento
@@ -43,3 +43,16 @@ from packages.marl import load_market_episode_steps, register_market_env
 steps = load_market_episode_steps("data/datasets/trading_profit_v1", split="train", limit=100)
 register_market_env("csflipper-market", register_env, steps)
 ```
+
+## Recompensa
+
+`calculate_cooperative_reward()` devuelve una recompensa comun para Scout, Trader y Portfolio.
+La version actual es interpretable y configurable:
+
+- beneficio realizado neto normalizado;
+- retorno inmediato del candidato comprado como senal provisional;
+- penalizacion por oportunidad accionable ignorada;
+- penalizacion por intentar compras que violan riesgo;
+- penalizacion por drawdown, capital bloqueado y volatilidad si esta disponible.
+
+El entorno copia el desglose en `info["reward_breakdown"]` para poder auditar entrenamientos.
