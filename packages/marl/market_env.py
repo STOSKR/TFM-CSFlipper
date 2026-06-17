@@ -40,6 +40,7 @@ CASH_DESTINATION_REINVEST = "reinvest"
 CASH_DESTINATION_CASHOUT = "cashout"
 ActionMap = Mapping[str, int]
 ObservationMap = dict[str, dict[str, float]]
+CentralStateMap = dict[str, float]
 InfoMap = dict[str, dict[str, Any]]
 ActionMaskMap = dict[str, tuple[int, ...]]
 EMPTY_REWARD_BREAKDOWN = CooperativeRewardBreakdown(
@@ -129,6 +130,33 @@ AGENT_SPECS = {
     ),
 }
 
+CENTRAL_STATE_FIELDS = (
+    "buy_platform_is_steam",
+    "buy_platform_is_buff",
+    "buy_price_is_listing",
+    "buy_price_is_buy_order",
+    "sell_platform_is_steam",
+    "sell_platform_is_buff",
+    "sell_price_is_listing",
+    "sell_price_is_buy_order",
+    "buy_price_eur",
+    "current_exit_net_eur",
+    "current_return",
+    "current_cash_value_eur",
+    "current_cash_return",
+    "cash_destination_is_reinvest",
+    "cash_destination_is_cashout",
+    "supervised_probability",
+    "supervised_probability_available",
+    "available_quantity",
+    "cash_available_ratio",
+    "cash_after_candidate_ratio",
+    "blocked_capital_ratio",
+    "candidate_position_ratio",
+    "violation_count",
+    "warning_count",
+)
+
 
 @dataclass(frozen=True, slots=True)
 class MarketEpisodeStep:
@@ -207,6 +235,7 @@ class MarketMARLEnvironment:
     """Small deterministic parallel environment for the first MARL integration tests."""
 
     agent_specs = AGENT_SPECS
+    central_state_fields = CENTRAL_STATE_FIELDS
     action_spaces = {agent_id: spec.action_space for agent_id, spec in AGENT_SPECS.items()}
     observation_spaces = {
         agent_id: spec.observation_fields for agent_id, spec in AGENT_SPECS.items()
@@ -324,80 +353,31 @@ class MarketMARLEnvironment:
         candidate_allowed = int(risk.candidate_allowed)
         return _action_masks_from_allowed(bool(candidate_allowed))
 
+    def central_state(self) -> CentralStateMap:
+        if self._terminated:
+            return {}
+        return self._central_state_for(self._current_step())
+
     def _observations(self) -> ObservationMap:
         current = self._current_step()
-        risk = evaluate_portfolio_risk(
-            self._simulator,
-            as_of=current.observed_day,
-            config=self._risk_config,
-            candidate=_risk_candidate(current),
+        risk = self._risk_snapshot(current)
+        features = _state_features(
+            current,
+            risk_observation=risk.observation,
+            config=self._simulator.config,
+            include_supervised_probability=self._include_supervised_probability,
         )
-        base = {
-            "buy_price_eur": _float(current.buy_price_eur),
-            "buy_platform_is_steam": _platform_flag(current.buy_platform, STEAM),
-            "buy_platform_is_buff": _platform_flag(current.buy_platform, BUFF163),
-            "buy_price_is_listing": _price_type_flag(
-                current.buy_price_type,
-                PRICE_TYPE_LISTING,
-            ),
-            "buy_price_is_buy_order": _price_type_flag(
-                current.buy_price_type,
-                PRICE_TYPE_BUY_ORDER,
-            ),
-            "sell_platform_is_steam": _platform_flag(current.sell_platform, STEAM),
-            "sell_platform_is_buff": _platform_flag(current.sell_platform, BUFF163),
-            "sell_price_is_listing": _price_type_flag(
-                current.sell_price_type,
-                PRICE_TYPE_LISTING,
-            ),
-            "sell_price_is_buy_order": _price_type_flag(
-                current.sell_price_type,
-                PRICE_TYPE_BUY_ORDER,
-            ),
-            "current_exit_net_eur": _float(current.current_exit_net_eur),
-            "current_return": _float(current.current_return),
-            "current_cash_value_eur": _float(
-                _effective_cash_value(current, self._simulator.config)
-            ),
-            "current_cash_return": _float(_effective_cash_return(current, self._simulator.config)),
-            "cash_destination_is_reinvest": _cash_destination_flag(
-                current.cash_destination,
-                CASH_DESTINATION_REINVEST,
-            ),
-            "cash_destination_is_cashout": _cash_destination_flag(
-                current.cash_destination,
-                CASH_DESTINATION_CASHOUT,
-            ),
-            "steam_sell_price_eur": _float(current.steam_sell_price_eur),
-            "buff_buy_order_price_eur": _float(current.buff_buy_order_price_eur),
-            "available_quantity": float(current.available_quantity or 0),
-            "supervised_probability": _float(
-                _supervised_probability(current, self._include_supervised_probability)
-            ),
-            "supervised_probability_available": _supervised_probability_available(
-                current,
-                self._include_supervised_probability,
-            ),
-        }
-        portfolio_features = {
-            key: _float(value)
-            for key, value in risk.observation.items()
-        }
         return {
             "scout": {
-                key: base[key]
+                key: features[key]
                 for key in self.observation_spaces["scout"]
             },
             "trader": {
-                **{
-                    key: base[key]
-                    for key in self.observation_spaces["trader"]
-                    if key in base
-                },
-                "cash_available_ratio": portfolio_features["cash_available_ratio"],
+                key: features[key]
+                for key in self.observation_spaces["trader"]
             },
             "portfolio": {
-                key: base[key] if key in base else portfolio_features[key]
+                key: features[key]
                 for key in self.observation_spaces["portfolio"]
             },
         }
@@ -427,6 +407,8 @@ class MarketMARLEnvironment:
             "exit_balance_platform": resolved_step.exit_balance_platform,
             "cash_destination": resolved_step.cash_destination,
             "cashflow": _cashflow_info(resolved_step, self._simulator.config),
+            "central_state_fields": self.central_state_fields,
+            "central_state": self._central_state_for(resolved_step),
             "supervised_probability_enabled": self._include_supervised_probability,
             "supervised_probability_available": bool(
                 _supervised_probability_available(
@@ -450,6 +432,27 @@ class MarketMARLEnvironment:
 
     def _current_step(self) -> MarketEpisodeStep:
         return self._episode_steps[self._index]
+
+    def _risk_snapshot(self, step: MarketEpisodeStep) -> Any:
+        return evaluate_portfolio_risk(
+            self._simulator,
+            as_of=step.observed_day,
+            config=self._risk_config,
+            candidate=_risk_candidate(step),
+        )
+
+    def _central_state_for(self, step: MarketEpisodeStep) -> CentralStateMap:
+        risk = self._risk_snapshot(step)
+        features = _state_features(
+            step,
+            risk_observation=risk.observation,
+            config=self._simulator.config,
+            include_supervised_probability=self._include_supervised_probability,
+        )
+        return {
+            key: features[key]
+            for key in self.central_state_fields
+        }
 
 
 def _wants_buy(actions: ActionMap) -> bool:
@@ -493,6 +496,62 @@ def _risk_candidate(step: MarketEpisodeStep) -> RiskCandidate:
         available_quantity=step.available_quantity,
         volatility=step.volatility,
     )
+
+
+def _state_features(
+    step: MarketEpisodeStep,
+    *,
+    risk_observation: Mapping[str, Decimal],
+    config: MarketEconomicsConfig,
+    include_supervised_probability: bool,
+) -> dict[str, float]:
+    features = {
+        "buy_price_eur": _float(step.buy_price_eur),
+        "buy_platform_is_steam": _platform_flag(step.buy_platform, STEAM),
+        "buy_platform_is_buff": _platform_flag(step.buy_platform, BUFF163),
+        "buy_price_is_listing": _price_type_flag(
+            step.buy_price_type,
+            PRICE_TYPE_LISTING,
+        ),
+        "buy_price_is_buy_order": _price_type_flag(
+            step.buy_price_type,
+            PRICE_TYPE_BUY_ORDER,
+        ),
+        "sell_platform_is_steam": _platform_flag(step.sell_platform, STEAM),
+        "sell_platform_is_buff": _platform_flag(step.sell_platform, BUFF163),
+        "sell_price_is_listing": _price_type_flag(
+            step.sell_price_type,
+            PRICE_TYPE_LISTING,
+        ),
+        "sell_price_is_buy_order": _price_type_flag(
+            step.sell_price_type,
+            PRICE_TYPE_BUY_ORDER,
+        ),
+        "current_exit_net_eur": _float(step.current_exit_net_eur),
+        "current_return": _float(step.current_return),
+        "current_cash_value_eur": _float(_effective_cash_value(step, config)),
+        "current_cash_return": _float(_effective_cash_return(step, config)),
+        "cash_destination_is_reinvest": _cash_destination_flag(
+            step.cash_destination,
+            CASH_DESTINATION_REINVEST,
+        ),
+        "cash_destination_is_cashout": _cash_destination_flag(
+            step.cash_destination,
+            CASH_DESTINATION_CASHOUT,
+        ),
+        "steam_sell_price_eur": _float(step.steam_sell_price_eur),
+        "buff_buy_order_price_eur": _float(step.buff_buy_order_price_eur),
+        "available_quantity": float(step.available_quantity or 0),
+        "supervised_probability": _float(
+            _supervised_probability(step, include_supervised_probability)
+        ),
+        "supervised_probability_available": _supervised_probability_available(
+            step,
+            include_supervised_probability,
+        ),
+    }
+    features.update({key: _float(value) for key, value in risk_observation.items()})
+    return features
 
 
 def _required_text(row: Mapping[str, Any], key: str) -> str:

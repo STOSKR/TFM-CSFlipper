@@ -37,6 +37,11 @@ con shape estable: `supervised_probability` y `supervised_probability_available`
 desactiva para ablation, o falta prediccion en el candidato, ambos agentes mantienen los campos y
 reciben valor `0`.
 
+Para CTDE, el entorno mantiene un contrato separado de estado central en
+`MarketMARLEnvironment.central_state_fields` y `central_state()`. Ese estado combina ruta,
+cashflow, senal supervisada y riesgo de cartera. Las observaciones locales de los actores no cambian;
+el estado central queda reservado para el critico durante entrenamiento.
+
 Ejemplo:
 
 ```python

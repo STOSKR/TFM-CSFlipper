@@ -70,6 +70,12 @@ class RLLibMarketEnv(MultiAgentEnv):
         self._action_spaces_by_agent: dict[str, spaces.Discrete[Any]] = {
             agent_id: spaces.Discrete(2) for agent_id in AGENT_IDS
         }
+        self._central_state_space = spaces.Box(
+            low=-np.inf,
+            high=np.inf,
+            shape=(len(MarketMARLEnvironment.central_state_fields),),
+            dtype=np.float32,
+        )
         self.observation_spaces = self._observation_spaces_by_agent  # type: ignore[assignment]
         self.action_spaces = self._action_spaces_by_agent  # type: ignore[assignment]
 
@@ -79,6 +85,12 @@ class RLLibMarketEnv(MultiAgentEnv):
     def agent_action_space(self, agent_id: str) -> spaces.Discrete[Any]:
         return self._action_spaces_by_agent[agent_id]
 
+    def central_state_space(self) -> spaces.Box:
+        return self._central_state_space
+
+    def central_state(self) -> np.ndarray[Any, np.dtype[np.float32]]:
+        return _encode_central_state(self._env.central_state())
+
     def reset(  # type: ignore[override]
         self,
         *,
@@ -87,7 +99,7 @@ class RLLibMarketEnv(MultiAgentEnv):
     ) -> tuple[dict[str, np.ndarray[Any, np.dtype[np.float32]]], dict[str, dict[str, Any]]]:
         del seed, options
         observations, infos = self._env.reset()
-        return _encode_observations(observations), infos
+        return _encode_observations(observations), _with_common_state(infos, self.central_state())
 
     def step(  # type: ignore[override]
         self,
@@ -109,7 +121,7 @@ class RLLibMarketEnv(MultiAgentEnv):
             rewards,
             {**terminations, "__all__": terminated_all},
             {**truncations, "__all__": truncated_all},
-            infos if encoded_observations else {},
+            _with_common_state(infos, self.central_state()) if encoded_observations else {},
         )
 
 
@@ -175,7 +187,7 @@ def train_rllib_smoke(training_config: RLLibTrainingConfig) -> dict[str, Any]:
         checkpoint_result = algorithm.save()
         return {
             "algorithm": "PPO multi-agent",
-            "ctde_note": "Shared multi-agent PPO smoke; centralized critic is deferred.",
+            "ctde_note": "Central state is exposed; centralized critic model is deferred.",
             "iterations": training_config.iterations,
             "episode_reward_mean": result.get("episode_reward_mean"),
             "env_steps_sampled": result.get("num_env_steps_sampled"),
@@ -196,6 +208,28 @@ def _encode_observations(
             dtype=np.float32,
         )
         for agent_id, values in observations.items()
+    }
+
+
+def _encode_central_state(
+    central_state: Mapping[str, float],
+) -> np.ndarray[Any, np.dtype[np.float32]]:
+    return np.asarray(
+        [central_state[field] for field in MarketMARLEnvironment.central_state_fields],
+        dtype=np.float32,
+    )
+
+
+def _with_common_state(
+    infos: Mapping[str, dict[str, Any]],
+    central_state: np.ndarray[Any, np.dtype[np.float32]],
+) -> dict[str, dict[str, Any]]:
+    return {
+        **dict(infos),
+        "__common__": {
+            "central_state": central_state,
+            "central_state_fields": MarketMARLEnvironment.central_state_fields,
+        },
     }
 
 

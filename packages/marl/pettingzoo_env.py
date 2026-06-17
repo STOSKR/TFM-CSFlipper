@@ -49,12 +49,24 @@ class PettingZooMarketEnv(ParallelEnv):  # type: ignore[misc]
         self._action_spaces: dict[str, spaces.Discrete[Any]] = {
             agent_id: spaces.Discrete(2) for agent_id in AGENT_IDS
         }
+        self._state_space = spaces.Box(
+            low=-np.inf,
+            high=np.inf,
+            shape=(len(MarketMARLEnvironment.central_state_fields),),
+            dtype=np.float32,
+        )
 
     def observation_space(self, agent: str) -> spaces.Box:
         return self._observation_spaces[agent]
 
     def action_space(self, agent: str) -> spaces.Discrete[Any]:
         return self._action_spaces[agent]
+
+    def state_space(self) -> spaces.Box:
+        return self._state_space
+
+    def state(self) -> np.ndarray[Any, np.dtype[np.float32]]:
+        return _encode_central_state(self._env.central_state())
 
     def reset(
         self,
@@ -93,3 +105,12 @@ def _encode_observations(
         )
         for agent_id, values in observations.items()
     }
+
+
+def _encode_central_state(
+    central_state: Mapping[str, float],
+) -> np.ndarray[Any, np.dtype[np.float32]]:
+    return np.asarray(
+        [central_state[field] for field in MarketMARLEnvironment.central_state_fields],
+        dtype=np.float32,
+    )

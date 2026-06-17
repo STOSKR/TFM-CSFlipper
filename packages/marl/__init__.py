@@ -4,6 +4,7 @@ from packages.marl.episodes import load_market_episode_steps
 from packages.marl.market_env import (
     AGENT_IDS,
     AGENT_SPECS,
+    CENTRAL_STATE_FIELDS,
     AgentSpec,
     MarketEpisodeStep,
     MarketMARLEnvironment,
@@ -18,6 +19,7 @@ from packages.marl.rllib_adapter import market_env_creator, register_market_env
 __all__ = [
     "AGENT_IDS",
     "AGENT_SPECS",
+    "CENTRAL_STATE_FIELDS",
     "AgentSpec",
     "MarketEpisodeStep",
     "MarketMARLEnvironment",

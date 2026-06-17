@@ -1,4 +1,4 @@
-from packages.marl.market_env import AGENT_IDS, AGENT_SPECS
+from packages.marl.market_env import AGENT_IDS, AGENT_SPECS, MarketMARLEnvironment
 from packages.marl.rllib_training import (
     RLLibMarketEnv,
     RLLibTrainingConfig,
@@ -16,8 +16,11 @@ def test_rllib_market_env_exposes_vector_spaces_and_steps() -> None:
     assert env.agent_observation_space("trader").shape == (
         len(AGENT_SPECS["trader"].observation_fields),
     )
+    assert env.central_state_space().shape == (len(MarketMARLEnvironment.central_state_fields),)
+    assert env.central_state().shape == env.central_state_space().shape
     assert env.agent_action_space("portfolio").n == 2
     assert infos["scout"]["route_selection"] == "candidate"
+    assert infos["__common__"]["central_state"].shape == env.central_state_space().shape
 
     next_observations, rewards, terminations, truncations, step_infos = env.step(
         {"scout": 0, "trader": 0, "portfolio": 0}
@@ -27,6 +30,7 @@ def test_rllib_market_env_exposes_vector_spaces_and_steps() -> None:
     assert "__all__" in terminations
     assert "__all__" in truncations
     assert step_infos["trader"]["cashflow"]["cash_destination"] == "reinvest"
+    assert step_infos["__common__"]["central_state"].shape == env.central_state_space().shape
     assert next_observations
 
     final_observations, _rewards, final_terminations, _truncations, final_infos = env.step(

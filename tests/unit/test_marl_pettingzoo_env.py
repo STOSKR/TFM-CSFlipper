@@ -1,7 +1,12 @@
 from datetime import date
 from decimal import Decimal
 
-from packages.marl.market_env import AGENT_IDS, AGENT_SPECS, MarketEpisodeStep
+from packages.marl.market_env import (
+    AGENT_IDS,
+    AGENT_SPECS,
+    MarketEpisodeStep,
+    MarketMARLEnvironment,
+)
 from packages.marl.pettingzoo_env import PettingZooMarketEnv
 
 
@@ -29,6 +34,8 @@ def test_pettingzoo_market_env_runs_parallel_cycle() -> None:
     assert env.observation_space("portfolio").shape == (
         len(AGENT_SPECS["portfolio"].observation_fields),
     )
+    assert env.state_space().shape == (len(MarketMARLEnvironment.central_state_fields),)
+    assert env.state().shape == env.state_space().shape
     assert env.action_space("trader").n == 2
     assert infos["scout"]["supervised_probability_available"] is True
 

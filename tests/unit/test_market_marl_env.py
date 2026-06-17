@@ -3,7 +3,13 @@ from decimal import Decimal
 
 import pytest
 
-from packages.marl import AGENT_IDS, AGENT_SPECS, MarketEpisodeStep, MarketMARLEnvironment
+from packages.marl import (
+    AGENT_IDS,
+    AGENT_SPECS,
+    CENTRAL_STATE_FIELDS,
+    MarketEpisodeStep,
+    MarketMARLEnvironment,
+)
 from packages.simulation import BUFF163, PortfolioRiskConfig
 
 
@@ -75,6 +81,10 @@ def test_market_marl_env_reset_returns_agent_observations() -> None:
     }
     assert infos["trader"]["supervised_probability_enabled"] is True
     assert infos["trader"]["supervised_probability_available"] is True
+    assert infos["trader"]["central_state_fields"] == CENTRAL_STATE_FIELDS
+    assert infos["trader"]["central_state"]["current_return"] == 0.2
+    assert env.central_state()["cash_available_ratio"] == 1.0
+    assert env.central_state()["candidate_position_ratio"] == 0.01
     assert infos["trader"]["action_mask"] == (1, 1)
 
 
@@ -91,6 +101,7 @@ def test_market_marl_env_executes_buy_when_all_agents_accept() -> None:
     assert env.simulator.cash_available_eur == Decimal("90")
     assert rewards == {"scout": 0.195, "trader": 0.195, "portfolio": 0.195}
     assert observations["scout"]["buy_price_eur"] == 20.0
+    assert env.central_state()["current_return"] == -0.05
     assert terminations == {"scout": False, "trader": False, "portfolio": False}
     assert truncations == {"scout": False, "trader": False, "portfolio": False}
     assert infos["portfolio"]["executed_trade"] is True
@@ -109,7 +120,22 @@ def test_market_marl_env_step_info_describes_processed_item() -> None:
     assert observations["scout"]["buy_price_eur"] == 20.0
     assert infos["trader"]["item_id"] == "item-1"
     assert infos["trader"]["observed_day"] == "2026-01-01"
+    assert infos["trader"]["central_state"]["current_return"] == 0.2
     assert infos["trader"]["reward"] == 0.195
+
+
+def test_market_marl_central_state_is_separate_from_local_observations() -> None:
+    env = MarketMARLEnvironment(_episode())
+
+    observations, _infos = env.reset()
+    central_state = env.central_state()
+
+    assert tuple(central_state) == CENTRAL_STATE_FIELDS
+    assert len(central_state) > len(observations["portfolio"])
+    assert "current_cash_value_eur" in central_state
+    assert "current_cash_value_eur" not in observations["portfolio"]
+    assert "blocked_capital_ratio" in central_state
+    assert "blocked_capital_ratio" not in observations["scout"]
 
 
 def test_market_marl_env_can_execute_buy_from_buff_candidate() -> None:
