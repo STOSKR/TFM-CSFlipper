@@ -60,15 +60,20 @@ Tras estabilizar datos, prediccion y politicas MARL, el siguiente paso operativo
   fallback local honesto sin tocar red si no se pasa ese parametro.
 - Anadidos resumen por estado, ordenacion por estado/profit/scraping/precio Steam
   y columnas de profit actual y fecha de scraping en la tabla.
+- Ejecutado el export real contra Supabase con `--limit 50`; se genero
+  `apps/web/data/dashboard.json` con 50 recomendaciones. El archivo queda ignorado por git.
 
 ## Pruebas ejecutadas
 
 - `python -m pytest tests/unit/test_web_mvp.py`
 - `python -m pytest tests/unit/test_web_dashboard_payload.py`
+- `python -m apps.cli.export_web_dashboard --limit 50`
+- `python -m json.tool apps/web/data/dashboard.json`
+- `python -m pytest tests/unit/test_web_mvp.py tests/unit/test_web_dashboard_payload.py`
 
 ## Bloqueos o riesgos
 
 - Definir formula fiable de rentabilidad neta antes de usarla como criterio principal.
 - Decidir si la primera version sera local, desplegada o integrada directamente con Supabase.
-- Falta ejecutar el export contra Supabase y validar visualmente con datos reales.
+- Falta validar visualmente la web con el JSON real exportado.
 - Las filas de recomendaciones no deben interpretarse como senales reales de compra.
