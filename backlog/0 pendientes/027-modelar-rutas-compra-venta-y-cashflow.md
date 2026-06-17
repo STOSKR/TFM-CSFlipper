@@ -10,8 +10,10 @@ El objetivo operativo no es comprar siempre desde una plataforma fija. La estrat
 
 ## Alcance
 
-- Modelar rutas como `BUFF -> Steam`, `Steam buy order -> BUFF`, `Steam buy order -> Steam` y otras combinaciones utiles.
-- Distinguir precio de listing, buy order/oferta, ultima venta y precio neto de salida.
+- Modelar rutas como `BUFF listing -> Steam listing`, `BUFF listing -> Steam buy order`,
+  `BUFF buy order -> Steam listing`, `BUFF buy order -> Steam buy order` y sus equivalentes
+  plataforma/Steam cuando sean utiles.
+- Distinguir precio normal/listing, buy order/oferta, ultima venta y precio neto de salida.
 - Incluir plataforma de compra en el entorno MARL y en los datasets.
 - Incluir plataforma/tipo de salida esperada antes de entrenar MAPPO.
 - Representar valor efectivo del saldo resultante: reinversion en BUFF/Steam o cash-out.
@@ -22,6 +24,8 @@ El objetivo operativo no es comprar siempre desde una plataforma fija. La estrat
 
 - Cada ejemplo de trading identifica plataforma y tipo de precio de entrada.
 - Cada ejemplo identifica salida esperada y neto tras comisiones.
+- La observacion MARL distingue entrada normal frente a entrada por buy order.
+- La observacion MARL distingue salida normal/listing frente a venta directa contra buy order.
 - El entorno MARL no hardcodea la compra en Steam.
 - La observacion informa al menos la plataforma de entrada.
 - Queda decidido si la seleccion de ruta la hace el dataset/candidato o la politica Trader.
@@ -35,6 +39,8 @@ El objetivo operativo no es comprar siempre desde una plataforma fija. La estrat
 
 - Detectado que el entorno compraba siempre como `STEAM`.
 - Anadido soporte inicial de `buy_platform` al `MarketEpisodeStep`.
+- Anadido soporte inicial de `buy_price_type`, `sell_platform` y `sell_price_type` al
+  `MarketEpisodeStep`.
 
 ## Pruebas ejecutadas
 

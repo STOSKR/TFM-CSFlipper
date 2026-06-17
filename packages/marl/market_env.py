@@ -31,6 +31,8 @@ from packages.simulation import (
 )
 
 AGENT_IDS = ("scout", "trader", "portfolio")
+PRICE_TYPE_LISTING = "listing"
+PRICE_TYPE_BUY_ORDER = "buy_order"
 ActionMap = Mapping[str, int]
 ObservationMap = dict[str, dict[str, float]]
 InfoMap = dict[str, dict[str, Any]]
@@ -62,6 +64,12 @@ AGENT_SPECS = {
         observation_fields=(
             "buy_platform_is_steam",
             "buy_platform_is_buff",
+            "buy_price_is_listing",
+            "buy_price_is_buy_order",
+            "sell_platform_is_steam",
+            "sell_platform_is_buff",
+            "sell_price_is_listing",
+            "sell_price_is_buy_order",
             "buy_price_eur",
             "current_return",
             "supervised_probability",
@@ -76,6 +84,12 @@ AGENT_SPECS = {
         observation_fields=(
             "buy_platform_is_steam",
             "buy_platform_is_buff",
+            "buy_price_is_listing",
+            "buy_price_is_buy_order",
+            "sell_platform_is_steam",
+            "sell_platform_is_buff",
+            "sell_price_is_listing",
+            "sell_price_is_buy_order",
             "buy_price_eur",
             "current_exit_net_eur",
             "current_return",
@@ -111,6 +125,9 @@ class MarketEpisodeStep:
     current_return: Decimal
     buy_platform: str = STEAM
     buy_currency: str = "EUR"
+    buy_price_type: str = PRICE_TYPE_LISTING
+    sell_platform: str = STEAM
+    sell_price_type: str = PRICE_TYPE_LISTING
     steam_sell_price_eur: Decimal | None = None
     buff_buy_order_price_eur: Decimal | None = None
     available_quantity: int | None = None
@@ -128,6 +145,9 @@ class MarketEpisodeStep:
             current_return=_decimal(row["current_return"]),
             buy_platform=_platform_text(row.get("buy_platform") or STEAM),
             buy_currency=str(row.get("buy_currency") or "EUR").upper(),
+            buy_price_type=_price_type(row.get("buy_price_type") or row.get("buy_mode")),
+            sell_platform=_platform_text(row.get("sell_platform") or STEAM),
+            sell_price_type=_price_type(row.get("sell_price_type") or row.get("sell_mode")),
             steam_sell_price_eur=_optional_decimal(row.get("steam_sell_price_eur")),
             buff_buy_order_price_eur=_optional_decimal(row.get("buff_buy_order_price_eur")),
             available_quantity=_optional_int(row.get("available_quantity")),
@@ -260,6 +280,24 @@ class MarketMARLEnvironment:
             "buy_price_eur": _float(current.buy_price_eur),
             "buy_platform_is_steam": _platform_flag(current.buy_platform, STEAM),
             "buy_platform_is_buff": _platform_flag(current.buy_platform, BUFF163),
+            "buy_price_is_listing": _price_type_flag(
+                current.buy_price_type,
+                PRICE_TYPE_LISTING,
+            ),
+            "buy_price_is_buy_order": _price_type_flag(
+                current.buy_price_type,
+                PRICE_TYPE_BUY_ORDER,
+            ),
+            "sell_platform_is_steam": _platform_flag(current.sell_platform, STEAM),
+            "sell_platform_is_buff": _platform_flag(current.sell_platform, BUFF163),
+            "sell_price_is_listing": _price_type_flag(
+                current.sell_price_type,
+                PRICE_TYPE_LISTING,
+            ),
+            "sell_price_is_buy_order": _price_type_flag(
+                current.sell_price_type,
+                PRICE_TYPE_BUY_ORDER,
+            ),
             "current_exit_net_eur": _float(current.current_exit_net_eur),
             "current_return": _float(current.current_return),
             "steam_sell_price_eur": _float(current.steam_sell_price_eur),
@@ -307,6 +345,9 @@ class MarketMARLEnvironment:
             "representation_name": resolved_step.representation_name,
             "observed_day": resolved_step.observed_day.isoformat(),
             "buy_platform": resolved_step.buy_platform,
+            "buy_price_type": resolved_step.buy_price_type,
+            "sell_platform": resolved_step.sell_platform,
+            "sell_price_type": resolved_step.sell_price_type,
             "executed_trade": executed_trade,
             "reward": float(reward),
             "reward_breakdown": reward_info(reward_breakdown or EMPTY_REWARD_BREAKDOWN),
@@ -383,6 +424,21 @@ def _platform_text(value: Any) -> str:
 
 def _platform_flag(platform: str, expected: str) -> float:
     return 1.0 if platform.upper() == expected else 0.0
+
+
+def _price_type(value: Any) -> str:
+    text = str(value or "").strip().lower()
+    if not text:
+        return PRICE_TYPE_LISTING
+    if "buy order" in text or "highest buy order" in text or text == PRICE_TYPE_BUY_ORDER:
+        return PRICE_TYPE_BUY_ORDER
+    if "lowest price" in text or "listing" in text or text == PRICE_TYPE_LISTING:
+        return PRICE_TYPE_LISTING
+    raise ValueError(f"unknown price type: {value}")
+
+
+def _price_type_flag(price_type: str, expected: str) -> float:
+    return 1.0 if price_type == expected else 0.0
 
 
 def _date_value(value: Any) -> date:

@@ -16,6 +16,12 @@ def test_market_marl_agent_specs_define_local_contracts() -> None:
     assert AGENT_SPECS["trader"].observation_fields == (
         "buy_platform_is_steam",
         "buy_platform_is_buff",
+        "buy_price_is_listing",
+        "buy_price_is_buy_order",
+        "sell_platform_is_steam",
+        "sell_platform_is_buff",
+        "sell_price_is_listing",
+        "sell_price_is_buy_order",
         "buy_price_eur",
         "current_exit_net_eur",
         "current_return",
@@ -34,6 +40,10 @@ def test_market_marl_env_reset_returns_agent_observations() -> None:
     assert tuple(observations["portfolio"]) == AGENT_SPECS["portfolio"].observation_fields
     assert observations["scout"]["buy_platform_is_steam"] == 1.0
     assert observations["scout"]["buy_platform_is_buff"] == 0.0
+    assert observations["scout"]["buy_price_is_listing"] == 1.0
+    assert observations["scout"]["buy_price_is_buy_order"] == 0.0
+    assert observations["scout"]["sell_platform_is_steam"] == 1.0
+    assert observations["scout"]["sell_price_is_listing"] == 1.0
     assert observations["scout"]["buy_price_eur"] == 10.0
     assert observations["scout"]["supervised_probability"] == 0.8
     assert observations["portfolio"]["candidate_position_ratio"] == 0.01
@@ -83,6 +93,9 @@ def test_market_marl_env_can_execute_buy_from_buff_candidate() -> None:
                 representation_name="AK-47 | Slate_FT_0",
                 observed_day=date(2026, 1, 1),
                 buy_platform=BUFF163,
+                buy_price_type="buy_order",
+                sell_platform="STEAM",
+                sell_price_type="buy_order",
                 buy_price_eur=Decimal("10"),
                 current_exit_net_eur=Decimal("12"),
                 current_return=Decimal("0.2"),
@@ -98,8 +111,15 @@ def test_market_marl_env_can_execute_buy_from_buff_candidate() -> None:
 
     assert observations["trader"]["buy_platform_is_steam"] == 0.0
     assert observations["trader"]["buy_platform_is_buff"] == 1.0
+    assert observations["trader"]["buy_price_is_listing"] == 0.0
+    assert observations["trader"]["buy_price_is_buy_order"] == 1.0
+    assert observations["trader"]["sell_platform_is_steam"] == 1.0
+    assert observations["trader"]["sell_price_is_buy_order"] == 1.0
     assert env.simulator.positions[0].buy_platform == "BUFF"
     assert infos["trader"]["buy_platform"] == "BUFF"
+    assert infos["trader"]["buy_price_type"] == "buy_order"
+    assert infos["trader"]["sell_platform"] == "STEAM"
+    assert infos["trader"]["sell_price_type"] == "buy_order"
 
 
 @pytest.mark.parametrize(
@@ -193,6 +213,9 @@ def test_market_episode_step_can_be_built_from_mapping() -> None:
             "observed_day": "2026-01-01",
             "buy_price_eur": "10",
             "buy_platform": "buff",
+            "buy_mode": "Buy via STEAM Buy Order",
+            "sell_platform": "steam",
+            "sell_mode": "Sell to STEAM Highest Buy Order",
             "current_exit_net_eur": "12",
             "current_return": "0.2",
             "available_quantity": "4",
@@ -204,6 +227,9 @@ def test_market_episode_step_can_be_built_from_mapping() -> None:
     assert step.observed_day == date(2026, 1, 1)
     assert step.buy_price_eur == Decimal("10")
     assert step.buy_platform == "BUFF"
+    assert step.buy_price_type == "buy_order"
+    assert step.sell_platform == "STEAM"
+    assert step.sell_price_type == "buy_order"
     assert step.available_quantity == 4
     assert step.volatility == Decimal("0.3")
 

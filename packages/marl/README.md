@@ -22,8 +22,10 @@ queda para la tarea MAPPO/RLlib.
 `load_market_episode_steps()` carga pasos desde un parquet directo o desde un directorio de
 dataset con `train.parquet`, `validation.parquet` o `test.parquet`.
 
-Cada paso representa una oportunidad concreta de entrada/salida. `buy_platform` es opcional y por
-compatibilidad asume `STEAM`; cuando el candidato venga de BUFF debe ser `BUFF`.
+Cada paso representa una oportunidad concreta de entrada/salida. `buy_platform` y `sell_platform`
+son opcionales y por compatibilidad asumen `STEAM`; cuando el candidato venga de BUFF debe usar
+`BUFF`. `buy_price_type` y `sell_price_type` distinguen `listing` de `buy_order`, porque no es lo
+mismo comprar/vender al precio normal que contra una orden.
 
 Ejemplo:
 
