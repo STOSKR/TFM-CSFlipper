@@ -17,6 +17,10 @@ const fallbackDashboard = {
       quality: "Minimal Wear",
       stattrak: false,
       status: "observe",
+      route: "BUFF listing -> Steam listing",
+      routeDetail: "Compra BUFF, venta Steam neta",
+      buySide: "BUFF listing",
+      sellSide: "Steam listing",
       steam: "CNY 591.10",
       buff: "CNY 384",
       steamEur: 73.89,
@@ -34,6 +38,10 @@ const fallbackDashboard = {
       quality: "Senal insuficiente",
       stattrak: false,
       status: "blocked",
+      route: "Ruta incompleta",
+      routeDetail: "Faltan precios para calcular",
+      buySide: "BUFF listing",
+      sellSide: "Steam listing",
       steam: "steam/sell_price ok",
       buff: "buff/sell_price falta",
       steamEur: null,
@@ -146,6 +154,12 @@ function renderRecommendations() {
             </span>
           </td>
           <td><span class="badge ${escapeHtml(item.status)}">${escapeHtml(statusLabels[item.status] || item.status)}</span></td>
+          <td>
+            <span class="route-cell">
+              <strong>${escapeHtml(item.route || "Sin ruta")}</strong>
+              <small>${escapeHtml(formatRouteDetail(item))}</small>
+            </span>
+          </td>
           <td>${escapeHtml(item.steam)}</td>
           <td>${escapeHtml(item.buff)}</td>
           <td>${escapeHtml(item.profit)}</td>
@@ -301,4 +315,14 @@ function formatDate(value) {
     dateStyle: "short",
     timeStyle: "short",
   }).format(new Date(timestamp));
+}
+
+function formatRouteDetail(item) {
+  if (item.routeDetail) {
+    return item.routeDetail;
+  }
+  if (item.buySide && item.sellSide) {
+    return `${item.buySide} -> ${item.sellSide}`;
+  }
+  return "Ruta pendiente";
 }

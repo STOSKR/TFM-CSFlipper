@@ -287,7 +287,7 @@ input {
 
 table {
   border-collapse: collapse;
-  min-width: 1120px;
+  min-width: 1260px;
   width: 100%;
 }
 
@@ -312,6 +312,22 @@ td {
 .item-name {
   display: grid;
   gap: 2px;
+}
+
+.route-cell {
+  display: grid;
+  gap: 2px;
+  min-width: 150px;
+}
+
+.route-cell strong {
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.route-cell small {
+  color: var(--muted);
+  font-size: 12px;
 }
 
 .item-name small,

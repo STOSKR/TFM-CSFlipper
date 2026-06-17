@@ -73,6 +73,7 @@ def _recommendation(row: Mapping[str, Any]) -> dict[str, Any]:
     buff_eur = _optional_decimal(row.get("buff_price_eur"))
     profit = _current_buff_to_steam_profit(steam_eur, buff_eur)
     status = _status(steam_eur, buff_eur, profit)
+    route = _route(status)
     model_text = "Experimental, validar"
     if status == "blocked":
         model_text = "Datos insuficientes para decision"
@@ -81,6 +82,10 @@ def _recommendation(row: Mapping[str, Any]) -> dict[str, Any]:
         "quality": str(row.get("quality") or "Sin calidad"),
         "stattrak": bool(row.get("stattrak")),
         "status": status,
+        "route": route["route"],
+        "routeDetail": route["detail"],
+        "buySide": route["buy_side"],
+        "sellSide": route["sell_side"],
         "steam": _price_text(row.get("steam_price"), row.get("steam_currency")),
         "buff": _price_text(row.get("buff_price"), row.get("buff_currency")),
         "steamEur": _optional_float(steam_eur),
@@ -121,6 +126,22 @@ def _status(
     if profit_eur > Decimal("0"):
         return "review"
     return "observe"
+
+
+def _route(status: str) -> dict[str, str]:
+    if status == "blocked":
+        return {
+            "route": "Ruta incompleta",
+            "detail": "Faltan precios para calcular",
+            "buy_side": "BUFF listing",
+            "sell_side": "Steam listing",
+        }
+    return {
+        "route": "BUFF listing -> Steam listing",
+        "detail": "Compra BUFF, venta Steam neta",
+        "buy_side": "BUFF listing",
+        "sell_side": "Steam listing",
+    }
 
 
 def _agent_text(status: str, profit_eur: Decimal | None) -> str:

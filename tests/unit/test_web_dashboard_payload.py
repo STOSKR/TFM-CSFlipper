@@ -32,6 +32,10 @@ def test_build_dashboard_payload_marks_profitable_current_spread_as_review(tmp_p
 
     item = payload["recommendations"][0]
     assert item["status"] == "review"
+    assert item["route"] == "BUFF listing -> Steam listing"
+    assert item["routeDetail"] == "Compra BUFF, venta Steam neta"
+    assert item["buySide"] == "BUFF listing"
+    assert item["sellSide"] == "Steam listing"
     assert item["steam"] == "EUR 20.00"
     assert item["buff"] == "CNY 120.00"
     assert item["profit"] == "2.40 EUR"
@@ -63,6 +67,8 @@ def test_build_dashboard_payload_blocks_items_with_missing_prices(tmp_path: Path
 
     item = payload["recommendations"][0]
     assert item["status"] == "blocked"
+    assert item["route"] == "Ruta incompleta"
+    assert item["routeDetail"] == "Faltan precios para calcular"
     assert item["model"] == "Datos insuficientes para decision"
     assert item["steam"] == "Pendiente"
     assert item["profit"] == "Sin datos"
