@@ -1,3 +1,4 @@
+import json
 from decimal import Decimal
 from pathlib import Path
 
@@ -33,11 +34,19 @@ def test_load_market_episode_steps_from_dataset_split(tmp_path: Path) -> None:
             },
         ]
     ).to_parquet(dataset_dir / "train.parquet", index=False)
+    (dataset_dir / "metadata.json").write_text(
+        json.dumps({"trade_direction": "steam_to_buff_buy_order"}),
+        encoding="utf-8",
+    )
 
     steps = load_market_episode_steps(dataset_dir, split="train")
 
     assert [step.item_id for step in steps] == ["item-1", "item-2"]
     assert steps[0].buy_price_eur == Decimal("10.0")
+    assert steps[0].buy_platform == "STEAM"
+    assert steps[0].buy_price_type == "listing"
+    assert steps[0].sell_platform == "BUFF"
+    assert steps[0].sell_price_type == "buy_order"
 
     env = MarketMARLEnvironment(steps, initial_cash_eur=Decimal("100"))
     env.reset()
@@ -48,6 +57,8 @@ def test_load_market_episode_steps_from_dataset_split(tmp_path: Path) -> None:
     assert rewards["trader"] == 0.195
     assert terminations["portfolio"] is False
     assert infos["scout"]["executed_trade"] is True
+    assert infos["scout"]["sell_platform"] == "BUFF"
+    assert infos["scout"]["sell_price_type"] == "buy_order"
 
 
 def test_load_market_episode_steps_respects_limit(tmp_path: Path) -> None:

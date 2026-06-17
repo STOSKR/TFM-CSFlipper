@@ -48,10 +48,17 @@ El objetivo operativo no es comprar siempre desde una plataforma fija. La estrat
 - Anadido override `--all-profiles/--no-all-profiles` a `scrape_flow.py`.
 - Anadido `python -m apps.cli.run_marl_episode` para probar localmente un episodio MARL sin RLlib,
   con rutas demo BUFF->Steam y Steam buy order->BUFF.
+- El loader MARL infiere ruta desde `metadata.json` cuando datasets antiguos no traen columnas
+  explicitas de ruta. Por ejemplo, `steam_to_buff_buy_order` se carga como
+  `STEAM listing -> BUFF buy_order`.
 
 ## Pruebas ejecutadas
 
 - `python -m pytest tests/unit/test_run_marl_episode_cli.py`
+- `python -m apps.cli.run_marl_episode --dataset-dir data/datasets/trading_profit_v1 --split train --limit 1`
+- `python -m pytest tests/unit/test_marl_episode_loader.py tests/unit/test_run_marl_episode_cli.py tests/unit/test_market_marl_env.py`
+- `python -m ruff check packages/marl/episodes.py tests/unit/test_marl_episode_loader.py apps/cli/run_marl_episode.py tests/unit/test_run_marl_episode_cli.py tests/unit/test_market_marl_env.py`
+- `python -m mypy packages/marl/episodes.py tests/unit/test_marl_episode_loader.py apps/cli/run_marl_episode.py tests/unit/test_run_marl_episode_cli.py tests/unit/test_market_marl_env.py`
 
 ## Bloqueos o riesgos
 
