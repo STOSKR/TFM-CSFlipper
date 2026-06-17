@@ -62,6 +62,8 @@ Tras estabilizar datos, prediccion y politicas MARL, el siguiente paso operativo
   y columnas de profit actual y fecha de scraping en la tabla.
 - Ejecutado el export real contra Supabase con `--limit 50`; se genero
   `apps/web/data/dashboard.json` con 50 recomendaciones. El archivo queda ignorado por git.
+- Validada la web local con Playwright cargando `?data=dashboard.json`: 50 filas renderizadas,
+  resumen Total 50 / Revisar 19 / Observar 31 / Bloqueado 0 y cero errores de consola.
 
 ## Pruebas ejecutadas
 
@@ -70,10 +72,10 @@ Tras estabilizar datos, prediccion y politicas MARL, el siguiente paso operativo
 - `python -m apps.cli.export_web_dashboard --limit 50`
 - `python -m json.tool apps/web/data/dashboard.json`
 - `python -m pytest tests/unit/test_web_mvp.py tests/unit/test_web_dashboard_payload.py`
+- Validacion Playwright local contra `http://127.0.0.1:8765/?data=dashboard.json`
 
 ## Bloqueos o riesgos
 
 - Definir formula fiable de rentabilidad neta antes de usarla como criterio principal.
 - Decidir si la primera version sera local, desplegada o integrada directamente con Supabase.
-- Falta validar visualmente la web con el JSON real exportado.
 - Las filas de recomendaciones no deben interpretarse como senales reales de compra.
