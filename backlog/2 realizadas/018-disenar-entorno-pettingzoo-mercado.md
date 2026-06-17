@@ -46,6 +46,10 @@ El sistema MARL cooperativo necesita un entorno reproducible que avance por vent
 - Anadido `packages.marl.episodes.load_market_episode_steps()` para cargar episodios
   desde un parquet directo o desde splits `train/validation/test` de un dataset versionado.
 - Documentado el paquete en `packages/marl/README.md`.
+- Anadido `packages.marl.rllib_adapter` con `market_env_creator()` y `register_market_env()`,
+  para exponer una fabrica registrable por RLlib/Ray Tune sin anadir Ray como dependencia obligatoria.
+- Anadidos tests del adaptador RLlib con registro simulado y construccion de entorno desde pasos
+  historicos en memoria.
 
 ## Pruebas ejecutadas
 
@@ -53,9 +57,12 @@ El sistema MARL cooperativo necesita un entorno reproducible que avance por vent
 - `python -m mypy packages/marl tests/unit/test_market_marl_env.py`
 - `python -m pytest tests/unit/test_market_marl_env.py`
 - `python -m pytest tests/unit/test_marl_episode_loader.py`
+- `python -m ruff check packages/marl tests/unit/test_market_marl_env.py tests/unit/test_marl_episode_loader.py tests/unit/test_marl_rllib_adapter.py`
+- `python -m mypy packages/marl tests/unit/test_market_marl_env.py tests/unit/test_marl_episode_loader.py tests/unit/test_marl_rllib_adapter.py`
+- `python -m pytest tests/unit/test_market_marl_env.py tests/unit/test_marl_episode_loader.py tests/unit/test_marl_rllib_adapter.py`
 
 ## Bloqueos o riesgos
 
 - Hay que decidir granularidad temporal y como manejar huecos de datos entre plataformas.
-- Falta anadir el wrapper formal PettingZoo/RLlib.
+- La integracion con Ray/PettingZoo real se validara al configurar MAPPO en `022`.
 - La recompensa compartida es provisional; debe cerrarse en la tarea `021`.

@@ -12,10 +12,10 @@ Primer andamiaje del entorno multiagente.
 - la compra usa `PortfolioSimulator`;
 - la validacion usa `evaluate_portfolio_risk`;
 - la recompensa compartida inicial usa el retorno inmediato del ejemplo.
+- `market_env_creator()` y `register_market_env()` preparan una fabrica registrable desde RLlib.
 
-Todavia no es el wrapper final PettingZoo/RLlib. La intencion es estabilizar primero los
-contratos de observacion, accion, simulador y riesgo antes de anadir la dependencia formal y el
-entrenamiento.
+Todavia no anade Ray/PettingZoo como dependencia obligatoria. La integracion formal de entrenamiento
+queda para la tarea MAPPO/RLlib.
 
 ## Episodios
 
@@ -29,4 +29,17 @@ from packages.marl import MarketMARLEnvironment, load_market_episode_steps
 
 steps = load_market_episode_steps("data/datasets/trading_profit_v1", split="train", limit=100)
 env = MarketMARLEnvironment(steps)
+```
+
+## RLlib
+
+`register_market_env()` recibe la funcion `register_env` de RLlib/Ray Tune por parametro:
+
+```python
+from ray.tune.registry import register_env
+
+from packages.marl import load_market_episode_steps, register_market_env
+
+steps = load_market_episode_steps("data/datasets/trading_profit_v1", split="train", limit=100)
+register_market_env("csflipper-market", register_env, steps)
 ```
