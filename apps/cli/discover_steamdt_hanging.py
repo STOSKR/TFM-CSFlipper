@@ -19,12 +19,12 @@ from apps.acquisition.steamdt_hanging import (
 )
 from packages.persistence.connection import create_pool
 from packages.persistence.repositories import MarketObservationIngestionRepository
-from packages.runtime_config import SteamDTProfileConfig, load_runtime_config
+from packages.runtime_config import SteamDTConfig, SteamDTProfileConfig, load_runtime_config
 
 
 async def discover(args: argparse.Namespace) -> int:
     runtime_config = load_runtime_config()
-    profile_items = _selected_profiles(args, runtime_config.steamdt.profiles)
+    profile_items = _selected_profiles(args, runtime_config.steamdt)
     all_candidates: list[SteamDTCandidate] = []
     fee_summaries: list[str] = []
 
@@ -311,11 +311,11 @@ def main() -> None:
 
 def _selected_profiles(
     args: argparse.Namespace,
-    profiles: dict[str, SteamDTProfileConfig],
+    config: SteamDTConfig,
 ) -> tuple[tuple[str, SteamDTProfileConfig], ...]:
     if args.all_profiles:
-        return tuple(profiles.items())
-    return ((args.profile, profiles[args.profile]),)
+        return tuple((profile, config.profiles[profile]) for profile in config.enabled_profiles)
+    return ((args.profile, config.profiles[args.profile]),)
 
 
 def _tag_candidates(

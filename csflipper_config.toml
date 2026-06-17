@@ -15,6 +15,7 @@ platform_balance = 2.5
 [steamdt]
 default_profile = "steam_sell_slow"
 run_all_profiles = true
+enabled_profiles = ["steam_sell_slow", "platform_arbitrage_safe"]
 
 [steamdt.profiles.steam_sell_slow]
 balance_type = "STEAM Balance"

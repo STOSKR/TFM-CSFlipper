@@ -52,6 +52,7 @@ class SteamDTProfileConfig:
 class SteamDTConfig:
     default_profile: str
     run_all_profiles: bool
+    enabled_profiles: tuple[str, ...]
     profiles: dict[str, SteamDTProfileConfig]
 
 
@@ -127,9 +128,17 @@ def _steamdt_config(section: dict[str, Any]) -> SteamDTConfig:
     default_profile = _str(section, "default_profile", "platform_arbitrage_safe")
     if default_profile not in profiles:
         default_profile = "platform_arbitrage_safe"
+    enabled_profiles = tuple(
+        profile
+        for profile in _str_list(section, "enabled_profiles", tuple(profiles))
+        if profile in profiles
+    )
+    if not enabled_profiles:
+        enabled_profiles = tuple(profiles)
     return SteamDTConfig(
         default_profile=default_profile,
         run_all_profiles=_bool(section, "run_all_profiles", False),
+        enabled_profiles=enabled_profiles,
         profiles=profiles,
     )
 
@@ -210,6 +219,15 @@ def _section(payload: dict[str, Any], key: str) -> dict[str, Any]:
 def _str(section: dict[str, Any], key: str, default: str) -> str:
     value = section.get(key, default)
     return str(value)
+
+
+def _str_list(section: dict[str, Any], key: str, default: tuple[str, ...]) -> tuple[str, ...]:
+    value = section.get(key)
+    if value is None:
+        return default
+    if isinstance(value, list | tuple):
+        return tuple(str(item) for item in value)
+    return (str(value),)
 
 
 def _int(section: dict[str, Any], key: str, default: int) -> int:

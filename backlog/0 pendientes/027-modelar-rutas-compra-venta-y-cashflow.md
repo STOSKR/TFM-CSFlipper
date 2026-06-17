@@ -18,7 +18,8 @@ El objetivo operativo no es comprar siempre desde una plataforma fija. La estrat
 - Incluir plataforma/tipo de salida esperada antes de entrenar MAPPO.
 - Representar valor efectivo del saldo resultante: reinversion en BUFF/Steam o cash-out.
 - Revisar acciones de Trader para que no sean solo `hold`/`buy_one` si el entrenamiento necesita decidir ruta o salida.
-- Ejecutar el scraping periodico con todos los perfiles SteamDT configurados para capturar las rutas comparables.
+- Ejecutar el scraping periodico con los perfiles SteamDT activos: normalmente `steam_sell_slow`
+  y `platform_arbitrage_safe`.
 - Mantener modo simulado; no ejecutar compras reales.
 
 ## Criterios de aceptacion
@@ -42,7 +43,8 @@ El objetivo operativo no es comprar siempre desde una plataforma fija. La estrat
 - Anadido soporte inicial de `buy_platform` al `MarketEpisodeStep`.
 - Anadido soporte inicial de `buy_price_type`, `sell_platform` y `sell_price_type` al
   `MarketEpisodeStep`.
-- Activado `run_all_profiles = true` en `csflipper_config.toml`.
+- Activado `run_all_profiles = true` en `csflipper_config.toml` con `enabled_profiles` limitado
+  a `steam_sell_slow` y `platform_arbitrage_safe`.
 - Anadido override `--all-profiles/--no-all-profiles` a `scrape_flow.py`.
 
 ## Pruebas ejecutadas

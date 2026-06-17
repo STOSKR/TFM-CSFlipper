@@ -91,6 +91,7 @@ def test_load_runtime_config_reads_all_profile_mode_and_multiple_profiles(
         [steamdt]
         default_profile = "steam_sell_fast"
         run_all_profiles = true
+        enabled_profiles = ["steam_sell_fast"]
 
         [steamdt.profiles.steam_sell_fast]
         balance_type = "STEAM Balance"
@@ -108,6 +109,7 @@ def test_load_runtime_config_reads_all_profile_mode_and_multiple_profiles(
     config = load_runtime_config(config_path)
 
     assert config.steamdt.run_all_profiles is True
+    assert config.steamdt.enabled_profiles == ("steam_sell_fast",)
     assert tuple(config.steamdt.profiles) == (
         "steam_sell_fast",
         "platform_buy_order_to_platform_highest",
