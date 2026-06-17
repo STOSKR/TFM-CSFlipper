@@ -32,6 +32,12 @@ def main() -> int:
     parser.add_argument("--persist", action="store_true", help="Persist market snapshots.")
     parser.add_argument("--fast", action="store_true", help="Use SteamDT fast profile override.")
     parser.add_argument(
+        "--all-profiles",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="Override csflipper_config.toml and run every configured SteamDT profile.",
+    )
+    parser.add_argument(
         "--steamdt-timeout",
         type=int,
         help="Seconds to wait for SteamDT navigation and key selectors.",
@@ -91,6 +97,8 @@ def build_steamdt_command(args: argparse.Namespace, candidates_path: Path) -> li
         command.append("--show")
     if args.fast:
         command.append("--fast")
+    if args.all_profiles is not None:
+        command.append("--all-profiles" if args.all_profiles else "--no-all-profiles")
     if args.steamdt_timeout is not None:
         command.extend(["--timeout", str(args.steamdt_timeout)])
     if args.steamdt_retries is not None:

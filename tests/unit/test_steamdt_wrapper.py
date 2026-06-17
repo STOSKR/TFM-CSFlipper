@@ -24,6 +24,7 @@ def test_steamdt_wrapper_disables_uu_by_default(
     command = tuple(str(part) for part in commands[0])
     assert _option_pair(command, "--timeout") == ("--timeout", "60")
     assert _option_pair(command, "--retries") == ("--retries", "2")
+    assert "--all-profiles" in command
     assert "--no-platform-uu" in command
     assert "--platform-uu" not in command
 
