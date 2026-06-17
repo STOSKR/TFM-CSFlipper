@@ -61,3 +61,20 @@ La version actual es interpretable y configurable:
 - penalizacion por drawdown, capital bloqueado y volatilidad si esta disponible.
 
 El entorno copia el desglose en `info["reward_breakdown"]` para poder auditar entrenamientos.
+
+## Prueba local
+
+Sin RLlib ni entrenamiento se puede ejecutar un episodio smoke con una politica fija:
+
+```powershell
+python -m apps.cli.run_marl_episode
+```
+
+Tambien puede cargar un dataset parquet versionado:
+
+```powershell
+python -m apps.cli.run_marl_episode --dataset-dir data/datasets/trading_profit_v1 --split train --limit 5
+```
+
+Esto solo valida el entorno, observaciones, acciones, recompensa y simulador de cartera. No entrena
+una politica MARL.

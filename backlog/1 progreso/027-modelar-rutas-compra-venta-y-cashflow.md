@@ -46,10 +46,12 @@ El objetivo operativo no es comprar siempre desde una plataforma fija. La estrat
 - Activado `run_all_profiles = true` en `csflipper_config.toml` con `enabled_profiles` limitado
   a `steam_sell_slow` y `platform_arbitrage_safe`.
 - Anadido override `--all-profiles/--no-all-profiles` a `scrape_flow.py`.
+- Anadido `python -m apps.cli.run_marl_episode` para probar localmente un episodio MARL sin RLlib,
+  con rutas demo BUFF->Steam y Steam buy order->BUFF.
 
 ## Pruebas ejecutadas
 
-- Pendiente tras implementar el contrato completo.
+- `python -m pytest tests/unit/test_run_marl_episode_cli.py`
 
 ## Bloqueos o riesgos
 
