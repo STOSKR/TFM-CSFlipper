@@ -21,6 +21,7 @@ from packages.marl.rewards import (
     shared_reward_map,
 )
 from packages.simulation import (
+    BUFF163,
     STEAM,
     PortfolioRiskConfig,
     PortfolioSimulator,
@@ -59,6 +60,8 @@ AGENT_SPECS = {
         agent_id="scout",
         role="Detecta oportunidades y marca candidatos; no ejecuta operaciones.",
         observation_fields=(
+            "buy_platform_is_steam",
+            "buy_platform_is_buff",
             "buy_price_eur",
             "current_return",
             "supervised_probability",
@@ -71,6 +74,8 @@ AGENT_SPECS = {
         agent_id="trader",
         role="Decide mantener o comprar una unidad cuando Scout y Portfolio lo permiten.",
         observation_fields=(
+            "buy_platform_is_steam",
+            "buy_platform_is_buff",
             "buy_price_eur",
             "current_exit_net_eur",
             "current_return",
@@ -104,6 +109,8 @@ class MarketEpisodeStep:
     buy_price_eur: Decimal
     current_exit_net_eur: Decimal
     current_return: Decimal
+    buy_platform: str = STEAM
+    buy_currency: str = "EUR"
     steam_sell_price_eur: Decimal | None = None
     buff_buy_order_price_eur: Decimal | None = None
     available_quantity: int | None = None
@@ -119,6 +126,8 @@ class MarketEpisodeStep:
             buy_price_eur=_positive_decimal(row["buy_price_eur"], "buy_price_eur"),
             current_exit_net_eur=_decimal(row["current_exit_net_eur"]),
             current_return=_decimal(row["current_return"]),
+            buy_platform=_platform_text(row.get("buy_platform") or STEAM),
+            buy_currency=str(row.get("buy_currency") or "EUR").upper(),
             steam_sell_price_eur=_optional_decimal(row.get("steam_sell_price_eur")),
             buff_buy_order_price_eur=_optional_decimal(row.get("buff_buy_order_price_eur")),
             available_quantity=_optional_int(row.get("available_quantity")),
@@ -190,9 +199,9 @@ class MarketMARLEnvironment:
             self._simulator.buy(
                 item_id=current.item_id,
                 item_name=current.representation_name,
-                buy_platform=STEAM,
+                buy_platform=current.buy_platform,
                 buy_price=current.buy_price_eur,
-                buy_currency="EUR",
+                buy_currency=current.buy_currency,
                 purchased_at=current.observed_day,
             )
         after_metrics = self._simulator.metrics(as_of=current.observed_day)
@@ -249,6 +258,8 @@ class MarketMARLEnvironment:
         )
         base = {
             "buy_price_eur": _float(current.buy_price_eur),
+            "buy_platform_is_steam": _platform_flag(current.buy_platform, STEAM),
+            "buy_platform_is_buff": _platform_flag(current.buy_platform, BUFF163),
             "current_exit_net_eur": _float(current.current_exit_net_eur),
             "current_return": _float(current.current_return),
             "steam_sell_price_eur": _float(current.steam_sell_price_eur),
@@ -295,6 +306,7 @@ class MarketMARLEnvironment:
             "item_id": resolved_step.item_id,
             "representation_name": resolved_step.representation_name,
             "observed_day": resolved_step.observed_day.isoformat(),
+            "buy_platform": resolved_step.buy_platform,
             "executed_trade": executed_trade,
             "reward": float(reward),
             "reward_breakdown": reward_info(reward_breakdown or EMPTY_REWARD_BREAKDOWN),
@@ -348,7 +360,7 @@ def _validated_actions(actions: ActionMap) -> dict[str, int]:
 def _risk_candidate(step: MarketEpisodeStep) -> RiskCandidate:
     return RiskCandidate(
         item_id=step.item_id,
-        buy_platform=STEAM,
+        buy_platform=step.buy_platform,
         buy_value_eur=step.buy_price_eur,
         available_quantity=step.available_quantity,
         volatility=step.volatility,
@@ -360,6 +372,17 @@ def _required_text(row: Mapping[str, Any], key: str) -> str:
     if not text:
         raise ValueError(f"{key} cannot be empty")
     return text
+
+
+def _platform_text(value: Any) -> str:
+    text = str(value or "").strip().upper()
+    if not text:
+        raise ValueError("buy_platform cannot be empty")
+    return text
+
+
+def _platform_flag(platform: str, expected: str) -> float:
+    return 1.0 if platform.upper() == expected else 0.0
 
 
 def _date_value(value: Any) -> date:

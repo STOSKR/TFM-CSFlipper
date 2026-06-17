@@ -4,7 +4,7 @@ from decimal import Decimal
 import pytest
 
 from packages.marl import AGENT_IDS, AGENT_SPECS, MarketEpisodeStep, MarketMARLEnvironment
-from packages.simulation import PortfolioRiskConfig
+from packages.simulation import BUFF163, PortfolioRiskConfig
 
 
 def test_market_marl_agent_specs_define_local_contracts() -> None:
@@ -14,6 +14,8 @@ def test_market_marl_agent_specs_define_local_contracts() -> None:
     assert AGENT_SPECS["portfolio"].executes_trades is False
     assert AGENT_SPECS["scout"].action_space == {0: "ignore", 1: "mark_opportunity"}
     assert AGENT_SPECS["trader"].observation_fields == (
+        "buy_platform_is_steam",
+        "buy_platform_is_buff",
         "buy_price_eur",
         "current_exit_net_eur",
         "current_return",
@@ -30,6 +32,8 @@ def test_market_marl_env_reset_returns_agent_observations() -> None:
     assert tuple(observations["scout"]) == AGENT_SPECS["scout"].observation_fields
     assert tuple(observations["trader"]) == AGENT_SPECS["trader"].observation_fields
     assert tuple(observations["portfolio"]) == AGENT_SPECS["portfolio"].observation_fields
+    assert observations["scout"]["buy_platform_is_steam"] == 1.0
+    assert observations["scout"]["buy_platform_is_buff"] == 0.0
     assert observations["scout"]["buy_price_eur"] == 10.0
     assert observations["scout"]["supervised_probability"] == 0.8
     assert observations["portfolio"]["candidate_position_ratio"] == 0.01
@@ -46,6 +50,7 @@ def test_market_marl_env_executes_buy_when_all_agents_accept() -> None:
     )
 
     assert len(env.simulator.positions) == 1
+    assert env.simulator.positions[0].buy_platform == "STEAM"
     assert env.simulator.cash_available_eur == Decimal("90")
     assert rewards == {"scout": 0.195, "trader": 0.195, "portfolio": 0.195}
     assert observations["scout"]["buy_price_eur"] == 20.0
@@ -68,6 +73,33 @@ def test_market_marl_env_step_info_describes_processed_item() -> None:
     assert infos["trader"]["item_id"] == "item-1"
     assert infos["trader"]["observed_day"] == "2026-01-01"
     assert infos["trader"]["reward"] == 0.195
+
+
+def test_market_marl_env_can_execute_buy_from_buff_candidate() -> None:
+    env = MarketMARLEnvironment(
+        (
+            MarketEpisodeStep(
+                item_id="item-1",
+                representation_name="AK-47 | Slate_FT_0",
+                observed_day=date(2026, 1, 1),
+                buy_platform=BUFF163,
+                buy_price_eur=Decimal("10"),
+                current_exit_net_eur=Decimal("12"),
+                current_return=Decimal("0.2"),
+            ),
+        ),
+        initial_cash_eur=Decimal("100"),
+    )
+    observations, _infos = env.reset()
+
+    _next_observations, _rewards, _terminations, _truncations, infos = env.step(
+        {"scout": 1, "trader": 1, "portfolio": 1}
+    )
+
+    assert observations["trader"]["buy_platform_is_steam"] == 0.0
+    assert observations["trader"]["buy_platform_is_buff"] == 1.0
+    assert env.simulator.positions[0].buy_platform == "BUFF"
+    assert infos["trader"]["buy_platform"] == "BUFF"
 
 
 @pytest.mark.parametrize(
@@ -160,6 +192,7 @@ def test_market_episode_step_can_be_built_from_mapping() -> None:
             "representation_name": "AK-47 | Slate_FT_0",
             "observed_day": "2026-01-01",
             "buy_price_eur": "10",
+            "buy_platform": "buff",
             "current_exit_net_eur": "12",
             "current_return": "0.2",
             "available_quantity": "4",
@@ -170,6 +203,7 @@ def test_market_episode_step_can_be_built_from_mapping() -> None:
 
     assert step.observed_day == date(2026, 1, 1)
     assert step.buy_price_eur == Decimal("10")
+    assert step.buy_platform == "BUFF"
     assert step.available_quantity == 4
     assert step.volatility == Decimal("0.3")
 

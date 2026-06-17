@@ -9,7 +9,7 @@ Primer andamiaje del entorno multiagente.
 - `AGENT_SPECS` declara rol, campos locales, acciones y si el agente ejecuta operaciones;
 - `action_masks()` expone acciones validas para el candidato actual;
 - solo se ejecuta una compra si Scout marca, Trader compra y Portfolio aprueba;
-- la compra usa `PortfolioSimulator`;
+- la compra usa `PortfolioSimulator` y respeta `buy_platform` del candidato;
 - la validacion usa `evaluate_portfolio_risk`;
 - la recompensa compartida usa `calculate_cooperative_reward()` y deja desglose en `info`;
 - `market_env_creator()` y `register_market_env()` preparan una fabrica registrable desde RLlib.
@@ -21,6 +21,9 @@ queda para la tarea MAPPO/RLlib.
 
 `load_market_episode_steps()` carga pasos desde un parquet directo o desde un directorio de
 dataset con `train.parquet`, `validation.parquet` o `test.parquet`.
+
+Cada paso representa una oportunidad concreta de entrada/salida. `buy_platform` es opcional y por
+compatibilidad asume `STEAM`; cuando el candidato venga de BUFF debe ser `BUFF`.
 
 Ejemplo:
 

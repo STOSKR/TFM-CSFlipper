@@ -42,6 +42,6 @@ Pendiente.
 
 ## Bloqueos o riesgos
 
+- Conviene cerrar `027` antes de entrenar para no fijar una politica sesgada a una ruta de compra/venta incompleta.
 - RLlib puede requerir wrappers especificos para PettingZoo y versiones compatibles.
 - MAPPO con critico centralizado puede requerir personalizar modelo o view requirements.
-
