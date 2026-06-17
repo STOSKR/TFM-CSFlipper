@@ -27,6 +27,9 @@ def test_market_marl_env_reset_returns_agent_observations() -> None:
     observations, infos = env.reset()
 
     assert tuple(observations) == AGENT_IDS
+    assert tuple(observations["scout"]) == AGENT_SPECS["scout"].observation_fields
+    assert tuple(observations["trader"]) == AGENT_SPECS["trader"].observation_fields
+    assert tuple(observations["portfolio"]) == AGENT_SPECS["portfolio"].observation_fields
     assert observations["scout"]["buy_price_eur"] == 10.0
     assert observations["scout"]["supervised_probability"] == 0.8
     assert observations["portfolio"]["candidate_position_ratio"] == 0.01
@@ -49,6 +52,27 @@ def test_market_marl_env_executes_buy_when_all_agents_accept() -> None:
     assert terminations == {"scout": False, "trader": False, "portfolio": False}
     assert truncations == {"scout": False, "trader": False, "portfolio": False}
     assert infos["portfolio"]["executed_trade"] is True
+
+
+@pytest.mark.parametrize(
+    "actions",
+    [
+        {"scout": 1, "trader": 0, "portfolio": 1},
+        {"scout": 0, "trader": 1, "portfolio": 1},
+        {"scout": 1, "trader": 1, "portfolio": 0},
+    ],
+)
+def test_market_marl_env_requires_all_agents_to_accept_before_buy(
+    actions: dict[str, int],
+) -> None:
+    env = MarketMARLEnvironment(_episode(), initial_cash_eur=Decimal("100"))
+    env.reset()
+
+    _observations, rewards, _terminations, _truncations, infos = env.step(actions)
+
+    assert env.simulator.positions == ()
+    assert rewards == {"scout": 0.0, "trader": 0.0, "portfolio": 0.0}
+    assert infos["trader"]["executed_trade"] is False
 
 
 def test_market_marl_env_blocks_buy_when_portfolio_risk_rejects() -> None:

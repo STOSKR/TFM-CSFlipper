@@ -40,12 +40,18 @@ La arquitectura objetivo usa Scout, Trader y Portfolio bajo CTDE. Estos agentes 
 - Anadida validacion de acciones desconocidas o fuera de espacio en `MarketMARLEnvironment.step()`.
 - Anadidas mascaras de accion con `MarketMARLEnvironment.action_masks()` para bloquear compras/aprobaciones cuando riesgo rechaza el candidato.
 - Documentado en `packages/marl/README.md`.
+- Reforzados los tests para comprobar que las observaciones reales coinciden exactamente con `AGENT_SPECS`.
+- Reforzado que Scout, Trader y Portfolio deben aceptar a la vez para ejecutar una compra; ningun agente compra por si solo.
 
 ## Pruebas ejecutadas
 
 - `python -m pytest tests/unit/test_market_marl_env.py`
+- `python -m ruff check packages/marl tests/unit/test_market_marl_env.py`
+- `python -m mypy packages/marl tests/unit/test_market_marl_env.py`
+- `python -m pytest tests/unit/test_market_marl_env.py tests/unit/test_marl_episode_loader.py`
 
 ## Bloqueos o riesgos
 
 - Acciones demasiado amplias pueden dificultar el aprendizaje.
 - Acciones demasiado discretas pueden ocultar oportunidades reales.
+- La recompensa compartida sigue siendo provisional y se cerrara en `021`.
