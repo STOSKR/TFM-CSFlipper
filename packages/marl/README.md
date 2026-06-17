@@ -59,6 +59,21 @@ steps = load_market_episode_steps("data/datasets/trading_profit_v1", split="trai
 register_market_env("csflipper-market", register_env, steps)
 ```
 
+Con el extra `marl` instalado tambien existe un wrapper PettingZoo paralelo:
+
+```python
+from packages.marl.pettingzoo_env import PettingZooMarketEnv
+```
+
+Y un smoke de entrenamiento RLlib con PPO multiagente:
+
+```powershell
+python -m apps.cli.train_marl_rllib --dataset-dir data/datasets/trading_profit_v1 --split train --limit 8 --iterations 1
+```
+
+El smoke guarda checkpoint y reporta metricas operativas basicas. Aun no implementa critico
+centralizado MAPPO completo; esa parte queda marcada como siguiente paso de CTDE.
+
 ## Recompensa
 
 `calculate_cooperative_reward()` devuelve una recompensa comun para Scout, Trader y Portfolio.

@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "tfm-csflipper"
 version = "0.1.0"
@@ -24,6 +28,12 @@ dependencies = [
 ml = [
     "tensorflow>=2.16",
 ]
+marl = [
+    "gymnasium>=0.28",
+    "pettingzoo>=1.24",
+    "ray[rllib]>=2.9",
+    "torch>=2.2",
+]
 dev = [
     "coverage>=7.5",
     "mypy>=1.10",
@@ -35,6 +45,9 @@ dev = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+
+[tool.setuptools.packages.find]
+include = ["apps*", "packages*"]
 
 [tool.ruff]
 line-length = 100

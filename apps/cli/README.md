@@ -83,6 +83,18 @@ python -m apps.cli.export_web_dashboard
 El archivo se escribe por defecto en `apps/web/data/dashboard.json`, ignorado por git porque
 contiene estado exportado desde la base de datos.
 
+## Entrenamiento MARL RLlib
+
+Ejecuta un smoke PPO multiagente con Ray/RLlib:
+
+```bash
+python -m apps.cli.train_marl_rllib --dataset-dir data/datasets/trading_profit_v1 --split train --limit 8 --iterations 1
+```
+
+El comando requiere instalar el extra `marl` o las dependencias equivalentes: Ray/RLlib,
+PettingZoo, Gymnasium y PyTorch. El smoke guarda un checkpoint temporal y reporta metricas
+operativas basicas; el critico centralizado MAPPO queda pendiente.
+
 ## SteamDT Hanging
 
 Descubre candidatos desde SteamDT Hanging sin guardar nada:
