@@ -27,6 +27,8 @@ def test_market_marl_agent_specs_define_local_contracts() -> None:
         "current_return",
         "current_cash_value_eur",
         "current_cash_return",
+        "supervised_probability",
+        "supervised_probability_available",
         "cash_destination_is_reinvest",
         "cash_destination_is_cashout",
         "cash_available_ratio",
@@ -51,10 +53,15 @@ def test_market_marl_env_reset_returns_agent_observations() -> None:
     assert observations["scout"]["buy_price_eur"] == 10.0
     assert observations["scout"]["current_cash_return"] == 0.2
     assert observations["scout"]["supervised_probability"] == 0.8
+    assert observations["scout"]["supervised_probability_available"] == 1.0
     assert observations["trader"]["current_cash_value_eur"] == 12.0
+    assert observations["trader"]["supervised_probability"] == 0.8
+    assert observations["trader"]["supervised_probability_available"] == 1.0
     assert observations["trader"]["cash_destination_is_reinvest"] == 1.0
     assert observations["trader"]["cash_destination_is_cashout"] == 0.0
     assert observations["portfolio"]["candidate_position_ratio"] == 0.01
+    assert observations["portfolio"]["supervised_probability"] == 0.8
+    assert observations["portfolio"]["supervised_probability_available"] == 1.0
     assert infos["trader"]["representation_name"] == "AK-47 | Slate_FT_0"
     assert infos["trader"]["route_label"] == "STEAM listing -> STEAM listing"
     assert infos["trader"]["route_selection"] == "candidate"
@@ -66,6 +73,8 @@ def test_market_marl_env_reset_returns_agent_observations() -> None:
         "effective_cash_return": 0.2,
         "cash_destination": "reinvest",
     }
+    assert infos["trader"]["supervised_probability_enabled"] is True
+    assert infos["trader"]["supervised_probability_available"] is True
     assert infos["trader"]["action_mask"] == (1, 1)
 
 
@@ -242,6 +251,7 @@ def test_market_episode_step_can_be_built_from_mapping() -> None:
             "cash_destination": "cashout",
             "available_quantity": "4",
             "supervised_probability": "0.8",
+            "supervised_model_version": "calibrated-v1",
             "volatility": "0.3",
         }
     )
@@ -256,6 +266,7 @@ def test_market_episode_step_can_be_built_from_mapping() -> None:
     assert step.current_cash_return == Decimal("0.1")
     assert step.cash_destination == "cashout"
     assert step.route_label == "BUFF buy_order -> STEAM buy_order"
+    assert step.supervised_model_version == "calibrated-v1"
     assert step.available_quantity == 4
     assert step.volatility == Decimal("0.3")
 
@@ -301,6 +312,46 @@ def test_market_marl_env_values_cashout_destination_separately_from_platform_bal
     assert observations["trader"]["cash_destination_is_cashout"] == 1.0
     assert infos["scout"]["cashflow"]["exit_balance_value_eur"] == 12.0
     assert infos["scout"]["cashflow"]["effective_cash_value_eur"] == 9.6
+
+
+def test_market_marl_env_can_disable_supervised_probability_feature() -> None:
+    env = MarketMARLEnvironment(
+        _episode(),
+        include_supervised_probability=False,
+    )
+
+    observations, infos = env.reset()
+
+    for agent_id in AGENT_IDS:
+        assert observations[agent_id]["supervised_probability"] == 0.0
+        assert observations[agent_id]["supervised_probability_available"] == 0.0
+        assert infos[agent_id]["supervised_probability_enabled"] is False
+        assert infos[agent_id]["supervised_probability_available"] is False
+
+
+def test_market_marl_env_keeps_supervised_observation_shape_when_prediction_is_missing() -> None:
+    env = MarketMARLEnvironment(
+        (
+            MarketEpisodeStep(
+                item_id="item-1",
+                representation_name="AK-47 | Slate_FT_0",
+                observed_day=date(2026, 1, 1),
+                buy_price_eur=Decimal("10"),
+                current_exit_net_eur=Decimal("12"),
+                current_return=Decimal("0.2"),
+                supervised_probability=None,
+            ),
+        ),
+    )
+
+    observations, infos = env.reset()
+
+    for agent_id in AGENT_IDS:
+        assert tuple(observations[agent_id]) == AGENT_SPECS[agent_id].observation_fields
+        assert observations[agent_id]["supervised_probability"] == 0.0
+        assert observations[agent_id]["supervised_probability_available"] == 0.0
+        assert infos[agent_id]["supervised_probability_enabled"] is True
+        assert infos[agent_id]["supervised_probability_available"] is False
 
 
 def _episode() -> tuple[MarketEpisodeStep, ...]:

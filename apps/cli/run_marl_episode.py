@@ -19,7 +19,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         if args.dataset_dir
         else _demo_steps()
     )
-    env = MarketMARLEnvironment(steps, initial_cash_eur=Decimal(str(args.cash)))
+    env = MarketMARLEnvironment(
+        steps,
+        initial_cash_eur=Decimal(str(args.cash)),
+        include_supervised_probability=args.supervised_probability,
+    )
     observations, infos = env.reset()
     trace: list[dict[str, Any]] = [
         {
@@ -69,6 +73,19 @@ def main() -> None:
     parser.add_argument("--split", default="train")
     parser.add_argument("--limit", type=int, default=5)
     parser.add_argument("--cash", type=float, default=100.0)
+    parser.add_argument(
+        "--supervised-probability",
+        dest="supervised_probability",
+        action="store_true",
+        default=True,
+        help="Include supervised probability features in MARL observations.",
+    )
+    parser.add_argument(
+        "--no-supervised-probability",
+        dest="supervised_probability",
+        action="store_false",
+        help="Disable supervised probability features for ablation smoke tests.",
+    )
     parser.add_argument(
         "--policy",
         choices=("buy-positive", "hold"),

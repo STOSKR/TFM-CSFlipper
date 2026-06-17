@@ -79,6 +79,7 @@ AGENT_SPECS = {
             "current_return",
             "current_cash_return",
             "supervised_probability",
+            "supervised_probability_available",
             "available_quantity",
         ),
         action_space={0: "ignore", 1: "mark_opportunity"},
@@ -101,6 +102,8 @@ AGENT_SPECS = {
             "current_return",
             "current_cash_value_eur",
             "current_cash_return",
+            "supervised_probability",
+            "supervised_probability_available",
             "cash_destination_is_reinvest",
             "cash_destination_is_cashout",
             "cash_available_ratio",
@@ -116,6 +119,8 @@ AGENT_SPECS = {
             "cash_after_candidate_ratio",
             "blocked_capital_ratio",
             "candidate_position_ratio",
+            "supervised_probability",
+            "supervised_probability_available",
             "violation_count",
             "warning_count",
         ),
@@ -145,6 +150,7 @@ class MarketEpisodeStep:
     buff_buy_order_price_eur: Decimal | None = None
     available_quantity: int | None = None
     supervised_probability: Decimal | None = None
+    supervised_model_version: str | None = None
     volatility: Decimal | None = None
 
     @classmethod
@@ -181,6 +187,7 @@ class MarketEpisodeStep:
             buff_buy_order_price_eur=_optional_decimal(row.get("buff_buy_order_price_eur")),
             available_quantity=_optional_int(row.get("available_quantity")),
             supervised_probability=_optional_decimal(row.get("supervised_probability")),
+            supervised_model_version=_optional_text(row.get("supervised_model_version")),
             volatility=_optional_decimal(row.get("volatility")),
         )
 
@@ -212,6 +219,7 @@ class MarketMARLEnvironment:
         initial_cash_eur: Decimal = Decimal("1000"),
         risk_config: PortfolioRiskConfig | None = None,
         reward_config: CooperativeRewardConfig | None = None,
+        include_supervised_probability: bool = True,
     ) -> None:
         if not episode_steps:
             raise ValueError("episode_steps cannot be empty")
@@ -219,6 +227,7 @@ class MarketMARLEnvironment:
         self._initial_cash_eur = initial_cash_eur
         self._risk_config = risk_config or default_portfolio_risk_config()
         self._reward_config = reward_config or CooperativeRewardConfig()
+        self._include_supervised_probability = include_supervised_probability
         self.agents = list(AGENT_IDS)
         self._simulator = PortfolioSimulator(initial_cash_eur=initial_cash_eur)
         self._index = 0
@@ -362,7 +371,13 @@ class MarketMARLEnvironment:
             "steam_sell_price_eur": _float(current.steam_sell_price_eur),
             "buff_buy_order_price_eur": _float(current.buff_buy_order_price_eur),
             "available_quantity": float(current.available_quantity or 0),
-            "supervised_probability": _float(current.supervised_probability),
+            "supervised_probability": _float(
+                _supervised_probability(current, self._include_supervised_probability)
+            ),
+            "supervised_probability_available": _supervised_probability_available(
+                current,
+                self._include_supervised_probability,
+            ),
         }
         portfolio_features = {
             key: _float(value)
@@ -382,7 +397,7 @@ class MarketMARLEnvironment:
                 "cash_available_ratio": portfolio_features["cash_available_ratio"],
             },
             "portfolio": {
-                key: portfolio_features[key]
+                key: base[key] if key in base else portfolio_features[key]
                 for key in self.observation_spaces["portfolio"]
             },
         }
@@ -412,6 +427,14 @@ class MarketMARLEnvironment:
             "exit_balance_platform": resolved_step.exit_balance_platform,
             "cash_destination": resolved_step.cash_destination,
             "cashflow": _cashflow_info(resolved_step, self._simulator.config),
+            "supervised_probability_enabled": self._include_supervised_probability,
+            "supervised_probability_available": bool(
+                _supervised_probability_available(
+                    resolved_step,
+                    self._include_supervised_probability,
+                )
+            ),
+            "supervised_model_version": resolved_step.supervised_model_version,
             "executed_trade": executed_trade,
             "reward": float(reward),
             "reward_breakdown": reward_info(reward_breakdown or EMPTY_REWARD_BREAKDOWN),
@@ -554,6 +577,22 @@ def _effective_cash_return(step: MarketEpisodeStep, config: MarketEconomicsConfi
     )
 
 
+def _supervised_probability(
+    step: MarketEpisodeStep,
+    include_supervised_probability: bool,
+) -> Decimal | None:
+    if not include_supervised_probability:
+        return None
+    return step.supervised_probability
+
+
+def _supervised_probability_available(
+    step: MarketEpisodeStep,
+    include_supervised_probability: bool,
+) -> float:
+    return float(include_supervised_probability and step.supervised_probability is not None)
+
+
 def _date_value(value: Any) -> date:
     if isinstance(value, date) and not isinstance(value, datetime):
         return value
@@ -583,6 +622,13 @@ def _optional_int(value: Any) -> int | None:
     if value is None:
         return None
     return int(value)
+
+
+def _optional_text(value: Any) -> str | None:
+    if value is None:
+        return None
+    text = str(value).strip()
+    return text or None
 
 
 def _float(value: Decimal | None) -> float:

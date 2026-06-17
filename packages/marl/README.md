@@ -32,6 +32,11 @@ sobre esa ruta preconstruida. El `info` de cada agente expone `route_label`, `ro
 `cashflow`, con valor neto de salida, plataforma donde queda el saldo y valor efectivo si se modela
 cash-out.
 
+La probabilidad supervisada calibrada se expone como feature local para Scout, Trader y Portfolio
+con shape estable: `supervised_probability` y `supervised_probability_available`. Si la feature se
+desactiva para ablation, o falta prediccion en el candidato, ambos agentes mantienen los campos y
+reciben valor `0`.
+
 Ejemplo:
 
 ```python
@@ -83,3 +88,9 @@ python -m apps.cli.run_marl_episode --dataset-dir data/datasets/trading_profit_v
 
 Esto solo valida el entorno, observaciones, acciones, recompensa y simulador de cartera. No entrena
 una politica MARL.
+
+Para probar una ablation sin senal supervisada:
+
+```powershell
+python -m apps.cli.run_marl_episode --no-supervised-probability
+```
