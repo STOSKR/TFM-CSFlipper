@@ -162,6 +162,7 @@ class MarketMARLEnvironment:
             config=self._risk_config,
             candidate=candidate,
         )
+        action_masks = _action_masks_from_allowed(risk.candidate_allowed)
         executed_trade = _wants_buy(normalized_actions) and risk.candidate_allowed
         reward = Decimal("0")
         if executed_trade:
@@ -182,6 +183,8 @@ class MarketMARLEnvironment:
         terminations = {agent_id: self._terminated for agent_id in AGENT_IDS}
         truncations = {agent_id: False for agent_id in AGENT_IDS}
         infos = self._infos(
+            step=current,
+            action_masks=action_masks,
             executed_trade=executed_trade,
             reward=reward,
             risk_violations=risk.violations,
@@ -202,11 +205,7 @@ class MarketMARLEnvironment:
             candidate=_risk_candidate(current),
         )
         candidate_allowed = int(risk.candidate_allowed)
-        return {
-            "scout": (1, 1),
-            "trader": (1, candidate_allowed),
-            "portfolio": (1, candidate_allowed),
-        }
+        return _action_masks_from_allowed(bool(candidate_allowed))
 
     def _observations(self) -> ObservationMap:
         current = self._current_step()
@@ -251,16 +250,18 @@ class MarketMARLEnvironment:
     def _infos(
         self,
         *,
+        step: MarketEpisodeStep | None = None,
+        action_masks: ActionMaskMap | None = None,
         executed_trade: bool,
         reward: Decimal = Decimal("0"),
         risk_violations: tuple[str, ...] = (),
     ) -> InfoMap:
-        step = self._episode_steps[min(self._index, len(self._episode_steps) - 1)]
-        action_masks = self.action_masks()
+        resolved_step = step or self._episode_steps[min(self._index, len(self._episode_steps) - 1)]
+        resolved_action_masks = action_masks if action_masks is not None else self.action_masks()
         payload = {
-            "item_id": step.item_id,
-            "representation_name": step.representation_name,
-            "observed_day": step.observed_day.isoformat(),
+            "item_id": resolved_step.item_id,
+            "representation_name": resolved_step.representation_name,
+            "observed_day": resolved_step.observed_day.isoformat(),
             "executed_trade": executed_trade,
             "reward": float(reward),
             "risk_violations": risk_violations,
@@ -268,7 +269,7 @@ class MarketMARLEnvironment:
         return {
             agent_id: {
                 **payload,
-                "action_mask": action_masks.get(agent_id, ()),
+                "action_mask": resolved_action_masks.get(agent_id, ()),
             }
             for agent_id in AGENT_IDS
         }
@@ -283,6 +284,15 @@ def _wants_buy(actions: ActionMap) -> bool:
         and actions.get("trader", 0) == 1
         and actions.get("portfolio", 0) == 1
     )
+
+
+def _action_masks_from_allowed(candidate_allowed: bool) -> ActionMaskMap:
+    buy_allowed = int(candidate_allowed)
+    return {
+        "scout": (1, 1),
+        "trader": (1, buy_allowed),
+        "portfolio": (1, buy_allowed),
+    }
 
 
 def _validated_actions(actions: ActionMap) -> dict[str, int]:

@@ -50,6 +50,8 @@ El sistema MARL cooperativo necesita un entorno reproducible que avance por vent
   para exponer una fabrica registrable por RLlib/Ray Tune sin anadir Ray como dependencia obligatoria.
 - Anadidos tests del adaptador RLlib con registro simulado y construccion de entorno desde pasos
   historicos en memoria.
+- Revisada la trazabilidad de `step()`: el `info` devuelto describe el item procesado en esa
+  transicion, no el siguiente item observado.
 
 ## Pruebas ejecutadas
 
@@ -60,6 +62,9 @@ El sistema MARL cooperativo necesita un entorno reproducible que avance por vent
 - `python -m ruff check packages/marl tests/unit/test_market_marl_env.py tests/unit/test_marl_episode_loader.py tests/unit/test_marl_rllib_adapter.py`
 - `python -m mypy packages/marl tests/unit/test_market_marl_env.py tests/unit/test_marl_episode_loader.py tests/unit/test_marl_rllib_adapter.py`
 - `python -m pytest tests/unit/test_market_marl_env.py tests/unit/test_marl_episode_loader.py tests/unit/test_marl_rllib_adapter.py`
+- `python -m pytest tests/unit/test_market_marl_env.py tests/unit/test_marl_episode_loader.py tests/unit/test_marl_rllib_adapter.py`
+- `python -m ruff check packages/marl tests/unit/test_market_marl_env.py tests/unit/test_marl_episode_loader.py tests/unit/test_marl_rllib_adapter.py`
+- `python -m mypy packages/marl tests/unit/test_market_marl_env.py tests/unit/test_marl_episode_loader.py tests/unit/test_marl_rllib_adapter.py`
 
 ## Bloqueos o riesgos
 

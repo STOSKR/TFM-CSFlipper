@@ -54,6 +54,20 @@ def test_market_marl_env_executes_buy_when_all_agents_accept() -> None:
     assert infos["portfolio"]["executed_trade"] is True
 
 
+def test_market_marl_env_step_info_describes_processed_item() -> None:
+    env = MarketMARLEnvironment(_episode(), initial_cash_eur=Decimal("100"))
+    env.reset()
+
+    observations, _rewards, _terminations, _truncations, infos = env.step(
+        {"scout": 1, "trader": 1, "portfolio": 1}
+    )
+
+    assert observations["scout"]["buy_price_eur"] == 20.0
+    assert infos["trader"]["item_id"] == "item-1"
+    assert infos["trader"]["observed_day"] == "2026-01-01"
+    assert infos["trader"]["reward"] == 0.2
+
+
 @pytest.mark.parametrize(
     "actions",
     [
