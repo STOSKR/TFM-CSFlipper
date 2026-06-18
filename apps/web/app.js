@@ -3,7 +3,7 @@ const fallbackDashboard = {
     ["Scraping", "Semanal listo, logs compactos"],
     ["Persistencia", "Historial incremental en market_history_points"],
     ["Modelo", "Direccion experimental, no compra automatica"],
-    ["MARL", "Entorno minimo iniciado, PettingZoo pendiente"],
+    ["MARL", "RLlib smoke listo, critico central pendiente"],
   ],
   summary: {
     total: 2,
@@ -70,7 +70,7 @@ const fallbackDashboard = {
   ],
   backlog: [
     ["013", "Modelo supervisado calibrado", "En progreso"],
-    ["018", "Entorno PettingZoo de mercado", "En progreso"],
+    ["022", "Entrenamiento RLlib MAPPO/CTDE", "En progreso"],
     ["025", "Web de recomendaciones de compra", "MVP local"],
     ["017", "Restricciones de riesgo Portfolio", "Realizada"],
   ],

@@ -64,7 +64,7 @@ def _pipeline(model_dir: Path) -> list[list[str]]:
         ["Scraping", "Semanal listo, logs compactos"],
         ["Persistencia", "Historial incremental en market_history_points"],
         ["Modelo", f"{model_state}, uso experimental"],
-        ["MARL", "Entorno minimo iniciado, PettingZoo pendiente"],
+        ["MARL", "RLlib smoke listo, critico central pendiente"],
     ]
 
 

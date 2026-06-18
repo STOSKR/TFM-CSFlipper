@@ -1,6 +1,8 @@
 import json
 import os
+from datetime import UTC, datetime
 from decimal import Decimal
+from pathlib import Path
 
 import pytest
 
@@ -16,7 +18,7 @@ from packages.contracts.observations import MarketObservationContract
 from packages.domain.enums import SourceType
 
 
-def test_load_steamdt_candidates_keeps_platform_links(tmp_path) -> None:
+def test_load_steamdt_candidates_keeps_platform_links(tmp_path: Path) -> None:
     path = tmp_path / "steamdt_candidates.json"
     path.write_text(
         json.dumps(
@@ -50,7 +52,7 @@ def test_load_steamdt_candidates_keeps_platform_links(tmp_path) -> None:
     assert candidates[0].buy_mode == "Buy via STEAM Buy Order"
 
 
-def test_latest_steamdt_candidates_path_returns_newest_file(tmp_path) -> None:
+def test_latest_steamdt_candidates_path_returns_newest_file(tmp_path: Path) -> None:
     older = tmp_path / "steamdt_candidates_20260608_100000.json"
     newer = tmp_path / "steamdt_candidates_20260608_110000.json"
     ignored = tmp_path / "platform_observations_20260608_120000.json"
@@ -63,7 +65,7 @@ def test_latest_steamdt_candidates_path_returns_newest_file(tmp_path) -> None:
     assert latest_steamdt_candidates_path(tmp_path) == newer
 
 
-def test_latest_steamdt_candidates_path_reports_missing_files(tmp_path) -> None:
+def test_latest_steamdt_candidates_path_reports_missing_files(tmp_path: Path) -> None:
     with pytest.raises(FileNotFoundError, match="no SteamDT candidate JSON found"):
         latest_steamdt_candidates_path(tmp_path)
 
@@ -73,7 +75,7 @@ def test_worker_results_to_jsonable_contains_observations_errors_and_summary() -
         correlation_id="test",
         asset_id="ak_47_slate__field_tested",
         platform_id="steam",
-        observed_at="2026-06-08T10:00:00+00:00",
+        observed_at=datetime(2026, 6, 8, 10, 0, tzinfo=UTC),
         price=Decimal("12.34"),
         currency="EUR",
         source_type=SourceType.SCRAPING,

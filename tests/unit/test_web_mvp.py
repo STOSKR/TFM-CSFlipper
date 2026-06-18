@@ -24,6 +24,7 @@ def test_web_mvp_static_files_are_wired() -> None:
     assert "compareRecommendations" in js
     assert "renderSummary" in js
     assert "formatRouteDetail" in js
+    assert "RLlib smoke listo" in js
     assert "BUFF listing -> Steam listing" in js
     assert "trading_profit_v1" in js
     assert "buff/sell_price falta" in js

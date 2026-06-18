@@ -13,7 +13,7 @@ class VisionInputError(ValueError):
 
 
 def load_image(path: str | Path) -> ImageArray:
-    import cv2  # type: ignore[import-not-found]
+    import cv2
 
     image_path = Path(path)
     image = cv2.imread(str(image_path))
