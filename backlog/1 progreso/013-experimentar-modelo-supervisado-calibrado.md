@@ -95,6 +95,14 @@ El `MomentumBaselinePredictor` existente es util para pruebas tempranas, pero no
   `buff_listing_count` 2.915), pero la BD persistio menos `sell_price` porque el repositorio
   filtraba por ultimo timestamp conocido y bloqueaba backfill de puntos historicos perdidos.
   Se elimina ese filtro y se delega la deduplicacion al `on conflict` de Postgres.
+- Tras reejecutar el refresh con backfill permitido, la BD queda mucho mas alineada:
+  `buff163/sell_price` 5.063 filas / 119 articulos, `buff163/buy_order_price` 11.915
+  filas / 119 articulos y `buff163/listing_count` 5.875 filas / 119 articulos. En el dia
+  2026-06-18 hay 1.032 `sell_price`, 797 `buy_order_price` y 795 `listing_count`.
+- El dataset natural `buff_to_steam_sell` sigue generando 0 ejemplos para horizonte 8 dias
+  porque los dias con `buff_sell_price` empiezan practicamente el 2026-06-15 y el historico
+  Steam disponible llega hasta 2026-06-16; falta esperar/capturar el precio Steam futuro
+  de 8 dias para poder etiquetar esas observaciones sin leakage.
 
 ## Pruebas ejecutadas
 
@@ -130,6 +138,9 @@ El `MomentumBaselinePredictor` existente es util para pruebas tempranas, pero no
 - `python -m pytest tests/unit/test_simple_market_snapshots.py tests/unit/test_buff163_market.py tests/unit/test_refresh_market_history.py`
 - `python -m ruff check packages/persistence/simple_market.py tests/unit/test_simple_market_snapshots.py`
 - `python -m mypy packages/persistence/simple_market.py tests/unit/test_simple_market_snapshots.py`
+- `python -m apps.cli.build_trading_dataset --output model-runs/probe_buff_to_steam_after_backfill --query-start 2025-01-01 --trade-direction buff_to_steam_sell --future-tolerance-days 7`
+- `python -m apps.cli.build_trading_dataset --output model-runs/probe_buff_to_steam_recent_after_backfill --query-start 2026-06-01 --validation-start 2026-06-10 --test-start 2026-06-16 --trade-direction buff_to_steam_sell --future-tolerance-days 7`
+- `python -m apps.cli.build_trading_dataset --output model-runs/probe_steam_to_buff_after_backfill --query-start 2025-01-01 --trade-direction steam_to_buff_buy_order --future-tolerance-days 7`
 
 ## Bloqueos o riesgos
 
