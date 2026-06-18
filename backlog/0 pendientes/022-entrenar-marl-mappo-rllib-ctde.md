@@ -49,6 +49,9 @@ El entrenamiento debe usar el entorno PettingZoo, tres politicas cooperativas y 
   y `central_state()`, separado de las observaciones locales de los actores.
 - Expuesto el estado central en PettingZoo mediante `state()`/`state_space()` y en RLlib
   mediante `central_state()`/`central_state_space()` mas `infos["__common__"]`.
+- Pausada como siguiente foco inmediato: el smoke PPO multiagente funciona, pero antes de
+  invertir en critico centralizado conviene cerrar el dataset/modelo operativo con datos
+  BUFF listing suficientes y validar baselines.
 
 ## Pruebas ejecutadas
 

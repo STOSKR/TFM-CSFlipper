@@ -70,10 +70,18 @@ El `MomentumBaselinePredictor` existente es util para pruebas tempranas, pero no
 - Smoke con defaults operativos en `model-runs/supervised_direction_recent_1y/operational_default_20260615`: ganador `random_forest_depth18`. Umbral elegido con validation calibrado: 0,85 con 52 senales y precision 0,942. En test al mismo umbral: 53 senales y precision 0,962. Sigue sin ser definitivo porque no hay suficientes senales repetidas por articulo.
 - Creado `packages.datasets.trading` y el CLI `python -m apps.cli.build_trading_dataset` para construir un dataset de trading real desde `market_history_points`, usando `price_eur`, fees de Steam/BUFF, horizonte configurable y splits temporales train/validation/test.
 - El builder conserva columnas de trazabilidad (`item_id`, `representation_name`, nombre, calidad, StatTrak y dia observado), pero entrena solo con features numericas de mercado y economia: precios Steam/BUFF en EUR, liquidez, spreads, beneficios/retornos actuales y versiones logaritmicas.
-- Comprobacion de datos reales de Supabase: ahora mismo hay historico de `steam/sell_price` y `buff163/buy_order_price`, pero no hay `buff163/sell_price`. Por eso el primer dataset real se ha construido con direccion `steam_to_buff_buy_order`; la direccion natural `buff_to_steam_sell` queda bloqueada hasta capturar precio de venta/listing de BUFF.
+- Comprobacion actualizada de datos reales de Supabase: ya existe `buff163/sell_price`
+  en `market_items` y `market_history_points`, pero el historico alineado es todavia
+  escaso para generar ejemplos `buff_to_steam_sell` a 8 dias. Por eso el primer dataset
+  real se mantiene en direccion `steam_to_buff_buy_order`, y la direccion natural
+  `buff_to_steam_sell` queda bloqueada hasta acumular mas dias/articulos con listing BUFF.
 - Generado `data/datasets/trading_profit_v1` con `--query-start 2025-01-01 --trade-direction steam_to_buff_buy_order --future-tolerance-days 7`. Resultado: 2.331 ejemplos, 50 articulos, train 1.141 filas con tasa positiva 5,08%, validation 453 filas con tasa positiva 0,22% y test 737 filas con tasa positiva 0,14%.
 - Smoke de entrenamiento en `model-runs/trading_profit_v1/operational_smoke_20260616`: ganador tecnico `random_forest_depth10`, pero no se considera util para decision operativa. Validation y test tienen solo 1 caso positivo cada uno; por eso ROC-AUC/PR-AUC pueden ser artificialmente altos y la seleccion no encuentra senales a umbrales operativos.
-- Decision provisional: el pipeline real de trading ya existe, pero necesitamos mas senal antes de entrenar un modelo fiable. Prioridad de datos: capturar `buff163/sell_price` o listings comparables, aumentar historico con mas dias/articulos, y evaluar targets con margen minimo para no aprender oportunidades teoricas sin liquidez.
+- Decision provisional: el pipeline real de trading ya existe, pero necesitamos mas senal antes de entrenar un modelo fiable. Prioridad de datos: acumular historico recurrente de `buff163/sell_price` o listings comparables, aumentar dias/articulos, y evaluar targets con margen minimo para no aprender oportunidades teoricas sin liquidez.
+- Probe actualizado: `buff163/sell_price` tiene 121 filas / 119 articulos, concentradas
+  principalmente en 2026-06-16; `buff_to_steam_sell` genera 0 ejemplos con horizonte 8
+  dias y tolerancia 7 dias, mientras `steam_to_buff_buy_order` genera 5.343 ejemplos
+  pero mantiene positivos muy escasos en validation/test.
 
 ## Pruebas ejecutadas
 
@@ -111,4 +119,4 @@ El `MomentumBaselinePredictor` existente es util para pruebas tempranas, pero no
 - Las metricas de precision alta tienen pocas senales y no bastan para afirmar rendimiento "con cualquier articulo"; hay que validar por ventanas temporales multiples y exigir minimo de senales por grupo antes de usar una cifra como evidencia fuerte.
 - El siguiente salto real debe ser un dataset de trading desde Supabase con Steam/BUFF, fees y target de beneficio neto futuro; sin eso el modelo solo predice direccion, no oportunidad de compra rentable.
 - El primer dataset real revela desbalance extremo en validation/test para `steam_to_buff_buy_order`; no usar sus metricas como evidencia de precision por articulo.
-- Sin `buff163/sell_price` no podemos modelar bien la compra en BUFF y venta futura en Steam, que es la direccion mas alineada con el arbitraje operativo original.
+- Sin historico alineado suficiente de `buff163/sell_price` no podemos modelar bien la compra en BUFF y venta futura en Steam, que es la direccion mas alineada con el arbitraje operativo original.

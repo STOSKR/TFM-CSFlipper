@@ -43,7 +43,7 @@ const fallbackDashboard = {
       buySide: "BUFF listing",
       sellSide: "Steam listing",
       steam: "steam/sell_price ok",
-      buff: "buff/sell_price falta",
+      buff: "buff/sell_price historico escaso",
       steamEur: null,
       buffEur: null,
       profitEur: null,
