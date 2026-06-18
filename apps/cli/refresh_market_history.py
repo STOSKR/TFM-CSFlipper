@@ -7,7 +7,7 @@ import asyncio
 import json
 import math
 from collections.abc import Sequence
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
@@ -33,8 +33,11 @@ from packages.runtime_config import load_runtime_config
 
 
 async def run(args: argparse.Namespace) -> int:
-    candidates = await load_market_item_candidates(limit=args.limit)
+    stale_before = _stale_before(args.stale_minutes)
+    candidates = await load_market_item_candidates(limit=args.limit, stale_before=stale_before)
     print(f"market_items_loaded={len(candidates)}")
+    if stale_before is not None:
+        print(f"stale_before={stale_before.isoformat()}")
     buff_history_days = args.buff_history_days
     if args.buff and buff_history_days is None:
         buff_history_days = await recommended_buff_history_days(
@@ -85,7 +88,11 @@ async def run(args: argparse.Namespace) -> int:
     return len(snapshots)
 
 
-async def load_market_item_candidates(*, limit: int | None = None) -> tuple[SteamDTCandidate, ...]:
+async def load_market_item_candidates(
+    *,
+    limit: int | None = None,
+    stale_before: datetime | None = None,
+) -> tuple[SteamDTCandidate, ...]:
     pool = await create_pool(max_size=2)
     try:
         async with pool.acquire() as connection:
@@ -93,11 +100,16 @@ async def load_market_item_candidates(*, limit: int | None = None) -> tuple[Stea
                 """
                 select name, quality, stattrak, steam_url, buff_url
                 from market_items
-                where steam_url is not null or buff_url is not null
+                where (steam_url is not null or buff_url is not null)
+                  and (
+                    $2::timestamptz is null
+                    or coalesce(updated_at, scraped_at, created_at) < $2::timestamptz
+                  )
                 order by updated_at desc nulls last, created_at desc
                 limit $1
                 """,
                 limit,
+                stale_before,
             )
     finally:
         await pool.close()
@@ -329,6 +341,14 @@ def _default_output_path() -> Path:
     return Path("data/flow-runs") / f"market_history_refresh_{run_id}.json"
 
 
+def _stale_before(stale_minutes: int | None) -> datetime | None:
+    if stale_minutes is None:
+        return None
+    if stale_minutes < 0:
+        raise ValueError("stale_minutes must be >= 0")
+    return datetime.now(tz=UTC) - timedelta(minutes=stale_minutes)
+
+
 def _optional_str(value: object) -> str | None:
     text = str(value or "").strip()
     return text or None
@@ -340,6 +360,11 @@ def main() -> None:
         description="Refresh all stored market items using Steam and BUFF workers."
     )
     parser.add_argument("--limit", type=int)
+    parser.add_argument(
+        "--stale-minutes",
+        type=int,
+        help="Only refresh items not updated in the last N minutes.",
+    )
     parser.add_argument("--output", type=Path)
     parser.add_argument("--steam", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--buff", action=argparse.BooleanOptionalAction, default=True)

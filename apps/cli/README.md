@@ -49,10 +49,14 @@ los articulos ya tienen historial, pide solo los dias necesarios desde el articu
 con un dia de solape; si algun articulo no tiene historial previo, pide la ventana completa de
 365 dias.
 
-Antes de escribir puntos historicos tambien consulta `market_history_points` para cada articulo
-y solo inserta los registros posteriores al ultimo `observed_at` guardado por plataforma y
-metrica. Si el articulo o la metrica no tienen historial previo, guarda todo el historial devuelto
-por el scraper.
+Postgres deduplica los puntos historicos por `(item_id, platform_id, observed_at, metric_name)`,
+asi que el comando puede reintentar ventanas anteriores sin perder backfill.
+
+Para refrescar solo articulos que no se hayan actualizado en la ultima hora:
+
+```bash
+python -m apps.cli.refresh_market_history --persist --stale-minutes 60
+```
 
 Para una ejecucion de prueba sin persistir:
 
@@ -70,6 +74,27 @@ Para forzar manualmente la ventana historica de BUFF:
 
 ```bash
 python -m apps.cli.refresh_market_history --persist --buff-history-days 30
+```
+
+## Scraping Automatico Local
+
+Ejecuta `scrape_flow.py --persist` y despues refresca los articulos guardados que no se hayan
+actualizado en la ultima hora. Repite el ciclo cada 60 minutos:
+
+```bash
+python -m apps.cli.auto_scrape_loop
+```
+
+Para probar una sola vuelta:
+
+```bash
+python -m apps.cli.auto_scrape_loop --once
+```
+
+Para ajustar el intervalo y el umbral stale:
+
+```bash
+python -m apps.cli.auto_scrape_loop --interval-minutes 60 --stale-minutes 60
 ```
 
 ## Export Web Dashboard

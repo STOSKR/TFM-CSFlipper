@@ -103,6 +103,11 @@ El `MomentumBaselinePredictor` existente es util para pruebas tempranas, pero no
   porque los dias con `buff_sell_price` empiezan practicamente el 2026-06-15 y el historico
   Steam disponible llega hasta 2026-06-16; falta esperar/capturar el precio Steam futuro
   de 8 dias para poder etiquetar esas observaciones sin leakage.
+- Implementado bucle operativo local `python -m apps.cli.auto_scrape_loop`, que ejecuta
+  `scrape_flow.py --persist` y luego `refresh_market_history --persist --stale-minutes 60`.
+  Por defecto repite cada 60 minutos y admite `--once` para una sola vuelta.
+- Anadido `--stale-minutes` a `refresh_market_history` para refrescar solo articulos que no
+  se hayan actualizado dentro de la ventana indicada.
 
 ## Pruebas ejecutadas
 
@@ -141,6 +146,12 @@ El `MomentumBaselinePredictor` existente es util para pruebas tempranas, pero no
 - `python -m apps.cli.build_trading_dataset --output model-runs/probe_buff_to_steam_after_backfill --query-start 2025-01-01 --trade-direction buff_to_steam_sell --future-tolerance-days 7`
 - `python -m apps.cli.build_trading_dataset --output model-runs/probe_buff_to_steam_recent_after_backfill --query-start 2026-06-01 --validation-start 2026-06-10 --test-start 2026-06-16 --trade-direction buff_to_steam_sell --future-tolerance-days 7`
 - `python -m apps.cli.build_trading_dataset --output model-runs/probe_steam_to_buff_after_backfill --query-start 2025-01-01 --trade-direction steam_to_buff_buy_order --future-tolerance-days 7`
+- `python -m pytest tests/unit/test_auto_scrape_loop.py tests/unit/test_refresh_market_history.py`
+- `python -m ruff check apps/cli/auto_scrape_loop.py apps/cli/refresh_market_history.py tests/unit/test_auto_scrape_loop.py tests/unit/test_refresh_market_history.py`
+- `python -m mypy apps/cli/auto_scrape_loop.py apps/cli/refresh_market_history.py tests/unit/test_auto_scrape_loop.py tests/unit/test_refresh_market_history.py`
+- `python -m pytest tests/unit`
+- `python -m ruff check`
+- `python -m mypy apps packages tests/unit`
 
 ## Bloqueos o riesgos
 
