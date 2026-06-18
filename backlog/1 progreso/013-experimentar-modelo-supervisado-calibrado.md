@@ -87,6 +87,9 @@ El `MomentumBaselinePredictor` existente es util para pruebas tempranas, pero no
   pero el parser priorizaba `name` en chino y no reconocia bien la serie de venta.
   Ahora se prioriza `key` y se recuperan `buff_sell_price`, `buff_buy_order_price`
   y `buff_listing_count` con la misma granularidad cuando la fuente las entrega.
+- Anadido tracking compacto al refresco BUFF: `refresh_market_history` imprime progreso
+  por item por defecto (`buff_progress=N/total ok=X errors=Y ...`) y permite desactivarlo
+  con `--no-progress`.
 
 ## Pruebas ejecutadas
 
@@ -116,6 +119,9 @@ El `MomentumBaselinePredictor` existente es util para pruebas tempranas, pero no
 - `python -m pytest tests/unit/test_buff163_market.py tests/unit/test_simple_market_snapshots.py`
 - `python -m ruff check apps/acquisition/buff163_market.py tests/unit/test_buff163_market.py`
 - `python -m mypy apps/acquisition/buff163_market.py tests/unit/test_buff163_market.py`
+- `python -m pytest tests/unit/test_buff163_market.py tests/unit/test_refresh_market_history.py tests/unit/test_platform_workers.py`
+- `python -m ruff check apps/acquisition/buff163_market.py apps/acquisition/platform_workers.py apps/cli/refresh_market_history.py tests/unit/test_buff163_market.py`
+- `python -m mypy apps/acquisition/buff163_market.py apps/acquisition/platform_workers.py apps/cli/refresh_market_history.py tests/unit/test_buff163_market.py`
 
 ## Bloqueos o riesgos
 

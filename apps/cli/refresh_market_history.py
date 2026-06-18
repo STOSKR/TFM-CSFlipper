@@ -52,6 +52,7 @@ async def run(args: argparse.Namespace) -> int:
         candidates,
         config=config,
         log=print if args.verbose else None,
+        progress_log=print if args.progress else None,
     )
     snapshots = build_simple_market_snapshots(
         candidates,
@@ -393,6 +394,7 @@ def main() -> None:
     parser.add_argument("--buff-history-days", type=int)
     parser.add_argument("--buff-history-max-days", type=int, default=365)
     parser.add_argument("--verbose", action="store_true")
+    parser.add_argument("--progress", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--persist", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()

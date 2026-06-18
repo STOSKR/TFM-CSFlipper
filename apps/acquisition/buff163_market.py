@@ -94,9 +94,11 @@ class Buff163Connector:
         config: Buff163ConnectorConfig | None = None,
         *,
         log: LogCallback | None = None,
+        progress_log: LogCallback | None = None,
     ) -> None:
         self._config = config or Buff163ConnectorConfig()
         self._log = log
+        self._progress_log = progress_log
 
     async def fetch_candidates(
         self,
@@ -167,7 +169,24 @@ class Buff163Connector:
                         )
 
             try:
-                results = await asyncio.gather(*(fetch_one(candidate) for candidate in candidates))
+                tasks = [asyncio.create_task(fetch_one(candidate)) for candidate in candidates]
+                results = []
+                ok_count = 0
+                error_count = 0
+                for completed, task in enumerate(asyncio.as_completed(tasks), start=1):
+                    result = await task
+                    results.append(result)
+                    if isinstance(result, Buff163Observation):
+                        ok_count += 1
+                    else:
+                        error_count += 1
+                    self._emit_progress(
+                        completed=completed,
+                        total=len(candidates),
+                        ok_count=ok_count,
+                        error_count=error_count,
+                        result=result,
+                    )
             finally:
                 await self._save_session_state(context)
                 await context.close()
@@ -369,6 +388,29 @@ class Buff163Connector:
     def _emit(self, item: str, message: str) -> None:
         if self._log:
             self._log(f"[buff163] {item}: {message}")
+
+    def _emit_progress(
+        self,
+        *,
+        completed: int,
+        total: int,
+        ok_count: int,
+        error_count: int,
+        result: Buff163Observation | Buff163CandidateError,
+    ) -> None:
+        if self._progress_log is None:
+            return
+        if isinstance(result, Buff163Observation):
+            item = result.observation.raw_payload.get("market_hash_name") or result.asset_name
+            state = "ok"
+        else:
+            item = result.candidate.market_hash_name
+            state = "error"
+        self._progress_log(
+            "buff_progress="
+            f"{completed}/{total} ok={ok_count} errors={error_count} "
+            f"state={state} last={_compact_log_text(str(item))}"
+        )
 
 
 def extract_buff_price_text(
@@ -821,6 +863,13 @@ def _optional_int(value: object) -> int | None:
 def _optional_str(value: object) -> str | None:
     text = str(value or "").strip()
     return text or None
+
+
+def _compact_log_text(value: str, *, max_length: int = 80) -> str:
+    text = " ".join(value.split())
+    if len(text) <= max_length:
+        return text
+    return f"{text[: max_length - 3]}..."
 
 
 def _unix_timestamp_iso(value: object) -> str | None:

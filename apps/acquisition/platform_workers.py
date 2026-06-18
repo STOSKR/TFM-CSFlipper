@@ -68,6 +68,7 @@ async def scrape_candidate_platforms(
     config: PlatformWorkerConfig | None = None,
     correlation_id: str | None = None,
     log: LogCallback | None = None,
+    progress_log: LogCallback | None = None,
 ) -> tuple[PlatformWorkerResult, ...]:
     worker_config = config or PlatformWorkerConfig()
     run_id = correlation_id or f"platforms:{uuid4()}"
@@ -98,6 +99,7 @@ async def scrape_candidate_platforms(
                 config=worker_config.buff_config,
                 correlation_id=run_id,
                 log=log,
+                progress_log=progress_log,
             )
         )
     if not tasks:
@@ -254,6 +256,7 @@ async def _scrape_buff(
     config: Buff163ConnectorConfig,
     correlation_id: str,
     log: LogCallback | None,
+    progress_log: LogCallback | None,
 ) -> PlatformWorkerResult:
     buff_candidates = _unique_buff_candidates([
         Buff163Candidate(
@@ -266,7 +269,7 @@ async def _scrape_buff(
         for candidate in candidates
         if candidate.market_hash_name and candidate.buff_url
     ])
-    connector = Buff163Connector(config, log=log)
+    connector = Buff163Connector(config, log=log, progress_log=progress_log)
     try:
         observations, buff_errors = await connector.fetch_candidates_lenient(
             buff_candidates,

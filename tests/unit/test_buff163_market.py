@@ -1,13 +1,21 @@
+from datetime import UTC, datetime
+from decimal import Decimal
+
 import pytest
 
 from apps.acquisition.buff163_market import (
+    Buff163Candidate,
+    Buff163CandidateError,
     Buff163Connector,
+    Buff163Observation,
     extract_buff_api_buy_orders,
     extract_buff_buy_orders,
     extract_buff_price_history,
     extract_buff_price_text,
     extract_buff_recent_sales,
 )
+from packages.contracts.observations import MarketObservationContract
+from packages.domain.enums import SourceType
 
 
 def test_extract_buff_price_text_prefers_price_lines() -> None:
@@ -212,6 +220,54 @@ def test_extract_buff_price_history_v2_reads_buff_lines_payload() -> None:
             "buff_listing_count": 33,
         },
     )
+
+
+def test_buff_connector_emits_compact_progress_lines() -> None:
+    lines: list[str] = []
+    connector = Buff163Connector(progress_log=lines.append)
+    observation = Buff163Observation(
+        observation=MarketObservationContract(
+            correlation_id="test",
+            asset_id="asset",
+            platform_id="buff163",
+            observed_at=datetime(2026, 6, 16, 12, 0, tzinfo=UTC),
+            price=Decimal("12.34"),
+            currency="CNY",
+            source_type=SourceType.SCRAPING,
+            raw_payload={"market_hash_name": "AK-47 | Slate (Field-Tested)"},
+        ),
+        asset_name="AK-47 | Slate",
+        category=None,
+        quality="Field-Tested",
+        variant_key="field_tested_st0",
+    )
+    error = Buff163CandidateError(
+        candidate=Buff163Candidate(
+            market_hash_name="M4A1-S | Nitro (Minimal Wear)",
+            buff_url="https://buff.163.com/goods/1",
+        ),
+        message="not found",
+    )
+
+    connector._emit_progress(
+        completed=1,
+        total=2,
+        ok_count=1,
+        error_count=0,
+        result=observation,
+    )
+    connector._emit_progress(
+        completed=2,
+        total=2,
+        ok_count=1,
+        error_count=1,
+        result=error,
+    )
+
+    assert lines == [
+        "buff_progress=1/2 ok=1 errors=0 state=ok last=AK-47 | Slate (Field-Tested)",
+        "buff_progress=2/2 ok=1 errors=1 state=error last=M4A1-S | Nitro (Minimal Wear)",
+    ]
 
 
 @pytest.mark.asyncio
