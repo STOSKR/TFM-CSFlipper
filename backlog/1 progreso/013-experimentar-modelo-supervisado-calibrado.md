@@ -82,6 +82,11 @@ El `MomentumBaselinePredictor` existente es util para pruebas tempranas, pero no
   principalmente en 2026-06-16; `buff_to_steam_sell` genera 0 ejemplos con horizonte 8
   dias y tolerancia 7 dias, mientras `steam_to_buff_buy_order` genera 5.343 ejemplos
   pero mantiene positivos muy escasos en validation/test.
+- Detectado y corregido bug en el parser de historico BUFF: el endpoint
+  `price_history/buff/v2` devuelve `lines` con `key` como `sell_min_price_history`,
+  pero el parser priorizaba `name` en chino y no reconocia bien la serie de venta.
+  Ahora se prioriza `key` y se recuperan `buff_sell_price`, `buff_buy_order_price`
+  y `buff_listing_count` con la misma granularidad cuando la fuente las entrega.
 
 ## Pruebas ejecutadas
 
@@ -108,6 +113,9 @@ El `MomentumBaselinePredictor` existente es util para pruebas tempranas, pero no
 - `python -m apps.cli.build_trading_dataset --output data/datasets/trading_profit_v1 --query-start 2025-01-01 --trade-direction steam_to_buff_buy_order --future-tolerance-days 7`
 - `python -m apps.cli.train_supervised_model --dataset-dir data/datasets/trading_profit_v1 --output-dir model-runs/trading_profit_v1/operational_smoke_20260616 --max-train-rows 0 --max-validation-rows 0 --max-test-rows 0 --cv-splits 3 --models dummy logistic random_forest hist_gradient_boosting --selection-threshold 0.8 --min-selection-signals 1`
 - `python -m pytest tests/unit`
+- `python -m pytest tests/unit/test_buff163_market.py tests/unit/test_simple_market_snapshots.py`
+- `python -m ruff check apps/acquisition/buff163_market.py tests/unit/test_buff163_market.py`
+- `python -m mypy apps/acquisition/buff163_market.py tests/unit/test_buff163_market.py`
 
 ## Bloqueos o riesgos
 

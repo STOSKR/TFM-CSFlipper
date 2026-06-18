@@ -578,15 +578,15 @@ def extract_buff_price_history(
 def _buff_history_series_by_kind(data: dict[str, Any]) -> dict[str, list[Any]]:
     series_by_kind: dict[str, list[Any]] = {}
 
-    def add_series(label: str, points: object) -> None:
-        kind = _buff_history_kind(label)
+    def add_series(*, label: str, key: str = "", points: object) -> None:
+        kind = _buff_history_kind(key) or _buff_history_kind(label)
         if kind is None or not isinstance(points, list):
             return
         series_by_kind.setdefault(kind, points)
 
     for key, value in data.items():
         if isinstance(value, list):
-            add_series(key, value)
+            add_series(label=key, key=key, points=value)
         elif isinstance(value, dict):
             nested_points = (
                 value.get("data")
@@ -595,7 +595,7 @@ def _buff_history_series_by_kind(data: dict[str, Any]) -> dict[str, list[Any]]:
                 or value.get("history")
             )
             label = str(value.get("name") or value.get("type") or key)
-            add_series(label, nested_points)
+            add_series(label=label, key=key, points=nested_points)
 
     for container_key in ("series", "legend", "lines", "datasets"):
         container = data.get(container_key)
@@ -604,20 +604,15 @@ def _buff_history_series_by_kind(data: dict[str, Any]) -> dict[str, list[Any]]:
         for entry in container:
             if not isinstance(entry, dict):
                 continue
-            label = str(
-                entry.get("name")
-                or entry.get("label")
-                or entry.get("type")
-                or entry.get("key")
-                or ""
-            )
+            key = str(entry.get("key") or "")
+            label = str(entry.get("name") or entry.get("label") or entry.get("type") or "")
             points = (
                 entry.get("data")
                 or entry.get("values")
                 or entry.get("points")
                 or entry.get("history")
             )
-            add_series(label, points)
+            add_series(label=label, key=key, points=points)
 
     return series_by_kind
 
@@ -626,6 +621,12 @@ def _buff_history_kind(label: str) -> str | None:
     normalized = label.strip().lower().replace("-", "_")
     if not normalized:
         return None
+    if any(token in normalized for token in ("sell_min_price", "在售最低", "出售", "售价")):
+        return "sell_price"
+    if any(token in normalized for token in ("sell_order_count", "在售数量", "出售数量")):
+        return "listing_count"
+    if any(token in normalized for token in ("buy_order", "求购", "收购")):
+        return "buy_order_price"
     if any(token in normalized for token in ("buy", "bid", "offer", "求购", "收购")):
         return "buy_order_price"
     if any(

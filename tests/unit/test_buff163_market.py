@@ -176,6 +176,44 @@ def test_extract_buff_price_history_v2_splits_three_series() -> None:
     )
 
 
+def test_extract_buff_price_history_v2_reads_buff_lines_payload() -> None:
+    history = extract_buff_price_history(
+        {
+            "code": "OK",
+            "data": {
+                "lines": [
+                    {
+                        "key": "sell_min_price_history",
+                        "name": "在售最低",
+                        "points": [[1781366400000, "459.5"]],
+                    },
+                    {
+                        "key": "buy_order_price_history",
+                        "name": "求购最高",
+                        "points": [[1781366400000, "450.25"]],
+                    },
+                    {
+                        "key": "sell_order_count_history",
+                        "name": "在售数量",
+                        "points": [[1781366400000, 33]],
+                    },
+                ],
+            },
+        }
+    )
+
+    assert history == (
+        {
+            "source": "buff_price_history_v2",
+            "observed_at": "2026-06-13T16:00:00+00:00",
+            "currency": "CNY",
+            "buff_sell_price": "459.5",
+            "buff_buy_order_price": "450.25",
+            "buff_listing_count": 33,
+        },
+    )
+
+
 @pytest.mark.asyncio
 async def test_buff_connector_lenient_empty_candidates() -> None:
     observations, errors = await Buff163Connector().fetch_candidates_lenient(
