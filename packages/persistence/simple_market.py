@@ -167,10 +167,6 @@ class SimpleMarketSnapshotRepository:
         rows = _history_points_from_snapshot(snapshot)
         if not rows:
             return 0
-        latest_observed_at = await self.latest_history_observed_at(item_id=item_id)
-        rows = _filter_new_history_points(rows, latest_observed_at=latest_observed_at)
-        if not rows:
-            return 0
 
         await self.connection.executemany(
             """
@@ -243,32 +239,6 @@ class SimpleMarketSnapshotRepository:
             ),
         )
         return len(rows)
-
-    async def latest_history_observed_at(
-        self,
-        *,
-        item_id: UUID,
-    ) -> dict[tuple[str, str], datetime]:
-        rows = await self.connection.fetch(
-            """
-            select
-                platform_id,
-                metric_name,
-                max(observed_at) as latest_observed_at
-            from market_history_points
-            where item_id = $1
-            group by platform_id, metric_name
-            """,
-            item_id,
-        )
-        latest_by_metric: dict[tuple[str, str], datetime] = {}
-        for row in rows:
-            latest = _history_observed_at(row)
-            if latest is None:
-                continue
-            latest_by_metric[(str(row["platform_id"]), str(row["metric_name"]))] = latest
-        return latest_by_metric
-
 
 def _required_text(value: str, field_name: str) -> str:
     text = value.strip()
@@ -406,20 +376,6 @@ def _history_points_from_snapshot(snapshot: SimpleMarketSnapshot) -> tuple[dict[
             ),
         )
     )
-
-
-def _filter_new_history_points(
-    rows: tuple[dict[str, Any], ...],
-    *,
-    latest_observed_at: Mapping[tuple[str, str], datetime],
-) -> tuple[dict[str, Any], ...]:
-    filtered: list[dict[str, Any]] = []
-    for row in rows:
-        key = (str(row["platform_id"]), str(row["metric_name"]))
-        latest = latest_observed_at.get(key)
-        if latest is None or row["observed_at"] > latest:
-            filtered.append(row)
-    return tuple(filtered)
 
 
 def _history_observed_at(row: Mapping[str, Any]) -> datetime | None:

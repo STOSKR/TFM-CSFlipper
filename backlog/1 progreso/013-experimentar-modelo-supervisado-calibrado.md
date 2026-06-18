@@ -90,6 +90,11 @@ El `MomentumBaselinePredictor` existente es util para pruebas tempranas, pero no
 - Anadido tracking compacto al refresco BUFF: `refresh_market_history` imprime progreso
   por item por defecto (`buff_progress=N/total ok=X errors=Y ...`) y permite desactivarlo
   con `--no-progress`.
+- Revisado el refresco real `market_history_refresh_20260618_074826.json`: el archivo ya
+  contiene cantidades alineadas (`buff_sell_price` 2.915, `buff_buy_order_price` 2.911,
+  `buff_listing_count` 2.915), pero la BD persistio menos `sell_price` porque el repositorio
+  filtraba por ultimo timestamp conocido y bloqueaba backfill de puntos historicos perdidos.
+  Se elimina ese filtro y se delega la deduplicacion al `on conflict` de Postgres.
 
 ## Pruebas ejecutadas
 
@@ -122,6 +127,9 @@ El `MomentumBaselinePredictor` existente es util para pruebas tempranas, pero no
 - `python -m pytest tests/unit/test_buff163_market.py tests/unit/test_refresh_market_history.py tests/unit/test_platform_workers.py`
 - `python -m ruff check apps/acquisition/buff163_market.py apps/acquisition/platform_workers.py apps/cli/refresh_market_history.py tests/unit/test_buff163_market.py`
 - `python -m mypy apps/acquisition/buff163_market.py apps/acquisition/platform_workers.py apps/cli/refresh_market_history.py tests/unit/test_buff163_market.py`
+- `python -m pytest tests/unit/test_simple_market_snapshots.py tests/unit/test_buff163_market.py tests/unit/test_refresh_market_history.py`
+- `python -m ruff check packages/persistence/simple_market.py tests/unit/test_simple_market_snapshots.py`
+- `python -m mypy packages/persistence/simple_market.py tests/unit/test_simple_market_snapshots.py`
 
 ## Bloqueos o riesgos
 
