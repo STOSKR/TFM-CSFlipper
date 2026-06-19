@@ -5,6 +5,7 @@ from collections.abc import Sequence
 from apps.cli.scrape_job_server import (
     ScrapeJobRunner,
     _bearer_token,
+    _bool,
     _query_token,
     build_scrape_job_command,
 )
@@ -75,3 +76,8 @@ def test_tokens_can_come_from_header_or_query() -> None:
     assert _bearer_token("Bearer secret") == "secret"
     assert _bearer_token("Basic secret") is None
     assert _query_token("token=secret") == "secret"
+
+
+def test_playwright_runtime_check_defaults_to_enabled() -> None:
+    assert _bool(None, default=True) is True
+    assert _bool("false", default=True) is False

@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
@@ -106,10 +107,33 @@ def build_scrape_job_command(env: Mapping[str, str] | None = None) -> list[str]:
 
 def _run_command(command: Sequence[str]) -> int:
     timeout_seconds = _optional_int(os.getenv("SCRAPE_JOB_TIMEOUT_SECONDS"))
+    if _bool(os.getenv("SCRAPE_ENSURE_PLAYWRIGHT"), default=True):
+        install_code = _ensure_playwright_browser()
+        if install_code != 0:
+            return install_code
     try:
         return subprocess.run(command, check=False, timeout=timeout_seconds).returncode
     except subprocess.TimeoutExpired:
         return 124
+
+
+def _ensure_playwright_browser() -> int:
+    try:
+        from playwright.sync_api import sync_playwright
+    except ModuleNotFoundError:
+        print("playwright_check=missing_package")
+        return 1
+
+    with sync_playwright() as playwright:
+        executable_path = Path(playwright.chromium.executable_path)
+    if executable_path.exists():
+        print(f"playwright_check=ok executable={executable_path}")
+        return 0
+
+    print(f"playwright_check=missing executable={executable_path}")
+    install_command = [sys.executable, "-m", "playwright", "install", "chromium"]
+    print(" ".join(install_command))
+    return subprocess.run(install_command, check=False).returncode
 
 
 class ScrapeJobHTTPServer(ThreadingHTTPServer):
