@@ -117,8 +117,11 @@ SCRAPE_PERSIST=true
 Build command recomendado en Render:
 
 ```bash
-pip install . && python -m playwright install chromium
+bash render-build.sh
 ```
+
+El script comprueba al final que el binario de Chromium existe. Si falla, redeploy con
+`Clear build cache & deploy` y revisa que Render este usando Python 3.11.
 
 Endpoints:
 
