@@ -15,11 +15,26 @@ from packages.persistence.repositories import (
     PredictionIngestionRepository,
 )
 
+REQUIRED_TABLES = ("assets", "market_observations", "outbox_events", "predictions")
+
+
+async def _connect_migrated_database() -> asyncpg.Connection:
+    dsn = normalize_asyncpg_dsn(load_database_url())
+    conn = await asyncpg.connect(dsn=dsn, ssl="require")
+    missing = [
+        table
+        for table in REQUIRED_TABLES
+        if await conn.fetchval("select to_regclass($1)", f"public.{table}") is None
+    ]
+    if missing:
+        await conn.close()
+        pytest.skip(f"database schema is not migrated; missing: {', '.join(missing)}")
+    return conn
+
 
 @pytest.mark.asyncio
 async def test_record_observation_writes_observation_and_outbox_event() -> None:
-    dsn = normalize_asyncpg_dsn(load_database_url())
-    conn = await asyncpg.connect(dsn=dsn, ssl="require")
+    conn = await _connect_migrated_database()
     tx = conn.transaction()
     await tx.start()
     try:
@@ -68,8 +83,7 @@ async def test_record_observation_writes_observation_and_outbox_event() -> None:
 
 @pytest.mark.asyncio
 async def test_outbox_repository_fetches_and_marks_events() -> None:
-    dsn = normalize_asyncpg_dsn(load_database_url())
-    conn = await asyncpg.connect(dsn=dsn, ssl="require")
+    conn = await _connect_migrated_database()
     tx = conn.transaction()
     await tx.start()
     try:
@@ -107,8 +121,7 @@ async def test_outbox_repository_fetches_and_marks_events() -> None:
 
 @pytest.mark.asyncio
 async def test_record_prediction_writes_prediction_and_outbox_event() -> None:
-    dsn = normalize_asyncpg_dsn(load_database_url())
-    conn = await asyncpg.connect(dsn=dsn, ssl="require")
+    conn = await _connect_migrated_database()
     tx = conn.transaction()
     await tx.start()
     try:
