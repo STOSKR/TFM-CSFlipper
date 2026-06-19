@@ -74,6 +74,7 @@ class SimpleMarketSnapshotRepository:
                 steam_url,
                 buff_url,
                 scraped_at,
+                last_checked_at,
                 steam_price,
                 steam_currency,
                 steam_price_eur,
@@ -92,6 +93,7 @@ class SimpleMarketSnapshotRepository:
                 $4,
                 $5,
                 $6,
+                $7,
                 $7,
                 $8,
                 $9,
@@ -139,7 +141,43 @@ class SimpleMarketSnapshotRepository:
                 buff_price_eur = excluded.buff_price_eur,
                 buff_price_cny = excluded.buff_price_cny,
                 buff_buy_orders = excluded.buff_buy_orders,
-                updated_at = now()
+                last_checked_at = greatest(
+                    coalesce(market_items.last_checked_at, '-infinity'::timestamptz),
+                    excluded.last_checked_at
+                ),
+                updated_at = case
+                    when (
+                        market_items.representation_name,
+                        market_items.steam_url,
+                        market_items.buff_url,
+                        market_items.steam_price,
+                        market_items.steam_currency,
+                        market_items.steam_price_eur,
+                        market_items.steam_price_cny,
+                        market_items.steam_buy_orders,
+                        market_items.buff_price,
+                        market_items.buff_currency,
+                        market_items.buff_price_eur,
+                        market_items.buff_price_cny,
+                        market_items.buff_buy_orders
+                    ) is distinct from (
+                        excluded.representation_name,
+                        coalesce(excluded.steam_url, market_items.steam_url),
+                        coalesce(excluded.buff_url, market_items.buff_url),
+                        excluded.steam_price,
+                        excluded.steam_currency,
+                        excluded.steam_price_eur,
+                        excluded.steam_price_cny,
+                        excluded.steam_buy_orders,
+                        excluded.buff_price,
+                        excluded.buff_currency,
+                        excluded.buff_price_eur,
+                        excluded.buff_price_cny,
+                        excluded.buff_buy_orders
+                    )
+                    then now()
+                    else market_items.updated_at
+                end
             returning id
             """,
             _required_text(snapshot.name, "name"),
@@ -224,6 +262,19 @@ class SimpleMarketSnapshotRepository:
                 price_cny = excluded.price_cny,
                 raw_payload = market_history_points.raw_payload || excluded.raw_payload,
                 updated_at = now()
+            where (
+                market_history_points.metric_value,
+                market_history_points.currency,
+                market_history_points.price_eur,
+                market_history_points.price_cny,
+                market_history_points.raw_payload
+            ) is distinct from (
+                excluded.metric_value,
+                coalesce(excluded.currency, market_history_points.currency),
+                excluded.price_eur,
+                excluded.price_cny,
+                market_history_points.raw_payload || excluded.raw_payload
+            )
             """,
             tuple(
                 (

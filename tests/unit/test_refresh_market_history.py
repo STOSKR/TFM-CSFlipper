@@ -1,5 +1,6 @@
 from datetime import UTC, datetime
 from decimal import Decimal
+from inspect import getsource
 
 from apps.acquisition.buff163_market import Buff163Observation
 from apps.acquisition.platform_workers import PlatformWorkerResult, WorkerError
@@ -9,6 +10,7 @@ from apps.cli.refresh_market_history import (
     candidate_from_market_item_row,
     compact_platform_summary,
     compact_refresh_lines,
+    load_market_item_candidates,
 )
 from packages.contracts.observations import MarketObservationContract
 from packages.domain.enums import SourceType
@@ -133,6 +135,12 @@ def test_compact_refresh_lines_show_prices_errors_and_skips() -> None:
         "steam=error message=Steam price not found: no selector contained money buff=skip",
     )
     assert compact_platform_summary(results) == "steam_ok=1 steam_errors=1 buff_ok=1 buff_errors=0"
+
+
+def test_load_market_item_candidates_filters_by_last_checked_at() -> None:
+    source = getsource(load_market_item_candidates)
+
+    assert "last_checked_at" in source
 
 
 def _observation(

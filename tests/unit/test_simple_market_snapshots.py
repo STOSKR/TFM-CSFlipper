@@ -215,11 +215,13 @@ async def test_simple_market_snapshot_repository_upserts_item_current_state() ->
     assert "latest_eur_cny.cny_per_eur" in connection.statements[0].lower()
     assert "$13::jsonb" in connection.statements[0].lower()
     assert "steam_buy_orders" in connection.statements[0].lower()
+    assert "last_checked_at" in connection.statements[0].lower()
     assert (
         "on conflict (name, quality, stattrak) do update set"
         in connection.statements[0].lower()
     )
     assert "scraped_at = excluded.scraped_at" in connection.statements[0].lower()
+    assert "updated_at = case" in connection.statements[0].lower()
     assert len(connection.args[0]) == 13
     assert connection.args[0][9] == '[{"price": "5.00", "quantity": 12}]'
     assert connection.transaction_opened is True
@@ -262,6 +264,8 @@ async def test_simple_market_snapshot_repository_persists_history_points() -> No
         "on conflict (item_id, platform_id, observed_at, metric_name)"
         in connection.statements[1].lower()
     )
+    assert "where (" in connection.statements[1].lower()
+    assert "is distinct from" in connection.statements[1].lower()
     assert "from market_currency_rates" in connection.statements[1].lower()
     assert "latest_eur_cny.cny_per_eur" in connection.statements[1].lower()
     assert connection.args[0][3] == "AK-47 | Slate_FT_1"

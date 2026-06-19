@@ -103,7 +103,8 @@ async def load_market_item_candidates(
                 where (steam_url is not null or buff_url is not null)
                   and (
                     $2::timestamptz is null
-                    or coalesce(updated_at, scraped_at, created_at) < $2::timestamptz
+                    or coalesce(last_checked_at, updated_at, scraped_at, created_at)
+                        < $2::timestamptz
                   )
                 order by updated_at desc nulls last, created_at desc
                 limit $1
