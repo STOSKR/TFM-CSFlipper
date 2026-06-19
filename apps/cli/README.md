@@ -97,6 +97,52 @@ Para ajustar el intervalo y el umbral stale:
 python -m apps.cli.auto_scrape_loop --interval-minutes 60 --stale-minutes 60
 ```
 
+## Scraping En Render Con Cron Externo
+
+El backend HTTP minimo para Render arranca con:
+
+```bash
+python -m apps.cli.scrape_job_server
+```
+
+Render debe usar el `Procfile` del repo o ese comando como start command. Variables minimas:
+
+```text
+DATABASE_URL=...
+SCRAPE_JOB_TOKEN=un-token-largo
+SCRAPE_STALE_MINUTES=480
+SCRAPE_PERSIST=true
+```
+
+Build command recomendado en Render:
+
+```bash
+pip install . && python -m playwright install chromium
+```
+
+Endpoints:
+
+```text
+GET /health
+GET /jobs/scrape/status?token=...
+POST /jobs/scrape?token=...
+```
+
+`/jobs/scrape` lanza en background:
+
+```bash
+python -m apps.cli.auto_scrape_loop --once --stale-minutes 480 --persist
+```
+
+Para cron-job.org, usa la URL de Render:
+
+```text
+https://TU-SERVICIO.onrender.com/jobs/scrape?token=TU_TOKEN
+```
+
+Configura ejecucion cada 8 horas, por ejemplo `0 */8 * * *`. No hace falta ping de keep-alive:
+Render puede arrancar en frio cuando llegue el cron.
+
 ## Export Web Dashboard
 
 Genera el JSON local que consume `apps/web`:
