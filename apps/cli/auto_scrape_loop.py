@@ -20,6 +20,14 @@ def build_scrape_flow_command(args: argparse.Namespace) -> list[str]:
     command = [sys.executable, "scrape_flow.py"]
     if args.limit is not None:
         command.append(str(args.limit))
+    if args.all_profiles is not None:
+        command.append("--all-profiles" if args.all_profiles else "--no-all-profiles")
+    if args.steamdt_timeout is not None:
+        command.extend(["--steamdt-timeout", str(args.steamdt_timeout)])
+    if args.steamdt_retries is not None:
+        command.extend(["--steamdt-retries", str(args.steamdt_retries)])
+    if args.steamdt_profile_timeout is not None:
+        command.extend(["--steamdt-profile-timeout", str(args.steamdt_profile_timeout)])
     if args.persist:
         command.append("--persist")
     if args.show_browser:
@@ -80,6 +88,10 @@ def main() -> None:
         description="Run scrape_flow.py and stale market refresh on an interval."
     )
     parser.add_argument("limit", nargs="?", type=int, help="SteamDT candidate limit.")
+    parser.add_argument("--all-profiles", action=argparse.BooleanOptionalAction, default=None)
+    parser.add_argument("--steamdt-timeout", type=int)
+    parser.add_argument("--steamdt-retries", type=int)
+    parser.add_argument("--steamdt-profile-timeout", type=int)
     parser.add_argument("--interval-minutes", type=int, default=60)
     parser.add_argument("--stale-minutes", type=int, default=60)
     parser.add_argument("--refresh-limit", type=int)

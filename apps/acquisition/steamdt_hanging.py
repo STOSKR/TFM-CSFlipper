@@ -147,6 +147,7 @@ class SteamDTHangingDiscovery:
                 context_options["storage_state"] = str(self.filters.session_state_path)
             context = await browser.new_context(**context_options)
             page = await context.new_page()
+            page.set_default_timeout(min(self.filters.timeout_ms, 10_000))
             try:
                 if self.filters.block_heavy_resources:
                     await self._block_heavy_resources(page)
@@ -154,6 +155,7 @@ class SteamDTHangingDiscovery:
                 await self._goto_target(page, PlaywrightTimeoutError)
                 self._log("steamdt_stage=close_modal")
                 await close_modal(page)
+                self._log("steamdt_stage=modal_closed")
                 if self.filters.manual_login_wait_ms > 0:
                     self._log("steamdt_stage=manual_login_wait")
                     await page.wait_for_timeout(self.filters.manual_login_wait_ms)

@@ -111,6 +111,12 @@ Render debe usar el `Procfile` del repo o ese comando como start command. Variab
 DATABASE_URL=...
 SCRAPE_JOB_TOKEN=un-token-largo
 SCRAPE_STALE_MINUTES=480
+SCRAPE_CANDIDATE_LIMIT=5
+SCRAPE_ALL_PROFILES=false
+SCRAPE_STEAMDT_TIMEOUT=30
+SCRAPE_STEAMDT_RETRIES=1
+SCRAPE_STEAMDT_PROFILE_TIMEOUT=120
+SCRAPE_REFRESH_LIMIT=5
 SCRAPE_PERSIST=true
 SCRAPE_REFRESH_ONLY=false
 SCRAPE_ENSURE_PLAYWRIGHT=true
@@ -146,9 +152,9 @@ POST /jobs/scrape?token=...
 python -m apps.cli.auto_scrape_loop --once --stale-minutes 480 --persist
 ```
 
-En instancias con poca memoria, SteamDT puede agotar RAM durante discovery. Si los candidatos
-ya se han poblado desde local, configura `SCRAPE_REFRESH_ONLY=true` para que Render ejecute
-solo:
+En instancias con poca memoria, manten `SCRAPE_REFRESH_ONLY=false` pero baja
+`SCRAPE_CANDIDATE_LIMIT`, usa `SCRAPE_ALL_PROFILES=false` y limita el timeout de SteamDT.
+`SCRAPE_REFRESH_ONLY=true` queda solo como modo diagnostico para ejecutar:
 
 ```bash
 python -m apps.cli.refresh_market_history --stale-minutes 480 --persist

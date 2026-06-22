@@ -107,6 +107,20 @@ def build_scrape_job_command(env: Mapping[str, str] | None = None) -> list[str]:
     candidate_limit = _optional_int(values.get("SCRAPE_CANDIDATE_LIMIT"))
     if candidate_limit is not None:
         command.append(str(candidate_limit))
+    all_profiles = values.get("SCRAPE_ALL_PROFILES")
+    if all_profiles is not None:
+        command.append(
+            "--all-profiles" if _bool(all_profiles, default=False) else "--no-all-profiles"
+        )
+    steamdt_timeout = _optional_int(values.get("SCRAPE_STEAMDT_TIMEOUT"))
+    if steamdt_timeout is not None:
+        command.extend(["--steamdt-timeout", str(steamdt_timeout)])
+    steamdt_retries = _optional_int(values.get("SCRAPE_STEAMDT_RETRIES"))
+    if steamdt_retries is not None:
+        command.extend(["--steamdt-retries", str(steamdt_retries)])
+    steamdt_profile_timeout = _optional_int(values.get("SCRAPE_STEAMDT_PROFILE_TIMEOUT"))
+    if steamdt_profile_timeout is not None:
+        command.extend(["--steamdt-profile-timeout", str(steamdt_profile_timeout)])
     command.extend(
         [
             "--once",

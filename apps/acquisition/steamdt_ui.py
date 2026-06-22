@@ -17,15 +17,25 @@ async def close_modal(page: Any) -> None:
         'button:has-text("OK")',
         ".el-overlay-dialog .el-button",
     )
-    for _ in range(3):
+    for _ in range(2):
         clicked = False
         for selector in close_selectors:
-            elements = await page.locator(selector).all()
-            for element in elements:
-                if await element.is_visible():
-                    await element.click(force=True)
-                    await page.wait_for_timeout(700)
+            locator = page.locator(selector)
+            try:
+                count = min(await locator.count(), 3)
+            except Exception:
+                continue
+            for index in range(count):
+                element = locator.nth(index)
+                try:
+                    visible = await element.is_visible(timeout=500)
+                    if not visible:
+                        continue
+                    await element.click(force=True, timeout=1000)
+                    await page.wait_for_timeout(250)
                     clicked = True
+                except Exception:
+                    continue
         if not clicked:
             return
 
