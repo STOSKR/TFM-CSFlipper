@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 import re
+from collections.abc import Callable
 from dataclasses import asdict, dataclass, replace
 from decimal import Decimal
 from pathlib import Path
@@ -96,8 +97,14 @@ class SteamDTCandidate:
 class SteamDTHangingDiscovery:
     """Playwright-powered discovery flow for SteamDT Hanging."""
 
-    def __init__(self, filters: SteamDTHangingFilters | None = None) -> None:
+    def __init__(
+        self,
+        filters: SteamDTHangingFilters | None = None,
+        *,
+        progress_log: Callable[[str], None] | None = None,
+    ) -> None:
         self.filters = filters or SteamDTHangingFilters()
+        self._progress_log = progress_log
 
     async def discover(self) -> tuple[SteamDTCandidate, ...]:
         try:
@@ -109,6 +116,7 @@ class SteamDTHangingDiscovery:
             ) from exc
 
         async with async_playwright() as playwright:
+            self._log("steamdt_stage=launch_browser")
             browser = await playwright.chromium.launch(headless=self.filters.headless)
             context_options: dict[str, Any] = {
                 "viewport": {"width": 1920, "height": 1080},
@@ -122,26 +130,39 @@ class SteamDTHangingDiscovery:
             context = await browser.new_context(**context_options)
             page = await context.new_page()
             try:
+                self._log("steamdt_stage=goto")
                 await self._goto_target(page, PlaywrightTimeoutError)
+                self._log("steamdt_stage=close_modal")
                 await close_modal(page)
                 if self.filters.manual_login_wait_ms > 0:
+                    self._log("steamdt_stage=manual_login_wait")
                     await page.wait_for_timeout(self.filters.manual_login_wait_ms)
+                self._log("steamdt_stage=wait_tabs")
                 await page.wait_for_selector(".tabs-item", timeout=self.filters.timeout_ms)
                 await page.wait_for_timeout(self.filters.initial_wait_ms)
+                self._log("steamdt_stage=configure_filters")
                 await self._configure_filters(page)
+                self._log("steamdt_stage=extract_rows")
                 rows = await self._extract_rows(page)
+                self._log(f"steamdt_stage=parse_rows rows={len(rows)}")
                 candidates = parse_steamdt_rows(
                     rows,
                     limit=self.filters.max_candidates,
                     steam_sale_fee_rate=self.filters.steam_sale_fee_rate,
                     withdrawal_fee_rate=self.filters.withdrawal_fee_rate,
                 )
+                self._log(f"steamdt_stage=parsed_candidates count={len(candidates)}")
                 candidates = await self._enrich_missing_platform_links(context, candidates)
+                self._log(f"steamdt_stage=done count={len(candidates)}")
             finally:
                 await self._save_session_state(context)
                 await context.close()
                 await browser.close()
         return candidates
+
+    def _log(self, message: str) -> None:
+        if self._progress_log is not None:
+            self._progress_log(message)
 
     async def _goto_target(
         self,

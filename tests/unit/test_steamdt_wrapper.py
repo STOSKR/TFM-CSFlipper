@@ -24,6 +24,7 @@ def test_steamdt_wrapper_disables_uu_by_default(
     command = tuple(str(part) for part in commands[0])
     assert _option_pair(command, "--timeout") == ("--timeout", "60")
     assert _option_pair(command, "--retries") == ("--retries", "2")
+    assert _option_pair(command, "--profile-timeout") == ("--profile-timeout", "240")
     assert "--all-profiles" in command
     assert "--no-platform-uu" in command
     assert "--platform-uu" not in command
@@ -60,7 +61,17 @@ def test_steamdt_wrapper_can_override_timeout_and_retries(
     monkeypatch.setattr(
         sys,
         "argv",
-        ["steamdt.py", "1", "--timeout", "90", "--retries", "3", "--no-output"],
+        [
+            "steamdt.py",
+            "1",
+            "--timeout",
+            "90",
+            "--retries",
+            "3",
+            "--profile-timeout",
+            "120",
+            "--no-output",
+        ],
     )
     monkeypatch.setattr(subprocess, "run", fake_run)
 
@@ -69,6 +80,7 @@ def test_steamdt_wrapper_can_override_timeout_and_retries(
     command = tuple(str(part) for part in commands[0])
     assert _option_pair(command, "--timeout") == ("--timeout", "90")
     assert _option_pair(command, "--retries") == ("--retries", "3")
+    assert _option_pair(command, "--profile-timeout") == ("--profile-timeout", "120")
 
 
 def _option_pair(command: tuple[str, ...], option: str) -> tuple[str, str]:

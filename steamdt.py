@@ -49,6 +49,12 @@ def main() -> int:
         default=2,
         help="Retries for the initial SteamDT page navigation",
     )
+    parser.add_argument(
+        "--profile-timeout",
+        type=int,
+        default=240,
+        help="Maximum seconds allowed for each SteamDT strategy",
+    )
     parser.add_argument("--json", action="store_true", help="Print JSON instead of table")
     parser.add_argument("--steam", action="store_true", help="Also fetch Steam Market prices")
     parser.add_argument("--persist", action="store_true", help="Persist fetched Steam prices")
@@ -121,6 +127,8 @@ def main() -> int:
         str(args.timeout),
         "--retries",
         str(args.retries),
+        "--profile-timeout",
+        str(args.profile_timeout),
         "--platform-buff" if not args.no_buff else "--no-platform-buff",
         "--platform-c5game" if args.c5 else "--no-platform-c5game",
     ]

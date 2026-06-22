@@ -70,7 +70,18 @@ async def discover(args: argparse.Namespace) -> int:
             "steamdt_strategy="
             f"{strategy_id} balance={balance_type} buy={buy_mode or '-'} sell={sell_mode}"
         )
-        candidates = await SteamDTHangingDiscovery(filters).discover()
+        try:
+            candidates = await asyncio.wait_for(
+                SteamDTHangingDiscovery(filters, progress_log=_print_progress).discover(),
+                timeout=args.profile_timeout,
+            )
+        except TimeoutError:
+            print(
+                f"steamdt_strategy={strategy_id} status=timeout "
+                f"profile_timeout_seconds={args.profile_timeout}",
+                flush=True,
+            )
+            return 124
         all_candidates.extend(
             _tag_candidates(
                 candidates,
@@ -226,6 +237,10 @@ def _safe_console_text(value: str) -> str:
     return value.encode(encoding, errors="replace").decode(encoding, errors="replace")
 
 
+def _print_progress(message: str) -> None:
+    print(message, flush=True)
+
+
 def main() -> None:
     runtime_config = load_runtime_config()
     parser = argparse.ArgumentParser(description="Discover candidates from SteamDT Hanging.")
@@ -263,6 +278,12 @@ def main() -> None:
         type=int,
         default=60,
         help="Seconds to wait for SteamDT navigation and key selectors",
+    )
+    parser.add_argument(
+        "--profile-timeout",
+        type=int,
+        default=240,
+        help="Maximum seconds allowed for each SteamDT strategy",
     )
     parser.add_argument(
         "--retries",
