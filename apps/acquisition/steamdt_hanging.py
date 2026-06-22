@@ -221,7 +221,6 @@ class SteamDTHangingDiscovery:
         await context.storage_state(path=str(self.filters.session_state_path))
 
     async def _configure_filters(self, page: Any) -> None:
-        await self._run_ui_step(page, "close_modal", close_modal(page))
         await self._run_ui_step(page, "currency", change_currency(page, self.filters.currency_code))
         await self._run_ui_step(page, "balance", click_tab_by_text(page, self.filters.balance_type))
         await self._run_ui_step(page, "sell_mode", click_tab_by_text(page, self.filters.sell_mode))
@@ -262,14 +261,25 @@ class SteamDTHangingDiscovery:
             await asyncio.wait_for(action, timeout=timeout_seconds)
         except TimeoutError:
             self._log(f"steamdt_stage=configure.{name} status=timeout")
-            await self._log_page_state(page, name)
+            await self._log_page_state_bounded(page, name)
         except Exception as exc:
             self._log(
                 f"steamdt_stage=configure.{name} status=error error={type(exc).__name__}"
             )
-            await self._log_page_state(page, name)
+            await self._log_page_state_bounded(page, name)
         else:
             self._log(f"steamdt_stage=configure.{name} status=ok")
+
+    async def _log_page_state_bounded(self, page: Any, step_name: str) -> None:
+        try:
+            await asyncio.wait_for(self._log_page_state(page, step_name), timeout=3.0)
+        except TimeoutError:
+            self._log(f"steamdt_debug step={step_name} status=debug_timeout")
+        except Exception as exc:
+            self._log(
+                f"steamdt_debug step={step_name} status=debug_error "
+                f"error={type(exc).__name__}"
+            )
 
     async def _log_page_state(self, page: Any, step_name: str) -> None:
         try:
