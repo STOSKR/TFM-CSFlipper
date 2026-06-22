@@ -221,31 +221,38 @@ class SteamDTHangingDiscovery:
         await context.storage_state(path=str(self.filters.session_state_path))
 
     async def _configure_filters(self, page: Any) -> None:
-        await self._run_ui_step(page, "currency", change_currency(page, self.filters.currency_code))
-        await self._run_ui_step(page, "balance", click_tab_by_text(page, self.filters.balance_type))
-        await self._run_ui_step(page, "sell_mode", click_tab_by_text(page, self.filters.sell_mode))
-        await self._run_ui_step(page, "buy_mode", click_tab_by_text(page, self.filters.buy_mode))
-        await self._run_ui_step(
-            page,
-            "filters",
-            fill_price_volume_filters(
-                page,
-                min_price=self.filters.min_price,
-                max_price=self.filters.max_price,
-                min_volume=self.filters.min_volume,
+        steps: tuple[tuple[str, Callable[[], Awaitable[object]]], ...] = (
+            ("currency", lambda: change_currency(page, self.filters.currency_code)),
+            ("balance", lambda: click_tab_by_text(page, self.filters.balance_type)),
+            ("sell_mode", lambda: click_tab_by_text(page, self.filters.sell_mode)),
+            ("buy_mode", lambda: click_tab_by_text(page, self.filters.buy_mode)),
+            (
+                "filters",
+                lambda: fill_price_volume_filters(
+                    page,
+                    min_price=self.filters.min_price,
+                    max_price=self.filters.max_price,
+                    min_volume=self.filters.min_volume,
+                ),
             ),
-        )
-        await self._run_ui_step(
-            page,
-            "platforms",
-            configure_platforms(
-                page,
-                platform_buff=self.filters.platform_buff,
-                platform_c5game=self.filters.platform_c5game,
-                platform_uu=self.filters.platform_uu,
+            (
+                "platforms",
+                lambda: configure_platforms(
+                    page,
+                    platform_buff=self.filters.platform_buff,
+                    platform_c5game=self.filters.platform_c5game,
+                    platform_uu=self.filters.platform_uu,
+                ),
             ),
+            ("confirm_search", lambda: click_confirm_search(page)),
         )
-        await self._run_ui_step(page, "confirm_search", click_confirm_search(page))
+        for name, action_factory in steps:
+            status = await self._run_ui_step(page, name, action_factory())
+            if status != "ok":
+                self._log(
+                    f"steamdt_stage=configure_filters status=aborted_after step={name}"
+                )
+                return
         await page.wait_for_timeout(self.filters.wait_after_search_ms)
 
     async def _run_ui_step(
@@ -255,20 +262,23 @@ class SteamDTHangingDiscovery:
         action: Awaitable[object],
         *,
         timeout_seconds: float = 8.0,
-    ) -> None:
+    ) -> str:
         self._log(f"steamdt_stage=configure.{name}")
         try:
             await asyncio.wait_for(action, timeout=timeout_seconds)
         except TimeoutError:
             self._log(f"steamdt_stage=configure.{name} status=timeout")
             await self._log_page_state_bounded(page, name)
+            return "timeout"
         except Exception as exc:
             self._log(
                 f"steamdt_stage=configure.{name} status=error error={type(exc).__name__}"
             )
             await self._log_page_state_bounded(page, name)
+            return "error"
         else:
             self._log(f"steamdt_stage=configure.{name} status=ok")
+            return "ok"
 
     async def _log_page_state_bounded(self, page: Any, step_name: str) -> None:
         try:
