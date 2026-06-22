@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 import re
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from dataclasses import asdict, dataclass, replace
 from decimal import Decimal
 from pathlib import Path
@@ -221,25 +221,50 @@ class SteamDTHangingDiscovery:
         await context.storage_state(path=str(self.filters.session_state_path))
 
     async def _configure_filters(self, page: Any) -> None:
-        await close_modal(page)
-        await change_currency(page, self.filters.currency_code)
-        await click_tab_by_text(page, self.filters.balance_type)
-        await click_tab_by_text(page, self.filters.sell_mode)
-        await click_tab_by_text(page, self.filters.buy_mode)
-        await fill_price_volume_filters(
-            page,
-            min_price=self.filters.min_price,
-            max_price=self.filters.max_price,
-            min_volume=self.filters.min_volume,
+        await self._run_ui_step("close_modal", close_modal(page))
+        await self._run_ui_step("currency", change_currency(page, self.filters.currency_code))
+        await self._run_ui_step("balance", click_tab_by_text(page, self.filters.balance_type))
+        await self._run_ui_step("sell_mode", click_tab_by_text(page, self.filters.sell_mode))
+        await self._run_ui_step("buy_mode", click_tab_by_text(page, self.filters.buy_mode))
+        await self._run_ui_step(
+            "filters",
+            fill_price_volume_filters(
+                page,
+                min_price=self.filters.min_price,
+                max_price=self.filters.max_price,
+                min_volume=self.filters.min_volume,
+            ),
         )
-        await configure_platforms(
-            page,
-            platform_buff=self.filters.platform_buff,
-            platform_c5game=self.filters.platform_c5game,
-            platform_uu=self.filters.platform_uu,
+        await self._run_ui_step(
+            "platforms",
+            configure_platforms(
+                page,
+                platform_buff=self.filters.platform_buff,
+                platform_c5game=self.filters.platform_c5game,
+                platform_uu=self.filters.platform_uu,
+            ),
         )
-        await click_confirm_search(page)
+        await self._run_ui_step("confirm_search", click_confirm_search(page))
         await page.wait_for_timeout(self.filters.wait_after_search_ms)
+
+    async def _run_ui_step(
+        self,
+        name: str,
+        action: Awaitable[object],
+        *,
+        timeout_seconds: float = 8.0,
+    ) -> None:
+        self._log(f"steamdt_stage=configure.{name}")
+        try:
+            await asyncio.wait_for(action, timeout=timeout_seconds)
+        except TimeoutError:
+            self._log(f"steamdt_stage=configure.{name} status=timeout")
+        except Exception as exc:
+            self._log(
+                f"steamdt_stage=configure.{name} status=error error={type(exc).__name__}"
+            )
+        else:
+            self._log(f"steamdt_stage=configure.{name} status=ok")
 
     async def _extract_rows(self, page: Any) -> list[dict[str, Any]]:
         rows = await page.evaluate(
