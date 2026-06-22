@@ -78,6 +78,26 @@ class ScrapeJobRunner:
 
 def build_scrape_job_command(env: Mapping[str, str] | None = None) -> list[str]:
     values = env or os.environ
+    if _bool(values.get("SCRAPE_REFRESH_ONLY"), default=False):
+        command = [
+            sys.executable,
+            "-u",
+            "-m",
+            "apps.cli.refresh_market_history",
+            "--stale-minutes",
+            str(_int(values.get("SCRAPE_STALE_MINUTES"), default=480)),
+        ]
+        refresh_limit = _optional_int(values.get("SCRAPE_REFRESH_LIMIT"))
+        if refresh_limit is not None:
+            command.extend(["--limit", str(refresh_limit)])
+        if _bool(values.get("SCRAPE_PERSIST"), default=True):
+            command.append("--persist")
+        else:
+            command.append("--dry-run")
+        if _bool(values.get("SCRAPE_SHOW_BROWSER"), default=False):
+            command.append("--show-browser")
+        return command
+
     command = [
         sys.executable,
         "-u",

@@ -52,6 +52,30 @@ def test_build_scrape_job_command_accepts_render_env_overrides() -> None:
     ]
 
 
+def test_build_scrape_job_command_can_run_refresh_only() -> None:
+    command = build_scrape_job_command(
+        {
+            "SCRAPE_REFRESH_ONLY": "true",
+            "SCRAPE_STALE_MINUTES": "1440",
+            "SCRAPE_REFRESH_LIMIT": "5",
+            "SCRAPE_PERSIST": "true",
+            "SCRAPE_SHOW_BROWSER": "false",
+        }
+    )
+
+    assert command == [
+        sys.executable,
+        "-u",
+        "-m",
+        "apps.cli.refresh_market_history",
+        "--stale-minutes",
+        "1440",
+        "--limit",
+        "5",
+        "--persist",
+    ]
+
+
 def test_scrape_job_runner_rejects_overlapping_runs() -> None:
     started = threading.Event()
     release = threading.Event()

@@ -114,6 +114,13 @@ def test_steamdt_discovery_does_not_open_detail_pages_by_default() -> None:
     assert SteamDTHangingFilters().enrich_missing_platform_links is False
 
 
+def test_steamdt_discovery_blocks_heavy_resources_by_default() -> None:
+    filters = SteamDTHangingFilters()
+
+    assert filters.block_heavy_resources is True
+    assert "--disable-dev-shm-usage" in filters.browser_args
+
+
 def test_parse_steamdt_hanging_row_prefers_steam_url_identity() -> None:
     rows = [
         {

@@ -30,6 +30,19 @@ from packages.domain.market_parsing import (
 )
 
 STEAMDT_HANGING_URL = "https://www.steamdt.com/en/hanging"
+HEADLESS_CHROMIUM_ARGS = (
+    "--disable-background-networking",
+    "--disable-default-apps",
+    "--disable-dev-shm-usage",
+    "--disable-extensions",
+    "--disable-gpu",
+    "--disable-renderer-backgrounding",
+    "--disable-setuid-sandbox",
+    "--mute-audio",
+    "--no-default-browser-check",
+    "--no-first-run",
+    "--no-sandbox",
+)
 
 
 class SteamDTDiscoveryError(RuntimeError):
@@ -59,6 +72,8 @@ class SteamDTHangingFilters:
     max_candidates: int = 50
     enrich_missing_platform_links: bool = False
     max_detail_concurrency: int = 2
+    block_heavy_resources: bool = True
+    browser_args: tuple[str, ...] = HEADLESS_CHROMIUM_ARGS
     steam_sale_fee_rate: Decimal = Decimal("0.13")
     withdrawal_fee_rate: Decimal = Decimal("0.20")
     session_state_path: Path | None = Path("data/browser-state/steamdt_storage_state.json")
@@ -117,7 +132,10 @@ class SteamDTHangingDiscovery:
 
         async with async_playwright() as playwright:
             self._log("steamdt_stage=launch_browser")
-            browser = await playwright.chromium.launch(headless=self.filters.headless)
+            browser = await playwright.chromium.launch(
+                headless=self.filters.headless,
+                args=list(self.filters.browser_args) if self.filters.headless else None,
+            )
             context_options: dict[str, Any] = {
                 "viewport": {"width": 1920, "height": 1080},
                 "user_agent": (
@@ -130,6 +148,8 @@ class SteamDTHangingDiscovery:
             context = await browser.new_context(**context_options)
             page = await context.new_page()
             try:
+                if self.filters.block_heavy_resources:
+                    await self._block_heavy_resources(page)
                 self._log("steamdt_stage=goto")
                 await self._goto_target(page, PlaywrightTimeoutError)
                 self._log("steamdt_stage=close_modal")
@@ -163,6 +183,15 @@ class SteamDTHangingDiscovery:
     def _log(self, message: str) -> None:
         if self._progress_log is not None:
             self._progress_log(message)
+
+    async def _block_heavy_resources(self, page: Any) -> None:
+        async def route_handler(route: Any) -> None:
+            if route.request.resource_type in {"font", "image", "media"}:
+                await route.abort()
+                return
+            await route.continue_()
+
+        await page.route("**/*", route_handler)
 
     async def _goto_target(
         self,

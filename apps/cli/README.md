@@ -112,6 +112,7 @@ DATABASE_URL=...
 SCRAPE_JOB_TOKEN=un-token-largo
 SCRAPE_STALE_MINUTES=480
 SCRAPE_PERSIST=true
+SCRAPE_REFRESH_ONLY=false
 SCRAPE_ENSURE_PLAYWRIGHT=true
 PLAYWRIGHT_BROWSERS_PATH=0
 PYTHON_VERSION=3.11.9
@@ -143,6 +144,14 @@ POST /jobs/scrape?token=...
 
 ```bash
 python -m apps.cli.auto_scrape_loop --once --stale-minutes 480 --persist
+```
+
+En instancias con poca memoria, SteamDT puede agotar RAM durante discovery. Si los candidatos
+ya se han poblado desde local, configura `SCRAPE_REFRESH_ONLY=true` para que Render ejecute
+solo:
+
+```bash
+python -m apps.cli.refresh_market_history --stale-minutes 480 --persist
 ```
 
 Para cron-job.org, usa la URL de Render:
