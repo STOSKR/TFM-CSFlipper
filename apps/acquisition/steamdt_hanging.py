@@ -221,12 +221,13 @@ class SteamDTHangingDiscovery:
         await context.storage_state(path=str(self.filters.session_state_path))
 
     async def _configure_filters(self, page: Any) -> None:
-        await self._run_ui_step("close_modal", close_modal(page))
-        await self._run_ui_step("currency", change_currency(page, self.filters.currency_code))
-        await self._run_ui_step("balance", click_tab_by_text(page, self.filters.balance_type))
-        await self._run_ui_step("sell_mode", click_tab_by_text(page, self.filters.sell_mode))
-        await self._run_ui_step("buy_mode", click_tab_by_text(page, self.filters.buy_mode))
+        await self._run_ui_step(page, "close_modal", close_modal(page))
+        await self._run_ui_step(page, "currency", change_currency(page, self.filters.currency_code))
+        await self._run_ui_step(page, "balance", click_tab_by_text(page, self.filters.balance_type))
+        await self._run_ui_step(page, "sell_mode", click_tab_by_text(page, self.filters.sell_mode))
+        await self._run_ui_step(page, "buy_mode", click_tab_by_text(page, self.filters.buy_mode))
         await self._run_ui_step(
+            page,
             "filters",
             fill_price_volume_filters(
                 page,
@@ -236,6 +237,7 @@ class SteamDTHangingDiscovery:
             ),
         )
         await self._run_ui_step(
+            page,
             "platforms",
             configure_platforms(
                 page,
@@ -244,11 +246,12 @@ class SteamDTHangingDiscovery:
                 platform_uu=self.filters.platform_uu,
             ),
         )
-        await self._run_ui_step("confirm_search", click_confirm_search(page))
+        await self._run_ui_step(page, "confirm_search", click_confirm_search(page))
         await page.wait_for_timeout(self.filters.wait_after_search_ms)
 
     async def _run_ui_step(
         self,
+        page: Any,
         name: str,
         action: Awaitable[object],
         *,
@@ -259,12 +262,55 @@ class SteamDTHangingDiscovery:
             await asyncio.wait_for(action, timeout=timeout_seconds)
         except TimeoutError:
             self._log(f"steamdt_stage=configure.{name} status=timeout")
+            await self._log_page_state(page, name)
         except Exception as exc:
             self._log(
                 f"steamdt_stage=configure.{name} status=error error={type(exc).__name__}"
             )
+            await self._log_page_state(page, name)
         else:
             self._log(f"steamdt_stage=configure.{name} status=ok")
+
+    async def _log_page_state(self, page: Any, step_name: str) -> None:
+        try:
+            title = await page.title()
+        except Exception:
+            title = "<unavailable>"
+        try:
+            state = await page.evaluate(
+                """
+                () => {
+                  const clean = (value) => String(value || '')
+                    .replace(/\\s+/g, ' ')
+                    .trim();
+                  return {
+                    url: location.href,
+                    tabs: document.querySelectorAll('.tabs-item').length,
+                    inputs: document.querySelectorAll('.el-input__inner').length,
+                    dialogs: document.querySelectorAll('.el-overlay-dialog').length,
+                    buttons: document.querySelectorAll('button').length,
+                    body: clean(document.body && document.body.innerText).slice(0, 500),
+                  };
+                }
+                """
+            )
+        except Exception:
+            state = {
+                "url": getattr(page, "url", "<unavailable>"),
+                "tabs": "?",
+                "inputs": "?",
+                "dialogs": "?",
+                "buttons": "?",
+                "body": "<unavailable>",
+            }
+        self._log(
+            "steamdt_debug "
+            f"step={step_name} title={_compact_debug_text(title)} "
+            f"url={_compact_debug_text(str(state.get('url')))} "
+            f"tabs={state.get('tabs')} inputs={state.get('inputs')} "
+            f"dialogs={state.get('dialogs')} buttons={state.get('buttons')} "
+            f"body={_compact_debug_text(str(state.get('body')), max_length=500)}"
+        )
 
     async def _extract_rows(self, page: Any) -> list[dict[str, Any]]:
         rows = await page.evaluate(
@@ -715,6 +761,13 @@ def _find_url(links: tuple[str, ...], pattern: str) -> str | None:
         if pattern in link:
             return link
     return None
+
+
+def _compact_debug_text(value: str, *, max_length: int = 160) -> str:
+    text = " ".join(value.split())
+    if len(text) <= max_length:
+        return text
+    return f"{text[: max_length - 3]}..."
 
 
 def save_candidates(path: str | Path, candidates: tuple[SteamDTCandidate, ...]) -> None:
