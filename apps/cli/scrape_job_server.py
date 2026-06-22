@@ -80,6 +80,7 @@ def build_scrape_job_command(env: Mapping[str, str] | None = None) -> list[str]:
     values = env or os.environ
     command = [
         sys.executable,
+        "-u",
         "-m",
         "apps.cli.auto_scrape_loop",
     ]
@@ -123,24 +124,25 @@ def _ensure_playwright_browser(env: Mapping[str, str]) -> int:
     try:
         from playwright.sync_api import sync_playwright
     except ModuleNotFoundError:
-        print("playwright_check=missing_package")
+        print("playwright_check=missing_package", flush=True)
         return 1
 
     with sync_playwright() as playwright:
         executable_path = Path(playwright.chromium.executable_path)
     if executable_path.exists():
-        print(f"playwright_check=ok executable={executable_path}")
+        print(f"playwright_check=ok executable={executable_path}", flush=True)
         return 0
 
-    print(f"playwright_check=missing executable={executable_path}")
+    print(f"playwright_check=missing executable={executable_path}", flush=True)
     install_command = [sys.executable, "-m", "playwright", "install", "chromium"]
-    print(" ".join(install_command))
+    print(" ".join(install_command), flush=True)
     return subprocess.run(install_command, check=False, env=env).returncode
 
 
 def _subprocess_env(base_env: Mapping[str, str]) -> dict[str, str]:
     env = dict(base_env)
     env.setdefault("PLAYWRIGHT_BROWSERS_PATH", "0")
+    env.setdefault("PYTHONUNBUFFERED", "1")
     return env
 
 
@@ -168,7 +170,7 @@ class ScrapeJobHandler(BaseHTTPRequestHandler):
         self._route()
 
     def log_message(self, format: str, *args: Any) -> None:
-        print(f"{self.address_string()} - {format % args}")
+        print(f"{self.address_string()} - {format % args}", flush=True)
 
     def _route(self) -> None:
         parsed = urlparse(self.path)
@@ -287,7 +289,7 @@ def main() -> None:
         runner=ScrapeJobRunner(),
         token=os.getenv("SCRAPE_JOB_TOKEN"),
     )
-    print(f"scrape_job_server listening host={host} port={port}")
+    print(f"scrape_job_server listening host={host} port={port}", flush=True)
     server.serve_forever()
 
 

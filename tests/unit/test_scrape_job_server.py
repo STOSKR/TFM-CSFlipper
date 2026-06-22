@@ -15,6 +15,7 @@ from apps.cli.scrape_job_server import (
 def test_build_scrape_job_command_defaults_to_eight_hour_persisted_run() -> None:
     assert build_scrape_job_command({}) == [
         sys.executable,
+        "-u",
         "-m",
         "apps.cli.auto_scrape_loop",
         "--once",
@@ -37,6 +38,7 @@ def test_build_scrape_job_command_accepts_render_env_overrides() -> None:
 
     assert command == [
         sys.executable,
+        "-u",
         "-m",
         "apps.cli.auto_scrape_loop",
         "25",
@@ -89,3 +91,8 @@ def test_playwright_browser_path_defaults_to_project_install() -> None:
     assert _subprocess_env({"PLAYWRIGHT_BROWSERS_PATH": "/cache"})[
         "PLAYWRIGHT_BROWSERS_PATH"
     ] == "/cache"
+
+
+def test_subprocess_env_defaults_to_unbuffered_python() -> None:
+    assert _subprocess_env({})["PYTHONUNBUFFERED"] == "1"
+    assert _subprocess_env({"PYTHONUNBUFFERED": "0"})["PYTHONUNBUFFERED"] == "0"
