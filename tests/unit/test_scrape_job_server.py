@@ -7,6 +7,7 @@ from apps.cli.scrape_job_server import (
     _bearer_token,
     _bool,
     _query_token,
+    _subprocess_env,
     build_scrape_job_command,
 )
 
@@ -81,3 +82,10 @@ def test_tokens_can_come_from_header_or_query() -> None:
 def test_playwright_runtime_check_defaults_to_enabled() -> None:
     assert _bool(None, default=True) is True
     assert _bool("false", default=True) is False
+
+
+def test_playwright_browser_path_defaults_to_project_install() -> None:
+    assert _subprocess_env({})["PLAYWRIGHT_BROWSERS_PATH"] == "0"
+    assert _subprocess_env({"PLAYWRIGHT_BROWSERS_PATH": "/cache"})[
+        "PLAYWRIGHT_BROWSERS_PATH"
+    ] == "/cache"

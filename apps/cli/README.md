@@ -113,6 +113,7 @@ SCRAPE_JOB_TOKEN=un-token-largo
 SCRAPE_STALE_MINUTES=480
 SCRAPE_PERSIST=true
 SCRAPE_ENSURE_PLAYWRIGHT=true
+PLAYWRIGHT_BROWSERS_PATH=0
 PYTHON_VERSION=3.11.9
 ```
 
@@ -122,8 +123,9 @@ Build command recomendado en Render:
 bash render-build.sh
 ```
 
-El script comprueba al final que el binario de Chromium existe. Si falla, redeploy con
-`Clear build cache & deploy` y revisa que Render este usando Python 3.11.
+El script instala Chromium dentro del entorno del proyecto con `PLAYWRIGHT_BROWSERS_PATH=0`
+y comprueba al final que el binario existe. Si falla, redeploy con `Clear build cache & deploy`
+y revisa que Render este usando Python 3.11.
 
 Ademas, el servidor comprueba Chromium antes de cada job y ejecuta
 `python -m playwright install chromium` si falta. Esto cubre despliegues donde la cache de

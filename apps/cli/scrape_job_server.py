@@ -107,17 +107,19 @@ def build_scrape_job_command(env: Mapping[str, str] | None = None) -> list[str]:
 
 def _run_command(command: Sequence[str]) -> int:
     timeout_seconds = _optional_int(os.getenv("SCRAPE_JOB_TIMEOUT_SECONDS"))
+    env = _subprocess_env(os.environ)
     if _bool(os.getenv("SCRAPE_ENSURE_PLAYWRIGHT"), default=True):
-        install_code = _ensure_playwright_browser()
+        install_code = _ensure_playwright_browser(env)
         if install_code != 0:
             return install_code
     try:
-        return subprocess.run(command, check=False, timeout=timeout_seconds).returncode
+        return subprocess.run(command, check=False, timeout=timeout_seconds, env=env).returncode
     except subprocess.TimeoutExpired:
         return 124
 
 
-def _ensure_playwright_browser() -> int:
+def _ensure_playwright_browser(env: Mapping[str, str]) -> int:
+    os.environ["PLAYWRIGHT_BROWSERS_PATH"] = env["PLAYWRIGHT_BROWSERS_PATH"]
     try:
         from playwright.sync_api import sync_playwright
     except ModuleNotFoundError:
@@ -133,7 +135,13 @@ def _ensure_playwright_browser() -> int:
     print(f"playwright_check=missing executable={executable_path}")
     install_command = [sys.executable, "-m", "playwright", "install", "chromium"]
     print(" ".join(install_command))
-    return subprocess.run(install_command, check=False).returncode
+    return subprocess.run(install_command, check=False, env=env).returncode
+
+
+def _subprocess_env(base_env: Mapping[str, str]) -> dict[str, str]:
+    env = dict(base_env)
+    env.setdefault("PLAYWRIGHT_BROWSERS_PATH", "0")
+    return env
 
 
 class ScrapeJobHTTPServer(ThreadingHTTPServer):
