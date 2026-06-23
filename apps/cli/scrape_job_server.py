@@ -5,9 +5,11 @@ from __future__ import annotations
 import hmac
 import json
 import os
+import signal
 import subprocess
 import sys
 import threading
+import time
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -96,6 +98,8 @@ def build_scrape_job_command(env: Mapping[str, str] | None = None) -> list[str]:
             command.append("--dry-run")
         if _bool(values.get("SCRAPE_SHOW_BROWSER"), default=False):
             command.append("--show-browser")
+        if _bool(values.get("SCRAPE_STEAM_API"), default=False):
+            command.append("--steam-api")
         return command
 
     if _bool(values.get("SCRAPE_STREAMING"), default=False):
@@ -183,6 +187,8 @@ def _build_streaming_scrape_job_command(values: Mapping[str, str]) -> list[str]:
         command.append("--no-persist")
     if _bool(values.get("SCRAPE_SHOW_BROWSER"), default=False):
         command.append("--show-browser")
+    if _bool(values.get("SCRAPE_STEAM_API"), default=False):
+        command.append("--steam-api")
     return command
 
 
@@ -193,10 +199,65 @@ def _run_command(command: Sequence[str]) -> int:
         install_code = _ensure_playwright_browser(env)
         if install_code != 0:
             return install_code
+    process = _start_job_process(command, env)
     try:
-        return subprocess.run(command, check=False, timeout=timeout_seconds, env=env).returncode
+        return process.wait(timeout=timeout_seconds)
     except subprocess.TimeoutExpired:
+        _terminate_job_processes(process)
         return 124
+    finally:
+        _terminate_job_processes(process)
+
+
+def _start_job_process(command: Sequence[str], env: Mapping[str, str]) -> subprocess.Popen[Any]:
+    return subprocess.Popen(
+        command,
+        env=env,
+        start_new_session=os.name != "nt",
+    )
+
+
+def _terminate_job_processes(process: subprocess.Popen[Any]) -> None:
+    if os.name == "nt":
+        _terminate_windows_process_tree(process)
+        return
+    _terminate_posix_process_group(process)
+
+
+def _terminate_posix_process_group(process: subprocess.Popen[Any]) -> None:
+    if not _kill_posix_process_group(process.pid, signal.SIGTERM):
+        return
+    if process.poll() is None:
+        try:
+            process.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            _kill_posix_process_group(process.pid, signal.SIGKILL)
+            process.wait(timeout=5)
+        return
+    time.sleep(0.2)
+    _kill_posix_process_group(process.pid, signal.SIGKILL)
+
+
+def _kill_posix_process_group(process_id: int, sig: signal.Signals) -> bool:
+    try:
+        os.killpg(process_id, sig)
+    except ProcessLookupError:
+        return False
+    except PermissionError as exc:
+        print(f"scrape_job_cleanup=status=error error={exc}", flush=True)
+        return False
+    return True
+
+
+def _terminate_windows_process_tree(process: subprocess.Popen[Any]) -> None:
+    if process.poll() is not None:
+        return
+    subprocess.run(
+        ["taskkill", "/F", "/T", "/PID", str(process.pid)],
+        check=False,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
 
 
 def _ensure_playwright_browser(env: Mapping[str, str]) -> int:

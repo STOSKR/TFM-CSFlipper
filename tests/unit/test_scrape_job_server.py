@@ -100,6 +100,7 @@ def test_build_scrape_job_command_can_run_streaming_flow() -> None:
             "SCRAPE_REFRESH_LIMIT": "50",
             "SCRAPE_BATCH_SIZE": "1",
             "SCRAPE_QUEUE_SIZE": "2",
+            "SCRAPE_STEAM_API": "true",
             "SCRAPE_PERSIST": "true",
         }
     )
@@ -126,6 +127,7 @@ def test_build_scrape_job_command_can_run_streaming_flow() -> None:
         "--queue-size",
         "2",
         "--persist",
+        "--steam-api",
     ]
 
 

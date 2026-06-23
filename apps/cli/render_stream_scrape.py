@@ -168,6 +168,8 @@ def _run_refresh(args: argparse.Namespace) -> int:
         command.append("--dry-run")
     if args.show_browser:
         command.append("--show-browser")
+    if args.steam_api:
+        command.append("--steam-api")
     print("render_stream_step=refresh", flush=True)
     print(" ".join(command), flush=True)
     return subprocess.run(command, check=False).returncode
