@@ -213,6 +213,11 @@ def main() -> None:
         type=int,
         default=runtime_config.discovery.candidates_limit,
     )
+    parser.add_argument(
+        "--profile",
+        choices=tuple(runtime_config.steamdt.profiles),
+        default=runtime_config.steamdt.default_profile,
+    )
     parser.add_argument("--all-profiles", action=argparse.BooleanOptionalAction, default=False)
     parser.add_argument("--batch-size", type=int, default=1)
     parser.add_argument("--queue-size", type=int, default=2)
