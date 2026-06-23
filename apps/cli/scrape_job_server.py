@@ -98,8 +98,6 @@ def build_scrape_job_command(env: Mapping[str, str] | None = None) -> list[str]:
             command.append("--dry-run")
         if _bool(values.get("SCRAPE_SHOW_BROWSER"), default=False):
             command.append("--show-browser")
-        if _bool(values.get("SCRAPE_STEAM_API"), default=False):
-            command.append("--steam-api")
         return command
 
     if _bool(values.get("SCRAPE_STREAMING"), default=False):
@@ -187,8 +185,6 @@ def _build_streaming_scrape_job_command(values: Mapping[str, str]) -> list[str]:
         command.append("--no-persist")
     if _bool(values.get("SCRAPE_SHOW_BROWSER"), default=False):
         command.append("--show-browser")
-    if _bool(values.get("SCRAPE_STEAM_API"), default=False):
-        command.append("--steam-api")
     return command
 
 
