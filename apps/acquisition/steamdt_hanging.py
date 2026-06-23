@@ -183,9 +183,12 @@ class SteamDTHangingDiscovery:
                 candidates = await self._enrich_missing_platform_links(context, candidates)
                 self._log(f"steamdt_stage=done count={len(candidates)}")
             finally:
-                await self._save_session_state(context)
-                await context.close()
-                await browser.close()
+                await self._run_cleanup_step(
+                    "save_session_state",
+                    self._save_session_state(context),
+                )
+                await self._run_cleanup_step("context_close", context.close())
+                await self._run_cleanup_step("browser_close", browser.close())
         return candidates
 
     def _log(self, message: str) -> None:
@@ -296,6 +299,22 @@ class SteamDTHangingDiscovery:
                 f"steamdt_debug step={step_name} status=debug_error "
                 f"error={type(exc).__name__}"
             )
+
+    async def _run_cleanup_step(
+        self,
+        name: str,
+        action: Awaitable[object],
+        *,
+        timeout_seconds: float = 3.0,
+    ) -> None:
+        try:
+            await asyncio.wait_for(action, timeout=timeout_seconds)
+        except TimeoutError:
+            self._log(f"steamdt_cleanup={name} status=timeout")
+        except Exception as exc:
+            self._log(f"steamdt_cleanup={name} status=error error={type(exc).__name__}")
+        else:
+            self._log(f"steamdt_cleanup={name} status=ok")
 
     async def _log_page_state(self, page: Any, step_name: str) -> None:
         try:
