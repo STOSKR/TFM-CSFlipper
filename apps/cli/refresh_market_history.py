@@ -312,6 +312,7 @@ def _worker_config(
         fetch_steam=args.steam,
         fetch_buff=args.buff,
         steam_browser=not args.steam_api,
+        concurrent_platforms=args.concurrent_platforms,
         steam_config=SteamMarketConnectorConfig(
             max_concurrency=args.steam_concurrency,
             min_delay_seconds=args.steam_min_delay,
@@ -369,6 +370,11 @@ def main() -> None:
     parser.add_argument("--output", type=Path)
     parser.add_argument("--steam", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--buff", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument(
+        "--concurrent-platforms",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+    )
     parser.add_argument("--show-browser", action="store_true")
     parser.add_argument("--steam-api", action="store_true")
     parser.add_argument("--steam-login", action="store_true")

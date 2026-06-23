@@ -7,12 +7,15 @@ from pathlib import Path
 import pytest
 
 from apps.acquisition.platform_workers import (
+    PlatformWorkerConfig,
     PlatformWorkerResult,
     WorkerError,
     latest_steamdt_candidates_path,
     load_steamdt_candidates,
+    scrape_candidate_platforms,
     worker_results_to_jsonable,
 )
+from apps.acquisition.steamdt_hanging import SteamDTCandidate
 from apps.acquisition.steam_market import SteamMarketObservation
 from packages.contracts.observations import MarketObservationContract
 from packages.domain.enums import SourceType
@@ -107,3 +110,38 @@ def test_worker_results_to_jsonable_contains_observations_errors_and_summary() -
     assert payload["observations"][0]["platform_id"] == "steam"
     assert payload["errors"][0]["market_hash_name"] == "bad item"
     assert payload["summary"]["steam"] == {"observations": 1, "errors": 1}
+
+
+@pytest.mark.asyncio
+async def test_scrape_candidate_platforms_can_run_platforms_sequentially(monkeypatch) -> None:
+    events: list[str] = []
+    steam_finished = False
+
+    async def fake_steam(*args, **kwargs) -> PlatformWorkerResult:
+        nonlocal steam_finished
+        events.append("steam_start")
+        steam_finished = True
+        events.append("steam_done")
+        return PlatformWorkerResult("steam", ())
+
+    async def fake_buff(*args, **kwargs) -> PlatformWorkerResult:
+        events.append(f"buff_start_after_steam={steam_finished}")
+        return PlatformWorkerResult("buff163", ())
+
+    monkeypatch.setattr("apps.acquisition.platform_workers._scrape_steam_browser", fake_steam)
+    monkeypatch.setattr("apps.acquisition.platform_workers._scrape_buff", fake_buff)
+
+    results = await scrape_candidate_platforms(
+        (
+            SteamDTCandidate(
+                item_name="P2000 | Oceanic",
+                market_hash_name="P2000 | Oceanic (Well-Worn)",
+                buff_url="https://buff.example/item",
+                steam_url="https://steam.example/item",
+            ),
+        ),
+        config=PlatformWorkerConfig(concurrent_platforms=False),
+    )
+
+    assert tuple(result.platform_id for result in results) == ("steam", "buff163")
+    assert events == ["steam_start", "steam_done", "buff_start_after_steam=True"]

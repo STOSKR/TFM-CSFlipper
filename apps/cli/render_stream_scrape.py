@@ -168,6 +168,10 @@ def _run_refresh(args: argparse.Namespace) -> int:
         command.append("--dry-run")
     if args.show_browser:
         command.append("--show-browser")
+    if args.concurrent_platforms:
+        command.append("--concurrent-platforms")
+    else:
+        command.append("--no-concurrent-platforms")
     print("render_stream_step=refresh", flush=True)
     print(" ".join(command), flush=True)
     return subprocess.run(command, check=False).returncode
@@ -178,6 +182,7 @@ def _worker_config(args: argparse.Namespace) -> PlatformWorkerConfig:
         fetch_steam=args.steam,
         fetch_buff=args.buff,
         steam_browser=not args.steam_api,
+        concurrent_platforms=args.concurrent_platforms,
         steam_config=SteamMarketConnectorConfig(
             max_concurrency=args.steam_concurrency,
             min_delay_seconds=args.steam_min_delay,
@@ -242,6 +247,11 @@ def main() -> None:
     parser.add_argument("--no-session-state", action="store_true")
     parser.add_argument("--steam", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--buff", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument(
+        "--concurrent-platforms",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+    )
     parser.add_argument("--steam-api", action="store_true")
     parser.add_argument("--show-browser", action="store_true")
     parser.add_argument(

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -55,6 +56,7 @@ class PlatformWorkerConfig:
     fetch_steam: bool = True
     fetch_buff: bool = True
     steam_browser: bool = True
+    concurrent_platforms: bool = True
     steam_config: SteamMarketConnectorConfig = field(default_factory=SteamMarketConnectorConfig)
     steam_browser_config: SteamBrowserConnectorConfig = field(
         default_factory=SteamBrowserConnectorConfig
@@ -72,11 +74,11 @@ async def scrape_candidate_platforms(
 ) -> tuple[PlatformWorkerResult, ...]:
     worker_config = config or PlatformWorkerConfig()
     run_id = correlation_id or f"platforms:{uuid4()}"
-    tasks = []
+    platform_jobs: list[Callable[[], Awaitable[PlatformWorkerResult]]] = []
     if worker_config.fetch_steam:
         if worker_config.steam_browser:
-            tasks.append(
-                _scrape_steam_browser(
+            platform_jobs.append(
+                lambda: _scrape_steam_browser(
                     candidates,
                     config=worker_config.steam_browser_config,
                     correlation_id=run_id,
@@ -84,8 +86,8 @@ async def scrape_candidate_platforms(
                 )
             )
         else:
-            tasks.append(
-                _scrape_steam_api(
+            platform_jobs.append(
+                lambda: _scrape_steam_api(
                     candidates,
                     config=worker_config.steam_config,
                     correlation_id=run_id,
@@ -93,8 +95,8 @@ async def scrape_candidate_platforms(
                 )
             )
     if worker_config.fetch_buff:
-        tasks.append(
-            _scrape_buff(
+        platform_jobs.append(
+            lambda: _scrape_buff(
                 candidates,
                 config=worker_config.buff_config,
                 correlation_id=run_id,
@@ -102,9 +104,16 @@ async def scrape_candidate_platforms(
                 progress_log=progress_log,
             )
         )
-    if not tasks:
+    if not platform_jobs:
         return ()
-    return tuple(await asyncio.gather(*tasks))
+    if worker_config.concurrent_platforms:
+        return tuple(await asyncio.gather(*(job() for job in platform_jobs)))
+
+    _emit(progress_log, "platform_workers_mode=sequential")
+    results: list[PlatformWorkerResult] = []
+    for job in platform_jobs:
+        results.append(await job())
+    return tuple(results)
 
 
 def load_steamdt_candidates(path: Path) -> tuple[SteamDTCandidate, ...]:

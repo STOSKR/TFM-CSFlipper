@@ -84,6 +84,7 @@ def test_build_scrape_job_command_can_run_refresh_only() -> None:
         "--limit",
         "5",
         "--persist",
+        "--no-concurrent-platforms",
     ]
 
 
@@ -126,6 +127,7 @@ def test_build_scrape_job_command_can_run_streaming_flow() -> None:
         "--queue-size",
         "2",
         "--persist",
+        "--no-concurrent-platforms",
     ]
 
 
