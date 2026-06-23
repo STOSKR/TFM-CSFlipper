@@ -1,5 +1,9 @@
 import argparse
+import sys
 
+import pytest
+
+from apps.cli import discover_steamdt_hanging
 from apps.cli.discover_steamdt_hanging import _selected_profiles
 from packages.runtime_config import SteamDTConfig, SteamDTProfileConfig
 
@@ -34,3 +38,16 @@ def test_selected_profiles_uses_enabled_profiles_for_all_profiles_mode() -> None
         "steam_sell_slow",
         "platform_arbitrage_safe",
     )
+
+
+def test_main_propagates_discover_exit_code(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def fake_discover(args: argparse.Namespace) -> int:
+        return 124
+
+    monkeypatch.setattr(discover_steamdt_hanging, "discover", fake_discover)
+    monkeypatch.setattr(sys, "argv", ["discover"])
+
+    with pytest.raises(SystemExit) as exc_info:
+        discover_steamdt_hanging.main()
+
+    assert exc_info.value.code == 124

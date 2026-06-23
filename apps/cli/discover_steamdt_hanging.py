@@ -327,7 +327,7 @@ def main() -> None:
     parser.add_argument("--format", choices=("table", "json"), default="table")
     args = parser.parse_args()
 
-    asyncio.run(discover(args))
+    raise SystemExit(asyncio.run(discover(args)))
 
 
 def _selected_profiles(
