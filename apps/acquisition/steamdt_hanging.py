@@ -160,7 +160,13 @@ class SteamDTHangingDiscovery:
                     self._log("steamdt_stage=manual_login_wait")
                     await page.wait_for_timeout(self.filters.manual_login_wait_ms)
                 self._log("steamdt_stage=wait_tabs")
-                await page.wait_for_selector(".tabs-item", timeout=self.filters.timeout_ms)
+                try:
+                    await page.wait_for_selector(".tabs-item", timeout=self.filters.timeout_ms)
+                except PlaywrightTimeoutError:
+                    self._log("steamdt_stage=wait_tabs status=timeout_continue")
+                    await self._log_page_state_bounded(page, "wait_tabs")
+                else:
+                    self._log("steamdt_stage=wait_tabs status=ok")
                 await page.wait_for_timeout(self.filters.initial_wait_ms)
                 self._log("steamdt_stage=configure_filters")
                 await self._configure_filters(page)

@@ -87,6 +87,48 @@ def test_build_scrape_job_command_can_run_refresh_only() -> None:
     ]
 
 
+def test_build_scrape_job_command_can_run_streaming_flow() -> None:
+    command = build_scrape_job_command(
+        {
+            "SCRAPE_STREAMING": "true",
+            "SCRAPE_CANDIDATE_LIMIT": "50",
+            "SCRAPE_ALL_PROFILES": "false",
+            "SCRAPE_STEAMDT_TIMEOUT": "30",
+            "SCRAPE_STEAMDT_RETRIES": "1",
+            "SCRAPE_STEAMDT_PROFILE_TIMEOUT": "120",
+            "SCRAPE_STALE_MINUTES": "480",
+            "SCRAPE_REFRESH_LIMIT": "50",
+            "SCRAPE_BATCH_SIZE": "1",
+            "SCRAPE_QUEUE_SIZE": "2",
+            "SCRAPE_PERSIST": "true",
+        }
+    )
+
+    assert command == [
+        sys.executable,
+        "-u",
+        "-m",
+        "apps.cli.render_stream_scrape",
+        "50",
+        "--no-all-profiles",
+        "--steamdt-timeout",
+        "30",
+        "--steamdt-retries",
+        "1",
+        "--steamdt-profile-timeout",
+        "120",
+        "--stale-minutes",
+        "480",
+        "--refresh-limit",
+        "50",
+        "--batch-size",
+        "1",
+        "--queue-size",
+        "2",
+        "--persist",
+    ]
+
+
 def test_scrape_job_runner_rejects_overlapping_runs() -> None:
     started = threading.Event()
     release = threading.Event()

@@ -112,6 +112,7 @@ DATABASE_URL=...
 SCRAPE_JOB_TOKEN=un-token-largo
 SCRAPE_STALE_MINUTES=480
 SCRAPE_CANDIDATE_LIMIT=5
+SCRAPE_STREAMING=true
 SCRAPE_ALL_PROFILES=false
 SCRAPE_STEAMDT_TIMEOUT=30
 SCRAPE_STEAMDT_RETRIES=1
@@ -152,9 +153,11 @@ POST /jobs/scrape?token=...
 python -m apps.cli.auto_scrape_loop --once --stale-minutes 480 --persist
 ```
 
-En instancias con poca memoria, manten `SCRAPE_REFRESH_ONLY=false` pero baja
-`SCRAPE_CANDIDATE_LIMIT`, usa `SCRAPE_ALL_PROFILES=false` y limita el timeout de SteamDT.
-`SCRAPE_REFRESH_ONLY=true` queda solo como modo diagnostico para ejecutar:
+En instancias con poca memoria, usa `SCRAPE_STREAMING=true`: evita el JSON intermedio de
+candidatos, procesa batches pequenos y persiste incrementalmente. Manten
+`SCRAPE_REFRESH_ONLY=false`, baja `SCRAPE_CANDIDATE_LIMIT`, usa `SCRAPE_ALL_PROFILES=false`
+y limita el timeout de SteamDT. `SCRAPE_REFRESH_ONLY=true` queda solo como modo diagnostico
+para ejecutar:
 
 ```bash
 python -m apps.cli.refresh_market_history --stale-minutes 480 --persist
