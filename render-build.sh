@@ -3,8 +3,8 @@ set -euo pipefail
 
 export PLAYWRIGHT_BROWSERS_PATH="${PLAYWRIGHT_BROWSERS_PATH:-0}"
 
-python -m pip install --upgrade pip
-python -m pip install .
+python -m pip install --upgrade pip uv
+uv pip install --python "$(command -v python)" .
 python -m playwright install chromium
 python - <<'PY'
 from pathlib import Path
