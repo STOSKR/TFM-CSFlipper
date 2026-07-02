@@ -77,6 +77,8 @@ const fallbackDashboard = {
 };
 
 let dashboard = fallbackDashboard;
+let visibleRecommendations = [];
+let selectedDealIndex = 0;
 
 const statusLabels = {
   review: "Revisar",
@@ -87,7 +89,7 @@ const statusLabels = {
 async function loadDashboard() {
   const dataFile = new URLSearchParams(window.location.search).get("data");
   if (!dataFile) {
-    dashboard = fallbackDashboard;
+    dashboard = await readDashboardJson("./api/dashboard") || fallbackDashboard;
     return;
   }
   if (!/^[a-z0-9_.-]+\.json$/i.test(dataFile)) {
@@ -136,46 +138,94 @@ function renderRecommendations() {
   const status = document.querySelector("#status-filter").value;
   const search = document.querySelector("#search-filter").value.trim().toLowerCase();
   const sort = document.querySelector("#sort-select").value;
-  const rows = dashboard.recommendations
+  visibleRecommendations = dashboard.recommendations
     .filter((item) => {
       const matchesStatus = status === "all" || item.status === status;
       const haystack = `${item.name} ${item.quality}`.toLowerCase();
       return matchesStatus && haystack.includes(search);
     })
     .sort((left, right) => compareRecommendations(left, right, sort));
-  document.querySelector("#recommendation-rows").innerHTML = rows
+
+  if (selectedDealIndex >= visibleRecommendations.length) {
+    selectedDealIndex = 0;
+  }
+
+  document.querySelector("#recommendation-rows").innerHTML = visibleRecommendations.length
+    ? visibleRecommendations
     .map(
-      (item) => `
-        <tr>
-          <td>
+      (item, index) => `
+        <button class="deal-card ${index === selectedDealIndex ? "selected" : ""}" type="button" data-deal-index="${index}">
+          <span class="deal-main">
             <span class="item-name">
               <strong>${escapeHtml(item.name)}</strong>
               <small>${escapeHtml(item.quality)}${item.stattrak ? " - StatTrak" : ""}</small>
             </span>
-          </td>
-          <td><span class="badge ${escapeHtml(item.status)}">${escapeHtml(statusLabels[item.status] || item.status)}</span></td>
-          <td>
             <span class="route-cell">
               <strong>${escapeHtml(item.route || "Sin ruta")}</strong>
               <small>${escapeHtml(formatRouteDetail(item))}</small>
             </span>
-          </td>
-          <td>${escapeHtml(item.steam)}</td>
-          <td>${escapeHtml(item.buff)}</td>
-          <td>${escapeHtml(item.profit)}</td>
-          <td><span class="subtle">${escapeHtml(formatDate(item.scrapedAt))}</span></td>
-          <td><span class="subtle">${escapeHtml(item.model)}</span></td>
-          <td><span class="subtle">${escapeHtml(item.agents)}</span></td>
-          <td>
-            <span class="actions">
-              <a class="icon-link" href="${escapeAttribute(item.steamUrl)}" target="_blank" rel="noreferrer" title="Abrir Steam">S</a>
-              <a class="icon-link" href="${escapeAttribute(item.buffUrl)}" target="_blank" rel="noreferrer" title="Abrir BUFF">B</a>
-            </span>
-          </td>
-        </tr>
+          </span>
+          <span class="deal-profit">
+            <strong>${escapeHtml(item.profit)}</strong>
+            <small>${escapeHtml(item.steam)} / ${escapeHtml(item.buff)}</small>
+          </span>
+          <span class="deal-signal">
+            <span class="badge ${escapeHtml(item.status)}">${escapeHtml(statusLabels[item.status] || item.status)}</span>
+            <small>${escapeHtml(item.model)}</small>
+          </span>
+        </button>
       `,
     )
-    .join("");
+    .join("")
+    : `<div class="empty-list"><strong>Sin oportunidades</strong><span>Cambia filtros o lanza scraper.</span></div>`;
+
+  renderDealDetail(visibleRecommendations[selectedDealIndex]);
+}
+
+function renderDealDetail(item) {
+  const root = document.querySelector("#deal-detail");
+  if (!item) {
+    root.innerHTML = `
+      <div class="empty-detail">
+        <p class="eyebrow">Detalle</p>
+        <strong>Sin oportunidad seleccionada</strong>
+      </div>
+    `;
+    return;
+  }
+
+  root.innerHTML = `
+    <div class="detail-header">
+      <div>
+        <p class="eyebrow">Deal seleccionado</p>
+        <h2>${escapeHtml(item.name)}</h2>
+        <span>${escapeHtml(item.quality)}${item.stattrak ? " - StatTrak" : ""}</span>
+      </div>
+      <span class="badge ${escapeHtml(item.status)}">${escapeHtml(statusLabels[item.status] || item.status)}</span>
+    </div>
+    <div class="detail-profit">
+      <span>Profit actual</span>
+      <strong>${escapeHtml(item.profit)}</strong>
+    </div>
+    <dl class="detail-grid">
+      <div><dt>Steam</dt><dd>${escapeHtml(item.steam)}</dd></div>
+      <div><dt>BUFF</dt><dd>${escapeHtml(item.buff)}</dd></div>
+      <div><dt>Ruta</dt><dd>${escapeHtml(item.route || "Sin ruta")}</dd></div>
+      <div><dt>Scraping</dt><dd>${escapeHtml(formatDate(item.scrapedAt))}</dd></div>
+    </dl>
+    <div class="detail-block">
+      <span class="ops-label">Modelo</span>
+      <strong>${escapeHtml(item.model)}</strong>
+    </div>
+    <div class="detail-block">
+      <span class="ops-label">Agentes</span>
+      <strong>${escapeHtml(item.agents)}</strong>
+    </div>
+    <div class="detail-actions">
+      <a class="primary-link" href="${escapeAttribute(item.steamUrl)}" target="_blank" rel="noreferrer">Abrir Steam</a>
+      <a class="secondary-link" href="${escapeAttribute(item.buffUrl)}" target="_blank" rel="noreferrer">Abrir BUFF</a>
+    </div>
+  `;
 }
 
 function renderSummary() {
@@ -200,8 +250,9 @@ function renderSummary() {
 function renderAgents() {
   document.querySelector("#agent-list").innerHTML = dashboard.agents
     .map(
-      ([name, state, action]) => `
+      ([name, state, action], index) => `
         <article class="agent-row">
+          <span class="agent-index">0${index + 1}</span>
           <strong>${escapeHtml(name)}</strong>
           <span class="subtle">${escapeHtml(state)}</span>
           <span class="badge review">${escapeHtml(action)}</span>
@@ -218,10 +269,25 @@ function renderRisk() {
         <div>
           <dt>${escapeHtml(label)}</dt>
           <dd>${escapeHtml(value)}</dd>
+          <span class="limit-meter" aria-hidden="true">
+            <span style="width: ${riskMeterWidth(value)}%"></span>
+          </span>
         </div>
       `,
     )
     .join("");
+}
+
+function riskMeterWidth(value) {
+  const match = String(value ?? "").match(/(\d+(?:[.,]\d+)?)%/);
+  if (!match) {
+    return 100;
+  }
+  const numeric = Number(match[1].replace(",", "."));
+  if (Number.isNaN(numeric)) {
+    return 100;
+  }
+  return Math.min(Math.max(numeric, 4), 100);
 }
 
 function renderBacklog() {
@@ -236,6 +302,84 @@ function renderBacklog() {
       `,
     )
     .join("");
+}
+
+function renderModel() {
+  const model = dashboard.recommendations.find((item) => item.model)?.model;
+  if (model) {
+    document.querySelector("#model-version").textContent = model;
+  }
+}
+
+function renderScrapeStatus(payload) {
+  const job = payload?.job || {};
+  const command = Array.isArray(payload?.command) ? payload.command.join(" ") : "No disponible";
+  const running = Boolean(job.running);
+  const startedAt = formatDate(job.last_started_at);
+  const finishedAt = formatDate(job.last_finished_at);
+  const returnCode = job.last_return_code;
+
+  document.querySelector("#scrape-running-state").textContent = running ? "Ejecutando" : "Parado";
+  document.querySelector("#scrape-last-run").textContent = job.last_started_at
+    ? `Inicio: ${startedAt}`
+    : "Sin ejecuciones en esta sesion";
+  document.querySelector("#scrape-return-code").textContent =
+    returnCode === null || returnCode === undefined ? "Pendiente" : String(returnCode);
+  document.querySelector("#scrape-finished-at").textContent = job.last_finished_at
+    ? `Fin: ${finishedAt}`
+    : "Esperando finalizacion";
+  document.querySelector("#scrape-command").textContent = command;
+  document.querySelector("#scrape-start-button").disabled = running;
+}
+
+async function loadScrapeStatus() {
+  const response = await requestJson("./api/scrape/status");
+  if (!response.ok) {
+    document.querySelector("#scrape-action-status").textContent =
+      "No se pudo consultar el estado del scraper.";
+    return;
+  }
+  renderScrapeStatus(response.payload);
+}
+
+async function startScrape() {
+  const button = document.querySelector("#scrape-start-button");
+  const status = document.querySelector("#scrape-action-status");
+  button.disabled = true;
+  status.textContent = "Lanzando scraper...";
+  const response = await requestJson("./api/scrape/start", { method: "POST" });
+  if (response.payload) {
+    renderScrapeStatus(response.payload);
+  }
+  if (response.ok) {
+    status.textContent = "Scraper lanzado.";
+    return;
+  }
+  status.textContent =
+    response.status === 409 ? "Ya hay un scraper ejecutandose." : "No se pudo lanzar el scraper.";
+}
+
+function requestJson(path, options = {}) {
+  return new Promise((resolve) => {
+    const request = new XMLHttpRequest();
+    request.open(options.method || "GET", path, true);
+    request.setRequestHeader("Cache-Control", "no-store");
+    request.onload = () => {
+      let payload = null;
+      try {
+        payload = JSON.parse(request.responseText);
+      } catch {
+        payload = null;
+      }
+      resolve({
+        ok: request.status >= 200 && request.status < 300,
+        status: request.status,
+        payload,
+      });
+    };
+    request.onerror = () => resolve({ ok: false, status: 0, payload: null });
+    request.send();
+  });
 }
 
 function escapeHtml(value) {
@@ -265,13 +409,73 @@ function renderAll() {
   renderAgents();
   renderRisk();
   renderBacklog();
+  renderModel();
 }
 
-document.querySelector("#status-filter").addEventListener("change", renderRecommendations);
-document.querySelector("#search-filter").addEventListener("input", renderRecommendations);
-document.querySelector("#sort-select").addEventListener("change", renderRecommendations);
+document.querySelector("#status-filter").addEventListener("change", () => {
+  selectedDealIndex = 0;
+  renderRecommendations();
+});
+document.querySelector("#search-filter").addEventListener("input", () => {
+  selectedDealIndex = 0;
+  renderRecommendations();
+});
+document.querySelector("#sort-select").addEventListener("change", () => {
+  selectedDealIndex = 0;
+  renderRecommendations();
+});
+document.querySelector("#recommendation-rows").addEventListener("click", (event) => {
+  const card = event.target.closest("[data-deal-index]");
+  if (!card) {
+    return;
+  }
+  selectedDealIndex = Number(card.dataset.dealIndex || 0);
+  renderRecommendations();
+});
+document.querySelector("#scrape-start-button").addEventListener("click", startScrape);
 
+setupNavigation();
 loadDashboard().then(renderAll);
+loadScrapeStatus();
+setInterval(loadScrapeStatus, 15000);
+
+function setupNavigation() {
+  const links = Array.from(document.querySelectorAll(".nav-list a"));
+  const openers = Array.from(document.querySelectorAll("[data-open-view]"));
+  const views = links
+    .map((link) => document.querySelector(link.getAttribute("href")))
+    .filter(Boolean);
+  const defaultId = "recommendations";
+  const titles = {
+    recommendations: "Deals",
+    scraper: "Scraper",
+    model: "Modelo",
+    agents: "Agentes",
+    portfolio: "Riesgo",
+    backlog: "Roadmap",
+  };
+
+  function activate(id) {
+    const selected = views.some((view) => view.id === id) ? id : defaultId;
+    links.forEach((link) => {
+      link.classList.toggle("active", link.getAttribute("href") === `#${selected}`);
+    });
+    views.forEach((view) => {
+      view.hidden = view.id !== selected;
+    });
+    if (window.location.hash !== `#${selected}`) {
+      window.history.replaceState(null, "", `#${selected}`);
+    }
+    window.scrollTo({ top: 0, left: 0 });
+    document.querySelector("#view-title").textContent = titles[selected] || "Mesa local";
+  }
+
+  openers.forEach((button) => {
+    button.addEventListener("click", () => activate(button.dataset.openView));
+  });
+  window.addEventListener("hashchange", () => activate(window.location.hash.slice(1)));
+  activate(window.location.hash.slice(1));
+}
 
 function compareRecommendations(left, right, sort) {
   if (sort === "profit") {

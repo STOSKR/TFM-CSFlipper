@@ -13,48 +13,43 @@
           <img src="./assets/ledger-mark.svg" alt="" width="36" height="36" />
           <span>
             <strong>CSFlipper</strong>
-            <small>Trading desk ledger</small>
+            <small>Local desk</small>
           </span>
         </a>
         <nav class="nav-list">
-          <a href="#overview" class="active">Overview</a>
-          <a href="#recommendations">Recomendaciones</a>
+          <a href="#recommendations" class="active">Deals</a>
+          <a href="#scraper">Scraper</a>
+          <a href="#model">Modelo</a>
           <a href="#agents">Agentes</a>
-          <a href="#portfolio">Portfolio</a>
-          <a href="#backlog">Backlog</a>
+          <a href="#portfolio">Riesgo</a>
+          <a href="#backlog">Roadmap</a>
         </nav>
+        <div class="sidebar-footer">
+          <span>Fuente</span>
+          <strong>Supabase live</strong>
+        </div>
       </aside>
 
       <main class="workspace">
         <header class="topbar">
           <div>
-            <p class="eyebrow">Estado operativo</p>
-            <h1>Consola de decision simulada</h1>
+            <p class="eyebrow">CSFlipper Console</p>
+            <h1 id="view-title">Deals</h1>
           </div>
-          <div class="run-state" aria-label="Estado de ultimo refresco">
-            <span class="dot ok"></span>
-            <span>Repo limpio tras ultimo commit</span>
+          <div class="topbar-status">
+            <div class="run-state" aria-label="Estado de base de datos">
+              <span class="dot ok"></span>
+              <span>BD conectada</span>
+            </div>
+            <button class="ghost-action" data-open-view="scraper" type="button">Scraper</button>
           </div>
         </header>
 
-        <section id="overview" class="band overview-grid" aria-labelledby="overview-title">
-          <div class="section-heading">
-            <p class="eyebrow">Pipeline</p>
-            <h2 id="overview-title">Que funciona ahora</h2>
-          </div>
-          <div class="status-rail" id="pipeline-status"></div>
-          <div class="notice">
-            <strong>Decision honesta:</strong>
-            el modelo supervisado activo es experimental. Sirve como feature para MARL, no como
-            regla automatica de compra.
-          </div>
-        </section>
-
-        <section id="recommendations" class="band" aria-labelledby="recommendations-title">
-          <div class="section-toolbar">
+        <section id="recommendations" class="view deals-view" aria-labelledby="recommendations-title">
+          <div class="command-strip">
             <div>
-              <p class="eyebrow">Recomendaciones</p>
-              <h2 id="recommendations-title">Candidatos revisables</h2>
+              <p class="eyebrow">Deal inbox</p>
+              <h2 id="recommendations-title">Oportunidades vivas</h2>
             </div>
             <div class="filters" aria-label="Filtros de recomendaciones">
               <label>
@@ -81,60 +76,142 @@
               </label>
             </div>
           </div>
-          <div class="summary-strip" id="recommendation-summary" aria-label="Resumen de recomendaciones"></div>
 
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Articulo</th>
-                  <th>Estado</th>
-                  <th>Ruta</th>
-                  <th>Steam</th>
-                  <th>BUFF</th>
-                  <th>Profit</th>
-                  <th>Scraping</th>
-                  <th>Modelo</th>
-                  <th>Agentes</th>
-                  <th>Acciones</th>
-                </tr>
-              </thead>
-              <tbody id="recommendation-rows"></tbody>
-            </table>
+          <div class="deal-command-grid">
+            <aside class="deal-left-panel" aria-label="Resumen de oportunidades">
+              <div class="summary-strip" id="recommendation-summary" aria-label="Resumen de recomendaciones"></div>
+              <div class="notice">
+                <strong>Modelo experimental.</strong>
+                Usar como senal, no como compra automatica.
+              </div>
+              <div class="status-rail compact" id="pipeline-status"></div>
+            </aside>
+
+            <section class="deal-inbox" aria-label="Bandeja de oportunidades">
+              <div class="deal-list-head">
+                <span>Item</span>
+                <span>Profit</span>
+                <span>Senal</span>
+              </div>
+              <div class="deal-list" id="recommendation-rows"></div>
+            </section>
+
+            <aside class="deal-detail" id="deal-detail" aria-label="Detalle de oportunidad">
+              <div class="empty-detail">
+                <p class="eyebrow">Detalle</p>
+                <strong>Selecciona una oportunidad</strong>
+              </div>
+            </aside>
           </div>
         </section>
 
-        <section id="agents" class="band split" aria-labelledby="agents-title">
+        <section id="scraper" class="band view operations-panel" aria-labelledby="scraper-title" hidden>
+          <div class="section-toolbar">
+            <div>
+              <p class="eyebrow">Control local</p>
+              <h2 id="scraper-title">Scraper manual</h2>
+            </div>
+            <button class="primary-action" id="scrape-start-button" type="button">Lanzar scraper</button>
+          </div>
+          <div class="ops-grid">
+            <article class="ops-status">
+              <span class="ops-label">Estado</span>
+              <strong id="scrape-running-state">Consultando</strong>
+              <span id="scrape-last-run">Sin ejecuciones en esta sesion</span>
+            </article>
+            <article class="ops-status">
+              <span class="ops-label">Resultado</span>
+              <strong id="scrape-return-code">Pendiente</strong>
+              <span id="scrape-finished-at">Esperando primera ejecucion</span>
+            </article>
+          </div>
+          <div class="command-panel">
+            <span class="ops-label">Comando configurado</span>
+            <code id="scrape-command">Cargando</code>
+          </div>
+          <p class="inline-status" id="scrape-action-status" role="status"></p>
+        </section>
+
+        <section id="model" class="band view model-view" aria-labelledby="model-title" hidden>
+          <div class="section-toolbar">
+            <div>
+              <p class="eyebrow">Modelo</p>
+              <h2 id="model-title">Senales y datos</h2>
+            </div>
+            <span class="badge warning">Baseline activo</span>
+          </div>
+          <div class="model-grid">
+            <article class="model-panel">
+              <span class="ops-label">Version</span>
+              <strong id="model-version">current_spread_baseline v1</strong>
+              <span class="muted">Senal provisional hasta entrenar con historico semanal.</span>
+            </article>
+            <article class="model-panel">
+              <span class="ops-label">Decision</span>
+              <strong>Review primero</strong>
+              <span class="muted">El sistema no ejecuta compras automaticamente.</span>
+            </article>
+            <article class="model-panel">
+              <span class="ops-label">Bloqueos comunes</span>
+              <strong>Precios incompletos</strong>
+              <span class="muted">BUFF o Steam sin precio usable.</span>
+            </article>
+          </div>
+        </section>
+
+        <section id="agents" class="band view split" aria-labelledby="agents-title" hidden>
           <div>
             <p class="eyebrow">MARL</p>
-            <h2 id="agents-title">Estado de agentes</h2>
-            <p class="muted">
-              El entorno minimo ya ejecuta acciones simultaneas y un smoke RLlib. El critico
-              centralizado MAPPO queda pendiente.
-            </p>
+            <h2 id="agents-title">Agentes</h2>
+            <p class="section-note">Roles activos en la decision.</p>
           </div>
-          <div class="agent-list" id="agent-list"></div>
+          <div class="agent-workbench">
+            <div class="agent-list" id="agent-list"></div>
+            <aside class="inspector-panel">
+              <div>
+                <span class="ops-label">Ciclo</span>
+                <strong>Scout -> Trader -> Portfolio</strong>
+              </div>
+              <div>
+                <span class="ops-label">Salida</span>
+                <strong>Comprar, observar o bloquear</strong>
+              </div>
+              <div>
+                <span class="ops-label">Limite actual</span>
+                <strong>Modelo no autoejecuta compras</strong>
+              </div>
+            </aside>
+          </div>
         </section>
 
-        <section id="portfolio" class="band split" aria-labelledby="portfolio-title">
+        <section id="portfolio" class="band view split" aria-labelledby="portfolio-title" hidden>
           <div>
             <p class="eyebrow">Portfolio</p>
-            <h2 id="portfolio-title">Riesgo configurable</h2>
-            <p class="muted">
-              Los limites viven en <code>csflipper_config.toml</code> y alimentan al futuro agente
-              Portfolio.
-            </p>
+            <h2 id="portfolio-title">Limites</h2>
+            <p class="section-note">Controles de riesgo antes de senal.</p>
           </div>
-          <dl class="risk-grid" id="risk-grid"></dl>
+          <div class="risk-workbench">
+            <dl class="risk-grid" id="risk-grid"></dl>
+            <aside class="inspector-panel">
+              <div>
+                <span class="ops-label">Bloquea si</span>
+                <strong>Faltan precios o rompe limites</strong>
+              </div>
+              <div>
+                <span class="ops-label">Prioridad</span>
+                <strong>Capital, liquidez, plataforma</strong>
+              </div>
+            </aside>
+          </div>
         </section>
 
-        <section id="backlog" class="band" aria-labelledby="backlog-title">
+        <section id="backlog" class="band view" aria-labelledby="backlog-title" hidden>
           <div class="section-toolbar">
             <div>
               <p class="eyebrow">Backlog</p>
-              <h2 id="backlog-title">Progreso de producto</h2>
+              <h2 id="backlog-title">Roadmap</h2>
             </div>
-            <span class="badge warning">025 en MVP local</span>
+            <span class="badge warning">MVP local</span>
           </div>
           <ol class="timeline" id="backlog-list"></ol>
         </section>
