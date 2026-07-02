@@ -23,6 +23,9 @@ METRIC_MARKET_HISTORY_POINTS_MIGRATION = Path(
 MARKET_PRICE_CURRENCY_DERIVATIVES_MIGRATION = Path(
     "supabase/migrations/0009_market_price_currency_derivatives.sql"
 )
+MARKET_OPPORTUNITY_SIGNALS_MIGRATION = Path(
+    "supabase/migrations/0011_market_opportunity_signals.sql"
+)
 
 
 def test_initial_migration_defines_required_tables() -> None:
@@ -206,3 +209,20 @@ def test_market_price_currency_derivatives_migration_adds_excel_price_columns() 
     assert "steam_price / latest_eur_cny.cny_per_eur" in sql
     assert "buff_price * latest_eur_cny.cny_per_eur" in sql
     assert "metric_name not in ('sell_price', 'buy_order_price')" in sql
+
+
+def test_market_opportunity_signals_migration_supports_live_scoring() -> None:
+    sql = MARKET_OPPORTUNITY_SIGNALS_MIGRATION.read_text(encoding="utf-8").lower()
+
+    assert "create table if not exists market_opportunity_signals" in sql
+    assert "item_id uuid not null references market_items(id)" in sql
+    assert "scored_at timestamptz not null default now()" in sql
+    assert "expected_profit_eur numeric" in sql
+    assert "probability_profitable numeric" in sql
+    assert "decision_threshold numeric" in sql
+    assert "missing_fields text[] not null default '{}'" in sql
+    assert "feature_snapshot jsonb not null default '{}'::jsonb" in sql
+    assert "model_output jsonb not null default '{}'::jsonb" in sql
+    assert "status in ('review', 'observe', 'blocked')" in sql
+    assert "idx_market_opportunity_signals_item_scored" in sql
+    assert "idx_market_opportunity_signals_status_scored" in sql

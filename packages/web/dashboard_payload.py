@@ -35,25 +35,55 @@ def build_dashboard_payload(
 
 def market_items_query() -> str:
     return """
+        with latest_signals as (
+            select distinct on (item_id)
+                item_id,
+                scored_at as signal_scored_at,
+                model_name as signal_model_name,
+                model_version as signal_model_version,
+                route_label as signal_route_label,
+                buy_platform as signal_buy_platform,
+                buy_price_type as signal_buy_price_type,
+                sell_platform as signal_sell_platform,
+                sell_price_type as signal_sell_price_type,
+                buy_price_eur as signal_buy_price_eur,
+                exit_value_eur as signal_exit_value_eur,
+                expected_profit_eur as signal_expected_profit_eur,
+                expected_return as signal_expected_return,
+                probability_profitable as signal_probability_profitable,
+                decision_threshold as signal_decision_threshold,
+                is_signal as signal_is_signal,
+                status as signal_status,
+                reason as signal_reason,
+                data_quality_status as signal_data_quality_status
+            from market_opportunity_signals
+            order by item_id, scored_at desc
+        )
         select
-            id,
-            name,
-            quality,
-            stattrak,
-            representation_name,
-            steam_url,
-            buff_url,
-            scraped_at,
-            steam_price,
-            steam_currency,
-            steam_price_eur,
-            steam_price_cny,
-            buff_price,
-            buff_currency,
-            buff_price_eur,
-            buff_price_cny
-        from market_items
-        order by scraped_at desc nulls last, updated_at desc nulls last, created_at desc
+            i.id,
+            i.name,
+            i.quality,
+            i.stattrak,
+            i.representation_name,
+            i.steam_url,
+            i.buff_url,
+            i.scraped_at,
+            i.steam_price,
+            i.steam_currency,
+            i.steam_price_eur,
+            i.steam_price_cny,
+            i.buff_price,
+            i.buff_currency,
+            i.buff_price_eur,
+            i.buff_price_cny,
+            latest_signals.*
+        from market_items i
+        left join latest_signals on latest_signals.item_id = i.id
+        order by
+            latest_signals.signal_scored_at desc nulls last,
+            i.scraped_at desc nulls last,
+            i.updated_at desc nulls last,
+            i.created_at desc
         limit $1
     """
 
@@ -71,10 +101,14 @@ def _pipeline(model_dir: Path) -> list[list[str]]:
 def _recommendation(row: Mapping[str, Any]) -> dict[str, Any]:
     steam_eur = _optional_decimal(row.get("steam_price_eur"))
     buff_eur = _optional_decimal(row.get("buff_price_eur"))
-    profit = _current_buff_to_steam_profit(steam_eur, buff_eur)
-    status = _status(steam_eur, buff_eur, profit)
-    route = _route(status)
-    model_text = "Experimental, validar"
+    signal_profit = _optional_decimal(row.get("signal_expected_profit_eur"))
+    profit = signal_profit if signal_profit is not None else _current_buff_to_steam_profit(
+        steam_eur,
+        buff_eur,
+    )
+    status = str(row.get("signal_status") or _status(steam_eur, buff_eur, profit))
+    route = _route(status, row)
+    model_text = _model_text(row, status)
     if status == "blocked":
         model_text = "Datos insuficientes para decision"
     return {
@@ -92,7 +126,7 @@ def _recommendation(row: Mapping[str, Any]) -> dict[str, Any]:
         "buffEur": _optional_float(buff_eur),
         "profitEur": _optional_float(profit),
         "profit": _profit_text(profit),
-        "scrapedAt": _optional_datetime_text(row.get("scraped_at")),
+        "scrapedAt": _optional_datetime_text(row.get("signal_scored_at") or row.get("scraped_at")),
         "model": model_text,
         "agents": _agent_text(status, profit),
         "steamUrl": str(row.get("steam_url") or "https://steamcommunity.com/market/"),
@@ -128,7 +162,17 @@ def _status(
     return "observe"
 
 
-def _route(status: str) -> dict[str, str]:
+def _route(status: str, row: Mapping[str, Any] | None = None) -> dict[str, str]:
+    if row and row.get("signal_route_label"):
+        buy_side = _side_label(row.get("signal_buy_platform"), row.get("signal_buy_price_type"))
+        sell_side = _side_label(row.get("signal_sell_platform"), row.get("signal_sell_price_type"))
+        reason = str(row.get("signal_reason") or "Ruta evaluada por el scorer")
+        return {
+            "route": str(row.get("signal_route_label")),
+            "detail": reason,
+            "buy_side": buy_side,
+            "sell_side": sell_side,
+        }
     if status == "blocked":
         return {
             "route": "Ruta incompleta",
@@ -142,6 +186,24 @@ def _route(status: str) -> dict[str, str]:
         "buy_side": "BUFF listing",
         "sell_side": "Steam listing",
     }
+
+
+def _side_label(platform: Any, price_type: Any) -> str:
+    platform_text = str(platform or "").strip() or "Mercado"
+    price_text = str(price_type or "").strip() or "precio"
+    return f"{platform_text} {price_text}"
+
+
+def _model_text(row: Mapping[str, Any], status: str) -> str:
+    model_name = str(row.get("signal_model_name") or "").strip()
+    model_version = str(row.get("signal_model_version") or "").strip()
+    probability = _optional_decimal(row.get("signal_probability_profitable"))
+    if model_name:
+        suffix = f" p={_money(probability)}" if probability is not None else ""
+        return f"{model_name} {model_version}{suffix}".strip()
+    if status == "blocked":
+        return "Datos insuficientes para decision"
+    return "Experimental, validar"
 
 
 def _agent_text(status: str, profit_eur: Decimal | None) -> str:
