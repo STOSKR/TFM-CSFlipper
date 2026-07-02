@@ -80,17 +80,14 @@ async def run(args: argparse.Namespace) -> int:
 async def _iter_steamdt_candidates(args: argparse.Namespace) -> AsyncIterator[SteamDTCandidate]:
     runtime_config = load_runtime_config()
     profile_items = _selected_profiles(args, runtime_config.steamdt)
-    emitted = 0
     for strategy_id, profile in profile_items:
-        if args.limit is not None and emitted >= args.limit:
-            return
         balance_type = args.balance_type or profile.balance_type
         buy_mode = args.buy_mode if args.buy_mode is not None else profile.buy_mode
         sell_mode = args.sell_mode or profile.sell_mode
-        remaining = None if args.limit is None else max(0, args.limit - emitted)
+        emitted_for_profile = 0
         filters = SteamDTHangingFilters(
             headless=not args.show_browser,
-            max_candidates=remaining or args.limit or runtime_config.discovery.candidates_limit,
+            max_candidates=args.limit or runtime_config.discovery.candidates_limit,
             min_price=(
                 Decimal(str(args.min_price))
                 if args.min_price is not None
@@ -144,9 +141,9 @@ async def _iter_steamdt_candidates(args: argparse.Namespace) -> AsyncIterator[St
             buy_mode=buy_mode,
             sell_mode=sell_mode,
         ):
-            if args.limit is not None and emitted >= args.limit:
-                return
-            emitted += 1
+            if args.limit is not None and emitted_for_profile >= args.limit:
+                break
+            emitted_for_profile += 1
             print(f"render_stream_candidate={candidate.market_hash_name}", flush=True)
             yield candidate
 
@@ -211,6 +208,14 @@ def _print_progress(message: str) -> None:
 
 def main() -> None:
     runtime_config = load_runtime_config()
+    parser = build_parser(runtime_config)
+    args = parser.parse_args()
+    if args.fast:
+        args.profile = "platform_arbitrage_fast"
+    raise SystemExit(asyncio.run(run(args)))
+
+
+def build_parser(runtime_config: Any) -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Render streaming scrape pipeline.")
     parser.add_argument(
         "limit",
@@ -223,16 +228,21 @@ def main() -> None:
         choices=tuple(runtime_config.steamdt.profiles),
         default=runtime_config.steamdt.default_profile,
     )
-    parser.add_argument("--all-profiles", action=argparse.BooleanOptionalAction, default=False)
-    parser.add_argument("--batch-size", type=int, default=1)
+    parser.add_argument("--fast", action="store_true", help="Use platform_arbitrage_fast profile")
+    parser.add_argument(
+        "--all-profiles",
+        action=argparse.BooleanOptionalAction,
+        default=runtime_config.steamdt.run_all_profiles,
+    )
+    parser.add_argument("--batch-size", type=int, default=runtime_config.workers.batch_size)
     parser.add_argument("--queue-size", type=int, default=2)
     parser.add_argument("--steamdt-timeout", type=int, default=30)
     parser.add_argument("--steamdt-retries", type=int, default=1)
     parser.add_argument("--steamdt-profile-timeout", type=int, default=120)
     parser.add_argument("--currency", default=runtime_config.discovery.currency)
-    parser.add_argument("--min-price", type=float)
-    parser.add_argument("--max-price", type=float)
-    parser.add_argument("--min-volume", type=int)
+    parser.add_argument("--min-price", "--min", dest="min_price", type=float)
+    parser.add_argument("--max-price", "--max", dest="max_price", type=float)
+    parser.add_argument("--min-volume", "--vol", dest="min_volume", type=int)
     parser.add_argument("--balance-type")
     parser.add_argument("--sell-mode")
     parser.add_argument("--buy-mode")
@@ -307,8 +317,7 @@ def main() -> None:
     parser.add_argument("--refresh-limit", type=int)
     parser.add_argument("--persist", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--dry-run", action="store_true")
-    args = parser.parse_args()
-    raise SystemExit(asyncio.run(run(args)))
+    return parser
 
 
 if __name__ == "__main__":

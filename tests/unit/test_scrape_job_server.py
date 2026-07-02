@@ -131,6 +131,41 @@ def test_build_scrape_job_command_can_run_streaming_flow() -> None:
     ]
 
 
+def test_build_streaming_scrape_job_command_accepts_platform_and_refresh_overrides() -> None:
+    command = build_scrape_job_command(
+        {
+            "SCRAPE_STREAMING": "true",
+            "SCRAPE_CANDIDATE_LIMIT": "2",
+            "SCRAPE_STEAM": "true",
+            "SCRAPE_BUFF": "false",
+            "SCRAPE_STEAM_API": "true",
+            "SCRAPE_REFRESH": "false",
+            "SCRAPE_STEAM_CONCURRENCY": "4",
+            "SCRAPE_BUFF_CONCURRENCY": "2",
+        }
+    )
+
+    assert command == [
+        sys.executable,
+        "-u",
+        "-m",
+        "apps.cli.render_stream_scrape",
+        "2",
+        "--steam",
+        "--no-buff",
+        "--steam-api",
+        "--stale-minutes",
+        "480",
+        "--steam-concurrency",
+        "4",
+        "--buff-concurrency",
+        "2",
+        "--no-refresh",
+        "--persist",
+        "--no-concurrent-platforms",
+    ]
+
+
 def test_scrape_job_runner_rejects_overlapping_runs() -> None:
     started = threading.Event()
     release = threading.Event()

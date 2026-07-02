@@ -74,6 +74,20 @@ def main() -> int:
         action="store_true",
         help="Wait for manual BUFF login in platform workers.",
     )
+    parser.add_argument(
+        "--steam-api",
+        action="store_true",
+        help="Use Steam priceoverview HTTP API instead of Steam browser worker.",
+    )
+    parser.add_argument(
+        "--concurrent-platforms",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="Run Steam and BUFF workers concurrently.",
+    )
+    parser.add_argument("--batch-size", type=int, help="Number of candidates per worker batch.")
+    parser.add_argument("--steam-concurrency", type=int, help="Concurrent Steam requests.")
+    parser.add_argument("--buff-concurrency", type=int, help="Concurrent BUFF browser pages.")
     args = parser.parse_args()
 
     candidates_path = args.output or default_candidates_path()
@@ -145,6 +159,20 @@ def build_workers_command(args: argparse.Namespace, candidates_path: Path) -> li
         command.append("--steam-login")
     if args.buff_login:
         command.append("--buff-login")
+    if args.no_buff:
+        command.append("--no-buff")
+    if args.steam_api:
+        command.append("--steam-api")
+    if args.concurrent_platforms is not None:
+        command.append(
+            "--concurrent-platforms" if args.concurrent_platforms else "--no-concurrent-platforms"
+        )
+    if args.batch_size is not None:
+        command.extend(["--batch-size", str(args.batch_size)])
+    if args.steam_concurrency is not None:
+        command.extend(["--steam-concurrency", str(args.steam_concurrency)])
+    if args.buff_concurrency is not None:
+        command.extend(["--buff-concurrency", str(args.buff_concurrency)])
     return command
 
 

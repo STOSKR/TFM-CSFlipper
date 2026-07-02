@@ -161,6 +161,10 @@ def _build_streaming_scrape_job_command(values: Mapping[str, str]) -> list[str]:
         command.append(
             "--all-profiles" if _bool(all_profiles, default=False) else "--no-all-profiles"
         )
+    _append_bool_flag(command, values, "SCRAPE_STEAM", "--steam", "--no-steam")
+    _append_bool_flag(command, values, "SCRAPE_BUFF", "--buff", "--no-buff")
+    if _bool(values.get("SCRAPE_STEAM_API"), default=False):
+        command.append("--steam-api")
     steamdt_timeout = _optional_int(values.get("SCRAPE_STEAMDT_TIMEOUT"))
     if steamdt_timeout is not None:
         command.extend(["--steamdt-timeout", str(steamdt_timeout)])
@@ -180,6 +184,13 @@ def _build_streaming_scrape_job_command(values: Mapping[str, str]) -> list[str]:
     queue_size = _optional_int(values.get("SCRAPE_QUEUE_SIZE"))
     if queue_size is not None:
         command.extend(["--queue-size", str(queue_size)])
+    steam_concurrency = _optional_int(values.get("SCRAPE_STEAM_CONCURRENCY"))
+    if steam_concurrency is not None:
+        command.extend(["--steam-concurrency", str(steam_concurrency)])
+    buff_concurrency = _optional_int(values.get("SCRAPE_BUFF_CONCURRENCY"))
+    if buff_concurrency is not None:
+        command.extend(["--buff-concurrency", str(buff_concurrency)])
+    _append_bool_flag(command, values, "SCRAPE_REFRESH", "--refresh", "--no-refresh")
     if _bool(values.get("SCRAPE_PERSIST"), default=True):
         command.append("--persist")
     else:
@@ -196,6 +207,19 @@ def _platform_concurrency_flag(values: Mapping[str, str]) -> str:
         if _bool(values.get("SCRAPE_CONCURRENT_PLATFORMS"), default=False)
         else "--no-concurrent-platforms"
     )
+
+
+def _append_bool_flag(
+    command: list[str],
+    values: Mapping[str, str],
+    key: str,
+    enabled_flag: str,
+    disabled_flag: str,
+) -> None:
+    value = values.get(key)
+    if value is None:
+        return
+    command.append(enabled_flag if _bool(value, default=False) else disabled_flag)
 
 
 def _run_command(command: Sequence[str]) -> int:

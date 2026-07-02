@@ -25,6 +25,11 @@ def test_build_flow_commands_use_explicit_candidates_file() -> None:
         persist=True,
         steam_login=False,
         buff_login=False,
+        steam_api=False,
+        concurrent_platforms=None,
+        batch_size=None,
+        steam_concurrency=None,
+        buff_concurrency=None,
     )
     candidates_path = Path("data/flow-runs/test_candidates.json")
 
@@ -63,6 +68,14 @@ def test_build_flow_steamdt_command_passes_timeout_options() -> None:
         no_uu=False,
         c5=False,
         enrich_links=False,
+        persist=False,
+        steam_login=False,
+        buff_login=False,
+        steam_api=False,
+        concurrent_platforms=None,
+        batch_size=None,
+        steam_concurrency=None,
+        buff_concurrency=None,
     )
     candidates_path = Path("data/flow-runs/test_candidates.json")
 
@@ -96,6 +109,14 @@ def test_build_flow_steamdt_command_can_force_all_profiles() -> None:
         no_uu=False,
         c5=False,
         enrich_links=False,
+        persist=False,
+        steam_login=False,
+        buff_login=False,
+        steam_api=False,
+        concurrent_platforms=None,
+        batch_size=None,
+        steam_concurrency=None,
+        buff_concurrency=None,
     )
     candidates_path = Path("data/flow-runs/test_candidates.json")
 
@@ -126,6 +147,14 @@ def test_build_flow_steamdt_command_passes_profile_timeout() -> None:
         no_uu=False,
         c5=False,
         enrich_links=False,
+        persist=False,
+        steam_login=False,
+        buff_login=False,
+        steam_api=False,
+        concurrent_platforms=None,
+        batch_size=None,
+        steam_concurrency=None,
+        buff_concurrency=None,
     )
     candidates_path = Path("data/flow-runs/test_candidates.json")
 
@@ -137,4 +166,60 @@ def test_build_flow_steamdt_command_passes_profile_timeout() -> None:
         "120",
         "--output",
         str(candidates_path),
+    ]
+
+
+def test_build_flow_workers_command_passes_local_scaling_options() -> None:
+    args = argparse.Namespace(
+        show_browser=False,
+        persist=True,
+        steam_login=False,
+        buff_login=False,
+        no_buff=False,
+        steam_api=True,
+        concurrent_platforms=True,
+        batch_size=10,
+        steam_concurrency=8,
+        buff_concurrency=2,
+    )
+    candidates_path = Path("data/flow-runs/test_candidates.json")
+
+    assert build_workers_command(args, candidates_path) == [
+        sys.executable,
+        "market_workers.py",
+        "--candidates",
+        str(candidates_path),
+        "--persist",
+        "--steam-api",
+        "--concurrent-platforms",
+        "--batch-size",
+        "10",
+        "--steam-concurrency",
+        "8",
+        "--buff-concurrency",
+        "2",
+    ]
+
+
+def test_build_flow_workers_command_can_disable_buff_worker() -> None:
+    args = argparse.Namespace(
+        show_browser=False,
+        persist=False,
+        steam_login=False,
+        buff_login=False,
+        no_buff=True,
+        steam_api=False,
+        concurrent_platforms=None,
+        batch_size=None,
+        steam_concurrency=None,
+        buff_concurrency=None,
+    )
+    candidates_path = Path("data/flow-runs/test_candidates.json")
+
+    assert build_workers_command(args, candidates_path) == [
+        sys.executable,
+        "market_workers.py",
+        "--candidates",
+        str(candidates_path),
+        "--no-buff",
     ]
