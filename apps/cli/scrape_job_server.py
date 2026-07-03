@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hmac
 import json
+import math
 import os
 import signal
 import subprocess
@@ -18,6 +19,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, urlparse
+
+from packages.runtime_config import load_runtime_config
 
 CommandRunner = Callable[[Sequence[str]], int]
 
@@ -48,6 +51,7 @@ class ScrapeJobRunner:
         self._progress_text = "Pendiente"
         self._last_message: str | None = None
         self._log_tail: list[str] = []
+        self._expected_batches: int | None = None
 
     def start(self, command: Sequence[str]) -> bool:
         with self._lock:
@@ -60,6 +64,7 @@ class ScrapeJobRunner:
             self._progress_text = "Arrancando"
             self._last_message = None
             self._log_tail = []
+            self._expected_batches = _expected_stream_batches(command)
             self._thread = threading.Thread(
                 target=self._run,
                 args=(tuple(command),),
@@ -102,7 +107,7 @@ class ScrapeJobRunner:
         text = _public_job_line(line)
         if text is None:
             return
-        progress = _progress_from_line(text)
+        progress = _progress_from_line(text, expected_batches=self._expected_batches)
         with self._lock:
             self._last_message = text
             self._log_tail.append(text)
@@ -490,13 +495,21 @@ def _public_job_line(line: str) -> str | None:
     return text
 
 
-def _progress_from_line(line: str) -> tuple[int, str] | None:
+def _progress_from_line(
+    line: str,
+    *,
+    expected_batches: int | None = None,
+) -> tuple[int, str] | None:
     if line.startswith("render_stream_strategy="):
-        return 12, "Buscando candidatos"
+        return 8, "Buscando candidatos"
     if line.startswith("render_stream_candidate="):
-        return 24, "Candidatos detectados"
+        return 14, "Candidatos detectados"
+    if line.startswith("stream_batch="):
+        return _batch_line_progress(line, expected_batches=expected_batches)
     if line.startswith("stream_scrape_batch"):
-        return 42, "Consultando Steam y BUFF"
+        return 20, "Consultando Steam y BUFF"
+    if line.startswith("stream_batch_done="):
+        return _batch_done_progress(line, expected_batches=expected_batches)
     if line.startswith("render_stream_done"):
         return 65, "Scraping base completado"
     if line == "render_stream_step=refresh":
@@ -510,6 +523,36 @@ def _progress_from_line(line: str) -> tuple[int, str] | None:
     if line == "render_stream_step=score":
         return 94, "Calculando senales"
     return None
+
+
+def _batch_line_progress(
+    line: str,
+    *,
+    expected_batches: int | None,
+) -> tuple[int, str] | None:
+    batch = _line_int_value(line, "stream_batch")
+    if batch is None:
+        return None
+    percent = _scrape_batch_percent(batch, expected_batches)
+    return percent, f"Scraping lote {batch}/{expected_batches or '?'}"
+
+
+def _batch_done_progress(
+    line: str,
+    *,
+    expected_batches: int | None,
+) -> tuple[int, str] | None:
+    batch = _line_int_value(line, "stream_batch_done")
+    if batch is None:
+        return None
+    percent = _scrape_batch_percent(batch, expected_batches)
+    return percent, f"Lote {batch}/{expected_batches or '?'} completado"
+
+
+def _scrape_batch_percent(batch: int, expected_batches: int | None) -> int:
+    if expected_batches is None or expected_batches <= 0:
+        return min(64, 20 + batch * 2)
+    return min(64, 20 + round((min(batch, expected_batches) / expected_batches) * 44))
 
 
 def _refresh_line_progress(line: str) -> tuple[int, str] | None:
@@ -528,12 +571,56 @@ def _refresh_line_progress(line: str) -> tuple[int, str] | None:
     return percent, f"Historico {current}/{total}"
 
 
+def _line_int_value(line: str, key: str) -> int | None:
+    prefix = f"{key}="
+    for part in line.split():
+        if part.startswith(prefix):
+            try:
+                return int(part[len(prefix):])
+            except ValueError:
+                return None
+    return None
+
+
 def _history_summary_text(line: str) -> str:
     for part in line.split():
         if part.startswith("history_points_persisted="):
             value = part.partition("=")[2]
             return f"Historico guardado: {value} puntos"
     return "Historico guardado"
+
+
+def _expected_stream_batches(command: Sequence[str]) -> int | None:
+    if "apps.cli.render_stream_scrape" not in command:
+        return None
+    module_index = command.index("apps.cli.render_stream_scrape")
+    limit = _positional_limit_after_module(command, module_index) or 50
+    batch_size = _flag_int(command, "--batch-size") or load_runtime_config().workers.batch_size
+    profiles = len(load_runtime_config().steamdt.enabled_profiles) if "--all-profiles" in command else 1
+    return max(1, math.ceil((limit * profiles) / batch_size))
+
+
+def _positional_limit_after_module(command: Sequence[str], module_index: int) -> int | None:
+    for value in command[module_index + 1:]:
+        if value.startswith("-"):
+            return None
+        try:
+            return int(value)
+        except ValueError:
+            return None
+    return None
+
+
+def _flag_int(command: Sequence[str], flag: str) -> int | None:
+    if flag not in command:
+        return None
+    index = command.index(flag)
+    if index + 1 >= len(command):
+        return None
+    try:
+        return int(command[index + 1])
+    except ValueError:
+        return None
 
 
 def _bearer_token(value: str | None) -> str | None:

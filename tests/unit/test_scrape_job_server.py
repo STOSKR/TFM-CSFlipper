@@ -6,6 +6,7 @@ from apps.cli.scrape_job_server import (
     ScrapeJobRunner,
     _bearer_token,
     _bool,
+    _expected_stream_batches,
     _progress_from_line,
     _public_job_line,
     _query_token,
@@ -194,12 +195,20 @@ def test_scrape_job_runner_rejects_overlapping_runs() -> None:
 
 def test_scrape_progress_parser_maps_streaming_steps() -> None:
     assert _progress_from_line("render_stream_strategy=steam_sell_slow") == (
-        12,
+        8,
         "Buscando candidatos",
     )
     assert _progress_from_line("stream_scrape_batch candidates=5") == (
-        42,
+        20,
         "Consultando Steam y BUFF",
+    )
+    assert _progress_from_line("stream_batch=7 candidates=5", expected_batches=20) == (
+        35,
+        "Scraping lote 7/20",
+    )
+    assert _progress_from_line("stream_batch_done=20 snapshots=5", expected_batches=20) == (
+        64,
+        "Lote 20/20 completado",
     )
     assert _progress_from_line("[2/4] AK-47 steam=ok") == (82, "Historico 2/4")
     assert _progress_from_line(
@@ -210,6 +219,21 @@ def test_scrape_progress_parser_maps_streaming_steps() -> None:
 def test_public_job_line_hides_raw_python_commands() -> None:
     assert _public_job_line(f"{sys.executable} -u -m apps.cli.refresh_market_history") is None
     assert _public_job_line(" render_stream_step=refresh ") == "render_stream_step=refresh"
+
+
+def test_expected_stream_batches_uses_profiles_limit_and_batch_size() -> None:
+    command = [
+        sys.executable,
+        "-u",
+        "-m",
+        "apps.cli.render_stream_scrape",
+        "50",
+        "--all-profiles",
+        "--batch-size",
+        "5",
+    ]
+
+    assert _expected_stream_batches(command) == 20
 
 
 def test_tokens_can_come_from_header_or_query() -> None:
