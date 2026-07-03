@@ -6,6 +6,8 @@ import argparse
 import asyncio
 import json
 import os
+import sys
+from dataclasses import dataclass
 from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -33,12 +35,21 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         if parsed.path == "/api/scrape/status":
             self._write_scrape_status()
             return
+        if parsed.path == "/api/commands":
+            self._write_commands()
+            return
+        if parsed.path == "/api/dev/revision":
+            self._write_dev_revision()
+            return
         super().do_GET()
 
     def do_POST(self) -> None:
         parsed = urlparse(self.path)
         if parsed.path == "/api/scrape/start":
             self._start_scrape_job()
+            return
+        if parsed.path == "/api/commands/run":
+            self._run_command()
             return
         self._write_json(HTTPStatus.NOT_FOUND, {"error": "not_found"})
 
@@ -61,6 +72,18 @@ class DashboardHandler(SimpleHTTPRequestHandler):
     def _write_scrape_status(self) -> None:
         self._write_json(HTTPStatus.OK, _scrape_status_payload(self.server.scrape_runner))
 
+    def _write_commands(self) -> None:
+        self._write_json(
+            HTTPStatus.OK,
+            {
+                "commands": [_command_payload(command) for command in _local_commands()],
+                "job": _snapshot_payload(self.server.scrape_runner.snapshot()),
+            },
+        )
+
+    def _write_dev_revision(self) -> None:
+        self._write_json(HTTPStatus.OK, {"revision": _web_revision(Path(self.directory))})
+
     def _start_scrape_job(self) -> None:
         command = _web_scrape_command()
         started = self.server.scrape_runner.start(command)
@@ -68,6 +91,34 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         payload = _scrape_status_payload(self.server.scrape_runner)
         payload["status"] = "started" if started else "already_running"
         self._write_json(status, payload)
+
+    def _run_command(self) -> None:
+        payload = self._read_request_json()
+        command_id = str(payload.get("id") or "")
+        command = _local_command(command_id)
+        if command is None:
+            self._write_json(HTTPStatus.NOT_FOUND, {"error": "unknown_command"})
+            return
+        started = self.server.scrape_runner.start(command.command)
+        status = HTTPStatus.ACCEPTED if started else HTTPStatus.CONFLICT
+        self._write_json(
+            status,
+            {
+                "status": "started" if started else "already_running",
+                "selected_command": _command_payload(command),
+                "job": _snapshot_payload(self.server.scrape_runner.snapshot()),
+            },
+        )
+
+    def _read_request_json(self) -> dict[str, Any]:
+        length = int(self.headers.get("Content-Length") or "0")
+        if length <= 0:
+            return {}
+        try:
+            payload = json.loads(self.rfile.read(length).decode("utf-8"))
+        except json.JSONDecodeError:
+            return {}
+        return payload if isinstance(payload, dict) else {}
 
     def _write_json(self, status: HTTPStatus, payload: dict[str, Any]) -> None:
         body = json.dumps(payload, ensure_ascii=False, default=str).encode("utf-8")
@@ -88,6 +139,15 @@ class DashboardHTTPServer(ThreadingHTTPServer):
     ) -> None:
         super().__init__(server_address, handler_class)
         self.scrape_runner = scrape_runner
+
+
+@dataclass(frozen=True, slots=True)
+class LocalCommand:
+    id: str
+    label: str
+    description: str
+    command: list[str]
+    destructive: bool = False
 
 
 async def _dashboard_payload(*, limit: int) -> dict[str, Any]:
@@ -116,8 +176,48 @@ def _limit_from_query(query: str) -> int:
 def _scrape_status_payload(runner: ScrapeJobRunner) -> dict[str, Any]:
     return {
         "job": _snapshot_payload(runner.snapshot()),
-        "command": _web_scrape_command(),
     }
+
+
+def _local_commands() -> tuple[LocalCommand, ...]:
+    return (
+        LocalCommand(
+            id="refresh_history",
+            label="Refrescar historico",
+            description="Actualiza articulos guardados y completa series de precio para analisis.",
+            command=[
+                sys.executable,
+                "-u",
+                "-m",
+                "apps.cli.refresh_market_history",
+                "--stale-minutes",
+                "60",
+                "--persist",
+            ],
+            destructive=True,
+        ),
+    )
+
+
+def _local_command(command_id: str) -> LocalCommand | None:
+    return next((command for command in _local_commands() if command.id == command_id), None)
+
+
+def _command_payload(command: LocalCommand) -> dict[str, Any]:
+    return {
+        "id": command.id,
+        "label": command.label,
+        "description": command.description,
+        "destructive": command.destructive,
+    }
+
+
+def _web_revision(web_dir: Path) -> int:
+    return max(
+        (web_dir / name).stat().st_mtime_ns
+        for name in ("index.html", "app.js", "styles.css")
+        if (web_dir / name).exists()
+    )
 
 
 def _web_scrape_command() -> list[str]:
@@ -132,6 +232,9 @@ def _web_scrape_env() -> dict[str, str]:
     env.setdefault("SCRAPE_STEAM", "true")
     env.setdefault("SCRAPE_BUFF", "true")
     env.setdefault("SCRAPE_REFRESH", "true")
+    env.setdefault("SCRAPE_STALE_MINUTES", "0")
+    env.setdefault("SCRAPE_SCORE", "true")
+    env.setdefault("SCRAPE_CONCURRENT_PLATFORMS", "true")
     env.setdefault("SCRAPE_PERSIST", "true")
     return env
 

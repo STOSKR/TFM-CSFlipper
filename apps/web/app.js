@@ -79,6 +79,9 @@ const fallbackDashboard = {
 let dashboard = fallbackDashboard;
 let visibleRecommendations = [];
 let selectedDealIndex = 0;
+let localCommands = [];
+let scrapeWasRunning = false;
+let devRevision = null;
 
 const statusLabels = {
   review: "Revisar",
@@ -89,7 +92,7 @@ const statusLabels = {
 async function loadDashboard() {
   const dataFile = new URLSearchParams(window.location.search).get("data");
   if (!dataFile) {
-    dashboard = await readDashboardJson("./api/dashboard") || fallbackDashboard;
+    dashboard = await readDashboardJson(`./api/dashboard?ts=${Date.now()}`) || fallbackDashboard;
     return;
   }
   if (!/^[a-z0-9_.-]+\.json$/i.test(dataFile)) {
@@ -313,7 +316,6 @@ function renderModel() {
 
 function renderScrapeStatus(payload) {
   const job = payload?.job || {};
-  const command = Array.isArray(payload?.command) ? payload.command.join(" ") : "No disponible";
   const running = Boolean(job.running);
   const startedAt = formatDate(job.last_started_at);
   const finishedAt = formatDate(job.last_finished_at);
@@ -328,8 +330,12 @@ function renderScrapeStatus(payload) {
   document.querySelector("#scrape-finished-at").textContent = job.last_finished_at
     ? `Fin: ${finishedAt}`
     : "Esperando finalizacion";
-  document.querySelector("#scrape-command").textContent = command;
   document.querySelector("#scrape-start-button").disabled = running;
+  updateCommandButtons(running);
+  if (scrapeWasRunning && !running && returnCode === 0) {
+    refreshDashboardView();
+  }
+  scrapeWasRunning = running;
 }
 
 async function loadScrapeStatus() {
@@ -340,6 +346,48 @@ async function loadScrapeStatus() {
     return;
   }
   renderScrapeStatus(response.payload);
+}
+
+async function loadCommands() {
+  const response = await requestJson("./api/commands");
+  if (!response.ok) {
+    document.querySelector("#command-list").innerHTML =
+      `<div class="empty-list"><strong>No disponible</strong><span>Arranca con python -m apps.cli.web_dashboard_server.</span></div>`;
+    return;
+  }
+  localCommands = response.payload?.commands || [];
+  renderCommands(localCommands);
+  updateCommandButtons(Boolean(response.payload?.job?.running));
+}
+
+function renderCommands(commands) {
+  document.querySelector("#command-list").innerHTML = commands.length
+    ? commands
+      .map((command) => `
+        <article class="command-row">
+          <div>
+            <strong>${escapeHtml(command.label)}</strong>
+            <span>${escapeHtml(command.description)}</span>
+          </div>
+          <button
+            class="secondary-action"
+            type="button"
+            data-command-id="${escapeAttributeText(command.id)}"
+          >
+            Ejecutar
+          </button>
+        </article>
+      `)
+      .join("")
+    : `<div class="empty-list"><strong>Sin comandos</strong><span>No hay comandos configurados.</span></div>`;
+}
+
+function updateCommandButtons(running) {
+  document
+    .querySelectorAll("[data-command-id]")
+    .forEach((button) => {
+      button.disabled = running;
+    });
 }
 
 async function startScrape() {
@@ -359,11 +407,58 @@ async function startScrape() {
     response.status === 409 ? "Ya hay un scraper ejecutandose." : "No se pudo lanzar el scraper.";
 }
 
+async function runLocalCommand(commandId) {
+  const status = document.querySelector("#scrape-action-status");
+  const command = localCommands.find((item) => item.id === commandId);
+  status.textContent = command ? `Lanzando ${command.label}...` : "Lanzando comando...";
+  updateCommandButtons(true);
+  const response = await requestJson("./api/commands/run", {
+    method: "POST",
+    body: { id: commandId },
+  });
+  if (response.payload?.job) {
+    renderScrapeStatus(response.payload);
+  }
+  if (response.ok) {
+    status.textContent = command ? `${command.label} lanzado.` : "Comando lanzado.";
+    return;
+  }
+  status.textContent =
+    response.status === 409 ? "Ya hay un comando ejecutandose." : "No se pudo lanzar el comando.";
+  updateCommandButtons(false);
+}
+
+async function refreshDashboardView() {
+  await loadDashboard();
+  selectedDealIndex = 0;
+  renderAll();
+  document.querySelector("#scrape-action-status").textContent =
+    "Datos actualizados desde la base de datos.";
+}
+
+async function watchDevRevision() {
+  const response = await requestJson(`./api/dev/revision?ts=${Date.now()}`);
+  if (!response.ok) {
+    return;
+  }
+  const revision = response.payload?.revision;
+  if (devRevision === null) {
+    devRevision = revision;
+    return;
+  }
+  if (revision !== devRevision) {
+    window.location.reload();
+  }
+}
+
 function requestJson(path, options = {}) {
   return new Promise((resolve) => {
     const request = new XMLHttpRequest();
     request.open(options.method || "GET", path, true);
     request.setRequestHeader("Cache-Control", "no-store");
+    if (options.body) {
+      request.setRequestHeader("Content-Type", "application/json; charset=utf-8");
+    }
     request.onload = () => {
       let payload = null;
       try {
@@ -378,7 +473,7 @@ function requestJson(path, options = {}) {
       });
     };
     request.onerror = () => resolve({ ok: false, status: 0, payload: null });
-    request.send();
+    request.send(options.body ? JSON.stringify(options.body) : undefined);
   });
 }
 
@@ -400,6 +495,10 @@ function escapeAttribute(value) {
     return "#";
   }
   return escapeHtml(text);
+}
+
+function escapeAttributeText(value) {
+  return escapeHtml(String(value ?? ""));
 }
 
 function renderAll() {
@@ -433,11 +532,21 @@ document.querySelector("#recommendation-rows").addEventListener("click", (event)
   renderRecommendations();
 });
 document.querySelector("#scrape-start-button").addEventListener("click", startScrape);
+document.querySelector("#command-list").addEventListener("click", (event) => {
+  const button = event.target.closest("[data-command-id]");
+  if (!button) {
+    return;
+  }
+  runLocalCommand(button.dataset.commandId);
+});
 
 setupNavigation();
 loadDashboard().then(renderAll);
 loadScrapeStatus();
+loadCommands();
 setInterval(loadScrapeStatus, 15000);
+setInterval(watchDevRevision, 1000);
+watchDevRevision();
 
 function setupNavigation() {
   const links = Array.from(document.querySelectorAll(".nav-list a"));

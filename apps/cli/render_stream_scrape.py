@@ -73,7 +73,11 @@ async def run(args: argparse.Namespace) -> int:
     if summary.candidates_enqueued == 0:
         return 124
     if args.refresh:
-        return _run_refresh(args)
+        refresh_code = _run_refresh(args)
+        if refresh_code != 0:
+            return refresh_code
+    if args.score:
+        return _run_score(args)
     return 0
 
 
@@ -170,6 +174,20 @@ def _run_refresh(args: argparse.Namespace) -> int:
     else:
         command.append("--no-concurrent-platforms")
     print("render_stream_step=refresh", flush=True)
+    print(" ".join(command), flush=True)
+    return subprocess.run(command, check=False).returncode
+
+
+def _run_score(args: argparse.Namespace) -> int:
+    command = [
+        sys.executable,
+        "-u",
+        "-m",
+        "apps.cli.score_live_opportunities",
+    ]
+    if not args.persist:
+        command.append("--dry-run")
+    print("render_stream_step=score", flush=True)
     print(" ".join(command), flush=True)
     return subprocess.run(command, check=False).returncode
 
@@ -315,6 +333,12 @@ def build_parser(runtime_config: Any) -> argparse.ArgumentParser:
     parser.add_argument("--refresh", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--stale-minutes", type=int, default=480)
     parser.add_argument("--refresh-limit", type=int)
+    parser.add_argument(
+        "--score",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="Run live opportunity scoring after scraping and optional refresh.",
+    )
     parser.add_argument("--persist", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--dry-run", action="store_true")
     return parser

@@ -191,6 +191,7 @@ def _build_streaming_scrape_job_command(values: Mapping[str, str]) -> list[str]:
     if buff_concurrency is not None:
         command.extend(["--buff-concurrency", str(buff_concurrency)])
     _append_bool_flag(command, values, "SCRAPE_REFRESH", "--refresh", "--no-refresh")
+    _append_bool_flag(command, values, "SCRAPE_SCORE", "--score", "--no-score")
     if _bool(values.get("SCRAPE_PERSIST"), default=True):
         command.append("--persist")
     else:

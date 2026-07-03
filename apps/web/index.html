@@ -111,7 +111,7 @@
               <p class="eyebrow">Control local</p>
               <h2 id="scraper-title">Scraper manual</h2>
             </div>
-            <button class="primary-action" id="scrape-start-button" type="button">Lanzar scraper</button>
+            <button class="primary-action" id="scrape-start-button" type="button">Ejecutar scraping completo</button>
           </div>
           <div class="ops-grid">
             <article class="ops-status">
@@ -125,11 +125,16 @@
               <span id="scrape-finished-at">Esperando primera ejecucion</span>
             </article>
           </div>
-          <div class="command-panel">
-            <span class="ops-label">Comando configurado</span>
-            <code id="scrape-command">Cargando</code>
-          </div>
           <p class="inline-status" id="scrape-action-status" role="status"></p>
+          <div class="command-library" aria-label="Comandos locales disponibles">
+            <div class="section-toolbar">
+              <div>
+                <p class="eyebrow">Mantenimiento</p>
+                <h3>Datos historicos</h3>
+              </div>
+            </div>
+            <div class="command-list" id="command-list"></div>
+          </div>
         </section>
 
         <section id="model" class="band view model-view" aria-labelledby="model-title" hidden>

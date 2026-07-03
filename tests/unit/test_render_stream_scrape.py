@@ -19,6 +19,7 @@ def test_render_stream_scrape_defaults_match_local_fast_flow() -> None:
     assert args.batch_size == 5
     assert args.persist is True
     assert args.refresh is True
+    assert args.score is False
 
 
 def test_render_stream_scrape_accepts_scrape_flow_style_filter_aliases() -> None:

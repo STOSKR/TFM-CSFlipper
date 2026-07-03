@@ -78,9 +78,22 @@ def market_items_query() -> str:
             i.buff_price_cny,
             latest_signals.*
         from market_items i
-        left join latest_signals on latest_signals.item_id = i.id
+        left join latest_signals
+          on latest_signals.item_id = i.id
+         and latest_signals.signal_scored_at >= coalesce(
+             i.last_checked_at,
+             i.scraped_at,
+             i.updated_at,
+             i.created_at
+         )
         order by
-            latest_signals.signal_scored_at desc nulls last,
+            greatest(
+                coalesce(latest_signals.signal_scored_at, '-infinity'::timestamptz),
+                coalesce(i.last_checked_at, '-infinity'::timestamptz),
+                coalesce(i.scraped_at, '-infinity'::timestamptz),
+                coalesce(i.updated_at, '-infinity'::timestamptz),
+                coalesce(i.created_at, '-infinity'::timestamptz)
+            ) desc,
             i.scraped_at desc nulls last,
             i.updated_at desc nulls last,
             i.created_at desc

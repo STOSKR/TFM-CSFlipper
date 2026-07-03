@@ -24,6 +24,11 @@
   --radius: 8px;
   --ring: 0 0 0 3px oklch(72% 0.1 162 / 44%);
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --text-caption: 0.8125rem;
+  --text-small: 0.9375rem;
+  --text-body: 1rem;
+  --text-title: 1.25rem;
+  --text-heading: 1.75rem;
 }
 
 * {
@@ -39,8 +44,9 @@ body {
   background: var(--bg);
   color: var(--ink);
   font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-  font-size: 13px;
-  line-height: 1.35;
+  font-size: var(--text-body);
+  line-height: 1.48;
+  font-kerning: normal;
 }
 
 a {
@@ -73,7 +79,7 @@ button:disabled {
 
 .app-shell {
   display: grid;
-  grid-template-columns: 216px minmax(0, 1fr);
+  grid-template-columns: 240px minmax(0, 1fr);
   min-height: 100dvh;
 }
 
@@ -115,14 +121,14 @@ button:disabled {
 }
 
 .brand strong {
-  font-size: 14px;
+  font-size: var(--text-body);
   line-height: 1.1;
 }
 
 .brand small,
 .sidebar-footer span {
   color: oklch(76% 0.025 120);
-  font-size: 11px;
+  font-size: var(--text-caption);
 }
 
 .nav-list {
@@ -133,10 +139,10 @@ button:disabled {
 .nav-list a {
   display: flex;
   align-items: center;
-  min-height: 38px;
+  min-height: 42px;
   border-radius: var(--radius);
   color: oklch(82% 0.02 120);
-  padding: 8px 10px;
+  padding: 9px 11px;
   text-decoration: none;
   transition:
     background-color 180ms var(--ease-out),
@@ -166,7 +172,7 @@ button:disabled {
 .sidebar-footer strong {
   display: block;
   margin-top: 2px;
-  font-size: 12px;
+  font-size: var(--text-small);
 }
 
 .workspace {
@@ -197,18 +203,20 @@ button:disabled {
 
 h1,
 h2,
+h3,
 p {
   margin: 0;
 }
 
 h1 {
-  font-size: 26px;
+  font-size: var(--text-heading);
   font-weight: 850;
   line-height: 1.05;
 }
 
-h2 {
-  font-size: 17px;
+h2,
+h3 {
+  font-size: var(--text-title);
   font-weight: 850;
   line-height: 1.15;
 }
@@ -216,7 +224,7 @@ h2 {
 .eyebrow,
 .ops-label {
   color: var(--muted);
-  font-size: 10px;
+  font-size: var(--text-caption);
   font-weight: 850;
   letter-spacing: 0;
   text-transform: uppercase;
@@ -232,17 +240,18 @@ h2 {
 .ghost-action,
 .primary-action,
 .primary-link,
-.secondary-link {
+.secondary-link,
+.secondary-action {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 7px;
-  min-height: 31px;
+  min-height: 36px;
   border: 1px solid var(--line-strong);
   border-radius: 999px;
   background: var(--paper);
   color: var(--ink);
-  padding: 5px 11px;
+  padding: 6px 12px;
   text-decoration: none;
   white-space: nowrap;
 }
@@ -252,7 +261,8 @@ h2 {
 }
 
 .ghost-action:hover,
-.secondary-link:hover {
+.secondary-link:hover,
+.secondary-action:hover {
   background: var(--mint-2);
 }
 
@@ -287,7 +297,6 @@ h2 {
 .deal-inbox,
 .deal-detail,
 .ops-status,
-.command-panel,
 .model-panel,
 .agent-row,
 .risk-grid div,
@@ -300,7 +309,7 @@ h2 {
 
 .band {
   max-width: 1180px;
-  padding: 16px;
+  padding: 18px;
   box-shadow: var(--shadow-soft);
 }
 
@@ -326,28 +335,28 @@ label {
   align-items: center;
   gap: 6px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: var(--text-small);
   font-weight: 800;
 }
 
 select,
 input {
-  min-height: 33px;
-  min-width: 138px;
+  min-height: 38px;
+  min-width: 150px;
   border: 1px solid var(--line-strong);
   border-radius: 7px;
   background: var(--paper);
   color: var(--ink);
-  padding: 5px 9px;
+  padding: 6px 10px;
 }
 
 input[type="search"] {
-  min-width: 210px;
+  min-width: 240px;
 }
 
 .deal-command-grid {
   display: grid;
-  grid-template-columns: minmax(520px, 1fr) 340px;
+  grid-template-columns: minmax(560px, 1fr) 380px;
   gap: 12px;
   align-items: start;
 }
@@ -385,13 +394,13 @@ input[type="search"] {
 .summary-pill span {
   display: block;
   color: var(--muted);
-  font-size: 11px;
+  font-size: var(--text-small);
 }
 
 .summary-pill strong {
   display: block;
   margin-top: 1px;
-  font-size: 24px;
+  font-size: 1.75rem;
   line-height: 1;
 }
 
@@ -431,7 +440,7 @@ input[type="search"] {
 .status-item span {
   margin-top: 3px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: var(--text-small);
 }
 
 .deal-inbox {
@@ -440,12 +449,12 @@ input[type="search"] {
 
 .deal-list-head {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 124px 120px;
+  grid-template-columns: minmax(0, 1fr) 144px 150px;
   gap: 10px;
   border-bottom: 1px solid var(--line);
   background: var(--paper-2);
   color: var(--muted);
-  font-size: 10px;
+  font-size: var(--text-caption);
   font-weight: 850;
   padding: 10px 12px;
   text-transform: uppercase;
@@ -458,7 +467,7 @@ input[type="search"] {
 
 .deal-card {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 124px 120px;
+  grid-template-columns: minmax(0, 1fr) 144px 150px;
   gap: 10px;
   width: 100%;
   border: 0;
@@ -466,7 +475,7 @@ input[type="search"] {
   border-radius: 0;
   background: var(--paper);
   color: var(--ink);
-  padding: 12px;
+  padding: 14px;
   text-align: left;
   transition:
     background-color 160ms var(--ease-out),
@@ -508,7 +517,7 @@ input[type="search"] {
 }
 
 .item-name strong {
-  font-size: 14px;
+  font-size: 1.0625rem;
   font-weight: 900;
 }
 
@@ -517,24 +526,24 @@ input[type="search"] {
 .deal-profit small,
 .deal-signal small {
   color: var(--muted);
-  font-size: 11px;
+  font-size: var(--text-small);
 }
 
 .route-cell strong {
-  font-size: 12px;
+  font-size: var(--text-small);
 }
 
 .deal-profit strong {
   color: var(--forest);
-  font-size: 15px;
+  font-size: 1.0625rem;
 }
 
 .badge {
   justify-self: start;
   max-width: 100%;
-  min-height: 25px;
+  min-height: 30px;
   border-radius: 7px;
-  font-size: 11px;
+  font-size: var(--text-small);
   font-weight: 850;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -576,7 +585,7 @@ input[type="search"] {
 
 .detail-header h2 {
   margin-top: 3px;
-  font-size: 21px;
+  font-size: 1.5rem;
 }
 
 .detail-header span:not(.badge) {
@@ -595,7 +604,7 @@ input[type="search"] {
 .detail-profit span {
   display: block;
   color: oklch(78% 0.025 120);
-  font-size: 11px;
+  font-size: var(--text-caption);
   font-weight: 850;
   text-transform: uppercase;
 }
@@ -603,7 +612,7 @@ input[type="search"] {
 .detail-profit strong {
   display: block;
   margin-top: 4px;
-  font-size: 29px;
+  font-size: 2rem;
   line-height: 1;
 }
 
@@ -623,7 +632,7 @@ input[type="search"] {
 
 .detail-grid dt {
   color: var(--muted);
-  font-size: 10px;
+  font-size: var(--text-caption);
   font-weight: 850;
   text-transform: uppercase;
 }
@@ -657,7 +666,8 @@ input[type="search"] {
   background: oklch(32% 0.105 157);
 }
 
-.secondary-link {
+.secondary-link,
+.secondary-action {
   color: var(--ink);
   font-weight: 850;
 }
@@ -705,6 +715,42 @@ input[type="search"] {
   gap: 14px;
 }
 
+.command-library {
+  display: grid;
+  gap: 12px;
+}
+
+.command-list {
+  display: grid;
+  gap: 10px;
+}
+
+.command-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--paper);
+  padding: 14px;
+}
+
+.command-row div {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.command-row strong {
+  font-size: 1.0625rem;
+}
+
+.command-row span {
+  color: var(--muted);
+  font-size: var(--text-small);
+}
+
 .operations-panel,
 .model-view,
 #agents,
@@ -721,7 +767,6 @@ input[type="search"] {
 }
 
 .ops-status,
-.command-panel,
 .model-panel {
   display: grid;
   gap: 6px;
@@ -730,17 +775,8 @@ input[type="search"] {
 
 .ops-status strong,
 .model-panel strong {
-  font-size: 20px;
+  font-size: 1.375rem;
   line-height: 1.1;
-}
-
-.command-panel code {
-  display: block;
-  border-radius: 7px;
-  background: var(--paper-2);
-  padding: 9px;
-  overflow-wrap: anywhere;
-  white-space: normal;
 }
 
 .inline-status {
@@ -782,7 +818,7 @@ input[type="search"] {
 
 .agent-row strong {
   margin-top: 18px;
-  font-size: 15px;
+  font-size: 1.0625rem;
 }
 
 .agent-index {
@@ -790,7 +826,7 @@ input[type="search"] {
   top: 10px;
   right: 12px;
   color: var(--quiet);
-  font-size: 11px;
+  font-size: var(--text-caption);
   font-weight: 850;
 }
 
@@ -841,14 +877,14 @@ input[type="search"] {
 
 .risk-grid dt {
   color: var(--muted);
-  font-size: 10px;
+  font-size: var(--text-caption);
   font-weight: 850;
   text-transform: uppercase;
 }
 
 .risk-grid dd {
   margin: 8px 0 0;
-  font-size: 22px;
+  font-size: 1.5rem;
   font-weight: 850;
   line-height: 1;
 }
@@ -893,7 +929,7 @@ input[type="search"] {
 }
 
 .timeline li strong {
-  font-size: 15px;
+  font-size: 1.0625rem;
 }
 
 .timeline li span:nth-child(2) {
@@ -909,7 +945,7 @@ input[type="search"] {
 
 @media (max-width: 1360px) {
   .deal-command-grid {
-    grid-template-columns: minmax(470px, 1fr) 320px;
+    grid-template-columns: minmax(500px, 1fr) 340px;
   }
 }
 
@@ -1019,7 +1055,8 @@ input[type="search"] {
   }
 
   .detail-grid,
-  .detail-actions {
+  .detail-actions,
+  .command-row {
     grid-template-columns: 1fr;
   }
 

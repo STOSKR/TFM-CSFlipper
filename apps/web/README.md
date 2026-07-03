@@ -16,6 +16,24 @@ http://localhost:8000
 
 La web llama a `/api/dashboard`, que consulta la base de datos y construye el payload en vivo.
 
+## Ejecutar Comandos Desde La Web
+
+Arranca el servidor local:
+
+```powershell
+python -m apps.cli.web_dashboard_server
+```
+
+Abre `http://localhost:8000/#scraper`. En la vista **Scraper** puedes usar:
+
+- **Ejecutar scraping completo**: discovery, workers Steam/BUFF concurrentes, refresh sin filtro stale, persistencia y scoring.
+- **Refrescar historico**: actualiza articulos guardados que lleven al menos una hora stale.
+
+El frontend no ejecuta texto libre: llama a `/api/commands/run` con un ID de una allowlist local.
+Mientras un comando esta ejecutandose, los botones quedan deshabilitados. Al terminar un comando
+correctamente, la web vuelve a pedir `/api/dashboard` para mostrar los datos vivos de la base de
+datos.
+
 Exportar una copia JSON local sigue estando disponible para snapshots congelados:
 
 ```powershell
