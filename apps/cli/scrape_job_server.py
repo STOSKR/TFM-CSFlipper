@@ -417,6 +417,8 @@ class ScrapeJobHandler(BaseHTTPRequestHandler):
         self._route()
 
     def log_message(self, format: str, *args: Any) -> None:
+        if urlparse(self.path).path == "/jobs/scrape/status":
+            return
         print(f"{self.address_string()} - {format % args}", flush=True)
 
     def _route(self) -> None:

@@ -75,6 +75,7 @@ const fallbackDashboard = {
     ["017", "Restricciones de riesgo Portfolio", "Realizada"],
   ],
 };
+const SCRAPE_STATUS_REFRESH_MS = 10000;
 
 let dashboard = fallbackDashboard;
 let visibleRecommendations = [];
@@ -373,7 +374,7 @@ function scheduleScrapeStatusRefresh(running) {
   if (!running) {
     return;
   }
-  scrapeStatusTimer = setTimeout(loadScrapeStatus, 1500);
+  scrapeStatusTimer = setTimeout(loadScrapeStatus, SCRAPE_STATUS_REFRESH_MS);
 }
 
 async function loadCommands() {

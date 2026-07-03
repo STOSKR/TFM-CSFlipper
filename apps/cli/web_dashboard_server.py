@@ -50,6 +50,11 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return
         self._write_json(HTTPStatus.NOT_FOUND, {"error": "not_found"})
 
+    def log_message(self, format: str, *args: Any) -> None:
+        if urlparse(self.path).path == "/api/scrape/status":
+            return
+        super().log_message(format, *args)
+
     def end_headers(self) -> None:
         self.send_header("Cache-Control", "no-store")
         super().end_headers()
