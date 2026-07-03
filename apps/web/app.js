@@ -81,6 +81,7 @@ let visibleRecommendations = [];
 let selectedDealIndex = 0;
 let localCommands = [];
 let scrapeWasRunning = false;
+let scrapeStatusTimer = null;
 
 const statusLabels = {
   review: "Revisar",
@@ -337,6 +338,7 @@ function renderScrapeStatus(payload) {
   renderScrapeLog(job.log_tail);
   document.querySelector("#scrape-start-button").disabled = running;
   updateCommandButtons(running);
+  scheduleScrapeStatusRefresh(running);
   if (scrapeWasRunning && !running && returnCode === 0) {
     refreshDashboardView();
   }
@@ -361,6 +363,17 @@ async function loadScrapeStatus() {
     return;
   }
   renderScrapeStatus(response.payload);
+}
+
+function scheduleScrapeStatusRefresh(running) {
+  if (scrapeStatusTimer !== null) {
+    clearTimeout(scrapeStatusTimer);
+    scrapeStatusTimer = null;
+  }
+  if (!running) {
+    return;
+  }
+  scrapeStatusTimer = setTimeout(loadScrapeStatus, 1500);
 }
 
 async function loadCommands() {
