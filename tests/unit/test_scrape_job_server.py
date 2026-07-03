@@ -194,6 +194,9 @@ def test_scrape_job_runner_rejects_overlapping_runs() -> None:
 
 
 def test_scrape_progress_parser_maps_streaming_steps() -> None:
+    assert _progress_from_line("job_started") == (1, "Arrancando")
+    assert _progress_from_line("playwright_check=start") == (2, "Preparando navegador")
+    assert _progress_from_line("playwright_check=ready") == (3, "Navegador listo")
     assert _progress_from_line("render_stream_strategy=steam_sell_slow") == (
         8,
         "Buscando candidatos",

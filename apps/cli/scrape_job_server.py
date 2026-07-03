@@ -266,10 +266,18 @@ def _append_bool_flag(
 def _run_command(command: Sequence[str], log: Callable[[str], None] | None = None) -> int:
     timeout_seconds = _optional_int(os.getenv("SCRAPE_JOB_TIMEOUT_SECONDS"))
     env = _subprocess_env(os.environ)
+    if log is not None:
+        log("job_started")
     if _bool(os.getenv("SCRAPE_ENSURE_PLAYWRIGHT"), default=True):
+        if log is not None:
+            log("playwright_check=start")
         install_code = _ensure_playwright_browser(env)
         if install_code != 0:
+            if log is not None:
+                log(f"playwright_check=failed code={install_code}")
             return install_code
+        if log is not None:
+            log("playwright_check=ready")
     process = _start_job_process(command, env, capture_output=log is not None)
     reader = None
     if log is not None and process.stdout is not None:
@@ -502,6 +510,14 @@ def _progress_from_line(
 ) -> tuple[int, str] | None:
     if line.startswith("render_stream_strategy="):
         return 8, "Buscando candidatos"
+    if line == "job_started":
+        return 1, "Arrancando"
+    if line.startswith("playwright_check=start"):
+        return 2, "Preparando navegador"
+    if line.startswith("playwright_check=ready"):
+        return 3, "Navegador listo"
+    if line.startswith("playwright_check=failed"):
+        return 3, "Error preparando navegador"
     if line.startswith("render_stream_candidate="):
         return 14, "Candidatos detectados"
     if line.startswith("stream_batch="):
