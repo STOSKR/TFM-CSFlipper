@@ -26,11 +26,11 @@ def test_scrape_status_payload_exposes_job_without_command_path() -> None:
     assert "command" not in payload
 
 
-def test_web_scrape_command_refreshes_without_stale_filter() -> None:
+def test_web_scrape_command_refreshes_items_older_than_eight_hours() -> None:
     command = _web_scrape_command()
 
     assert "--refresh" in command
-    assert command[command.index("--stale-minutes") + 1] == "0"
+    assert command[command.index("--stale-minutes") + 1] == "480"
     assert "--score" in command
     assert "--concurrent-platforms" in command
 
@@ -58,3 +58,6 @@ def test_local_command_allowlist_exposes_expected_frontend_commands() -> None:
     payload = _command_payload(commands["refresh_history"])
     assert payload["id"] == "refresh_history"
     assert "command" not in payload
+    assert commands["refresh_history"].command[
+        commands["refresh_history"].command.index("--stale-minutes") + 1
+    ] == "480"

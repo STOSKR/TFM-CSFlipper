@@ -28,7 +28,7 @@ from apps.cli.scrape_candidate_platforms import (
 )
 from packages.domain.market_parsing import market_hash_name
 from packages.persistence.connection import create_pool
-from packages.persistence.simple_market import SimpleMarketSnapshotRepository
+from packages.persistence.simple_market import SimpleMarketSnapshotRepository, history_point_count
 from packages.runtime_config import load_runtime_config
 
 
@@ -65,11 +65,16 @@ async def run(args: argparse.Namespace) -> int:
     for line in compact_refresh_lines(candidates, results):
         print(line)
 
+    history_points_ready = sum(history_point_count(snapshot) for snapshot in snapshots)
+    history_points_persisted = 0
     if args.persist and not args.dry_run:
         pool = await create_pool(max_size=2)
         try:
             async with pool.acquire() as connection:
-                await SimpleMarketSnapshotRepository(connection).record_snapshots(snapshots)
+                report = await SimpleMarketSnapshotRepository(connection).record_snapshots_report(
+                    snapshots
+                )
+                history_points_persisted = report.history_points
         finally:
             await pool.close()
 
@@ -81,6 +86,8 @@ async def run(args: argparse.Namespace) -> int:
     print(
         "summary "
         f"loaded={len(candidates)} snapshots={len(snapshots)} "
+        f"history_points_ready={history_points_ready} "
+        f"history_points_persisted={history_points_persisted} "
         f"{compact_platform_summary(results)} "
         f"mode={'persisted' if args.persist and not args.dry_run else 'dry_run'}"
     )

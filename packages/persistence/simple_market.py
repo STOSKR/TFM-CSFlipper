@@ -41,19 +41,36 @@ class SimpleMarketSnapshot:
         return representation_name(self.name, self.quality, self.stattrak)
 
 
+@dataclass(frozen=True, slots=True)
+class SnapshotPersistenceReport:
+    snapshots: int
+    history_points: int
+
+
 @dataclass(slots=True)
 class SimpleMarketSnapshotRepository:
     connection: asyncpg.Connection
 
-    async def record_snapshot(self, snapshot: SimpleMarketSnapshot) -> None:
+    async def record_snapshot(self, snapshot: SimpleMarketSnapshot) -> int:
         async with self.connection.transaction():
             item_id = await self.upsert_item(snapshot)
-            await self.upsert_history_points(snapshot, item_id=item_id)
+            return await self.upsert_history_points(snapshot, item_id=item_id)
 
     async def record_snapshots(self, snapshots: Sequence[SimpleMarketSnapshot]) -> int:
-        for snapshot in snapshots:
-            await self.record_snapshot(snapshot)
+        await self.record_snapshots_report(snapshots)
         return len(snapshots)
+
+    async def record_snapshots_report(
+        self,
+        snapshots: Sequence[SimpleMarketSnapshot],
+    ) -> SnapshotPersistenceReport:
+        history_points = 0
+        for snapshot in snapshots:
+            history_points += await self.record_snapshot(snapshot)
+        return SnapshotPersistenceReport(
+            snapshots=len(snapshots),
+            history_points=history_points,
+        )
 
     async def upsert_item(self, snapshot: SimpleMarketSnapshot) -> UUID:
         row = await self.connection.fetchrow(
@@ -313,6 +330,10 @@ def _json(value: Mapping[str, Any]) -> str:
     return json.dumps(dict(value), default=str)
 
 
+def history_point_count(snapshot: SimpleMarketSnapshot) -> int:
+    return len(_history_points_from_snapshot(snapshot))
+
+
 def representation_name(name: str, quality: str, stattrak: bool) -> str:
     return f"{_required_text(name, 'name')}_{_quality_code(quality)}_{int(stattrak)}"
 
@@ -330,6 +351,23 @@ def _quality_code(value: str) -> str:
 
 def _history_points_from_snapshot(snapshot: SimpleMarketSnapshot) -> tuple[dict[str, Any], ...]:
     rows: list[dict[str, Any]] = []
+    if snapshot.steam_price is not None:
+        rows.append(
+            {
+                "platform_id": "steam",
+                "observed_at": snapshot.scraped_at,
+                "metric_name": "sell_price",
+                "metric_value": snapshot.steam_price,
+                "currency": _currency(snapshot.steam_currency),
+                "raw_payload": {
+                    "steam": {
+                        "source": "steam_current_sell_price",
+                        "price": str(snapshot.steam_price),
+                    }
+                },
+            }
+        )
+
     for row in snapshot.steam_recent_sales:
         observed_at = _history_observed_at(row)
         price = _decimal_value(row.get("price"))

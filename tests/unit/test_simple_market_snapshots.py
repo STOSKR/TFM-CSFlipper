@@ -18,6 +18,7 @@ from packages.domain.enums import SourceType
 from packages.persistence.simple_market import (
     SimpleMarketSnapshot,
     SimpleMarketSnapshotRepository,
+    history_point_count,
 )
 
 
@@ -206,7 +207,7 @@ async def test_simple_market_snapshot_repository_upserts_item_current_state() ->
 
     await SimpleMarketSnapshotRepository(connection).record_snapshot(snapshot)
 
-    assert len(connection.statements) == 1
+    assert len(connection.statements) == 2
     assert "insert into market_items" in connection.statements[0].lower()
     assert "steam_price" in connection.statements[0].lower()
     assert "steam_price_eur" in connection.statements[0].lower()
@@ -224,6 +225,13 @@ async def test_simple_market_snapshot_repository_upserts_item_current_state() ->
     assert "updated_at = case" in connection.statements[0].lower()
     assert len(connection.args[0]) == 13
     assert connection.args[0][9] == '[{"price": "5.00", "quantity": 12}]'
+    history_rows = connection.args[1]
+    assert len(history_rows) == 1
+    assert history_rows[0][1] == "steam"
+    assert history_rows[0][2] == datetime(2026, 6, 9, 12, 0, tzinfo=UTC)
+    assert history_rows[0][3] == "sell_price"
+    assert history_rows[0][4] == Decimal("5.41")
+    assert history_rows[0][5] == "EUR"
     assert connection.transaction_opened is True
 
 
@@ -290,6 +298,27 @@ async def test_simple_market_snapshot_repository_persists_history_points() -> No
     assert history_rows[4][3] == "sell_price"
     assert history_rows[4][4] == Decimal("17.45")
     assert history_rows[4][5] == "EUR"
+    assert history_point_count(snapshot) == 5
+
+
+@pytest.mark.asyncio
+async def test_simple_market_snapshot_repository_reports_history_points() -> None:
+    connection = FakeConnection()
+    snapshot = SimpleMarketSnapshot(
+        name="AK-47 | Slate",
+        quality="Field-Tested",
+        stattrak=False,
+        scraped_at=datetime(2026, 6, 9, 12, 0, tzinfo=UTC),
+        buff_price=Decimal("105.20"),
+        buff_currency="CNY",
+    )
+
+    report = await SimpleMarketSnapshotRepository(connection).record_snapshots_report(
+        (snapshot,)
+    )
+
+    assert report.snapshots == 1
+    assert report.history_points == 1
 
 
 @pytest.mark.asyncio

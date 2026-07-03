@@ -26,8 +26,8 @@ python -m apps.cli.web_dashboard_server
 
 Abre `http://localhost:8000/#scraper`. En la vista **Scraper** puedes usar:
 
-- **Ejecutar scraping completo**: discovery, workers Steam/BUFF concurrentes, refresh sin filtro stale, persistencia y scoring.
-- **Refrescar historico**: actualiza articulos guardados que lleven al menos una hora stale.
+- **Ejecutar scraping completo**: discovery, workers Steam/BUFF concurrentes, refresh de articulos con mas de 8 horas, persistencia y scoring.
+- **Refrescar historico**: actualiza articulos guardados que lleven mas de 8 horas sin comprobarse.
 
 El frontend no ejecuta texto libre: llama a `/api/commands/run` con un ID de una allowlist local.
 Mientras un comando esta ejecutandose, los botones quedan deshabilitados. Al terminar un comando
