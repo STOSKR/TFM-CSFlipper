@@ -48,8 +48,8 @@ sell_mode = "Sell to Platform Highest Buy Order"
 buy_mode = "Buy via STEAM Buy Order"
 
 [workers]
-steam_concurrency = 1
-buff_concurrency = 1
+steam_concurrency = 2
+buff_concurrency = 2
 batch_size = 5
 
 [delays]

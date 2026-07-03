@@ -16,6 +16,8 @@ def test_render_stream_scrape_defaults_match_local_fast_flow() -> None:
     assert args.steam is True
     assert args.buff is True
     assert args.steam_api is False
+    assert args.steam_concurrency == 2
+    assert args.buff_concurrency == 2
     assert args.batch_size == 5
     assert args.persist is True
     assert args.refresh is True

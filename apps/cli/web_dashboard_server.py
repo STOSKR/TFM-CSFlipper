@@ -219,6 +219,8 @@ def _web_scrape_env() -> dict[str, str]:
     env.setdefault("SCRAPE_BUFF", "true")
     env.setdefault("SCRAPE_REFRESH", "true")
     env.setdefault("SCRAPE_STALE_MINUTES", "480")
+    env.setdefault("SCRAPE_STEAM_CONCURRENCY", "2")
+    env.setdefault("SCRAPE_BUFF_CONCURRENCY", "2")
     env.setdefault("SCRAPE_SCORE", "true")
     env.setdefault("SCRAPE_CONCURRENT_PLATFORMS", "true")
     env.setdefault("SCRAPE_PERSIST", "true")
