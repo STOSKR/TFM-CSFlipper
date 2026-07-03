@@ -6,6 +6,8 @@ from apps.cli.scrape_job_server import (
     ScrapeJobRunner,
     _bearer_token,
     _bool,
+    _progress_from_line,
+    _public_job_line,
     _query_token,
     _subprocess_env,
     build_scrape_job_command,
@@ -187,6 +189,27 @@ def test_scrape_job_runner_rejects_overlapping_runs() -> None:
     snapshot = job_runner.snapshot()
     assert snapshot.running is False
     assert snapshot.last_return_code == 0
+    assert snapshot.progress_text == "Completado"
+
+
+def test_scrape_progress_parser_maps_streaming_steps() -> None:
+    assert _progress_from_line("render_stream_strategy=steam_sell_slow") == (
+        12,
+        "Buscando candidatos",
+    )
+    assert _progress_from_line("stream_scrape_batch candidates=5") == (
+        42,
+        "Consultando Steam y BUFF",
+    )
+    assert _progress_from_line("[2/4] AK-47 steam=ok") == (82, "Historico 2/4")
+    assert _progress_from_line(
+        "summary loaded=2 snapshots=2 history_points_ready=8 history_points_persisted=8"
+    ) == (90, "Historico guardado: 8 puntos")
+
+
+def test_public_job_line_hides_raw_python_commands() -> None:
+    assert _public_job_line(f"{sys.executable} -u -m apps.cli.refresh_market_history") is None
+    assert _public_job_line(" render_stream_step=refresh ") == "render_stream_step=refresh"
 
 
 def test_tokens_can_come_from_header_or_query() -> None:

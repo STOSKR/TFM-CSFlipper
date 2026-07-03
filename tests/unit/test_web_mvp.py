@@ -16,6 +16,9 @@ def test_web_mvp_static_files_are_wired() -> None:
     assert 'href="#scraper"' in html
     assert 'id="scrape-start-button"' in html
     assert 'id="scrape-command"' not in html
+    assert 'id="scrape-progress-text"' in html
+    assert 'id="scrape-progress-bar"' in html
+    assert 'id="scrape-log"' in html
     assert 'id="command-list"' in html
     assert "Command Center" not in html
     assert "Ejecutar scraping completo" in html
@@ -40,8 +43,10 @@ def test_web_mvp_static_files_are_wired() -> None:
     assert "loadCommands" in js
     assert "runLocalCommand" in js
     assert "refreshDashboardView" in js
-    assert "watchDevRevision" in js
-    assert "./api/dev/revision" in js
+    assert "watchDevRevision" not in js
+    assert "./api/dev/revision" not in js
+    assert "renderScrapeLog" in js
+    assert "clampPercent" in js
     assert "command.command" not in js
     assert "./api/commands/run" in js
     assert "data-command-id" in js
@@ -49,6 +54,8 @@ def test_web_mvp_static_files_are_wired() -> None:
     assert "./api/scrape/status" in js
     assert "font-size: var(--text-body)" in css
     assert "--text-body: 1rem" in css
+    assert ".progress-panel" in css
+    assert ".scrape-log" in css
     assert "RLlib smoke listo" in js
     assert "BUFF listing -> Steam listing" in js
     assert "trading_profit_v1" in js

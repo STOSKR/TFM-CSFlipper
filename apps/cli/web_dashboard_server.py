@@ -38,9 +38,6 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         if parsed.path == "/api/commands":
             self._write_commands()
             return
-        if parsed.path == "/api/dev/revision":
-            self._write_dev_revision()
-            return
         super().do_GET()
 
     def do_POST(self) -> None:
@@ -80,9 +77,6 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 "job": _snapshot_payload(self.server.scrape_runner.snapshot()),
             },
         )
-
-    def _write_dev_revision(self) -> None:
-        self._write_json(HTTPStatus.OK, {"revision": _web_revision(Path(self.directory))})
 
     def _start_scrape_job(self) -> None:
         command = _web_scrape_command()
@@ -210,14 +204,6 @@ def _command_payload(command: LocalCommand) -> dict[str, Any]:
         "description": command.description,
         "destructive": command.destructive,
     }
-
-
-def _web_revision(web_dir: Path) -> int:
-    return max(
-        (web_dir / name).stat().st_mtime_ns
-        for name in ("index.html", "app.js", "styles.css")
-        if (web_dir / name).exists()
-    )
 
 
 def _web_scrape_command() -> list[str]:

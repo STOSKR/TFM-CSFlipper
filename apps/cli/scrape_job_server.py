@@ -28,18 +28,26 @@ class JobSnapshot:
     last_started_at: str | None
     last_finished_at: str | None
     last_return_code: int | None
+    progress_percent: int
+    progress_text: str
+    last_message: str | None
+    log_tail: tuple[str, ...]
 
 
 class ScrapeJobRunner:
     """Runs one scraping process at a time."""
 
     def __init__(self, command_runner: CommandRunner | None = None) -> None:
-        self._command_runner = command_runner or _run_command
+        self._command_runner = command_runner
         self._lock = threading.Lock()
         self._thread: threading.Thread | None = None
         self._last_started_at: str | None = None
         self._last_finished_at: str | None = None
         self._last_return_code: int | None = None
+        self._progress_percent = 0
+        self._progress_text = "Pendiente"
+        self._last_message: str | None = None
+        self._log_tail: list[str] = []
 
     def start(self, command: Sequence[str]) -> bool:
         with self._lock:
@@ -48,6 +56,10 @@ class ScrapeJobRunner:
             self._last_started_at = _now_text()
             self._last_finished_at = None
             self._last_return_code = None
+            self._progress_percent = 1
+            self._progress_text = "Arrancando"
+            self._last_message = None
+            self._log_tail = []
             self._thread = threading.Thread(
                 target=self._run,
                 args=(tuple(command),),
@@ -64,6 +76,10 @@ class ScrapeJobRunner:
                 last_started_at=self._last_started_at,
                 last_finished_at=self._last_finished_at,
                 last_return_code=self._last_return_code,
+                progress_percent=self._progress_percent,
+                progress_text=self._progress_text,
+                last_message=self._last_message,
+                log_tail=tuple(self._log_tail[-12:]),
             )
 
     def wait(self, timeout: float | None = None) -> None:
@@ -72,10 +88,29 @@ class ScrapeJobRunner:
             thread.join(timeout)
 
     def _run(self, command: tuple[str, ...]) -> None:
-        return_code = self._command_runner(command)
+        if self._command_runner is None:
+            return_code = _run_command(command, log=self._append_log_line)
+        else:
+            return_code = self._command_runner(command)
         with self._lock:
             self._last_return_code = return_code
             self._last_finished_at = _now_text()
+            self._progress_percent = 100 if return_code == 0 else self._progress_percent
+            self._progress_text = "Completado" if return_code == 0 else "Terminado con error"
+
+    def _append_log_line(self, line: str) -> None:
+        text = _public_job_line(line)
+        if text is None:
+            return
+        progress = _progress_from_line(text)
+        with self._lock:
+            self._last_message = text
+            self._log_tail.append(text)
+            del self._log_tail[:-80]
+            if progress is not None:
+                percent, label = progress
+                self._progress_percent = max(self._progress_percent, percent)
+                self._progress_text = label
 
 
 def build_scrape_job_command(env: Mapping[str, str] | None = None) -> list[str]:
@@ -223,14 +258,23 @@ def _append_bool_flag(
     command.append(enabled_flag if _bool(value, default=False) else disabled_flag)
 
 
-def _run_command(command: Sequence[str]) -> int:
+def _run_command(command: Sequence[str], log: Callable[[str], None] | None = None) -> int:
     timeout_seconds = _optional_int(os.getenv("SCRAPE_JOB_TIMEOUT_SECONDS"))
     env = _subprocess_env(os.environ)
     if _bool(os.getenv("SCRAPE_ENSURE_PLAYWRIGHT"), default=True):
         install_code = _ensure_playwright_browser(env)
         if install_code != 0:
             return install_code
-    process = _start_job_process(command, env)
+    process = _start_job_process(command, env, capture_output=log is not None)
+    reader = None
+    if log is not None and process.stdout is not None:
+        reader = threading.Thread(
+            target=_read_process_output,
+            args=(process, log),
+            daemon=True,
+            name="scrape-job-output",
+        )
+        reader.start()
     try:
         return process.wait(timeout=timeout_seconds)
     except subprocess.TimeoutExpired:
@@ -238,14 +282,32 @@ def _run_command(command: Sequence[str]) -> int:
         return 124
     finally:
         _terminate_job_processes(process)
+        if reader is not None:
+            reader.join(timeout=1)
 
 
-def _start_job_process(command: Sequence[str], env: Mapping[str, str]) -> subprocess.Popen[Any]:
+def _start_job_process(
+    command: Sequence[str],
+    env: Mapping[str, str],
+    *,
+    capture_output: bool = False,
+) -> subprocess.Popen[Any]:
     return subprocess.Popen(
         command,
         env=env,
         start_new_session=os.name != "nt",
+        stdout=subprocess.PIPE if capture_output else None,
+        stderr=subprocess.STDOUT if capture_output else None,
+        text=capture_output,
+        bufsize=1 if capture_output else -1,
     )
+
+
+def _read_process_output(process: subprocess.Popen[Any], log: Callable[[str], None]) -> None:
+    if process.stdout is None:
+        return
+    for line in process.stdout:
+        log(line.rstrip())
 
 
 def _terminate_job_processes(process: subprocess.Popen[Any]) -> None:
@@ -411,7 +473,67 @@ def _snapshot_payload(snapshot: JobSnapshot) -> dict[str, object]:
         "last_started_at": snapshot.last_started_at,
         "last_finished_at": snapshot.last_finished_at,
         "last_return_code": snapshot.last_return_code,
+        "progress_percent": snapshot.progress_percent,
+        "progress_text": snapshot.progress_text,
+        "last_message": snapshot.last_message,
+        "log_tail": snapshot.log_tail,
     }
+
+
+def _public_job_line(line: str) -> str | None:
+    text = " ".join(line.strip().split())
+    if not text:
+        return None
+    lower = text.lower()
+    if lower.startswith((sys.executable.lower(), "python ", "py ")):
+        return None
+    return text
+
+
+def _progress_from_line(line: str) -> tuple[int, str] | None:
+    if line.startswith("render_stream_strategy="):
+        return 12, "Buscando candidatos"
+    if line.startswith("render_stream_candidate="):
+        return 24, "Candidatos detectados"
+    if line.startswith("stream_scrape_batch"):
+        return 42, "Consultando Steam y BUFF"
+    if line.startswith("render_stream_done"):
+        return 65, "Scraping base completado"
+    if line == "render_stream_step=refresh":
+        return 72, "Actualizando historico"
+    if line.startswith("market_items_loaded="):
+        return 76, "Cargando objetos para historico"
+    if line.startswith("["):
+        return _refresh_line_progress(line)
+    if "history_points_persisted=" in line:
+        return 90, _history_summary_text(line)
+    if line == "render_stream_step=score":
+        return 94, "Calculando senales"
+    return None
+
+
+def _refresh_line_progress(line: str) -> tuple[int, str] | None:
+    closing = line.find("]")
+    if closing < 0 or "/" not in line[:closing]:
+        return None
+    current_text, total_text = line[1:closing].split("/", 1)
+    try:
+        current = int(current_text)
+        total = int(total_text)
+    except ValueError:
+        return None
+    if total <= 0:
+        return None
+    percent = 76 + min(12, round((current / total) * 12))
+    return percent, f"Historico {current}/{total}"
+
+
+def _history_summary_text(line: str) -> str:
+    for part in line.split():
+        if part.startswith("history_points_persisted="):
+            value = part.partition("=")[2]
+            return f"Historico guardado: {value} puntos"
+    return "Historico guardado"
 
 
 def _bearer_token(value: str | None) -> str | None:

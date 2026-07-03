@@ -81,7 +81,6 @@ let visibleRecommendations = [];
 let selectedDealIndex = 0;
 let localCommands = [];
 let scrapeWasRunning = false;
-let devRevision = null;
 
 const statusLabels = {
   review: "Revisar",
@@ -320,6 +319,8 @@ function renderScrapeStatus(payload) {
   const startedAt = formatDate(job.last_started_at);
   const finishedAt = formatDate(job.last_finished_at);
   const returnCode = job.last_return_code;
+  const progressPercent = clampPercent(job.progress_percent);
+  const progressText = job.progress_text || (running ? "Ejecutando" : "Esperando ejecucion");
 
   document.querySelector("#scrape-running-state").textContent = running ? "Ejecutando" : "Parado";
   document.querySelector("#scrape-last-run").textContent = job.last_started_at
@@ -330,12 +331,26 @@ function renderScrapeStatus(payload) {
   document.querySelector("#scrape-finished-at").textContent = job.last_finished_at
     ? `Fin: ${finishedAt}`
     : "Esperando finalizacion";
+  document.querySelector("#scrape-progress-text").textContent = progressText;
+  document.querySelector("#scrape-progress-percent").textContent = `${progressPercent}%`;
+  document.querySelector("#scrape-progress-bar").style.width = `${progressPercent}%`;
+  renderScrapeLog(job.log_tail);
   document.querySelector("#scrape-start-button").disabled = running;
   updateCommandButtons(running);
   if (scrapeWasRunning && !running && returnCode === 0) {
     refreshDashboardView();
   }
   scrapeWasRunning = running;
+}
+
+function renderScrapeLog(lines) {
+  const root = document.querySelector("#scrape-log");
+  const visibleLines = Array.isArray(lines) ? lines.slice(-8) : [];
+  root.innerHTML = visibleLines.length
+    ? visibleLines
+      .map((line) => `<li>${escapeHtml(line)}</li>`)
+      .join("")
+    : `<li class="muted">Sin eventos de ejecucion todavia.</li>`;
 }
 
 async function loadScrapeStatus() {
@@ -436,21 +451,6 @@ async function refreshDashboardView() {
     "Datos actualizados desde la base de datos.";
 }
 
-async function watchDevRevision() {
-  const response = await requestJson(`./api/dev/revision?ts=${Date.now()}`);
-  if (!response.ok) {
-    return;
-  }
-  const revision = response.payload?.revision;
-  if (devRevision === null) {
-    devRevision = revision;
-    return;
-  }
-  if (revision !== devRevision) {
-    window.location.reload();
-  }
-}
-
 function requestJson(path, options = {}) {
   return new Promise((resolve) => {
     const request = new XMLHttpRequest();
@@ -501,6 +501,14 @@ function escapeAttributeText(value) {
   return escapeHtml(String(value ?? ""));
 }
 
+function clampPercent(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) {
+    return 0;
+  }
+  return Math.min(100, Math.max(0, Math.round(number)));
+}
+
 function renderAll() {
   renderPipeline();
   renderSummary();
@@ -544,9 +552,7 @@ setupNavigation();
 loadDashboard().then(renderAll);
 loadScrapeStatus();
 loadCommands();
-setInterval(loadScrapeStatus, 15000);
-setInterval(watchDevRevision, 1000);
-watchDevRevision();
+setInterval(loadScrapeStatus, 3000);
 
 function setupNavigation() {
   const links = Array.from(document.querySelectorAll(".nav-list a"));

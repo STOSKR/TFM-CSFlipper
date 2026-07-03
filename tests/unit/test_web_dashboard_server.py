@@ -1,4 +1,3 @@
-import os
 from apps.cli.scrape_job_server import ScrapeJobRunner
 from apps.cli.web_dashboard_server import (
     _command_payload,
@@ -6,7 +5,6 @@ from apps.cli.web_dashboard_server import (
     _local_command,
     _local_commands,
     _scrape_status_payload,
-    _web_revision,
     _web_scrape_command,
 )
 
@@ -33,19 +31,6 @@ def test_web_scrape_command_refreshes_items_older_than_eight_hours() -> None:
     assert command[command.index("--stale-minutes") + 1] == "480"
     assert "--score" in command
     assert "--concurrent-platforms" in command
-
-
-def test_web_revision_tracks_static_file_changes(tmp_path) -> None:
-    app_js = tmp_path / "app.js"
-    app_js.write_text("one", encoding="utf-8")
-    (tmp_path / "index.html").write_text("html", encoding="utf-8")
-    (tmp_path / "styles.css").write_text("css", encoding="utf-8")
-    before = _web_revision(tmp_path)
-
-    app_js.write_text("two", encoding="utf-8")
-    os.utime(app_js, ns=(before + 1_000_000_000, before + 1_000_000_000))
-
-    assert _web_revision(tmp_path) > before
 
 
 def test_local_command_allowlist_exposes_expected_frontend_commands() -> None:

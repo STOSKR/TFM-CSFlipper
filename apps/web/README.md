@@ -15,6 +15,8 @@ http://localhost:8000
 ```
 
 La web llama a `/api/dashboard`, que consulta la base de datos y construye el payload en vivo.
+El servidor envia los ficheros con `Cache-Control: no-store`: durante desarrollo, guarda cambios en
+`apps/web`, refresca el navegador y veras el HTML/CSS/JS nuevo sin reiniciar el servidor.
 
 ## Ejecutar Comandos Desde La Web
 

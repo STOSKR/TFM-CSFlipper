@@ -125,6 +125,16 @@
               <span id="scrape-finished-at">Esperando primera ejecucion</span>
             </article>
           </div>
+          <div class="progress-panel" aria-live="polite">
+            <div class="progress-head">
+              <strong id="scrape-progress-text">Esperando ejecucion</strong>
+              <span id="scrape-progress-percent">0%</span>
+            </div>
+            <span class="progress-meter" aria-hidden="true">
+              <span id="scrape-progress-bar"></span>
+            </span>
+            <ol class="scrape-log" id="scrape-log"></ol>
+          </div>
           <p class="inline-status" id="scrape-action-status" role="status"></p>
           <div class="command-library" aria-label="Comandos locales disponibles">
             <div class="section-toolbar">
