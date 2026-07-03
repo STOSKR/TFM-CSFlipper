@@ -217,6 +217,14 @@ def test_scrape_progress_parser_maps_streaming_steps() -> None:
         20,
         "STEAM iniciado: 4 items, 2 workers",
     )
+    assert _progress_from_line("steam_fetch_start=1/4 item=A") == (
+        20,
+        "STEAM consultando 1/4",
+    )
+    assert _progress_from_line("buff_fetch_start=2/4 item=A") == (
+        20,
+        "BUFF consultando 2/4",
+    )
     assert _progress_from_line("steam_progress=2/4 ok=2 errors=0 state=ok last=A") == (
         20,
         "STEAM 2/4",

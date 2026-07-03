@@ -138,10 +138,16 @@ class SteamBrowserConnector:
             semaphore = asyncio.Semaphore(self._config.max_concurrency)
 
             async def fetch_one(
+                index: int,
                 candidate: SteamBrowserCandidate,
             ) -> SteamBrowserObservation | SteamBrowserCandidateError:
                 async with semaphore:
                     debug_log: list[str] = []
+                    self._emit_fetch_start(
+                        index=index,
+                        total=len(candidates),
+                        candidate=candidate,
+                    )
                     try:
                         return await asyncio.wait_for(
                             self._fetch_one(
@@ -162,7 +168,10 @@ class SteamBrowserConnector:
                         )
 
             try:
-                tasks = [asyncio.create_task(fetch_one(candidate)) for candidate in candidates]
+                tasks = [
+                    asyncio.create_task(fetch_one(index, candidate))
+                    for index, candidate in enumerate(candidates, start=1)
+                ]
                 results = []
                 ok_count = 0
                 error_count = 0
@@ -448,6 +457,20 @@ class SteamBrowserConnector:
             "steam_progress="
             f"{completed}/{total} ok={ok_count} errors={error_count} "
             f"state={state} last={_compact_log_text(str(item))}"
+        )
+
+    def _emit_fetch_start(
+        self,
+        *,
+        index: int,
+        total: int,
+        candidate: SteamBrowserCandidate,
+    ) -> None:
+        if self._progress_log is None:
+            return
+        self._progress_log(
+            "steam_fetch_start="
+            f"{index}/{total} item={_compact_log_text(candidate.market_hash_name)}"
         )
 
 

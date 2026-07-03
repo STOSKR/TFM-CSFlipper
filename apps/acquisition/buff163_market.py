@@ -149,10 +149,16 @@ class Buff163Connector:
             semaphore = asyncio.Semaphore(self._config.max_concurrency)
 
             async def fetch_one(
+                index: int,
                 candidate: Buff163Candidate,
             ) -> Buff163Observation | Buff163CandidateError:
                 async with semaphore:
                     debug_log: list[str] = []
+                    self._emit_fetch_start(
+                        index=index,
+                        total=len(candidates),
+                        candidate=candidate,
+                    )
                     try:
                         return await asyncio.wait_for(
                             self._fetch_one(
@@ -173,7 +179,10 @@ class Buff163Connector:
                         )
 
             try:
-                tasks = [asyncio.create_task(fetch_one(candidate)) for candidate in candidates]
+                tasks = [
+                    asyncio.create_task(fetch_one(index, candidate))
+                    for index, candidate in enumerate(candidates, start=1)
+                ]
                 results = []
                 ok_count = 0
                 error_count = 0
@@ -421,6 +430,20 @@ class Buff163Connector:
             "buff_progress="
             f"{completed}/{total} ok={ok_count} errors={error_count} "
             f"state={state} last={_compact_log_text(str(item))}"
+        )
+
+    def _emit_fetch_start(
+        self,
+        *,
+        index: int,
+        total: int,
+        candidate: Buff163Candidate,
+    ) -> None:
+        if self._progress_log is None:
+            return
+        self._progress_log(
+            "buff_fetch_start="
+            f"{index}/{total} item={_compact_log_text(candidate.market_hash_name)}"
         )
 
 

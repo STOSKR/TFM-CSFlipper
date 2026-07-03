@@ -41,7 +41,11 @@ async def run(args: argparse.Namespace) -> int:
         batch: tuple[SteamDTCandidate, ...],
     ) -> tuple[PlatformWorkerResult, ...]:
         print(f"stream_scrape_batch candidates={len(batch)}", flush=True)
-        return await scrape_candidate_platforms(batch, config=worker_config, progress_log=print)
+        return await scrape_candidate_platforms(
+            batch,
+            config=worker_config,
+            progress_log=lambda message: print(message, flush=True),
+        )
 
     def build_snapshots(
         batch: tuple[SteamDTCandidate, ...],

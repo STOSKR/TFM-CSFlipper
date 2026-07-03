@@ -528,6 +528,8 @@ def _progress_from_line(
         return _batch_done_progress(line, expected_batches=expected_batches)
     if line.startswith("platform_start="):
         return 20, _platform_start_text(line)
+    if line.startswith(("steam_fetch_start=", "buff_fetch_start=")):
+        return 20, _platform_fetch_start_text(line)
     if line.startswith(("steam_progress=", "buff_progress=")):
         return 20, _platform_progress_text(line)
     if line.startswith("platform_error="):
@@ -608,6 +610,15 @@ def _platform_progress_text(line: str) -> str:
     if progress is None:
         progress = _line_text_value(line, "steam_progress") or _line_text_value(line, "buff_progress")
     return f"{_platform_label(platform)} {progress or ''}".strip()
+
+
+def _platform_fetch_start_text(line: str) -> str:
+    platform = "steam" if line.startswith("steam_fetch_start=") else "buff163"
+    progress = _line_text_value(line, "steam_fetch_start") or _line_text_value(
+        line,
+        "buff_fetch_start",
+    )
+    return f"{_platform_label(platform)} consultando {progress or ''}".strip()
 
 
 def _platform_done_text(line: str) -> str:
