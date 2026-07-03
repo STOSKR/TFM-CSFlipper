@@ -154,17 +154,21 @@ class Buff163Connector:
                 async with semaphore:
                     debug_log: list[str] = []
                     try:
-                        return await self._fetch_one(
-                            context,
-                            candidate,
-                            correlation_id=correlation_id,
-                            debug_log=debug_log,
+                        return await asyncio.wait_for(
+                            self._fetch_one(
+                                context,
+                                candidate,
+                                correlation_id=correlation_id,
+                                debug_log=debug_log,
+                            ),
+                            timeout=self._candidate_timeout_seconds(),
                         )
                     except Exception as exc:
-                        self._emit(candidate.market_hash_name, f"ERROR {exc}")
+                        message = str(exc) or exc.__class__.__name__
+                        self._emit(candidate.market_hash_name, f"ERROR {message}")
                         return Buff163CandidateError(
                             candidate=candidate,
-                            message=str(exc),
+                            message=message,
                             debug_log=tuple(debug_log),
                         )
 
@@ -380,6 +384,13 @@ class Buff163Connector:
             max(self._config.min_delay_seconds, self._config.max_delay_seconds),
         )
         await asyncio.sleep(delay)
+
+    def _candidate_timeout_seconds(self) -> float:
+        return (
+            self._config.timeout_ms
+            + self._config.wait_after_load_ms
+            + self._config.manual_login_wait_ms
+        ) / 1000 + max(0.0, self._config.max_delay_seconds) + 15.0
 
     def _debug(self, item: str, debug_log: list[str], message: str) -> None:
         debug_log.append(message)

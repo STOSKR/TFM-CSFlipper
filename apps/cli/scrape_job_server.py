@@ -510,6 +510,14 @@ def _progress_from_line(
         return 20, "Consultando Steam y BUFF"
     if line.startswith("stream_batch_done="):
         return _batch_done_progress(line, expected_batches=expected_batches)
+    if line.startswith("platform_start="):
+        return 20, _platform_start_text(line)
+    if line.startswith(("steam_progress=", "buff_progress=")):
+        return 20, _platform_progress_text(line)
+    if line.startswith("platform_error="):
+        return 20, _platform_error_text(line)
+    if line.startswith("platform_done="):
+        return 20, _platform_done_text(line)
     if line.startswith("render_stream_done"):
         return 65, "Scraping base completado"
     if line == "render_stream_step=refresh":
@@ -571,6 +579,38 @@ def _refresh_line_progress(line: str) -> tuple[int, str] | None:
     return percent, f"Historico {current}/{total}"
 
 
+def _platform_start_text(line: str) -> str:
+    platform = _line_text_value(line, "platform_start") or "plataforma"
+    total = _line_text_value(line, "total") or "?"
+    concurrency = _line_text_value(line, "concurrency") or "?"
+    return f"{_platform_label(platform)} iniciado: {total} items, {concurrency} workers"
+
+
+def _platform_progress_text(line: str) -> str:
+    platform = "steam" if line.startswith("steam_progress=") else "buff163"
+    progress = _line_text_value(line, f"{platform if platform == 'steam' else 'buff'}_progress")
+    if progress is None:
+        progress = _line_text_value(line, "steam_progress") or _line_text_value(line, "buff_progress")
+    return f"{_platform_label(platform)} {progress or ''}".strip()
+
+
+def _platform_done_text(line: str) -> str:
+    platform = _line_text_value(line, "platform_done") or "plataforma"
+    ok = _line_text_value(line, "ok") or "0"
+    errors = _line_text_value(line, "errors") or "0"
+    return f"{_platform_label(platform)} terminado: ok={ok}, errores={errors}"
+
+
+def _platform_error_text(line: str) -> str:
+    platform = _line_text_value(line, "platform_error") or "plataforma"
+    message = _line_text_value(line, "message") or "error"
+    return f"{_platform_label(platform)} error: {message}"
+
+
+def _platform_label(platform: str) -> str:
+    return "BUFF" if platform == "buff163" else platform.upper()
+
+
 def _line_int_value(line: str, key: str) -> int | None:
     prefix = f"{key}="
     for part in line.split():
@@ -579,6 +619,14 @@ def _line_int_value(line: str, key: str) -> int | None:
                 return int(part[len(prefix):])
             except ValueError:
                 return None
+    return None
+
+
+def _line_text_value(line: str, key: str) -> str | None:
+    prefix = f"{key}="
+    for part in line.split():
+        if part.startswith(prefix):
+            return part[len(prefix):]
     return None
 
 

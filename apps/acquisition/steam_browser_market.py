@@ -101,9 +101,11 @@ class SteamBrowserConnector:
         config: SteamBrowserConnectorConfig | None = None,
         *,
         log: LogCallback | None = None,
+        progress_log: LogCallback | None = None,
     ) -> None:
         self._config = config or SteamBrowserConnectorConfig()
         self._log = log
+        self._progress_log = progress_log
 
     async def fetch_candidates_lenient(
         self,
@@ -141,22 +143,43 @@ class SteamBrowserConnector:
                 async with semaphore:
                     debug_log: list[str] = []
                     try:
-                        return await self._fetch_one(
-                            context,
-                            candidate,
-                            correlation_id=correlation_id,
-                            debug_log=debug_log,
+                        return await asyncio.wait_for(
+                            self._fetch_one(
+                                context,
+                                candidate,
+                                correlation_id=correlation_id,
+                                debug_log=debug_log,
+                            ),
+                            timeout=self._candidate_timeout_seconds(),
                         )
                     except Exception as exc:
-                        self._emit(candidate.market_hash_name, f"ERROR {exc}")
+                        message = str(exc) or exc.__class__.__name__
+                        self._emit(candidate.market_hash_name, f"ERROR {message}")
                         return SteamBrowserCandidateError(
                             candidate=candidate,
-                            message=str(exc),
+                            message=message,
                             debug_log=tuple(debug_log),
                         )
 
             try:
-                results = await asyncio.gather(*(fetch_one(candidate) for candidate in candidates))
+                tasks = [asyncio.create_task(fetch_one(candidate)) for candidate in candidates]
+                results = []
+                ok_count = 0
+                error_count = 0
+                for completed, task in enumerate(asyncio.as_completed(tasks), start=1):
+                    result = await task
+                    results.append(result)
+                    if isinstance(result, SteamBrowserObservation):
+                        ok_count += 1
+                    else:
+                        error_count += 1
+                    self._emit_progress(
+                        completed=completed,
+                        total=len(candidates),
+                        ok_count=ok_count,
+                        error_count=error_count,
+                        result=result,
+                    )
             finally:
                 await self._save_session_state(context)
                 await context.close()
@@ -389,6 +412,13 @@ class SteamBrowserConnector:
         )
         await asyncio.sleep(delay)
 
+    def _candidate_timeout_seconds(self) -> float:
+        return (
+            self._config.timeout_ms
+            + self._config.wait_after_load_ms
+            + self._config.manual_login_wait_ms
+        ) / 1000 + max(0.0, self._config.max_delay_seconds) + 15.0
+
     def _debug(self, item: str, debug_log: list[str], message: str) -> None:
         debug_log.append(message)
         self._emit(item, message)
@@ -396,6 +426,29 @@ class SteamBrowserConnector:
     def _emit(self, item: str, message: str) -> None:
         if self._log:
             self._log(f"[steam] {item}: {message}")
+
+    def _emit_progress(
+        self,
+        *,
+        completed: int,
+        total: int,
+        ok_count: int,
+        error_count: int,
+        result: SteamBrowserObservation | SteamBrowserCandidateError,
+    ) -> None:
+        if self._progress_log is None:
+            return
+        if isinstance(result, SteamBrowserObservation):
+            item = result.observation.raw_payload.get("market_hash_name") or result.asset_name
+            state = "ok"
+        else:
+            item = result.candidate.market_hash_name
+            state = "error"
+        self._progress_log(
+            "steam_progress="
+            f"{completed}/{total} ok={ok_count} errors={error_count} "
+            f"state={state} last={_compact_log_text(str(item))}"
+        )
 
 
 def extract_steam_price_text(
@@ -795,6 +848,13 @@ def _price_line_path_for_quality(chart_payload: dict[str, Any], *, quality: str 
 def _optional_str(value: object) -> str | None:
     text = str(value or "").strip()
     return text or None
+
+
+def _compact_log_text(value: str, *, max_length: int = 80) -> str:
+    text = " ".join(value.split())
+    if len(text) <= max_length:
+        return text
+    return f"{text[: max_length - 3]}..."
 
 
 def _decimal_from_compact_order_value(value: object) -> Decimal | None:

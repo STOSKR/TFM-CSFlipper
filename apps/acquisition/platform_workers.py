@@ -83,6 +83,7 @@ async def scrape_candidate_platforms(
                     config=worker_config.steam_browser_config,
                     correlation_id=run_id,
                     log=log,
+                    progress_log=progress_log,
                 )
             )
         else:
@@ -216,6 +217,7 @@ async def _scrape_steam_browser(
     config: SteamBrowserConnectorConfig,
     correlation_id: str,
     log: LogCallback | None,
+    progress_log: LogCallback | None,
 ) -> PlatformWorkerResult:
     steam_candidates = _unique_steam_browser_candidates([
         SteamBrowserCandidate(
@@ -228,13 +230,19 @@ async def _scrape_steam_browser(
         for candidate in candidates
         if candidate.market_hash_name
     ])
-    connector = SteamBrowserConnector(config, log=log)
+    _emit(
+        progress_log,
+        f"platform_start=steam total={len(steam_candidates)} concurrency={config.max_concurrency}",
+    )
+    connector = SteamBrowserConnector(config, log=log, progress_log=progress_log)
     try:
         observations, steam_errors = await connector.fetch_candidates_lenient(
             steam_candidates,
             correlation_id=correlation_id,
         )
     except Exception as exc:
+        message = str(exc) or exc.__class__.__name__
+        _emit(progress_log, f"platform_error=steam message={_compact_log_text(message)}")
         return PlatformWorkerResult(
             "steam",
             (),
@@ -256,6 +264,10 @@ async def _scrape_steam_browser(
         )
         for error in steam_errors
     ]
+    _emit(
+        progress_log,
+        f"platform_done=steam ok={len(observations)} errors={len(errors)}",
+    )
     return PlatformWorkerResult("steam", tuple(observations), tuple(errors))
 
 
@@ -278,6 +290,10 @@ async def _scrape_buff(
         for candidate in candidates
         if candidate.market_hash_name and candidate.buff_url
     ])
+    _emit(
+        progress_log,
+        f"platform_start=buff163 total={len(buff_candidates)} concurrency={config.max_concurrency}",
+    )
     connector = Buff163Connector(config, log=log, progress_log=progress_log)
     try:
         observations, buff_errors = await connector.fetch_candidates_lenient(
@@ -285,6 +301,8 @@ async def _scrape_buff(
             correlation_id=correlation_id,
         )
     except Exception as exc:
+        message = str(exc) or exc.__class__.__name__
+        _emit(progress_log, f"platform_error=buff163 message={_compact_log_text(message)}")
         return PlatformWorkerResult(
             "buff163",
             (),
@@ -307,6 +325,10 @@ async def _scrape_buff(
         for error in buff_errors
     ]
 
+    _emit(
+        progress_log,
+        f"platform_done=buff163 ok={len(observations)} errors={len(errors)}",
+    )
     return PlatformWorkerResult("buff163", tuple(observations), tuple(errors))
 
 
@@ -375,3 +397,10 @@ def _unique_buff_candidates(candidates: list[Buff163Candidate]) -> list[Buff163C
 def _emit(log: LogCallback | None, message: str) -> None:
     if log:
         log(message)
+
+
+def _compact_log_text(value: str, *, max_length: int = 80) -> str:
+    text = " ".join(value.split())
+    if len(text) <= max_length:
+        return text
+    return f"{text[: max_length - 3]}..."

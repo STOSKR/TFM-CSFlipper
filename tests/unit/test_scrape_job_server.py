@@ -210,6 +210,26 @@ def test_scrape_progress_parser_maps_streaming_steps() -> None:
         64,
         "Lote 20/20 completado",
     )
+    assert _progress_from_line("platform_start=steam total=4 concurrency=2") == (
+        20,
+        "STEAM iniciado: 4 items, 2 workers",
+    )
+    assert _progress_from_line("steam_progress=2/4 ok=2 errors=0 state=ok last=A") == (
+        20,
+        "STEAM 2/4",
+    )
+    assert _progress_from_line("buff_progress=1/4 ok=1 errors=0 state=ok last=A") == (
+        20,
+        "BUFF 1/4",
+    )
+    assert _progress_from_line("platform_done=buff163 ok=3 errors=1") == (
+        20,
+        "BUFF terminado: ok=3, errores=1",
+    )
+    assert _progress_from_line("platform_error=steam message=TimeoutError") == (
+        20,
+        "STEAM error: TimeoutError",
+    )
     assert _progress_from_line("[2/4] AK-47 steam=ok") == (82, "Historico 2/4")
     assert _progress_from_line(
         "summary loaded=2 snapshots=2 history_points_ready=8 history_points_persisted=8"
