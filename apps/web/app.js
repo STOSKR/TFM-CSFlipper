@@ -552,7 +552,6 @@ setupNavigation();
 loadDashboard().then(renderAll);
 loadScrapeStatus();
 loadCommands();
-setInterval(loadScrapeStatus, 3000);
 
 function setupNavigation() {
   const links = Array.from(document.querySelectorAll(".nav-list a"));

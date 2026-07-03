@@ -43,6 +43,7 @@ def test_web_mvp_static_files_are_wired() -> None:
     assert "loadCommands" in js
     assert "runLocalCommand" in js
     assert "refreshDashboardView" in js
+    assert "setInterval(loadScrapeStatus" not in js
     assert "watchDevRevision" not in js
     assert "./api/dev/revision" not in js
     assert "renderScrapeLog" in js
