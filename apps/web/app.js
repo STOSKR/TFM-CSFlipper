@@ -342,6 +342,7 @@ function renderScrapeStatus(payload) {
   document.querySelector("#scrape-progress-bar").style.width = `${progressPercent}%`;
   renderScrapeLog(job.log_tail);
   document.querySelector("#scrape-start-button").disabled = running;
+  document.querySelector("#scrape-show-browser").disabled = running;
   updateCommandButtons(running);
   scheduleScrapeStatusRefresh(job);
   if (scrapeWasRunning && !running && returnCode === 0) {
@@ -437,10 +438,14 @@ function updateCommandButtons(running) {
 
 async function startScrape() {
   const button = document.querySelector("#scrape-start-button");
+  const showBrowser = document.querySelector("#scrape-show-browser").checked;
   const status = document.querySelector("#scrape-action-status");
   button.disabled = true;
   status.textContent = "Lanzando scraper...";
-  const response = await requestJson("./api/scrape/start", { method: "POST" });
+  const response = await requestJson("./api/scrape/start", {
+    method: "POST",
+    body: { show_browser: showBrowser },
+  });
   if (response.payload) {
     renderScrapeStatus(response.payload);
   }

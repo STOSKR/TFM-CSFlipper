@@ -111,7 +111,14 @@
               <p class="eyebrow">Control local</p>
               <h2 id="scraper-title">Scraper manual</h2>
             </div>
-            <button class="primary-action" id="scrape-start-button" type="button">Ejecutar scraping completo</button>
+            <div class="scrape-actions">
+              <label class="switch-control" for="scrape-show-browser">
+                <input id="scrape-show-browser" type="checkbox">
+                <span aria-hidden="true"></span>
+                <strong>Mostrar navegadores</strong>
+              </label>
+              <button class="primary-action" id="scrape-start-button" type="button">Ejecutar scraping completo</button>
+            </div>
           </div>
           <div class="ops-grid">
             <article class="ops-status">

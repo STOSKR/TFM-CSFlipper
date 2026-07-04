@@ -34,6 +34,12 @@ def test_web_scrape_command_refreshes_items_older_than_eight_hours() -> None:
     assert command[command.index("--buff-captcha-wait-seconds") + 1] == "300"
     assert "--score" in command
     assert "--concurrent-platforms" in command
+    assert "--show-browser" not in command
+
+
+def test_web_scrape_command_can_show_browsers() -> None:
+    command = _web_scrape_command(show_browser=True)
+
     assert "--show-browser" in command
 
 

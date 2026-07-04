@@ -15,6 +15,7 @@ def test_web_mvp_static_files_are_wired() -> None:
     assert 'id="recommendation-summary"' in html
     assert 'href="#scraper"' in html
     assert 'id="scrape-start-button"' in html
+    assert 'id="scrape-show-browser"' in html
     assert 'id="scrape-command"' not in html
     assert 'id="scrape-progress-text"' in html
     assert 'id="scrape-progress-bar"' in html
@@ -55,9 +56,11 @@ def test_web_mvp_static_files_are_wired() -> None:
     assert "./api/commands/run" in js
     assert "data-command-id" in js
     assert "./api/scrape/start" in js
+    assert "show_browser: showBrowser" in js
     assert "./api/scrape/status" in js
     assert "font-size: var(--text-body)" in css
     assert "--text-body: 1rem" in css
+    assert ".switch-control" in css
     assert ".progress-panel" in css
     assert ".scrape-log" in css
     assert "RLlib smoke listo" in js
