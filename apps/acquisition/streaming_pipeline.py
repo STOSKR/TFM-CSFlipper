@@ -135,6 +135,7 @@ async def _process_batch(
 ) -> None:
     batch_number = summary.batches_completed + 1
     _emit(log, f"stream_batch={batch_number} candidates={len(candidates)}")
+    _emit(log, f"stream_batch_items={batch_number} items={_batch_items(candidates)}")
     results = await scrape_batch(candidates)
     snapshots = build_snapshots(candidates, results, datetime.now(tz=UTC))
     if persist_snapshots is not None and snapshots:
@@ -151,6 +152,10 @@ async def _process_batch(
 
 def _candidate_key(candidate: SteamDTCandidate) -> tuple[str, str | None, str | None]:
     return (candidate.market_hash_name, candidate.buff_url, candidate.steam_url)
+
+
+def _batch_items(candidates: tuple[SteamDTCandidate, ...]) -> str:
+    return " | ".join(" ".join(candidate.market_hash_name.split()) for candidate in candidates)
 
 
 def _emit(log: LogCallback | None, message: str) -> None:

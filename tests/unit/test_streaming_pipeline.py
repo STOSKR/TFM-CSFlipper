@@ -45,6 +45,7 @@ async def test_streaming_pipeline_batches_and_persists_incrementally() -> None:
     candidates = (_candidate("A"), _candidate("B"), _candidate("C"))
     scraped_batches: list[tuple[str, ...]] = []
     persisted_batches: list[int] = []
+    logs: list[str] = []
 
     async def scrape_batch(
         batch: tuple[SteamDTCandidate, ...],
@@ -68,9 +69,12 @@ async def test_streaming_pipeline_batches_and_persists_incrementally() -> None:
         build_snapshots=build_snapshots,
         persist_snapshots=persist_snapshots,
         config=StreamingPipelineConfig(batch_size=2, queue_maxsize=1),
+        log=logs.append,
     )
 
     assert scraped_batches == [("A", "B"), ("C",)]
+    assert "stream_batch_items=1 items=A (Field-Tested) | B (Field-Tested)" in logs
+    assert "stream_batch_items=2 items=C (Field-Tested)" in logs
     assert persisted_batches == [2, 1]
     assert summary.candidates_seen == 3
     assert summary.batches_completed == 2
