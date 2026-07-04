@@ -154,6 +154,10 @@ async def _iter_steamdt_candidates(args: argparse.Namespace) -> AsyncIterator[St
                 flush=True,
             )
             continue
+        print(
+            f"render_stream_profile_done={strategy_id} candidates={len(candidates)}",
+            flush=True,
+        )
         for candidate in _tag_candidates(
             candidates,
             strategy_id=strategy_id,
@@ -166,6 +170,10 @@ async def _iter_steamdt_candidates(args: argparse.Namespace) -> AsyncIterator[St
             emitted_for_profile += 1
             print(f"render_stream_candidate={candidate.market_hash_name}", flush=True)
             yield candidate
+        print(
+            f"render_stream_profile_emitted={strategy_id} candidates={emitted_for_profile}",
+            flush=True,
+        )
 
 
 def _run_refresh(args: argparse.Namespace) -> int:

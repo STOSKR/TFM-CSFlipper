@@ -71,6 +71,7 @@ def test_render_stream_scrape_prints_unicode_when_parent_encoding_is_cp1252() ->
 @pytest.mark.asyncio
 async def test_render_stream_scrape_limit_applies_per_profile(
     monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
 ) -> None:
     class FakeDiscovery:
         def __init__(self, filters: object, *, progress_log: object) -> None:
@@ -105,3 +106,8 @@ async def test_render_stream_scrape_limit_applies_per_profile(
         for candidate in candidates
         if candidate.strategy_id == "steam_sell_slow"
     } == {"Buy via Platform Buy Order"}
+    output = capsys.readouterr().out
+    assert "render_stream_profile_done=steam_sell_slow candidates=2" in output
+    assert "render_stream_profile_emitted=steam_sell_slow candidates=2" in output
+    assert "render_stream_profile_done=platform_arbitrage_safe candidates=2" in output
+    assert "render_stream_profile_emitted=platform_arbitrage_safe candidates=2" in output
