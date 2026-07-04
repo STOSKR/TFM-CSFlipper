@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import os
 import subprocess
 import sys
 from collections.abc import AsyncIterator
@@ -200,7 +201,7 @@ def _run_refresh(args: argparse.Namespace) -> int:
         command.append("--no-concurrent-platforms")
     print("render_stream_step=refresh", flush=True)
     print(" ".join(command), flush=True)
-    return subprocess.run(command, check=False).returncode
+    return subprocess.run(command, check=False, env=_subprocess_env()).returncode
 
 
 def _run_score(args: argparse.Namespace) -> int:
@@ -214,7 +215,15 @@ def _run_score(args: argparse.Namespace) -> int:
         command.append("--dry-run")
     print("render_stream_step=score", flush=True)
     print(" ".join(command), flush=True)
-    return subprocess.run(command, check=False).returncode
+    return subprocess.run(command, check=False, env=_subprocess_env()).returncode
+
+
+def _subprocess_env() -> dict[str, str]:
+    env = dict(os.environ)
+    env["PYTHONIOENCODING"] = "utf-8"
+    env["PYTHONUTF8"] = "1"
+    env.pop("PWDEBUG", None)
+    return env
 
 
 def _worker_config(args: argparse.Namespace) -> PlatformWorkerConfig:

@@ -6,6 +6,7 @@ import argparse
 import asyncio
 import json
 import math
+import sys
 from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
@@ -30,6 +31,16 @@ from packages.domain.market_parsing import market_hash_name
 from packages.persistence.connection import create_pool
 from packages.persistence.simple_market import SimpleMarketSnapshotRepository, history_point_count
 from packages.runtime_config import load_runtime_config
+
+
+def _force_utf8_stdio() -> None:
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None:
+            reconfigure(encoding="utf-8", errors="replace")
+
+
+_force_utf8_stdio()
 
 
 async def run(args: argparse.Namespace) -> int:

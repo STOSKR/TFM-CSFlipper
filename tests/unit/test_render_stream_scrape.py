@@ -68,6 +68,28 @@ def test_render_stream_scrape_prints_unicode_when_parent_encoding_is_cp1252() ->
     assert "render_stream_candidate=★ item" in result.stdout
 
 
+def test_render_stream_refresh_child_forces_utf8(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[dict[str, str]] = []
+
+    class Result:
+        returncode = 0
+
+    def fake_run(*_args: object, **kwargs: object) -> Result:
+        calls.append(kwargs["env"])
+        return Result()
+
+    monkeypatch.setenv("PYTHONIOENCODING", "cp1252")
+    monkeypatch.setenv("PWDEBUG", "1")
+    monkeypatch.setattr(render_stream_scrape.subprocess, "run", fake_run)
+
+    args = build_parser(load_runtime_config()).parse_args(["--no-refresh"])
+    render_stream_scrape._run_refresh(args)
+
+    assert calls[0]["PYTHONIOENCODING"] == "utf-8"
+    assert calls[0]["PYTHONUTF8"] == "1"
+    assert "PWDEBUG" not in calls[0]
+
+
 @pytest.mark.asyncio
 async def test_render_stream_scrape_limit_applies_per_profile(
     monkeypatch: pytest.MonkeyPatch,

@@ -1,3 +1,6 @@
+import os
+import subprocess
+import sys
 from datetime import UTC, datetime
 from decimal import Decimal
 from inspect import getsource
@@ -61,6 +64,27 @@ def test_buff_history_days_uses_full_window_when_any_item_has_no_history() -> No
     )
 
     assert days == 365
+
+
+def test_refresh_market_history_prints_unicode_when_parent_encoding_is_cp1252() -> None:
+    env = dict(os.environ)
+    env["PYTHONIOENCODING"] = "cp1252"
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "import apps.cli.refresh_market_history; print('[1/1] ★ item')",
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        env=env,
+    )
+
+    assert result.returncode == 0
+    assert "[1/1] ★ item" in result.stdout
 
 
 def test_compact_refresh_lines_show_prices_errors_and_skips() -> None:
