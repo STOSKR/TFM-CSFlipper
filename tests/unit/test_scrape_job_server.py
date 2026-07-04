@@ -75,6 +75,7 @@ def test_build_scrape_job_command_can_run_refresh_only() -> None:
             "SCRAPE_REFRESH_LIMIT": "5",
             "SCRAPE_PERSIST": "true",
             "SCRAPE_SHOW_BROWSER": "false",
+            "SCRAPE_BUFF_CAPTCHA_WAIT_SECONDS": "180",
         }
     )
 
@@ -88,6 +89,8 @@ def test_build_scrape_job_command_can_run_refresh_only() -> None:
         "--limit",
         "5",
         "--persist",
+        "--buff-captcha-wait-seconds",
+        "180",
         "--no-concurrent-platforms",
     ]
 
@@ -146,6 +149,7 @@ def test_build_streaming_scrape_job_command_accepts_platform_and_refresh_overrid
             "SCRAPE_REFRESH": "false",
             "SCRAPE_STEAM_CONCURRENCY": "4",
             "SCRAPE_BUFF_CONCURRENCY": "2",
+            "SCRAPE_BUFF_CAPTCHA_WAIT_SECONDS": "180",
         }
     )
 
@@ -164,6 +168,8 @@ def test_build_streaming_scrape_job_command_accepts_platform_and_refresh_overrid
         "4",
         "--buff-concurrency",
         "2",
+        "--buff-captcha-wait-seconds",
+        "180",
         "--no-refresh",
         "--persist",
         "--no-concurrent-platforms",
@@ -285,6 +291,18 @@ def test_scrape_progress_parser_maps_streaming_steps() -> None:
     assert _progress_from_line("buff_fetch_start=2/4 item=A") == (
         20,
         "BUFF consultando 2/4",
+    )
+    assert _progress_from_line("buff_captcha=detected remaining=300 item=A") == (
+        20,
+        "BUFF captcha: resuelvelo en el navegador",
+    )
+    assert _progress_from_line("buff_captcha=waiting remaining=245 item=A") == (
+        20,
+        "BUFF captcha: esperando solucion manual (245s)",
+    )
+    assert _progress_from_line("buff_captcha=solved remaining=0 item=A") == (
+        20,
+        "BUFF captcha resuelto",
     )
     assert _progress_from_line("steam_progress=2/4 ok=2 errors=0 state=ok last=A") == (
         20,

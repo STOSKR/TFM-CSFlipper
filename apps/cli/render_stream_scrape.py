@@ -10,6 +10,7 @@ from collections.abc import AsyncIterator
 from datetime import datetime
 from decimal import Decimal
 from pathlib import Path
+from typing import Any
 
 from apps.acquisition.buff163_market import Buff163ConnectorConfig
 from apps.acquisition.platform_workers import (
@@ -173,6 +174,7 @@ def _run_refresh(args: argparse.Namespace) -> int:
         command.append("--dry-run")
     if args.show_browser:
         command.append("--show-browser")
+    command.extend(["--buff-captcha-wait-seconds", str(args.buff_captcha_wait_seconds)])
     if args.concurrent_platforms:
         command.append("--concurrent-platforms")
     else:
@@ -220,6 +222,7 @@ def _worker_config(args: argparse.Namespace) -> PlatformWorkerConfig:
             max_concurrency=args.buff_concurrency,
             min_delay_seconds=args.buff_min_delay,
             max_delay_seconds=args.buff_max_delay,
+            captcha_wait_seconds=args.buff_captcha_wait_seconds,
         ),
     )
 
@@ -328,6 +331,7 @@ def build_parser(runtime_config: Any) -> argparse.ArgumentParser:
         type=float,
         default=runtime_config.delays.buff_max_seconds,
     )
+    parser.add_argument("--buff-captcha-wait-seconds", type=int, default=300)
     parser.add_argument(
         "--steam-fee-percent",
         type=float,

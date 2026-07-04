@@ -8,6 +8,7 @@ from apps.acquisition.buff163_market import (
     Buff163CandidateError,
     Buff163Connector,
     Buff163Observation,
+    _buff_manual_challenge_present,
     extract_buff_api_buy_orders,
     extract_buff_buy_orders,
     extract_buff_price_history,
@@ -270,6 +271,30 @@ def test_buff_connector_emits_compact_progress_lines() -> None:
     ]
 
 
+def test_buff_connector_emits_manual_captcha_progress() -> None:
+    lines: list[str] = []
+    connector = Buff163Connector(progress_log=lines.append)
+
+    connector._emit_captcha_progress(
+        "detected",
+        Buff163Candidate(
+            market_hash_name="AK-47 | Slate (Field-Tested)",
+            buff_url="https://buff.163.com/goods/1",
+        ),
+        remaining_seconds=300,
+    )
+
+    assert lines == [
+        "buff_captcha=detected remaining=300 item=AK-47 | Slate (Field-Tested)"
+    ]
+
+
+@pytest.mark.asyncio
+async def test_buff_manual_challenge_detection_uses_page_evaluate() -> None:
+    assert await _buff_manual_challenge_present(FakeBuffChallengePage(True)) is True
+    assert await _buff_manual_challenge_present(FakeBuffChallengePage(False)) is False
+
+
 @pytest.mark.asyncio
 async def test_buff_connector_lenient_empty_candidates() -> None:
     observations, errors = await Buff163Connector().fetch_candidates_lenient(
@@ -279,3 +304,11 @@ async def test_buff_connector_lenient_empty_candidates() -> None:
 
     assert observations == ()
     assert errors == ()
+
+
+class FakeBuffChallengePage:
+    def __init__(self, present: bool) -> None:
+        self.present = present
+
+    async def evaluate(self, _script: str) -> bool:
+        return self.present

@@ -150,6 +150,9 @@ def build_scrape_job_command(env: Mapping[str, str] | None = None) -> list[str]:
             command.append("--dry-run")
         if _bool(values.get("SCRAPE_SHOW_BROWSER"), default=False):
             command.append("--show-browser")
+        buff_captcha_wait = _optional_int(values.get("SCRAPE_BUFF_CAPTCHA_WAIT_SECONDS"))
+        if buff_captcha_wait is not None:
+            command.extend(["--buff-captcha-wait-seconds", str(buff_captcha_wait)])
         command.append(_platform_concurrency_flag(values))
         return command
 
@@ -242,6 +245,9 @@ def _build_streaming_scrape_job_command(values: Mapping[str, str]) -> list[str]:
     buff_concurrency = _optional_int(values.get("SCRAPE_BUFF_CONCURRENCY"))
     if buff_concurrency is not None:
         command.extend(["--buff-concurrency", str(buff_concurrency)])
+    buff_captcha_wait = _optional_int(values.get("SCRAPE_BUFF_CAPTCHA_WAIT_SECONDS"))
+    if buff_captcha_wait is not None:
+        command.extend(["--buff-captcha-wait-seconds", str(buff_captcha_wait)])
     _append_bool_flag(command, values, "SCRAPE_REFRESH", "--refresh", "--no-refresh")
     _append_bool_flag(command, values, "SCRAPE_SCORE", "--score", "--no-score")
     if _bool(values.get("SCRAPE_PERSIST"), default=True):
@@ -628,6 +634,8 @@ def _progress_from_line(
         return 20, _platform_start_text(line)
     if line.startswith(("steam_browser=", "buff_browser=")):
         return 20, _browser_step_text(line)
+    if line.startswith("buff_captcha="):
+        return 20, _buff_captcha_text(line)
     if line.startswith(("steam_fetch_start=", "buff_fetch_start=")):
         return 20, _platform_fetch_start_text(line)
     if line.startswith(("steam_progress=", "buff_progress=")):
@@ -714,6 +722,20 @@ def _browser_step_text(line: str) -> str:
         "context_ready": "contexto listo",
     }
     return f"{_platform_label(platform)} {labels.get(step, step)}".strip()
+
+
+def _buff_captcha_text(line: str) -> str:
+    state = _line_text_value(line, "buff_captcha") or ""
+    remaining = _line_text_value(line, "remaining")
+    if state == "detected":
+        return "BUFF captcha: resuelvelo en el navegador"
+    if state == "waiting":
+        return f"BUFF captcha: esperando solucion manual ({remaining or '?'}s)"
+    if state == "solved":
+        return "BUFF captcha resuelto"
+    if state == "timeout":
+        return "BUFF captcha sin resolver"
+    return "BUFF captcha"
 
 
 def _platform_progress_text(line: str) -> str:

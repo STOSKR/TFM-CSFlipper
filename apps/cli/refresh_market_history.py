@@ -341,6 +341,7 @@ def _worker_config(
             max_concurrency=args.buff_concurrency,
             min_delay_seconds=args.buff_min_delay,
             max_delay_seconds=args.buff_max_delay,
+            captcha_wait_seconds=args.buff_captcha_wait_seconds,
         ),
     )
 
@@ -430,6 +431,7 @@ def main() -> None:
         type=float,
         default=runtime_config.delays.buff_max_seconds,
     )
+    parser.add_argument("--buff-captcha-wait-seconds", type=int, default=300)
     parser.add_argument("--buff-history-days", type=int)
     parser.add_argument("--buff-history-max-days", type=int, default=365)
     parser.add_argument("--verbose", action="store_true")

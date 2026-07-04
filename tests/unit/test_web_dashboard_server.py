@@ -31,6 +31,7 @@ def test_web_scrape_command_refreshes_items_older_than_eight_hours() -> None:
     assert command[command.index("--stale-minutes") + 1] == "480"
     assert command[command.index("--steam-concurrency") + 1] == "2"
     assert command[command.index("--buff-concurrency") + 1] == "2"
+    assert command[command.index("--buff-captcha-wait-seconds") + 1] == "300"
     assert "--score" in command
     assert "--concurrent-platforms" in command
     assert "--show-browser" in command

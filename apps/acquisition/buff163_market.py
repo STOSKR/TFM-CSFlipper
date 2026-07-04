@@ -6,6 +6,7 @@ import asyncio
 import json
 import random
 import re
+import time
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -79,6 +80,7 @@ class Buff163ConnectorConfig:
     timeout_ms: int = 30000
     wait_after_load_ms: int = 2500
     manual_login_wait_ms: int = 0
+    captcha_wait_seconds: int = 300
     history_days: int = 365
     min_delay_seconds: float = 0.0
     max_delay_seconds: float = 0.0
@@ -252,6 +254,7 @@ class Buff163Connector:
                 )
                 await page.wait_for_timeout(self._config.manual_login_wait_ms)
             await page.wait_for_timeout(self._config.wait_after_load_ms)
+            await self._wait_for_manual_challenge(page, candidate, debug_log=debug_log)
             payload = await page.evaluate(
                 f"""
                 async (goodsId) => {{
@@ -409,11 +412,43 @@ class Buff163Connector:
         await asyncio.sleep(delay)
 
     def _candidate_timeout_seconds(self) -> float:
-        return (
+        base_seconds = (
             self._config.timeout_ms
             + self._config.wait_after_load_ms
             + self._config.manual_login_wait_ms
         ) / 1000 + max(0.0, self._config.max_delay_seconds) + 15.0
+        return base_seconds + max(0, self._config.captcha_wait_seconds)
+
+    async def _wait_for_manual_challenge(
+        self,
+        page: Any,
+        candidate: Buff163Candidate,
+        *,
+        debug_log: list[str],
+    ) -> None:
+        if not await _buff_manual_challenge_present(page):
+            return
+        wait_seconds = max(1, self._config.captcha_wait_seconds)
+        self._debug(
+            candidate.market_hash_name,
+            debug_log,
+            f"captcha_detected waiting_manual_seconds={wait_seconds}",
+        )
+        self._emit_captcha_progress("detected", candidate, remaining_seconds=wait_seconds)
+        deadline = time.monotonic() + wait_seconds
+        while time.monotonic() < deadline:
+            await page.wait_for_timeout(5000)
+            if not await _buff_manual_challenge_present(page):
+                self._debug(candidate.market_hash_name, debug_log, "captcha_solved")
+                self._emit_captcha_progress("solved", candidate, remaining_seconds=0)
+                await page.wait_for_timeout(self._config.wait_after_load_ms)
+                return
+            remaining = max(0, round(deadline - time.monotonic()))
+            self._emit_captcha_progress("waiting", candidate, remaining_seconds=remaining)
+        self._emit_captcha_progress("timeout", candidate, remaining_seconds=0)
+        raise Buff163Error(
+            f"BUFF captcha still present after {wait_seconds}s for {candidate.market_hash_name}"
+        )
 
     def _debug(self, item: str, debug_log: list[str], message: str) -> None:
         debug_log.append(message)
@@ -463,6 +498,57 @@ class Buff163Connector:
     def _emit_browser_progress(self, step: str) -> None:
         if self._progress_log is not None:
             self._progress_log(f"buff_browser={step}")
+
+    def _emit_captcha_progress(
+        self,
+        state: str,
+        candidate: Buff163Candidate,
+        *,
+        remaining_seconds: int,
+    ) -> None:
+        if self._progress_log is None:
+            return
+        self._progress_log(
+            "buff_captcha="
+            f"{state} remaining={remaining_seconds} "
+            f"item={_compact_log_text(candidate.market_hash_name)}"
+        )
+
+
+async def _buff_manual_challenge_present(page: Any) -> bool:
+    return bool(
+        await page.evaluate(
+            """
+            () => {
+              const selector = [
+                "iframe[src*='captcha']",
+                "iframe[src*='geetest']",
+                "[id*='captcha' i]",
+                "[class*='captcha' i]",
+                "[id*='geetest' i]",
+                "[class*='geetest' i]",
+                "[class*='verify' i]",
+                "[id*='verify' i]"
+              ].join(",");
+              if (document.querySelector(selector)) {
+                return true;
+              }
+              const text = (document.body ? document.body.innerText : "").toLowerCase();
+              return [
+                "captcha",
+                "verify you are human",
+                "security check",
+                "slide to complete",
+                "人机",
+                "验证",
+                "安全验证",
+                "请完成",
+                "滑动"
+              ].some((marker) => text.includes(marker.toLowerCase()));
+            }
+            """
+        )
+    )
 
 
 def extract_buff_price_text(
