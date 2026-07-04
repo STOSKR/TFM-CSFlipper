@@ -100,3 +100,8 @@ async def test_render_stream_scrape_limit_applies_per_profile(
         "steam_sell_slow": 2,
         "platform_arbitrage_safe": 2,
     }
+    assert {
+        candidate.buy_mode
+        for candidate in candidates
+        if candidate.strategy_id == "steam_sell_slow"
+    } == {"Buy via Platform Buy Order"}

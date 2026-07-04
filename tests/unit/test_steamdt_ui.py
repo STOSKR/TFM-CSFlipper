@@ -17,6 +17,15 @@ async def test_click_tab_by_text_uses_exact_normalized_label() -> None:
 
 
 @pytest.mark.asyncio
+async def test_click_tab_by_text_supports_platform_buy_order_label() -> None:
+    page = FakeSteamDTPage()
+
+    await click_tab_by_text(page, "Buy via Platform Buy Order")
+
+    assert page.clicked_label == "Buy via PlatformPlace Buy Order"
+
+
+@pytest.mark.asyncio
 async def test_click_tab_by_text_reports_missing_option() -> None:
     page = FakeSteamDTPage()
 
@@ -65,6 +74,7 @@ class FakeSteamDTPage:
             "Platform Balance",
             "Buy at STEAM Lowest Price",
             "STEAM Balance",
+            "Buy via PlatformPlace Buy Order",
         ]
         self.clicked_label = next((label for label in candidates if label in labels), None)
         return self.clicked_label is not None

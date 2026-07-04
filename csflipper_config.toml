@@ -20,12 +20,12 @@ enabled_profiles = ["steam_sell_slow", "platform_arbitrage_safe"]
 [steamdt.profiles.steam_sell_slow]
 balance_type = "STEAM Balance"
 sell_mode = "Sell at STEAM Lowest Price"
-buy_mode = ""
+buy_mode = "Buy via Platform Buy Order"
 
 [steamdt.profiles.steam_sell_fast]
 balance_type = "STEAM Balance"
 sell_mode = "Sell to STEAM Highest Buy Order"
-buy_mode = ""
+buy_mode = "Buy via Platform Buy Order"
 
 [steamdt.profiles.platform_arbitrage_safe]
 balance_type = "Platform Balance"

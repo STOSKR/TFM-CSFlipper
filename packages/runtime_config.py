@@ -157,12 +157,12 @@ def _default_steamdt_profiles() -> dict[str, SteamDTProfileConfig]:
         "steam_sell_slow": SteamDTProfileConfig(
             balance_type="STEAM Balance",
             sell_mode="Sell at STEAM Lowest Price",
-            buy_mode=None,
+            buy_mode="Buy via Platform Buy Order",
         ),
         "steam_sell_fast": SteamDTProfileConfig(
             balance_type="STEAM Balance",
             sell_mode="Sell to STEAM Highest Buy Order",
-            buy_mode=None,
+            buy_mode="Buy via Platform Buy Order",
         ),
         "platform_arbitrage_safe": SteamDTProfileConfig(
             balance_type="Platform Balance",

@@ -115,3 +115,16 @@ def test_load_runtime_config_reads_all_profile_mode_and_multiple_profiles(
         "platform_buy_order_to_platform_highest",
     )
     assert config.steamdt.profiles["steam_sell_fast"].buy_mode is None
+
+
+def test_default_steam_balance_profiles_have_explicit_buy_mode(tmp_path: Path) -> None:
+    config = load_runtime_config(tmp_path / "missing.toml")
+
+    assert (
+        config.steamdt.profiles["steam_sell_slow"].buy_mode
+        == "Buy via Platform Buy Order"
+    )
+    assert (
+        config.steamdt.profiles["steam_sell_fast"].buy_mode
+        == "Buy via Platform Buy Order"
+    )

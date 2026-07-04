@@ -216,5 +216,16 @@ def localized_tab_labels(text: str) -> tuple[str, ...]:
             "Buy at STEAM Lowest Price",
             "\u0053\u0054\u0045\u0041\u004d\u5e95\u4ef7",
         ),
+        "Buy via Platform Buy Order": (
+            "Buy via Platform Buy Order",
+            "Buy via PlatformPlace Buy Order",
+            "Buy via Platform Place Buy Order",
+            "PlatformPlace Buy Order",
+            "Platform Place Buy Order",
+        ),
+        "Buy at Platform Lowest Price": (
+            "Buy at Platform Lowest Price",
+            "Platform Lowest Price",
+        ),
     }
     return labels.get(text, (text,))
