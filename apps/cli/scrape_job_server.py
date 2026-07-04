@@ -406,6 +406,8 @@ def _start_job_process(
         stdout=subprocess.PIPE if capture_output else None,
         stderr=subprocess.STDOUT if capture_output else None,
         text=capture_output,
+        encoding="utf-8" if capture_output else None,
+        errors="replace" if capture_output else None,
         bufsize=1 if capture_output else -1,
     )
 
@@ -484,6 +486,8 @@ def _subprocess_env(base_env: Mapping[str, str]) -> dict[str, str]:
     env = dict(base_env)
     env.setdefault("PLAYWRIGHT_BROWSERS_PATH", "0")
     env.setdefault("PYTHONUNBUFFERED", "1")
+    env.setdefault("PYTHONIOENCODING", "utf-8")
+    env.setdefault("PYTHONUTF8", "1")
     return env
 
 

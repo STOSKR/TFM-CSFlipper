@@ -240,6 +240,20 @@ def test_run_command_retries_after_silent_stall(monkeypatch) -> None:
     assert "job_attempt=2/2" in lines
 
 
+def test_run_command_handles_unicode_child_output(monkeypatch) -> None:
+    lines: list[str] = []
+    monkeypatch.setenv("SCRAPE_ENSURE_PLAYWRIGHT", "false")
+    monkeypatch.setenv("SCRAPE_JOB_RETRIES", "0")
+
+    return_code = _run_command(
+        [sys.executable, "-c", "print('render_stream_candidate=★ item')"],
+        log=lines.append,
+    )
+
+    assert return_code == 0
+    assert "render_stream_candidate=★ item" in lines
+
+
 def test_scrape_progress_parser_maps_streaming_steps() -> None:
     assert _progress_from_line("job_started") == (1, "Arrancando")
     assert _progress_from_line("playwright_check=start") == (2, "Preparando navegador")
@@ -367,3 +381,9 @@ def test_playwright_browser_path_defaults_to_project_install() -> None:
 def test_subprocess_env_defaults_to_unbuffered_python() -> None:
     assert _subprocess_env({})["PYTHONUNBUFFERED"] == "1"
     assert _subprocess_env({"PYTHONUNBUFFERED": "0"})["PYTHONUNBUFFERED"] == "0"
+
+
+def test_subprocess_env_defaults_to_utf8_python_io() -> None:
+    assert _subprocess_env({})["PYTHONIOENCODING"] == "utf-8"
+    assert _subprocess_env({})["PYTHONUTF8"] == "1"
+    assert _subprocess_env({"PYTHONIOENCODING": "cp1252"})["PYTHONIOENCODING"] == "cp1252"
