@@ -26,7 +26,7 @@ PersistSnapshots = Callable[[tuple[SimpleMarketSnapshot, ...]], Awaitable[Any]]
 
 @dataclass(frozen=True, slots=True)
 class StreamingPipelineConfig:
-    batch_size: int = 5
+    batch_size: int = 10
     queue_maxsize: int = 10
 
     def __post_init__(self) -> None:

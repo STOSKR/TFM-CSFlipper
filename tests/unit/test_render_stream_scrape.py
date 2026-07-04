@@ -18,7 +18,7 @@ def test_render_stream_scrape_defaults_match_local_fast_flow() -> None:
     assert args.steam_api is False
     assert args.steam_concurrency == 2
     assert args.buff_concurrency == 2
-    assert args.batch_size == 5
+    assert args.batch_size == 10
     assert args.persist is True
     assert args.refresh is True
     assert args.score is False
@@ -45,7 +45,9 @@ def test_render_stream_scrape_fast_alias_selects_fast_profile() -> None:
 
 
 @pytest.mark.asyncio
-async def test_render_stream_scrape_limit_applies_per_profile(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_render_stream_scrape_limit_applies_per_profile(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     class FakeDiscovery:
         def __init__(self, filters: object, *, progress_log: object) -> None:
             self.filters = filters
@@ -65,7 +67,9 @@ async def test_render_stream_scrape_limit_applies_per_profile(monkeypatch: pytes
     monkeypatch.setattr(render_stream_scrape, "SteamDTHangingDiscovery", FakeDiscovery)
 
     args = build_parser(load_runtime_config()).parse_args(["2"])
-    candidates = [candidate async for candidate in render_stream_scrape._iter_steamdt_candidates(args)]
+    candidates = [
+        candidate async for candidate in render_stream_scrape._iter_steamdt_candidates(args)
+    ]
 
     assert len(candidates) == 4
     assert Counter(candidate.strategy_id for candidate in candidates) == {

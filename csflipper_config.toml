@@ -50,7 +50,7 @@ buy_mode = "Buy via STEAM Buy Order"
 [workers]
 steam_concurrency = 2
 buff_concurrency = 2
-batch_size = 5
+batch_size = 10
 
 [delays]
 steam_min_seconds = 1.5

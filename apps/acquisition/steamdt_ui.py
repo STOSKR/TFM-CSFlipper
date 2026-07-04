@@ -43,11 +43,30 @@ async def close_modal(page: Any) -> None:
 async def change_currency(page: Any, currency_code: str) -> None:
     if not currency_code:
         return
+    current = await page.evaluate(
+        """
+        (currency) => {
+          const clean = (value) => String(value || "").replace(/\\s+/g, " ").trim();
+          const nodes = Array.from(document.querySelectorAll(".el-dropdown-link"));
+          return nodes.some((node) => clean(node.innerText || node.textContent) === currency);
+        }
+        """,
+        currency_code,
+    )
+    if current:
+        return
     for selector in (".el-dropdown-link", "[class*='currency']", "[class*='dropdown']"):
         locator = page.locator(selector)
-        if await locator.count() == 0:
+        try:
+            count = await locator.count()
+        except Exception:
             continue
-        await locator.first.click(force=True)
+        if count == 0:
+            continue
+        try:
+            await locator.first.click(force=True)
+        except Exception:
+            continue
         await page.wait_for_timeout(500)
         option = page.locator(f'li:has-text("{currency_code}")')
         if await option.count() > 0:
@@ -84,6 +103,8 @@ async def click_tab_by_text(page: Any, text: str | None) -> None:
     )
     if clicked:
         await page.wait_for_timeout(700)
+        return
+    raise RuntimeError(f"SteamDT option not found: {text}")
 
 
 async def current_option_description(page: Any) -> str:

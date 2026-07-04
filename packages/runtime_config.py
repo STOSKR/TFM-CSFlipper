@@ -60,7 +60,7 @@ class SteamDTConfig:
 class WorkerConfig:
     steam_concurrency: int = 1
     buff_concurrency: int = 1
-    batch_size: int = 5
+    batch_size: int = 10
 
 
 @dataclass(frozen=True, slots=True)
@@ -181,7 +181,7 @@ def _worker_config(section: dict[str, Any]) -> WorkerConfig:
     return WorkerConfig(
         steam_concurrency=_int(section, "steam_concurrency", 1),
         buff_concurrency=_int(section, "buff_concurrency", 1),
-        batch_size=_int(section, "batch_size", 5),
+        batch_size=_int(section, "batch_size", 10),
     )
 
 

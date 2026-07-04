@@ -149,6 +149,7 @@ class SteamDTHangingDiscovery:
             context = await browser.new_context(**context_options)
             page = await context.new_page()
             page.set_default_timeout(min(self.filters.timeout_ms, 10_000))
+            candidates: tuple[SteamDTCandidate, ...] = ()
             try:
                 if self.filters.block_heavy_resources:
                     await self._block_heavy_resources(page)
@@ -170,7 +171,10 @@ class SteamDTHangingDiscovery:
                     self._log("steamdt_stage=wait_tabs status=ok")
                 await page.wait_for_timeout(self.filters.initial_wait_ms)
                 self._log("steamdt_stage=configure_filters")
-                await self._configure_filters(page)
+                configured = await self._configure_filters(page)
+                if not configured:
+                    self._log("steamdt_stage=done count=0 reason=configure_failed")
+                    return ()
                 self._log("steamdt_stage=extract_rows")
                 rows = await self._extract_rows(page)
                 self._log(f"steamdt_stage=parse_rows rows={len(rows)}")
@@ -230,7 +234,7 @@ class SteamDTHangingDiscovery:
         self.filters.session_state_path.parent.mkdir(parents=True, exist_ok=True)
         await context.storage_state(path=str(self.filters.session_state_path))
 
-    async def _configure_filters(self, page: Any) -> None:
+    async def _configure_filters(self, page: Any) -> bool:
         steps: tuple[tuple[str, Callable[[], Awaitable[object]]], ...] = (
             ("currency", lambda: change_currency(page, self.filters.currency_code)),
             ("balance", lambda: click_tab_by_text(page, self.filters.balance_type)),
@@ -262,7 +266,7 @@ class SteamDTHangingDiscovery:
                 self._log(
                     f"steamdt_stage=configure_filters status=aborted_after step={name}"
                 )
-                return
+                return False
         description = await current_option_description(page)
         self._log(
             "steamdt_selected_options "
@@ -272,6 +276,7 @@ class SteamDTHangingDiscovery:
             f"description={_compact_debug_text(description, max_length=260)}"
         )
         await page.wait_for_timeout(self.filters.wait_after_search_ms)
+        return True
 
     async def _run_ui_step(
         self,

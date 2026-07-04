@@ -2,8 +2,11 @@ import json
 from decimal import Decimal
 from pathlib import Path
 
+import pytest
+
 from apps.acquisition.steamdt_hanging import (
     SteamDTCandidate,
+    SteamDTHangingDiscovery,
     SteamDTHangingFilters,
     calculate_break_even_steam_price,
     calculate_gross_profit,
@@ -119,6 +122,31 @@ def test_steamdt_discovery_blocks_heavy_resources_by_default() -> None:
 
     assert filters.block_heavy_resources is True
     assert "--disable-dev-shm-usage" in filters.browser_args
+
+
+async def _ok_step(*_args: object, **_kwargs: object) -> None:
+    return None
+
+
+@pytest.mark.asyncio
+async def test_steamdt_configure_filters_aborts_when_option_is_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    logs: list[str] = []
+
+    async def missing_tab(*_args: object, **_kwargs: object) -> None:
+        raise RuntimeError("missing")
+
+    monkeypatch.setattr("apps.acquisition.steamdt_hanging.change_currency", _ok_step)
+    monkeypatch.setattr("apps.acquisition.steamdt_hanging.click_tab_by_text", missing_tab)
+
+    configured = await SteamDTHangingDiscovery(progress_log=logs.append)._configure_filters(
+        FakeDebugPage()
+    )
+
+    assert configured is False
+    assert "steamdt_stage=configure_filters status=aborted_after step=balance" in logs
+    assert not any(line.startswith("steamdt_selected_options") for line in logs)
 
 
 def test_parse_steamdt_hanging_row_prefers_steam_url_identity() -> None:
@@ -250,3 +278,20 @@ def test_merge_candidate_links_fills_missing_buff_url_from_detail_links() -> Non
 
     assert enriched.buff_url == "https://buff.163.com/goods/35031?from=market#tab=selling"
     assert enriched.steam_url == "https://steamcommunity.com/market/listings/730/Glock-18"
+
+
+class FakeDebugPage:
+    url = "https://www.steamdt.com/en/hanging"
+
+    async def title(self) -> str:
+        return "SteamDT"
+
+    async def evaluate(self, *_args: object) -> dict[str, object]:
+        return {
+            "url": self.url,
+            "tabs": 0,
+            "inputs": 0,
+            "dialogs": 0,
+            "buttons": 0,
+            "body": "",
+        }
