@@ -61,24 +61,53 @@ async def click_tab_by_text(page: Any, text: str | None) -> None:
     if not text:
         return
     labels = localized_tab_labels(text)
-    locator = page.locator(f'.tabs-item:has-text("{labels[0]}")')
-    if await locator.count() == 0:
-        for label in labels[1:]:
-            locator = page.locator(f'.tabs-item:has-text("{label}")')
-            if await locator.count() > 0:
-                break
-    if await locator.count() == 0:
-        for label in labels:
-            locator = page.locator(f'text="{label}"')
-            if await locator.count() > 0:
-                break
-    if await locator.count() == 0:
-        return
-    target = locator.first
-    class_name = await target.get_attribute("class") or ""
-    if "active" not in class_name:
-        await target.click(force=True)
-        await page.wait_for_timeout(500)
+    clicked = await page.evaluate(
+        """
+        (labels) => {
+          const clean = (value) => String(value || "").replace(/\\s+/g, " ").trim();
+          const wanted = new Set(labels.map(clean));
+          const nodes = Array.from(
+            document.querySelectorAll(".tabs-item, [role='tab'], button")
+          );
+          const target = nodes.find((node) =>
+            wanted.has(clean(node.innerText || node.textContent))
+          );
+          if (!target) {
+            return false;
+          }
+          target.scrollIntoView({ block: "center", inline: "center" });
+          target.click();
+          return true;
+        }
+        """,
+        list(labels),
+    )
+    if clicked:
+        await page.wait_for_timeout(700)
+
+
+async def current_option_description(page: Any) -> str:
+    return str(
+        await page.evaluate(
+            """
+            () => {
+              const clean = (value) => String(value || "").replace(/\\s+/g, " ").trim();
+              const body = clean(document.body && document.body.innerText);
+              const marker = "Current Option Description:";
+              const index = body.indexOf(marker);
+              if (index < 0) {
+                return "";
+              }
+              const rest = body.slice(index + marker.length).trim();
+              const nextSection = rest.search(
+                /\\b(Name|Platform Lowest|Steam Lowest|Net Platform)\\b/
+              );
+              return clean(nextSection >= 0 ? rest.slice(0, nextSection) : rest);
+            }
+            """
+        )
+        or ""
+    )
 
 
 async def fill_price_volume_filters(

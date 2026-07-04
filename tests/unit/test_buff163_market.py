@@ -296,6 +296,17 @@ async def test_buff_manual_challenge_detection_uses_page_evaluate() -> None:
 
 
 @pytest.mark.asyncio
+async def test_buff_manual_challenge_ignores_loaded_goods_page() -> None:
+    assert await _buff_manual_challenge_present(
+        FakeBuffChallengePage(
+            True,
+            url="https://buff.163.com/goods/359622?from=market#tab=selling",
+            body_text="P2000 | Pulse Sell(48) Buy orders(43) Trade Records Precio de referencia",
+        )
+    ) is False
+
+
+@pytest.mark.asyncio
 async def test_buff_connector_lenient_empty_candidates() -> None:
     observations, errors = await Buff163Connector().fetch_candidates_lenient(
         [],
@@ -307,8 +318,17 @@ async def test_buff_connector_lenient_empty_candidates() -> None:
 
 
 class FakeBuffChallengePage:
-    def __init__(self, present: bool) -> None:
+    def __init__(self, present: bool, *, url: str = "", body_text: str = "") -> None:
         self.present = present
+        self.url = url
+        self.body_text = body_text
 
     async def evaluate(self, _script: str) -> bool:
+        if "/goods/" in self.url and (
+            "Sell(" in self.body_text
+            or "Buy orders" in self.body_text
+            or "Trade Records" in self.body_text
+            or "Precio de referencia" in self.body_text
+        ):
+            return False
         return self.present

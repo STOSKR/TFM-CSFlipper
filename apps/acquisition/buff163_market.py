@@ -526,24 +526,35 @@ async def _buff_manual_challenge_present(page: Any) -> bool:
                 "[id*='captcha' i]",
                 "[class*='captcha' i]",
                 "[id*='geetest' i]",
-                "[class*='geetest' i]",
-                "[class*='verify' i]",
-                "[id*='verify' i]"
+                "[class*='geetest' i]"
               ].join(",");
+              const text = (document.body ? document.body.innerText : "").toLowerCase();
+              const normalMarketPage = location.href.includes("/goods/")
+                && (
+                  text.includes("sell(")
+                  || text.includes("buy orders")
+                  || text.includes("trade records")
+                  || text.includes("precio de referencia")
+                  || text.includes("price trend")
+                  || text.includes("comprar")
+                  || document.querySelector(".list_tb_csgo, .selling, .f_Strong")
+                );
+              if (normalMarketPage) {
+                return false;
+              }
               if (document.querySelector(selector)) {
                 return true;
               }
-              const text = (document.body ? document.body.innerText : "").toLowerCase();
               return [
                 "captcha",
                 "verify you are human",
                 "security check",
                 "slide to complete",
-                "人机",
-                "验证",
+                "人机验证",
                 "安全验证",
                 "请完成",
-                "滑动"
+                "滑动验证",
+                "拖动滑块"
               ].some((marker) => text.includes(marker.toLowerCase()));
             }
             """

@@ -17,6 +17,7 @@ from apps.acquisition.steamdt_ui import (
     click_tab_by_text,
     close_modal,
     configure_platforms,
+    current_option_description,
     fill_price_volume_filters,
 )
 from packages.domain.market_parsing import (
@@ -233,8 +234,8 @@ class SteamDTHangingDiscovery:
         steps: tuple[tuple[str, Callable[[], Awaitable[object]]], ...] = (
             ("currency", lambda: change_currency(page, self.filters.currency_code)),
             ("balance", lambda: click_tab_by_text(page, self.filters.balance_type)),
-            ("sell_mode", lambda: click_tab_by_text(page, self.filters.sell_mode)),
             ("buy_mode", lambda: click_tab_by_text(page, self.filters.buy_mode)),
+            ("sell_mode", lambda: click_tab_by_text(page, self.filters.sell_mode)),
             (
                 "filters",
                 lambda: fill_price_volume_filters(
@@ -262,6 +263,14 @@ class SteamDTHangingDiscovery:
                     f"steamdt_stage=configure_filters status=aborted_after step={name}"
                 )
                 return
+        description = await current_option_description(page)
+        self._log(
+            "steamdt_selected_options "
+            f"balance={_compact_debug_text(self.filters.balance_type)} "
+            f"buy={_compact_debug_text(self.filters.buy_mode or '-')} "
+            f"sell={_compact_debug_text(self.filters.sell_mode)} "
+            f"description={_compact_debug_text(description, max_length=260)}"
+        )
         await page.wait_for_timeout(self.filters.wait_after_search_ms)
 
     async def _run_ui_step(
