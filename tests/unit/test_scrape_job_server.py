@@ -206,6 +206,7 @@ def test_run_command_stops_silent_child_process(monkeypatch) -> None:
     lines: list[str] = []
     monkeypatch.setenv("SCRAPE_ENSURE_PLAYWRIGHT", "false")
     monkeypatch.setenv("SCRAPE_JOB_STALL_SECONDS", "1")
+    monkeypatch.setenv("SCRAPE_JOB_RETRIES", "0")
 
     return_code = _run_command(
         [sys.executable, "-c", "import time; time.sleep(5)"],
@@ -214,6 +215,23 @@ def test_run_command_stops_silent_child_process(monkeypatch) -> None:
 
     assert return_code == 124
     assert "job_stalled seconds=1" in lines
+
+
+def test_run_command_retries_after_silent_stall(monkeypatch) -> None:
+    lines: list[str] = []
+    monkeypatch.setenv("SCRAPE_ENSURE_PLAYWRIGHT", "false")
+    monkeypatch.setenv("SCRAPE_JOB_STALL_SECONDS", "1")
+    monkeypatch.setenv("SCRAPE_JOB_RETRIES", "1")
+
+    return_code = _run_command(
+        [sys.executable, "-c", "import time; time.sleep(5)"],
+        log=lines.append,
+    )
+
+    assert return_code == 124
+    assert "job_attempt=1/2" in lines
+    assert "job_retry previous_code=124 next_attempt=2/2" in lines
+    assert "job_attempt=2/2" in lines
 
 
 def test_scrape_progress_parser_maps_streaming_steps() -> None:
@@ -227,6 +245,10 @@ def test_scrape_progress_parser_maps_streaming_steps() -> None:
     assert _progress_from_line("job_timeout seconds=600") == (
         20,
         "Timeout, proceso detenido",
+    )
+    assert _progress_from_line("job_retry previous_code=124 next_attempt=2/2") == (
+        20,
+        "Reintentando scraper",
     )
     assert _progress_from_line("render_stream_strategy=steam_sell_slow") == (
         8,

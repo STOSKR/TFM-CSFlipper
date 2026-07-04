@@ -278,6 +278,7 @@ def _append_bool_flag(
 def _run_command(command: Sequence[str], log: Callable[[str], None] | None = None) -> int:
     timeout_seconds = _optional_int(os.getenv("SCRAPE_JOB_TIMEOUT_SECONDS"))
     stall_seconds = _optional_int(os.getenv("SCRAPE_JOB_STALL_SECONDS")) or 120
+    retry_count = max(0, _int(os.getenv("SCRAPE_JOB_RETRIES"), default=1))
     env = _subprocess_env(os.environ)
     output_lock = threading.Lock()
     last_output_at = time.monotonic()
@@ -305,6 +306,36 @@ def _run_command(command: Sequence[str], log: Callable[[str], None] | None = Non
             return install_code
         if log is not None:
             record_log("playwright_check=ready")
+    attempts = retry_count + 1
+    for attempt in range(1, attempts + 1):
+        record_log(f"job_attempt={attempt}/{attempts}")
+        with output_lock:
+            last_output_at = time.monotonic()
+        return_code = _run_command_attempt(
+            command,
+            env,
+            timeout_seconds=timeout_seconds,
+            stall_seconds=stall_seconds,
+            seconds_since_output=seconds_since_output,
+            log=log,
+            record_log=record_log,
+        )
+        if return_code != 124 or attempt == attempts:
+            return return_code
+        record_log(f"job_retry previous_code={return_code} next_attempt={attempt + 1}/{attempts}")
+    return 124
+
+
+def _run_command_attempt(
+    command: Sequence[str],
+    env: Mapping[str, str],
+    *,
+    timeout_seconds: int | None,
+    stall_seconds: int,
+    seconds_since_output: Callable[[], float],
+    log: Callable[[str], None] | None,
+    record_log: Callable[[str], None],
+) -> int:
     process = _start_job_process(command, env, capture_output=log is not None)
     reader = None
     if log is not None and process.stdout is not None:
@@ -581,6 +612,10 @@ def _progress_from_line(
         return 20, "Sin progreso, proceso detenido"
     if line.startswith("job_timeout"):
         return 20, "Timeout, proceso detenido"
+    if line.startswith("job_retry"):
+        return 20, "Reintentando scraper"
+    if line.startswith("job_attempt"):
+        return 20, "Intento de scraper"
     if line.startswith("render_stream_candidate="):
         return 14, "Candidatos detectados"
     if line.startswith("stream_batch="):
