@@ -35,6 +35,16 @@ from packages.persistence.simple_market import SimpleMarketSnapshot
 from packages.runtime_config import load_runtime_config
 
 
+def _force_utf8_stdio() -> None:
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None:
+            reconfigure(encoding="utf-8", errors="replace")
+
+
+_force_utf8_stdio()
+
+
 async def run(args: argparse.Namespace) -> int:
     worker_config = _worker_config(args)
 

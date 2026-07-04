@@ -386,4 +386,4 @@ def test_subprocess_env_defaults_to_unbuffered_python() -> None:
 def test_subprocess_env_defaults_to_utf8_python_io() -> None:
     assert _subprocess_env({})["PYTHONIOENCODING"] == "utf-8"
     assert _subprocess_env({})["PYTHONUTF8"] == "1"
-    assert _subprocess_env({"PYTHONIOENCODING": "cp1252"})["PYTHONIOENCODING"] == "cp1252"
+    assert _subprocess_env({"PYTHONIOENCODING": "cp1252"})["PYTHONIOENCODING"] == "utf-8"

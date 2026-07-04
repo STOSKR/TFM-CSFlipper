@@ -486,8 +486,8 @@ def _subprocess_env(base_env: Mapping[str, str]) -> dict[str, str]:
     env = dict(base_env)
     env.setdefault("PLAYWRIGHT_BROWSERS_PATH", "0")
     env.setdefault("PYTHONUNBUFFERED", "1")
-    env.setdefault("PYTHONIOENCODING", "utf-8")
-    env.setdefault("PYTHONUTF8", "1")
+    env["PYTHONIOENCODING"] = "utf-8"
+    env["PYTHONUTF8"] = "1"
     return env
 
 

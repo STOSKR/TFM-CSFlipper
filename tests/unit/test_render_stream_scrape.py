@@ -1,3 +1,6 @@
+import os
+import subprocess
+import sys
 from collections import Counter
 
 import pytest
@@ -42,6 +45,27 @@ def test_render_stream_scrape_fast_alias_selects_fast_profile() -> None:
         args.profile = "platform_arbitrage_fast"
 
     assert args.profile == "platform_arbitrage_fast"
+
+
+def test_render_stream_scrape_prints_unicode_when_parent_encoding_is_cp1252() -> None:
+    env = dict(os.environ)
+    env["PYTHONIOENCODING"] = "cp1252"
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "import apps.cli.render_stream_scrape; print('render_stream_candidate=★ item')",
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        env=env,
+    )
+
+    assert result.returncode == 0
+    assert "render_stream_candidate=★ item" in result.stdout
 
 
 @pytest.mark.asyncio
