@@ -107,6 +107,7 @@ class ScrapeJobRunner:
         text = _public_job_line(line)
         if text is None:
             return
+        print(f"scrape_job_output {text}", flush=True)
         progress = _progress_from_line(text, expected_batches=self._expected_batches)
         with self._lock:
             self._last_message = text
@@ -530,6 +531,8 @@ def _progress_from_line(
         return _batch_done_progress(line, expected_batches=expected_batches)
     if line.startswith("platform_start="):
         return 20, _platform_start_text(line)
+    if line.startswith(("steam_browser=", "buff_browser=")):
+        return 20, _browser_step_text(line)
     if line.startswith(("steam_fetch_start=", "buff_fetch_start=")):
         return 20, _platform_fetch_start_text(line)
     if line.startswith(("steam_progress=", "buff_progress=")):
@@ -606,11 +609,27 @@ def _platform_start_text(line: str) -> str:
     return f"{_platform_label(platform)} iniciado: {total} items, {concurrency} workers"
 
 
+def _browser_step_text(line: str) -> str:
+    platform = "steam" if line.startswith("steam_browser=") else "buff163"
+    step = _line_text_value(line, f"{platform if platform == 'steam' else 'buff'}_browser") or ""
+    labels = {
+        "launch_start": "lanzando navegador",
+        "launch_ready": "navegador listo",
+        "context_start": "abriendo contexto",
+        "context_ready": "contexto listo",
+    }
+    return f"{_platform_label(platform)} {labels.get(step, step)}".strip()
+
+
 def _platform_progress_text(line: str) -> str:
     platform = "steam" if line.startswith("steam_progress=") else "buff163"
-    progress = _line_text_value(line, f"{platform if platform == 'steam' else 'buff'}_progress")
+    progress_key = f"{platform if platform == 'steam' else 'buff'}_progress"
+    progress = _line_text_value(line, progress_key)
     if progress is None:
-        progress = _line_text_value(line, "steam_progress") or _line_text_value(line, "buff_progress")
+        progress = _line_text_value(line, "steam_progress") or _line_text_value(
+            line,
+            "buff_progress",
+        )
     return f"{_platform_label(platform)} {progress or ''}".strip()
 
 
@@ -673,7 +692,10 @@ def _expected_stream_batches(command: Sequence[str]) -> int | None:
     module_index = command.index("apps.cli.render_stream_scrape")
     limit = _positional_limit_after_module(command, module_index) or 50
     batch_size = _flag_int(command, "--batch-size") or load_runtime_config().workers.batch_size
-    profiles = len(load_runtime_config().steamdt.enabled_profiles) if "--all-profiles" in command else 1
+    if "--all-profiles" in command:
+        profiles = len(load_runtime_config().steamdt.enabled_profiles)
+    else:
+        profiles = 1
     return max(1, math.ceil((limit * profiles) / batch_size))
 
 

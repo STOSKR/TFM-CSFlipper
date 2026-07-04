@@ -32,7 +32,7 @@ def test_web_scrape_command_refreshes_items_older_than_eight_hours() -> None:
     assert command[command.index("--steam-concurrency") + 1] == "2"
     assert command[command.index("--buff-concurrency") + 1] == "2"
     assert "--score" in command
-    assert "--concurrent-platforms" in command
+    assert "--no-concurrent-platforms" in command
 
 
 def test_local_command_allowlist_exposes_expected_frontend_commands() -> None:

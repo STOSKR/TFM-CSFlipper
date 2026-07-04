@@ -25,7 +25,7 @@ from packages.web import build_dashboard_payload, market_items_query
 
 
 class DashboardHandler(SimpleHTTPRequestHandler):
-    server: "DashboardHTTPServer"
+    server: DashboardHTTPServer
 
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
@@ -227,7 +227,7 @@ def _web_scrape_env() -> dict[str, str]:
     env.setdefault("SCRAPE_STEAM_CONCURRENCY", "2")
     env.setdefault("SCRAPE_BUFF_CONCURRENCY", "2")
     env.setdefault("SCRAPE_SCORE", "true")
-    env.setdefault("SCRAPE_CONCURRENT_PLATFORMS", "true")
+    env.setdefault("SCRAPE_CONCURRENT_PLATFORMS", "false")
     env.setdefault("SCRAPE_PERSIST", "true")
     return env
 

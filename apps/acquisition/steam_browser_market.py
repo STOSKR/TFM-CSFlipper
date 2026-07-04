@@ -124,7 +124,12 @@ class SteamBrowserConnector:
             ) from exc
 
         async with async_playwright() as playwright:
-            browser = await playwright.chromium.launch(headless=self._config.headless)
+            self._emit_browser_progress("launch_start")
+            browser = await playwright.chromium.launch(
+                headless=self._config.headless,
+                timeout=self._config.timeout_ms,
+            )
+            self._emit_browser_progress("launch_ready")
             context_options: dict[str, Any] = {
                 "viewport": {"width": 1920, "height": 1080},
                 "user_agent": (
@@ -134,7 +139,16 @@ class SteamBrowserConnector:
             }
             if self._config.session_state_path and self._config.session_state_path.exists():
                 context_options["storage_state"] = str(self._config.session_state_path)
-            context = await browser.new_context(**context_options)
+            self._emit_browser_progress("context_start")
+            try:
+                context = await asyncio.wait_for(
+                    browser.new_context(**context_options),
+                    timeout=self._config.timeout_ms / 1000,
+                )
+            except Exception:
+                await browser.close()
+                raise
+            self._emit_browser_progress("context_ready")
             semaphore = asyncio.Semaphore(self._config.max_concurrency)
 
             async def fetch_one(
@@ -472,6 +486,10 @@ class SteamBrowserConnector:
             "steam_fetch_start="
             f"{index}/{total} item={_compact_log_text(candidate.market_hash_name)}"
         )
+
+    def _emit_browser_progress(self, step: str) -> None:
+        if self._progress_log is not None:
+            self._progress_log(f"steam_browser={step}")
 
 
 def extract_steam_price_text(

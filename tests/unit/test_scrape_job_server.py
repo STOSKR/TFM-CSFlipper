@@ -193,6 +193,14 @@ def test_scrape_job_runner_rejects_overlapping_runs() -> None:
     assert snapshot.progress_text == "Completado"
 
 
+def test_scrape_job_runner_mirrors_child_output_to_terminal(capsys) -> None:
+    job_runner = ScrapeJobRunner()
+
+    job_runner._append_log_line("stream_batch=1 candidates=1")
+
+    assert "scrape_job_output stream_batch=1 candidates=1" in capsys.readouterr().out
+
+
 def test_scrape_progress_parser_maps_streaming_steps() -> None:
     assert _progress_from_line("job_started") == (1, "Arrancando")
     assert _progress_from_line("playwright_check=start") == (2, "Preparando navegador")
@@ -216,6 +224,14 @@ def test_scrape_progress_parser_maps_streaming_steps() -> None:
     assert _progress_from_line("platform_start=steam total=4 concurrency=2") == (
         20,
         "STEAM iniciado: 4 items, 2 workers",
+    )
+    assert _progress_from_line("buff_browser=launch_start") == (
+        20,
+        "BUFF lanzando navegador",
+    )
+    assert _progress_from_line("steam_browser=context_ready") == (
+        20,
+        "STEAM contexto listo",
     )
     assert _progress_from_line("steam_fetch_start=1/4 item=A") == (
         20,
