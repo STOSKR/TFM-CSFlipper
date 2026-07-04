@@ -101,7 +101,18 @@ class ScrapeJobRunner:
             self._last_return_code = return_code
             self._last_finished_at = _now_text()
             self._progress_percent = 100 if return_code == 0 else self._progress_percent
-            self._progress_text = "Completado" if return_code == 0 else "Terminado con error"
+            if return_code == 0:
+                self._progress_text = "Completado"
+            else:
+                progress = (
+                    _progress_from_line(
+                        self._last_message,
+                        expected_batches=self._expected_batches,
+                    )
+                    if self._last_message
+                    else None
+                )
+                self._progress_text = progress[1] if progress else "Terminado con error"
 
     def _append_log_line(self, line: str) -> None:
         text = _public_job_line(line)
@@ -266,38 +277,83 @@ def _append_bool_flag(
 
 def _run_command(command: Sequence[str], log: Callable[[str], None] | None = None) -> int:
     timeout_seconds = _optional_int(os.getenv("SCRAPE_JOB_TIMEOUT_SECONDS"))
+    stall_seconds = _optional_int(os.getenv("SCRAPE_JOB_STALL_SECONDS")) or 120
     env = _subprocess_env(os.environ)
+    output_lock = threading.Lock()
+    last_output_at = time.monotonic()
+
+    def record_log(line: str) -> None:
+        nonlocal last_output_at
+        with output_lock:
+            last_output_at = time.monotonic()
+        if log is not None:
+            log(line)
+
+    def seconds_since_output() -> float:
+        with output_lock:
+            return time.monotonic() - last_output_at
+
     if log is not None:
-        log("job_started")
+        record_log("job_started")
     if _bool(os.getenv("SCRAPE_ENSURE_PLAYWRIGHT"), default=True):
         if log is not None:
-            log("playwright_check=start")
+            record_log("playwright_check=start")
         install_code = _ensure_playwright_browser(env)
         if install_code != 0:
             if log is not None:
-                log(f"playwright_check=failed code={install_code}")
+                record_log(f"playwright_check=failed code={install_code}")
             return install_code
         if log is not None:
-            log("playwright_check=ready")
+            record_log("playwright_check=ready")
     process = _start_job_process(command, env, capture_output=log is not None)
     reader = None
     if log is not None and process.stdout is not None:
         reader = threading.Thread(
             target=_read_process_output,
-            args=(process, log),
+            args=(process, record_log),
             daemon=True,
             name="scrape-job-output",
         )
         reader.start()
     try:
-        return process.wait(timeout=timeout_seconds)
-    except subprocess.TimeoutExpired:
-        _terminate_job_processes(process)
-        return 124
+        return _wait_for_job_process(
+            process,
+            timeout_seconds=timeout_seconds,
+            stall_seconds=stall_seconds,
+            seconds_since_output=seconds_since_output,
+            log=log,
+        )
     finally:
         _terminate_job_processes(process)
         if reader is not None:
             reader.join(timeout=1)
+
+
+def _wait_for_job_process(
+    process: subprocess.Popen[Any],
+    *,
+    timeout_seconds: int | None,
+    stall_seconds: int,
+    seconds_since_output: Callable[[], float],
+    log: Callable[[str], None] | None,
+) -> int:
+    started_at = time.monotonic()
+    while True:
+        return_code = process.poll()
+        if return_code is not None:
+            return return_code
+        elapsed = time.monotonic() - started_at
+        if timeout_seconds is not None and elapsed >= timeout_seconds:
+            if log is not None:
+                log(f"job_timeout seconds={timeout_seconds}")
+            _terminate_job_processes(process)
+            return 124
+        if seconds_since_output() >= stall_seconds:
+            if log is not None:
+                log(f"job_stalled seconds={stall_seconds}")
+            _terminate_job_processes(process)
+            return 124
+        time.sleep(0.5)
 
 
 def _start_job_process(
@@ -521,6 +577,10 @@ def _progress_from_line(
         return 3, "Navegador listo"
     if line.startswith("playwright_check=failed"):
         return 3, "Error preparando navegador"
+    if line.startswith("job_stalled"):
+        return 20, "Sin progreso, proceso detenido"
+    if line.startswith("job_timeout"):
+        return 20, "Timeout, proceso detenido"
     if line.startswith("render_stream_candidate="):
         return 14, "Candidatos detectados"
     if line.startswith("stream_batch="):

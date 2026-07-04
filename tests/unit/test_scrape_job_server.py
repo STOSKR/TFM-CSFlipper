@@ -10,6 +10,7 @@ from apps.cli.scrape_job_server import (
     _progress_from_line,
     _public_job_line,
     _query_token,
+    _run_command,
     _subprocess_env,
     build_scrape_job_command,
 )
@@ -201,10 +202,32 @@ def test_scrape_job_runner_mirrors_child_output_to_terminal(capsys) -> None:
     assert "scrape_job_output stream_batch=1 candidates=1" in capsys.readouterr().out
 
 
+def test_run_command_stops_silent_child_process(monkeypatch) -> None:
+    lines: list[str] = []
+    monkeypatch.setenv("SCRAPE_ENSURE_PLAYWRIGHT", "false")
+    monkeypatch.setenv("SCRAPE_JOB_STALL_SECONDS", "1")
+
+    return_code = _run_command(
+        [sys.executable, "-c", "import time; time.sleep(5)"],
+        log=lines.append,
+    )
+
+    assert return_code == 124
+    assert "job_stalled seconds=1" in lines
+
+
 def test_scrape_progress_parser_maps_streaming_steps() -> None:
     assert _progress_from_line("job_started") == (1, "Arrancando")
     assert _progress_from_line("playwright_check=start") == (2, "Preparando navegador")
     assert _progress_from_line("playwright_check=ready") == (3, "Navegador listo")
+    assert _progress_from_line("job_stalled seconds=120") == (
+        20,
+        "Sin progreso, proceso detenido",
+    )
+    assert _progress_from_line("job_timeout seconds=600") == (
+        20,
+        "Timeout, proceso detenido",
+    )
     assert _progress_from_line("render_stream_strategy=steam_sell_slow") == (
         8,
         "Buscando candidatos",

@@ -44,8 +44,9 @@ def test_web_mvp_static_files_are_wired() -> None:
     assert "runLocalCommand" in js
     assert "refreshDashboardView" in js
     assert "setInterval(loadScrapeStatus" not in js
-    assert "scheduleScrapeStatusRefresh(running)" in js
-    assert "SCRAPE_STATUS_REFRESH_MS = 10000" in js
+    assert "scheduleScrapeStatusRefresh(job)" in js
+    assert "SCRAPE_STATUS_REFRESH_FAST_MS = 10000" in js
+    assert "SCRAPE_STATUS_REFRESH_IDLE_MS = 30000" in js
     assert "watchDevRevision" not in js
     assert "./api/dev/revision" not in js
     assert "renderScrapeLog" in js

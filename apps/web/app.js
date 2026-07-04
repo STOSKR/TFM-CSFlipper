@@ -75,7 +75,9 @@ const fallbackDashboard = {
     ["017", "Restricciones de riesgo Portfolio", "Realizada"],
   ],
 };
-const SCRAPE_STATUS_REFRESH_MS = 10000;
+const SCRAPE_STATUS_REFRESH_FAST_MS = 10000;
+const SCRAPE_STATUS_REFRESH_IDLE_MS = 30000;
+const SCRAPE_STATUS_IDLE_POLLS_BEFORE_SLOW = 3;
 
 let dashboard = fallbackDashboard;
 let visibleRecommendations = [];
@@ -83,6 +85,8 @@ let selectedDealIndex = 0;
 let localCommands = [];
 let scrapeWasRunning = false;
 let scrapeStatusTimer = null;
+let scrapeStatusSignature = "";
+let scrapeStatusIdlePolls = 0;
 
 const statusLabels = {
   review: "Revisar",
@@ -339,7 +343,7 @@ function renderScrapeStatus(payload) {
   renderScrapeLog(job.log_tail);
   document.querySelector("#scrape-start-button").disabled = running;
   updateCommandButtons(running);
-  scheduleScrapeStatusRefresh(running);
+  scheduleScrapeStatusRefresh(job);
   if (scrapeWasRunning && !running && returnCode === 0) {
     refreshDashboardView();
   }
@@ -366,15 +370,27 @@ async function loadScrapeStatus() {
   renderScrapeStatus(response.payload);
 }
 
-function scheduleScrapeStatusRefresh(running) {
+function scheduleScrapeStatusRefresh(job) {
   if (scrapeStatusTimer !== null) {
     clearTimeout(scrapeStatusTimer);
     scrapeStatusTimer = null;
   }
-  if (!running) {
+  if (!job?.running) {
+    scrapeStatusSignature = "";
+    scrapeStatusIdlePolls = 0;
     return;
   }
-  scrapeStatusTimer = setTimeout(loadScrapeStatus, SCRAPE_STATUS_REFRESH_MS);
+  const signature = `${job.progress_percent}|${job.last_message}|${job.last_return_code}`;
+  if (signature === scrapeStatusSignature) {
+    scrapeStatusIdlePolls += 1;
+  } else {
+    scrapeStatusSignature = signature;
+    scrapeStatusIdlePolls = 0;
+  }
+  const delay = scrapeStatusIdlePolls >= SCRAPE_STATUS_IDLE_POLLS_BEFORE_SLOW
+    ? SCRAPE_STATUS_REFRESH_IDLE_MS
+    : SCRAPE_STATUS_REFRESH_FAST_MS;
+  scrapeStatusTimer = setTimeout(loadScrapeStatus, delay);
 }
 
 async function loadCommands() {
