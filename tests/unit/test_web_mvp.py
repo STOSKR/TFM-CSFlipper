@@ -16,6 +16,7 @@ def test_web_mvp_static_files_are_wired() -> None:
     assert 'href="#scraper"' in html
     assert 'id="scrape-start-button"' in html
     assert 'id="scrape-show-browser"' in html
+    assert 'autocomplete="off"' in html
     assert 'id="scrape-command"' not in html
     assert 'id="scrape-progress-text"' in html
     assert 'id="scrape-progress-bar"' in html
@@ -56,6 +57,7 @@ def test_web_mvp_static_files_are_wired() -> None:
     assert "./api/commands/run" in js
     assert "data-command-id" in js
     assert "./api/scrape/start" in js
+    assert 'document.querySelector("#scrape-show-browser").checked = false' in js
     assert "show_browser: showBrowser" in js
     assert "./api/scrape/status" in js
     assert "font-size: var(--text-body)" in css
@@ -67,3 +69,9 @@ def test_web_mvp_static_files_are_wired() -> None:
     assert "BUFF listing -> Steam listing" in js
     assert "trading_profit_v1" in js
     assert "buff/sell_price historico escaso" in js
+
+
+def test_env_example_keeps_browser_windows_disabled_by_default() -> None:
+    env_example = Path(".env.example").read_text(encoding="utf-8")
+
+    assert "SCRAPE_SHOW_BROWSER=false" in env_example

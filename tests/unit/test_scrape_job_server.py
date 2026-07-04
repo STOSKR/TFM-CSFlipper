@@ -387,3 +387,7 @@ def test_subprocess_env_defaults_to_utf8_python_io() -> None:
     assert _subprocess_env({})["PYTHONIOENCODING"] == "utf-8"
     assert _subprocess_env({})["PYTHONUTF8"] == "1"
     assert _subprocess_env({"PYTHONIOENCODING": "cp1252"})["PYTHONIOENCODING"] == "utf-8"
+
+
+def test_subprocess_env_removes_playwright_debug() -> None:
+    assert "PWDEBUG" not in _subprocess_env({"PWDEBUG": "1"})

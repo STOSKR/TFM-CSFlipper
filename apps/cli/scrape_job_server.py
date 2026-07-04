@@ -488,6 +488,7 @@ def _subprocess_env(base_env: Mapping[str, str]) -> dict[str, str]:
     env.setdefault("PYTHONUNBUFFERED", "1")
     env["PYTHONIOENCODING"] = "utf-8"
     env["PYTHONUTF8"] = "1"
+    env.pop("PWDEBUG", None)
     return env
 
 

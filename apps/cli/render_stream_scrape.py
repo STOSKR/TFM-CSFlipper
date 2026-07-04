@@ -47,6 +47,7 @@ _force_utf8_stdio()
 
 async def run(args: argparse.Namespace) -> int:
     worker_config = _worker_config(args)
+    print(f"render_stream_show_browser={str(args.show_browser).lower()}", flush=True)
 
     async def scrape_batch(
         batch: tuple[SteamDTCandidate, ...],

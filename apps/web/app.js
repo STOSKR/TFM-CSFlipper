@@ -88,6 +88,8 @@ let scrapeStatusTimer = null;
 let scrapeStatusSignature = "";
 let scrapeStatusIdlePolls = 0;
 
+document.querySelector("#scrape-show-browser").checked = false;
+
 const statusLabels = {
   review: "Revisar",
   observe: "Observar",
