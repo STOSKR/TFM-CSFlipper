@@ -367,7 +367,7 @@ def build_parser(runtime_config: Any) -> argparse.ArgumentParser:
         default=float(runtime_config.fees.steam_sale_percent),
     )
     parser.add_argument("--withdrawal-fee-percent", type=float)
-    parser.add_argument("--refresh", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--refresh", action=argparse.BooleanOptionalAction, default=False)
     parser.add_argument("--stale-minutes", type=int, default=480)
     parser.add_argument("--refresh-limit", type=int)
     parser.add_argument(

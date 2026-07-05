@@ -8,7 +8,7 @@ New-Item -ItemType Directory -Force -Path (Join-Path $RepoRoot "logs") | Out-Nul
 $Stamp = Get-Date -Format "yyyyMMdd_HHmmss"
 $LogPath = Join-Path $RepoRoot "logs\local_stream_scrape_$Stamp.log"
 
-python -m apps.cli.render_stream_scrape --refresh *>&1 | Tee-Object -FilePath $LogPath
+python -m apps.cli.render_stream_scrape *>&1 | Tee-Object -FilePath $LogPath
 $ScrapeExitCode = $LASTEXITCODE
 if ($ScrapeExitCode -ne 0) {
     exit $ScrapeExitCode

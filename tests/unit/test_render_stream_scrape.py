@@ -2,10 +2,12 @@ import os
 import subprocess
 import sys
 from collections import Counter
+from dataclasses import replace
 
 import pytest
 
 from apps.acquisition.steamdt_hanging import SteamDTCandidate
+from apps.acquisition.streaming_pipeline import StreamingPipelineSummary
 from apps.cli import render_stream_scrape
 from apps.cli.render_stream_scrape import build_parser
 from packages.runtime_config import load_runtime_config
@@ -23,7 +25,7 @@ def test_render_stream_scrape_defaults_match_local_fast_flow() -> None:
     assert args.buff_concurrency == 2
     assert args.batch_size == 10
     assert args.persist is True
-    assert args.refresh is True
+    assert args.refresh is False
     assert args.score is False
 
 
@@ -133,3 +135,26 @@ async def test_render_stream_scrape_limit_applies_per_profile(
     assert "render_stream_profile_emitted=steam_sell_slow candidates=2" in output
     assert "render_stream_profile_done=platform_arbitrage_safe candidates=2" in output
     assert "render_stream_profile_emitted=platform_arbitrage_safe candidates=2" in output
+
+
+@pytest.mark.asyncio
+async def test_render_stream_scrape_refresh_runs_once_after_stream(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls = 0
+
+    async def fake_pipeline(*_args: object, **_kwargs: object) -> StreamingPipelineSummary:
+        return replace(StreamingPipelineSummary(), candidates_enqueued=4)
+
+    def fake_refresh(_args: object) -> int:
+        nonlocal calls
+        calls += 1
+        return 0
+
+    monkeypatch.setattr(render_stream_scrape, "run_streaming_pipeline", fake_pipeline)
+    monkeypatch.setattr(render_stream_scrape, "_run_refresh", fake_refresh)
+
+    args = build_parser(load_runtime_config()).parse_args(["--refresh", "--no-score"])
+
+    assert await render_stream_scrape.run(args) == 0
+    assert calls == 1
