@@ -37,17 +37,15 @@ python -m apps.cli.stream_scrape_flow --no-steam --no-buff
 
 ## Refresco Semanal De Historial
 
-Refresca todos los articulos ya guardados en `market_items` que tengan URL de Steam o BUFF:
+Refresca todos los articulos ya guardados en `market_items`. Por defecto solo consulta Steam
+para evitar bloqueos rapidos de BUFF:
 
 ```bash
 python -m apps.cli.refresh_market_history --persist
 ```
 
-El comando carga los objetos desde la base de datos, lanza los workers de Steam/BUFF y persiste
-los snapshots resultantes. Antes de scrapear BUFF consulta `market_history_points`: si todos
-los articulos ya tienen historial, pide solo los dias necesarios desde el articulo mas atrasado
-con un dia de solape; si algun articulo no tiene historial previo, pide la ventana completa de
-365 dias.
+El comando carga los objetos desde la base de datos, lanza el worker de Steam y persiste los
+snapshots resultantes. BUFF queda desactivado salvo que se pida explicitamente con `--buff`.
 
 Postgres deduplica los puntos historicos por `(item_id, platform_id, observed_at, metric_name)`,
 asi que el comando puede reintentar ventanas anteriores sin perder backfill.
@@ -73,7 +71,7 @@ python -m apps.cli.refresh_market_history --persist --verbose
 Para forzar manualmente la ventana historica de BUFF:
 
 ```bash
-python -m apps.cli.refresh_market_history --persist --buff-history-days 30
+python -m apps.cli.refresh_market_history --persist --buff --buff-history-days 30
 ```
 
 ## Scraping Automatico Local

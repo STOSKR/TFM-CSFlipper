@@ -89,6 +89,7 @@ def test_build_scrape_job_command_can_run_refresh_only() -> None:
         "--limit",
         "5",
         "--persist",
+        "--no-buff",
         "--buff-captcha-wait-seconds",
         "180",
         "--no-concurrent-platforms",

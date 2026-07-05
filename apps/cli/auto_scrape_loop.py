@@ -45,6 +45,7 @@ def build_stale_refresh_command(args: argparse.Namespace) -> list[str]:
     ]
     if args.persist:
         command.append("--persist")
+    command.append("--no-buff")
     if args.refresh_limit is not None:
         command.extend(["--limit", str(args.refresh_limit)])
     return command

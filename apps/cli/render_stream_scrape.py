@@ -195,6 +195,7 @@ def _run_refresh(args: argparse.Namespace) -> int:
         command.append("--dry-run")
     if args.show_browser:
         command.append("--show-browser")
+    command.append("--no-buff")
     command.extend(["--buff-captcha-wait-seconds", str(args.buff_captcha_wait_seconds)])
     if args.concurrent_platforms:
         command.append("--concurrent-platforms")

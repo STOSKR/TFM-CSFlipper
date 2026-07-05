@@ -70,3 +70,4 @@ def test_local_command_allowlist_exposes_expected_frontend_commands() -> None:
     assert commands["refresh_history"].command[
         commands["refresh_history"].command.index("--stale-minutes") + 1
     ] == "480"
+    assert "--no-buff" in commands["refresh_history"].command

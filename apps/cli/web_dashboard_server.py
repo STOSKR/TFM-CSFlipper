@@ -196,6 +196,7 @@ def _local_commands() -> tuple[LocalCommand, ...]:
                 "--stale-minutes",
                 "480",
                 "--persist",
+                "--no-buff",
             ],
             destructive=True,
         ),

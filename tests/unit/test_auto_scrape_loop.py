@@ -35,6 +35,7 @@ def test_build_auto_scrape_commands_default_to_persisted_hourly_refresh() -> Non
         "--stale-minutes",
         "60",
         "--persist",
+        "--no-buff",
     ]
 
 
@@ -96,6 +97,7 @@ def test_run_loop_once_runs_scrape_then_stale_refresh() -> None:
             "--stale-minutes",
             "60",
             "--persist",
+            "--no-buff",
             "--limit",
             "25",
         ),

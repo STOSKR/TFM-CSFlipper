@@ -427,7 +427,7 @@ def main() -> None:
     )
     parser.add_argument("--output", type=Path)
     parser.add_argument("--steam", action=argparse.BooleanOptionalAction, default=True)
-    parser.add_argument("--buff", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--buff", action=argparse.BooleanOptionalAction, default=False)
     parser.add_argument(
         "--concurrent-platforms",
         action=argparse.BooleanOptionalAction,
