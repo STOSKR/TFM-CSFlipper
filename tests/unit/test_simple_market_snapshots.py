@@ -248,6 +248,15 @@ async def test_simple_market_snapshot_repository_upserts_item_current_state() ->
     )
     assert "scraped_at = excluded.scraped_at" in connection.statements[0].lower()
     assert "updated_at = case" in connection.statements[0].lower()
+    assert (
+        "buff_price = coalesce(excluded.buff_price, market_items.buff_price)"
+        in connection.statements[0].lower()
+    )
+    assert (
+        "steam_price = coalesce(excluded.steam_price, market_items.steam_price)"
+        in connection.statements[0].lower()
+    )
+    assert "when excluded.buff_buy_orders = '[]'::jsonb" in connection.statements[0].lower()
     assert len(connection.args[0]) == 13
     assert connection.args[0][9] == '[{"price": "5.00", "quantity": 12}]'
     history_rows = connection.args[1]

@@ -224,7 +224,7 @@ def candidate_from_market_item_row(row: dict[str, Any]) -> SteamDTCandidate:
     stattrak = bool(row.get("stattrak", False))
     return SteamDTCandidate(
         item_name=name,
-        market_hash_name=market_hash_name(name, quality),
+        market_hash_name=_market_hash_from_row_name(name, quality, stattrak=stattrak),
         quality=quality,
         stattrak=stattrak,
         steam_url=_optional_str(row.get("steam_url")),
@@ -342,7 +342,7 @@ def _format_price(value: Decimal) -> str:
     return format(value, "f")
 
 
-def _compact_message(message: str, *, max_length: int = 80) -> str:
+def _compact_message(message: str, *, max_length: int = 180) -> str:
     text = " ".join(message.split())
     if len(text) <= max_length:
         return text
@@ -401,6 +401,17 @@ def _stale_before(stale_minutes: int | None) -> datetime | None:
 def _optional_str(value: object) -> str | None:
     text = str(value or "").strip()
     return text or None
+
+
+def _market_hash_from_row_name(
+    name: str,
+    quality: str | None,
+    *,
+    stattrak: bool,
+) -> str:
+    if stattrak and "stattrak" not in name.lower():
+        name = f"StatTrak™ {name}"
+    return market_hash_name(name, quality)
 
 
 def main() -> None:

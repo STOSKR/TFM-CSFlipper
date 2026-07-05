@@ -148,16 +148,36 @@ class SimpleMarketSnapshotRepository:
                 steam_url = coalesce(excluded.steam_url, market_items.steam_url),
                 buff_url = coalesce(excluded.buff_url, market_items.buff_url),
                 scraped_at = excluded.scraped_at,
-                steam_price = excluded.steam_price,
-                steam_currency = excluded.steam_currency,
-                steam_price_eur = excluded.steam_price_eur,
-                steam_price_cny = excluded.steam_price_cny,
-                steam_buy_orders = excluded.steam_buy_orders,
-                buff_price = excluded.buff_price,
-                buff_currency = excluded.buff_currency,
-                buff_price_eur = excluded.buff_price_eur,
-                buff_price_cny = excluded.buff_price_cny,
-                buff_buy_orders = excluded.buff_buy_orders,
+                steam_price = coalesce(excluded.steam_price, market_items.steam_price),
+                steam_currency = coalesce(excluded.steam_currency, market_items.steam_currency),
+                steam_price_eur = coalesce(
+                    excluded.steam_price_eur,
+                    market_items.steam_price_eur
+                ),
+                steam_price_cny = coalesce(
+                    excluded.steam_price_cny,
+                    market_items.steam_price_cny
+                ),
+                steam_buy_orders = case
+                    when excluded.steam_buy_orders = '[]'::jsonb
+                    then market_items.steam_buy_orders
+                    else excluded.steam_buy_orders
+                end,
+                buff_price = coalesce(excluded.buff_price, market_items.buff_price),
+                buff_currency = coalesce(excluded.buff_currency, market_items.buff_currency),
+                buff_price_eur = coalesce(
+                    excluded.buff_price_eur,
+                    market_items.buff_price_eur
+                ),
+                buff_price_cny = coalesce(
+                    excluded.buff_price_cny,
+                    market_items.buff_price_cny
+                ),
+                buff_buy_orders = case
+                    when excluded.buff_buy_orders = '[]'::jsonb
+                    then market_items.buff_buy_orders
+                    else excluded.buff_buy_orders
+                end,
                 last_checked_at = greatest(
                     coalesce(market_items.last_checked_at, '-infinity'::timestamptz),
                     excluded.last_checked_at
@@ -181,16 +201,24 @@ class SimpleMarketSnapshotRepository:
                         excluded.representation_name,
                         coalesce(excluded.steam_url, market_items.steam_url),
                         coalesce(excluded.buff_url, market_items.buff_url),
-                        excluded.steam_price,
-                        excluded.steam_currency,
-                        excluded.steam_price_eur,
-                        excluded.steam_price_cny,
-                        excluded.steam_buy_orders,
-                        excluded.buff_price,
-                        excluded.buff_currency,
-                        excluded.buff_price_eur,
-                        excluded.buff_price_cny,
-                        excluded.buff_buy_orders
+                        coalesce(excluded.steam_price, market_items.steam_price),
+                        coalesce(excluded.steam_currency, market_items.steam_currency),
+                        coalesce(excluded.steam_price_eur, market_items.steam_price_eur),
+                        coalesce(excluded.steam_price_cny, market_items.steam_price_cny),
+                        case
+                            when excluded.steam_buy_orders = '[]'::jsonb
+                            then market_items.steam_buy_orders
+                            else excluded.steam_buy_orders
+                        end,
+                        coalesce(excluded.buff_price, market_items.buff_price),
+                        coalesce(excluded.buff_currency, market_items.buff_currency),
+                        coalesce(excluded.buff_price_eur, market_items.buff_price_eur),
+                        coalesce(excluded.buff_price_cny, market_items.buff_price_cny),
+                        case
+                            when excluded.buff_buy_orders = '[]'::jsonb
+                            then market_items.buff_buy_orders
+                            else excluded.buff_buy_orders
+                        end
                     )
                     then now()
                     else market_items.updated_at

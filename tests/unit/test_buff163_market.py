@@ -9,6 +9,7 @@ from apps.acquisition.buff163_market import (
     Buff163Connector,
     Buff163Observation,
     _buff_manual_challenge_present,
+    _buff_page_block_reason,
     extract_buff_api_buy_orders,
     extract_buff_api_sell_price_text,
     extract_buff_buy_orders,
@@ -44,6 +45,16 @@ def test_normalize_buff_goods_url_keeps_only_goods_urls() -> None:
     )
     assert normalize_buff_goods_url("https://buff.163.com/market/csgo") is None
     assert normalize_buff_goods_url("https://example.com/goods/123") is None
+
+
+def test_buff_page_block_reason_detects_disabled_store() -> None:
+    assert (
+        _buff_page_block_reason(
+            "error",
+            "interfaz de acceso a la tienda está desactivado. inténtelo de nuevo más tarde.",
+        )
+        == "store_access_disabled"
+    )
 
 
 def test_extract_buff_buy_orders_from_labelled_rows() -> None:

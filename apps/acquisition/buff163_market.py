@@ -360,10 +360,13 @@ class Buff163Connector:
         if not price_text:
             excerpt = " ".join(body_text.split())[:300]
             self._debug(candidate.market_hash_name, debug_log, f"body_excerpt={excerpt!r}")
+            reason = _buff_page_block_reason(title, body_text)
             raise Buff163Error(
                 f"BUFF price not found for {candidate.market_hash_name} "
                 f"goods_id={_buff_goods_id(candidate.buff_url) or '-'} "
-                f"sell_api={_api_status(api_payloads.get('sellOrder'))}"
+                f"sell_api={_api_summary(api_payloads.get('sellOrder'))} "
+                f"page={_compact_log_text(title) or '-'} "
+                f"reason={reason or '-'}"
             )
         self._debug(candidate.market_hash_name, debug_log, f"price_text={price_text!r}")
 
@@ -1026,10 +1029,37 @@ def _json_payload(value: object) -> dict[str, Any]:
     return payload if isinstance(payload, dict) else {}
 
 
-def _api_status(value: object) -> str:
+def _api_summary(value: object) -> str:
     if not isinstance(value, dict):
         return "-"
-    return str(value.get("status") or "-")
+    status = str(value.get("status") or "-")
+    payload = _json_payload(value)
+    code = str(payload.get("code") or "").strip()
+    message = _optional_str(
+        payload.get("msg")
+        or payload.get("message")
+        or payload.get("error")
+        or payload.get("error_msg")
+    )
+    parts = [status]
+    if code:
+        parts.append(code)
+    if message:
+        parts.append(_compact_log_text(message, max_length=40))
+    return ":".join(parts)
+
+
+def _buff_page_block_reason(title: str, body_text: str) -> str | None:
+    text = f"{title} {body_text}".lower()
+    if "tienda" in text and "desactivado" in text:
+        return "store_access_disabled"
+    if "store" in text and "disabled" in text:
+        return "store_access_disabled"
+    if "login" in text or "iniciar sesión" in text:
+        return "login_required"
+    if "captcha" in text or "verify you are human" in text:
+        return "captcha"
+    return None
 
 
 def _ok_data(payload: object) -> dict[str, Any]:
