@@ -89,6 +89,7 @@ let scrapeStatusSignature = "";
 let scrapeStatusIdlePolls = 0;
 
 document.querySelector("#scrape-show-browser").checked = false;
+document.querySelector("#scrape-refresh-history").checked = true;
 
 const statusLabels = {
   review: "Revisar",
@@ -345,6 +346,7 @@ function renderScrapeStatus(payload) {
   renderScrapeLog(job.log_tail);
   document.querySelector("#scrape-start-button").disabled = running;
   document.querySelector("#scrape-show-browser").disabled = running;
+  document.querySelector("#scrape-refresh-history").disabled = running;
   updateCommandButtons(running);
   scheduleScrapeStatusRefresh(job);
   if (scrapeWasRunning && !running && returnCode === 0) {
@@ -441,12 +443,13 @@ function updateCommandButtons(running) {
 async function startScrape() {
   const button = document.querySelector("#scrape-start-button");
   const showBrowser = document.querySelector("#scrape-show-browser").checked;
+  const refresh = document.querySelector("#scrape-refresh-history").checked;
   const status = document.querySelector("#scrape-action-status");
   button.disabled = true;
   status.textContent = "Lanzando scraper...";
   const response = await requestJson("./api/scrape/start", {
     method: "POST",
-    body: { show_browser: showBrowser },
+    body: { show_browser: showBrowser, refresh },
   });
   if (response.payload) {
     renderScrapeStatus(response.payload);

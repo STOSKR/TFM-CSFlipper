@@ -43,6 +43,13 @@ def test_web_scrape_command_can_show_browsers() -> None:
     assert "--show-browser" in command
 
 
+def test_web_scrape_command_can_skip_refresh() -> None:
+    command = _web_scrape_command(refresh=False)
+
+    assert "--no-refresh" in command
+    assert "--refresh" not in command
+
+
 def test_local_command_allowlist_exposes_expected_frontend_commands() -> None:
     commands = {command.id: command for command in _local_commands()}
 
