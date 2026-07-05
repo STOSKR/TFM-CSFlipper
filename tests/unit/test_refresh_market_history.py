@@ -1,3 +1,4 @@
+import asyncio
 import os
 import subprocess
 import sys
@@ -5,10 +6,13 @@ from datetime import UTC, datetime
 from decimal import Decimal
 from inspect import getsource
 
+import pytest
+
 from apps.acquisition.buff163_market import Buff163Observation
 from apps.acquisition.platform_workers import PlatformWorkerResult, WorkerError
 from apps.acquisition.steam_market import SteamMarketObservation
 from apps.cli.refresh_market_history import (
+    _await_with_heartbeat,
     buff_history_days_from_db_row,
     candidate_from_market_item_row,
     compact_platform_summary,
@@ -179,6 +183,22 @@ def test_load_market_item_candidates_filters_by_last_checked_at() -> None:
     source = getsource(load_market_item_candidates)
 
     assert "last_checked_at" in source
+
+
+@pytest.mark.asyncio
+async def test_await_with_heartbeat_prints_while_waiting(capsys) -> None:
+    async def slow_result() -> str:
+        await asyncio.sleep(0.02)
+        return "ok"
+
+    result = await _await_with_heartbeat(
+        slow_result(),
+        label="persist",
+        interval_seconds=0.001,
+    )
+
+    assert result == "ok"
+    assert "persist_wait seconds=" in capsys.readouterr().out
 
 
 def _observation(

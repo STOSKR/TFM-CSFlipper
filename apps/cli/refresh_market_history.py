@@ -7,7 +7,7 @@ import asyncio
 import json
 import math
 import sys
-from collections.abc import Sequence
+from collections.abc import Awaitable, Sequence
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
@@ -79,13 +79,25 @@ async def run(args: argparse.Namespace) -> int:
     history_points_ready = sum(history_point_count(snapshot) for snapshot in snapshots)
     history_points_persisted = 0
     if args.persist and not args.dry_run:
+        print(
+            f"persist_start snapshots={len(snapshots)} "
+            f"history_points_ready={history_points_ready}",
+            flush=True,
+        )
         pool = await create_pool(max_size=2)
         try:
             async with pool.acquire() as connection:
-                report = await SimpleMarketSnapshotRepository(connection).record_snapshots_report(
-                    snapshots
+                report = await _await_with_heartbeat(
+                    SimpleMarketSnapshotRepository(connection).record_snapshots_report(
+                        snapshots
+                    ),
+                    label="persist",
                 )
                 history_points_persisted = report.history_points
+                print(
+                    f"persist_done history_points_persisted={history_points_persisted}",
+                    flush=True,
+                )
         finally:
             await pool.close()
 
@@ -251,6 +263,22 @@ def compact_platform_summary(results: Sequence[PlatformWorkerResult]) -> str:
         parts.append(f"{label}_ok={len(result.observations)}")
         parts.append(f"{label}_errors={len(result.errors)}")
     return " ".join(parts)
+
+
+async def _await_with_heartbeat(
+    awaitable: Awaitable[Any],
+    *,
+    label: str,
+    interval_seconds: float = 30.0,
+) -> Any:
+    task = asyncio.create_task(awaitable)
+    elapsed = 0.0
+    while True:
+        done, _pending = await asyncio.wait({task}, timeout=interval_seconds)
+        if done:
+            return await task
+        elapsed += interval_seconds
+        print(f"{label}_wait seconds={elapsed:g}", flush=True)
 
 
 def _compact_platform_status(
