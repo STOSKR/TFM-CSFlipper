@@ -15,6 +15,7 @@ from apps.acquisition.buff163_market import (
     extract_buff_price_history,
     extract_buff_price_text,
     extract_buff_recent_sales,
+    normalize_buff_goods_url,
 )
 from packages.contracts.observations import MarketObservationContract
 from packages.domain.enums import SourceType
@@ -34,6 +35,15 @@ def test_extract_buff_price_text_falls_back_to_first_money_value() -> None:
     body_text = "AK-47 | Slate\nSome section\n￥12.34"
 
     assert extract_buff_price_text(body_text) == "￥12.34"
+
+
+def test_normalize_buff_goods_url_keeps_only_goods_urls() -> None:
+    assert (
+        normalize_buff_goods_url("https://buff.163.com/goods/123?from=market#tab=selling")
+        == "https://buff.163.com/goods/123?from=market#tab=selling"
+    )
+    assert normalize_buff_goods_url("https://buff.163.com/market/csgo") is None
+    assert normalize_buff_goods_url("https://example.com/goods/123") is None
 
 
 def test_extract_buff_buy_orders_from_labelled_rows() -> None:

@@ -44,6 +44,16 @@ LogCallback = Callable[[str], None]
 DEFAULT_BUFF_CURRENCY = "CNY"
 
 
+def normalize_buff_goods_url(value: object) -> str | None:
+    text = str(value or "").strip()
+    if not text:
+        return None
+    parsed = urlparse(text)
+    if "buff.163.com" not in parsed.netloc.lower():
+        return None
+    return text if _buff_goods_id(text) else None
+
+
 class Buff163Error(RuntimeError):
     """Raised when BUFF163 cannot return a usable observation."""
 
@@ -350,7 +360,11 @@ class Buff163Connector:
         if not price_text:
             excerpt = " ".join(body_text.split())[:300]
             self._debug(candidate.market_hash_name, debug_log, f"body_excerpt={excerpt!r}")
-            raise Buff163Error(f"BUFF price not found for {candidate.market_hash_name}")
+            raise Buff163Error(
+                f"BUFF price not found for {candidate.market_hash_name} "
+                f"goods_id={_buff_goods_id(candidate.buff_url) or '-'} "
+                f"sell_api={_api_status(api_payloads.get('sellOrder'))}"
+            )
         self._debug(candidate.market_hash_name, debug_log, f"price_text={price_text!r}")
 
         asset_name = candidate.asset_name or asset_name_from_market_hash(candidate.market_hash_name)
@@ -1010,6 +1024,12 @@ def _json_payload(value: object) -> dict[str, Any]:
     except ValueError:
         return {}
     return payload if isinstance(payload, dict) else {}
+
+
+def _api_status(value: object) -> str:
+    if not isinstance(value, dict):
+        return "-"
+    return str(value.get("status") or "-")
 
 
 def _ok_data(payload: object) -> dict[str, Any]:

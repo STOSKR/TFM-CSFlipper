@@ -150,6 +150,31 @@ def test_build_simple_market_snapshots_infers_missing_quality_from_market_hash()
     assert snapshots[0].quality == "Field-Tested"
 
 
+def test_build_simple_market_snapshots_drops_non_goods_buff_url() -> None:
+    scraped_at = datetime(2026, 6, 10, 12, 0, tzinfo=UTC)
+    candidate = SteamDTCandidate(
+        item_name="AK-47 | Slate",
+        market_hash_name="AK-47 | Slate (Field-Tested)",
+        quality="Field-Tested",
+        buff_url="https://buff.163.com/market/csgo",
+    )
+    steam_record = _record(
+        platform_id="steam",
+        price=Decimal("170.47"),
+        currency="CNY",
+        market_hash_name=candidate.market_hash_name,
+        source_reference="https://steamcommunity.com/market/listings/730/AK",
+    )
+
+    snapshots = build_simple_market_snapshots(
+        (candidate,),
+        (PlatformWorkerResult("steam", (steam_record,)),),
+        scraped_at=scraped_at,
+    )
+
+    assert snapshots[0].buff_url is None
+
+
 def test_build_simple_market_snapshots_skips_items_without_quality() -> None:
     scraped_at = datetime(2026, 6, 10, 12, 0, tzinfo=UTC)
     market_hash_name = "Trapper Aggressor | Guerrilla Warfare"

@@ -13,7 +13,7 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
-from apps.acquisition.buff163_market import Buff163ConnectorConfig
+from apps.acquisition.buff163_market import Buff163ConnectorConfig, normalize_buff_goods_url
 from apps.acquisition.platform_workers import (
     PlatformWorkerConfig,
     PlatformWorkerResult,
@@ -216,7 +216,7 @@ def candidate_from_market_item_row(row: dict[str, Any]) -> SteamDTCandidate:
         quality=quality,
         stattrak=stattrak,
         steam_url=_optional_str(row.get("steam_url")),
-        buff_url=_optional_str(row.get("buff_url")),
+        buff_url=normalize_buff_goods_url(row.get("buff_url")),
     )
 
 

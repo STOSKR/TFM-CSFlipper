@@ -38,6 +38,20 @@ def test_candidate_from_market_item_row_reuses_stored_platform_urls() -> None:
     assert candidate.buff_url == "https://buff.163.com/goods/123"
 
 
+def test_candidate_from_market_item_row_ignores_non_goods_buff_url() -> None:
+    candidate = candidate_from_market_item_row(
+        {
+            "name": "AK-47 | Slate",
+            "quality": "Field-Tested",
+            "stattrak": False,
+            "steam_url": "https://steamcommunity.com/market/listings/730/AK",
+            "buff_url": "https://buff.163.com/market/csgo",
+        }
+    )
+
+    assert candidate.buff_url is None
+
+
 def test_buff_history_days_uses_one_day_overlap_from_oldest_known_history() -> None:
     days = buff_history_days_from_db_row(
         {

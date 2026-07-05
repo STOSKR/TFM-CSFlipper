@@ -15,6 +15,7 @@ from apps.acquisition.buff163_market import (
     Buff163Connector,
     Buff163ConnectorConfig,
     Buff163Observation,
+    normalize_buff_goods_url,
 )
 from apps.acquisition.steam_browser_market import (
     SteamBrowserCandidate,
@@ -279,17 +280,21 @@ async def _scrape_buff(
     log: LogCallback | None,
     progress_log: LogCallback | None,
 ) -> PlatformWorkerResult:
-    buff_candidates = _unique_buff_candidates([
-        Buff163Candidate(
-            market_hash_name=candidate.market_hash_name,
-            buff_url=candidate.buff_url,
-            asset_name=candidate.item_name,
-            quality=candidate.quality,
-            stattrak=candidate.stattrak,
-        )
-        for candidate in candidates
-        if candidate.market_hash_name and candidate.buff_url
-    ])
+    buff_candidates = _unique_buff_candidates(
+        [
+            Buff163Candidate(
+                market_hash_name=candidate.market_hash_name,
+                buff_url=buff_url,
+                asset_name=candidate.item_name,
+                quality=candidate.quality,
+                stattrak=candidate.stattrak,
+            )
+            for candidate in candidates
+            if candidate.market_hash_name
+            for buff_url in (normalize_buff_goods_url(candidate.buff_url),)
+            if buff_url
+        ]
+    )
     _emit(
         progress_log,
         f"platform_start=buff163 total={len(buff_candidates)} concurrency={config.max_concurrency}",
@@ -345,7 +350,7 @@ def _candidate_from_row(row: dict[str, Any]) -> SteamDTCandidate:
         quality=_optional_str(row.get("quality")),
         stattrak=bool(row.get("stattrak", False)),
         item_url=_optional_str(row.get("item_url")),
-        buff_url=_optional_str(row.get("buff_url")),
+        buff_url=normalize_buff_goods_url(row.get("buff_url")),
         steam_url=_optional_str(row.get("steam_url")),
         currency=_optional_str(row.get("currency")),
     )

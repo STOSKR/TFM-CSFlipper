@@ -15,8 +15,8 @@ from apps.acquisition.platform_workers import (
     scrape_candidate_platforms,
     worker_results_to_jsonable,
 )
-from apps.acquisition.steamdt_hanging import SteamDTCandidate
 from apps.acquisition.steam_market import SteamMarketObservation
+from apps.acquisition.steamdt_hanging import SteamDTCandidate
 from packages.contracts.observations import MarketObservationContract
 from packages.domain.enums import SourceType
 
@@ -53,6 +53,26 @@ def test_load_steamdt_candidates_keeps_platform_links(tmp_path: Path) -> None:
     assert candidates[0].strategy_id == "platform_arbitrage_safe"
     assert candidates[0].balance_type == "Platform Balance"
     assert candidates[0].buy_mode == "Buy via STEAM Buy Order"
+
+
+def test_load_steamdt_candidates_ignores_non_goods_buff_url(tmp_path: Path) -> None:
+    path = tmp_path / "steamdt_candidates.json"
+    path.write_text(
+        json.dumps(
+            [
+                {
+                    "item_name": "AK-47 | Slate",
+                    "market_hash_name": "AK-47 | Slate (Field-Tested)",
+                    "buff_url": "https://buff.163.com/market/csgo",
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    candidates = load_steamdt_candidates(path)
+
+    assert candidates[0].buff_url is None
 
 
 def test_latest_steamdt_candidates_path_returns_newest_file(tmp_path: Path) -> None:

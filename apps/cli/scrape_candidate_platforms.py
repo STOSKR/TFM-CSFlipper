@@ -11,7 +11,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from apps.acquisition.buff163_market import Buff163ConnectorConfig
+from apps.acquisition.buff163_market import Buff163ConnectorConfig, normalize_buff_goods_url
 from apps.acquisition.platform_workers import (
     PlatformWorkerConfig,
     PlatformWorkerResult,
@@ -266,7 +266,7 @@ def build_simple_market_snapshots(
                     "steam_url": (
                         matched_candidate.steam_url if matched_candidate else None
                     ),
-                    "buff_url": matched_candidate.buff_url if matched_candidate else None,
+                    "buff_url": _buff_url(matched_candidate),
                     "steam_price": None,
                     "steam_currency": None,
                     "steam_recent_sales": [],
@@ -282,7 +282,7 @@ def build_simple_market_snapshots(
             entry["strategies"].extend(strategies_by_hash.get(market_hash_name, ()))
             if matched_candidate:
                 entry["steam_url"] = entry["steam_url"] or matched_candidate.steam_url
-                entry["buff_url"] = entry["buff_url"] or matched_candidate.buff_url
+                entry["buff_url"] = entry["buff_url"] or _buff_url(matched_candidate)
 
             platform_id = record.observation.platform_id
             if platform_id == "steam":
@@ -609,6 +609,10 @@ def _required_text(value: object, field_name: str) -> str:
 def _optional_str(value: object) -> str | None:
     text = str(value or "").strip()
     return text or None
+
+
+def _buff_url(candidate: SteamDTCandidate | None) -> str | None:
+    return normalize_buff_goods_url(candidate.buff_url) if candidate else None
 
 
 def _unique_strategy_rows(value: object) -> tuple[dict[str, str | None], ...]:
