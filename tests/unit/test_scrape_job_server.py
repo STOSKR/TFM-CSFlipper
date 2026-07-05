@@ -240,6 +240,28 @@ def test_run_command_retries_after_silent_stall(monkeypatch) -> None:
     assert "job_attempt=2/2" in lines
 
 
+def test_run_command_does_not_retry_after_refresh_started(monkeypatch) -> None:
+    lines: list[str] = []
+    monkeypatch.setenv("SCRAPE_ENSURE_PLAYWRIGHT", "false")
+    monkeypatch.setenv("SCRAPE_JOB_STALL_SECONDS", "1")
+    monkeypatch.setenv("SCRAPE_JOB_RETRIES", "1")
+
+    return_code = _run_command(
+        [
+            sys.executable,
+            "-c",
+            "import time; print('render_stream_step=refresh', flush=True); time.sleep(5)",
+        ],
+        log=lines.append,
+    )
+
+    assert return_code == 124
+    assert "job_attempt=1/2" in lines
+    assert "render_stream_step=refresh" in lines
+    assert "job_retry previous_code=124 next_attempt=2/2" not in lines
+    assert "job_attempt=2/2" not in lines
+
+
 def test_run_command_handles_unicode_child_output(monkeypatch) -> None:
     lines: list[str] = []
     monkeypatch.setenv("SCRAPE_ENSURE_PLAYWRIGHT", "false")

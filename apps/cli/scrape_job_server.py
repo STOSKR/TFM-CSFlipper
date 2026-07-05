@@ -288,11 +288,14 @@ def _run_command(command: Sequence[str], log: Callable[[str], None] | None = Non
     env = _subprocess_env(os.environ)
     output_lock = threading.Lock()
     last_output_at = time.monotonic()
+    refresh_started = False
 
     def record_log(line: str) -> None:
-        nonlocal last_output_at
+        nonlocal last_output_at, refresh_started
         with output_lock:
             last_output_at = time.monotonic()
+        if line.strip() == "render_stream_step=refresh":
+            refresh_started = True
         if log is not None:
             log(line)
 
@@ -326,7 +329,7 @@ def _run_command(command: Sequence[str], log: Callable[[str], None] | None = Non
             log=log,
             record_log=record_log,
         )
-        if return_code != 124 or attempt == attempts:
+        if return_code != 124 or attempt == attempts or refresh_started:
             return return_code
         record_log(f"job_retry previous_code={return_code} next_attempt={attempt + 1}/{attempts}")
     return 124
