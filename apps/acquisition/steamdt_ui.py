@@ -77,8 +77,14 @@ async def change_currency(page: Any, currency_code: str) -> None:
 
 
 async def click_tab_by_text(page: Any, text: str | None) -> None:
-    if not text:
+    if await try_click_tab_by_text(page, text):
         return
+    raise RuntimeError(f"SteamDT option not found: {text}")
+
+
+async def try_click_tab_by_text(page: Any, text: str | None) -> bool:
+    if not text:
+        return True
     labels = localized_tab_labels(text)
     clicked = await page.evaluate(
         """
@@ -103,8 +109,8 @@ async def click_tab_by_text(page: Any, text: str | None) -> None:
     )
     if clicked:
         await page.wait_for_timeout(700)
-        return
-    raise RuntimeError(f"SteamDT option not found: {text}")
+        return True
+    return False
 
 
 async def current_option_description(page: Any) -> str:

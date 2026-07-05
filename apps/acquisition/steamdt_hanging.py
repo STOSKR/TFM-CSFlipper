@@ -19,6 +19,7 @@ from apps.acquisition.steamdt_ui import (
     configure_platforms,
     current_option_description,
     fill_price_volume_filters,
+    try_click_tab_by_text,
 )
 from packages.domain.market_parsing import (
     clean_text,
@@ -238,7 +239,7 @@ class SteamDTHangingDiscovery:
         steps: tuple[tuple[str, Callable[[], Awaitable[object]]], ...] = (
             ("currency", lambda: change_currency(page, self.filters.currency_code)),
             ("balance", lambda: click_tab_by_text(page, self.filters.balance_type)),
-            ("buy_mode", lambda: click_tab_by_text(page, self.filters.buy_mode)),
+            ("buy_mode", lambda: try_click_tab_by_text(page, self.filters.buy_mode)),
             ("sell_mode", lambda: click_tab_by_text(page, self.filters.sell_mode)),
             (
                 "filters",

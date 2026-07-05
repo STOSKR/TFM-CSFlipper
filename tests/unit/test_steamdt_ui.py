@@ -4,6 +4,7 @@ from apps.acquisition.steamdt_ui import (
     change_currency,
     click_tab_by_text,
     current_option_description,
+    try_click_tab_by_text,
 )
 
 
@@ -31,6 +32,13 @@ async def test_click_tab_by_text_reports_missing_option() -> None:
 
     with pytest.raises(RuntimeError, match="SteamDT option not found"):
         await click_tab_by_text(page, "Sell at STEAM Lowest Price")
+
+
+@pytest.mark.asyncio
+async def test_try_click_tab_by_text_returns_false_for_missing_option() -> None:
+    page = FakeSteamDTPage()
+
+    assert await try_click_tab_by_text(page, "Sell at STEAM Lowest Price") is False
 
 
 @pytest.mark.asyncio

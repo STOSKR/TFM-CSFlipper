@@ -306,7 +306,8 @@ def test_buff_connector_emits_compact_progress_lines() -> None:
 
     assert lines == [
         "buff_progress=1/2 ok=1 errors=0 state=ok last=AK-47 | Slate (Field-Tested)",
-        "buff_progress=2/2 ok=1 errors=1 state=error last=M4A1-S | Nitro (Minimal Wear)",
+        "buff_progress=2/2 ok=1 errors=1 state=error "
+        "last=M4A1-S | Nitro (Minimal Wear) message=not found",
     ]
 
 

@@ -494,13 +494,15 @@ class Buff163Connector:
         if isinstance(result, Buff163Observation):
             item = result.observation.raw_payload.get("market_hash_name") or result.asset_name
             state = "ok"
+            message = ""
         else:
             item = result.candidate.market_hash_name
             state = "error"
+            message = f" message={_compact_log_text(result.message, max_length=180)}"
         self._progress_log(
             "buff_progress="
             f"{completed}/{total} ok={ok_count} errors={error_count} "
-            f"state={state} last={_compact_log_text(str(item))}"
+            f"state={state} last={_compact_log_text(str(item))}{message}"
         )
 
     def _emit_fetch_start(
