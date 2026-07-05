@@ -10,6 +10,7 @@ from apps.acquisition.buff163_market import (
     Buff163Observation,
     _buff_manual_challenge_present,
     extract_buff_api_buy_orders,
+    extract_buff_api_sell_price_text,
     extract_buff_buy_orders,
     extract_buff_price_history,
     extract_buff_price_text,
@@ -133,6 +134,23 @@ def test_extract_buff_api_buy_orders_keeps_individual_orders() -> None:
         "quantity": 8,
         "order_id": "260614T3",
     }
+
+
+def test_extract_buff_api_sell_price_text_uses_cny_payload() -> None:
+    price_text = extract_buff_api_sell_price_text(
+        {
+            "code": "OK",
+            "data": {
+                "items": [
+                    {
+                        "price": "223",
+                    },
+                ],
+            },
+        }
+    )
+
+    assert price_text == "CNY 223"
 
 
 def test_extract_buff_recent_sales_from_bill_order_payload() -> None:

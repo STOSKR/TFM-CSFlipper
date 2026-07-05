@@ -89,7 +89,7 @@ let scrapeStatusSignature = "";
 let scrapeStatusIdlePolls = 0;
 
 document.querySelector("#scrape-show-browser").checked = false;
-document.querySelector("#scrape-refresh-history").checked = true;
+document.querySelector("#scrape-refresh-history").checked = false;
 
 const statusLabels = {
   review: "Revisar",

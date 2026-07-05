@@ -24,10 +24,10 @@ def test_scrape_status_payload_exposes_job_without_command_path() -> None:
     assert "command" not in payload
 
 
-def test_web_scrape_command_refreshes_items_older_than_eight_hours() -> None:
+def test_web_scrape_command_skips_refresh_by_default() -> None:
     command = _web_scrape_command()
 
-    assert "--refresh" in command
+    assert "--no-refresh" in command
     assert command[command.index("--stale-minutes") + 1] == "480"
     assert command[command.index("--steam-concurrency") + 1] == "2"
     assert command[command.index("--buff-concurrency") + 1] == "2"
@@ -48,6 +48,13 @@ def test_web_scrape_command_can_skip_refresh() -> None:
 
     assert "--no-refresh" in command
     assert "--refresh" not in command
+
+
+def test_web_scrape_command_can_refresh() -> None:
+    command = _web_scrape_command(refresh=True)
+
+    assert "--refresh" in command
+    assert "--no-refresh" not in command
 
 
 def test_local_command_allowlist_exposes_expected_frontend_commands() -> None:

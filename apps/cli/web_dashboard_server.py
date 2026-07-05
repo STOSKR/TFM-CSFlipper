@@ -87,7 +87,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         payload = self._read_request_json()
         command = _web_scrape_command(
             show_browser=payload.get("show_browser") is True,
-            refresh=payload.get("refresh") is not False,
+            refresh=payload.get("refresh") is True,
         )
         started = self.server.scrape_runner.start(command)
         status = HTTPStatus.ACCEPTED if started else HTTPStatus.CONFLICT
@@ -218,14 +218,14 @@ def _command_payload(command: LocalCommand) -> dict[str, Any]:
 def _web_scrape_command(
     *,
     show_browser: bool = False,
-    refresh: bool = True,
+    refresh: bool = False,
 ) -> list[str]:
     return build_scrape_job_command(
         _web_scrape_env(show_browser=show_browser, refresh=refresh)
     )
 
 
-def _web_scrape_env(*, show_browser: bool = False, refresh: bool = True) -> dict[str, str]:
+def _web_scrape_env(*, show_browser: bool = False, refresh: bool = False) -> dict[str, str]:
     env = dict(os.environ)
     env.setdefault("SCRAPE_STREAMING", "true")
     env.setdefault("SCRAPE_CANDIDATE_LIMIT", "50")

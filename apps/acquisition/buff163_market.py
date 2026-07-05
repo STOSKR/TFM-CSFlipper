@@ -305,6 +305,7 @@ class Buff163Connector:
                     text: el.innerText || ""
                   }})),
                   apiPayloads: {{
+                    sellOrder: await fetchJson("/api/market/goods/sell_order", {{ page_num: "1" }}),
                     buyOrder: await fetchJson("/api/market/goods/buy_order", {{ page_num: "1" }}),
                     billOrder: await fetchJson("/api/market/goods/bill_order", {{ page_num: "1" }}),
                     priceHistory: await fetchJson(
@@ -331,6 +332,7 @@ class Buff163Connector:
         api_payloads = (
             payload.get("apiPayloads") if isinstance(payload.get("apiPayloads"), dict) else {}
         )
+        sell_order_payload = _json_payload(api_payloads.get("sellOrder"))
         buy_order_payload = _json_payload(api_payloads.get("buyOrder"))
         bill_order_payload = _json_payload(api_payloads.get("billOrder"))
         price_history_payload = _json_payload(api_payloads.get("priceHistory"))
@@ -341,7 +343,10 @@ class Buff163Connector:
             f"selector_matches={len(selector_texts)} body_chars={len(body_text)}",
         )
 
-        price_text = extract_buff_price_text(selector_texts, body_text, debug_log=debug_log)
+        price_text = extract_buff_api_sell_price_text(
+            sell_order_payload,
+            display_currency=DEFAULT_BUFF_CURRENCY,
+        ) or extract_buff_price_text(selector_texts, body_text, debug_log=debug_log)
         if not price_text:
             excerpt = " ".join(body_text.split())[:300]
             self._debug(candidate.market_hash_name, debug_log, f"body_excerpt={excerpt!r}")
@@ -375,7 +380,7 @@ class Buff163Connector:
                 "price_text": price_text,
                 "buy_orders": extract_buff_api_buy_orders(
                     buy_order_payload,
-                    display_currency=currency,
+                    display_currency=DEFAULT_BUFF_CURRENCY,
                 )
                 or extract_buff_buy_orders(
                     buy_order_rows,
@@ -684,6 +689,26 @@ def extract_buff_api_buy_orders(
             row["created_at"] = created_at
         rows.append(row)
     return tuple(rows)
+
+
+def extract_buff_api_sell_price_text(
+    payload: object,
+    *,
+    display_currency: str = DEFAULT_BUFF_CURRENCY,
+) -> str | None:
+    data = _ok_data(payload)
+    if not data:
+        return None
+    items = data.get("items")
+    if not isinstance(items, list):
+        return None
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        price = _optional_decimal_text(item.get("price"))
+        if price is not None:
+            return f"{display_currency.upper()} {price}"
+    return None
 
 
 def extract_buff_recent_sales(

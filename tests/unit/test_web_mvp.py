@@ -17,7 +17,8 @@ def test_web_mvp_static_files_are_wired() -> None:
     assert 'id="scrape-start-button"' in html
     assert 'id="scrape-show-browser"' in html
     assert 'id="scrape-refresh-history"' in html
-    assert 'id="scrape-refresh-history" type="checkbox" autocomplete="off" checked' in html
+    assert 'id="scrape-refresh-history" type="checkbox" autocomplete="off"' in html
+    assert 'id="scrape-refresh-history" type="checkbox" autocomplete="off" checked' not in html
     assert 'autocomplete="off"' in html
     assert 'id="scrape-command"' not in html
     assert 'id="scrape-progress-text"' in html
@@ -60,7 +61,7 @@ def test_web_mvp_static_files_are_wired() -> None:
     assert "data-command-id" in js
     assert "./api/scrape/start" in js
     assert 'document.querySelector("#scrape-show-browser").checked = false' in js
-    assert 'document.querySelector("#scrape-refresh-history").checked = true' in js
+    assert 'document.querySelector("#scrape-refresh-history").checked = false' in js
     assert "show_browser: showBrowser" in js
     assert "refresh }" in js
     assert "./api/scrape/status" in js
