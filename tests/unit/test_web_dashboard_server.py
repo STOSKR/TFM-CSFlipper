@@ -12,9 +12,9 @@ from apps.cli.web_dashboard_server import (
 def test_dashboard_server_limit_query_is_bounded() -> None:
     assert _limit_from_query("limit=25") == 25
     assert _limit_from_query("limit=0") == 1
-    assert _limit_from_query("limit=9999") == 500
-    assert _limit_from_query("limit=nope") == 100
-    assert _limit_from_query("") == 100
+    assert _limit_from_query("limit=9999") == 2000
+    assert _limit_from_query("limit=nope") == 500
+    assert _limit_from_query("") == 500
 
 
 def test_scrape_status_payload_exposes_job_without_command_path() -> None:

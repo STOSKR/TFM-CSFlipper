@@ -168,12 +168,12 @@ async def _dashboard_payload(*, limit: int) -> dict[str, Any]:
 
 
 def _limit_from_query(query: str) -> int:
-    raw = (parse_qs(query).get("limit") or ["100"])[0]
+    raw = (parse_qs(query).get("limit") or ["500"])[0]
     try:
         value = int(raw)
     except ValueError:
-        return 100
-    return min(max(value, 1), 500)
+        return 500
+    return min(max(value, 1), 2000)
 
 
 def _scrape_status_payload(runner: ScrapeJobRunner) -> dict[str, Any]:

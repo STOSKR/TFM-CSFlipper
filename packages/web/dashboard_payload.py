@@ -86,6 +86,8 @@ def market_items_query() -> str:
              i.updated_at,
              i.created_at
          )
+        where i.steam_price_eur is not null
+          and i.buff_price_eur is not null
         order by
             greatest(
                 coalesce(latest_signals.signal_scored_at, '-infinity'::timestamptz),

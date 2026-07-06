@@ -85,5 +85,7 @@ def test_market_items_query_reads_price_derivative_columns() -> None:
     assert "buff_price_eur" in query
     assert "signal_scored_at >= coalesce" in query
     assert "i.last_checked_at" in query
+    assert "i.steam_price_eur is not null" in query
+    assert "i.buff_price_eur is not null" in query
     assert "greatest(" in query
     assert "limit $1" in query.lower()
