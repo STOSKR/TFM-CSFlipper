@@ -34,6 +34,10 @@ def test_trading_examples_create_profit_target_from_future_steam_sale() -> None:
     assert first["sell_price_type"] == "listing"
     assert first["cash_destination"] == "reinvest"
     assert first["buff_sell_price_eur"] == 10.0
+    assert first["day_of_week"] == 0
+    assert first["month"] == 12
+    assert first["is_weekend"] == 0
+    assert pd.isna(first["steam_sell_price_eur_lag_1d"])
     assert round(first["current_cash_value_eur"], 3) == 8.352
     assert first["future_steam_sell_price_eur"] == 13.0
     assert first["future_steam_net_sale_eur"] == 11.31
@@ -68,6 +72,7 @@ def test_build_trading_dataset_writes_splits_and_metadata(tmp_path: Path) -> Non
         "cash_destination",
     ]
     assert "current_profit_eur" in metadata["numeric_features"]
+    assert "is_weekend" in metadata["numeric_features"]
     assert "buy_platform" not in metadata["feature_columns"]
     assert "representation_name" not in metadata["feature_columns"]
     assert metadata["splits"]["train"]["rows"] == 1
@@ -80,6 +85,59 @@ def test_build_trading_dataset_writes_splits_and_metadata(tmp_path: Path) -> Non
     assert train["buy_platform"].tolist() == ["BUFF"]
     assert train["sell_platform"].tolist() == ["STEAM"]
     assert train["steam_buff_spread_eur"].tolist() == [2.0]
+
+
+def test_build_trading_dataset_drops_all_null_features(tmp_path: Path) -> None:
+    history = _history_frame(include_sales_count=False)
+
+    metadata = build_trading_dataset_from_history(
+        history,
+        config=TradingDatasetBuildConfig(
+            output_dir=tmp_path / "trading",
+            horizon_days=8,
+            validation_start=datetime(2026, 1, 1),
+            test_start=datetime(2026, 3, 1),
+        ),
+    )
+
+    assert "steam_sales_count" not in metadata["feature_columns"]
+    assert "steam_sales_count_lag_1d" not in metadata["feature_columns"]
+
+
+def test_trading_examples_add_lag_and_rolling_features_without_future_leakage() -> None:
+    history = _history_frame(
+        (
+            ("2025-12-01", 12.0, 10.0),
+            ("2025-12-02", 14.0, 11.0),
+            ("2025-12-03", 16.0, 12.0),
+            ("2025-12-04", 18.0, 13.0),
+        )
+    )
+
+    examples = trading_examples_from_history(
+        history,
+        config=TradingDatasetBuildConfig(
+            output_dir=Path("-"),
+            horizon_days=1,
+            future_tolerance_days=0,
+            validation_start=datetime(2026, 1, 1),
+            test_start=datetime(2026, 3, 1),
+        ),
+    )
+
+    first = examples.iloc[0]
+    assert first["steam_sell_price_eur"] == 12.0
+    assert pd.isna(first["steam_sell_price_eur_lag_1d"])
+    assert pd.isna(first["steam_sell_price_eur_rolling_mean_7d"])
+
+    second = examples.iloc[1]
+    assert second["steam_sell_price_eur"] == 14.0
+    assert second["steam_sell_price_eur_lag_1d"] == 12.0
+    assert second["steam_sell_price_eur_change_1d"] == 2.0
+    assert round(second["steam_sell_price_eur_return_1d"], 3) == 0.167
+
+    third = examples.iloc[2]
+    assert third["steam_sell_price_eur_rolling_mean_7d"] == 13.0
 
 
 def test_trading_examples_support_steam_to_buff_buy_order_direction() -> None:
@@ -112,21 +170,26 @@ def test_trading_examples_support_steam_to_buff_buy_order_direction() -> None:
     assert first["is_profitable"] == 0
 
 
-def _history_frame() -> pd.DataFrame:
-    rows = []
-    for day, steam_price, buff_price in (
+def _history_frame(
+    prices: tuple[tuple[str, float, float], ...] = (
         ("2025-12-01", 12.0, 10.0),
         ("2025-12-09", 13.0, 10.5),
-    ):
+    ),
+    *,
+    include_sales_count: bool = True,
+) -> pd.DataFrame:
+    rows = []
+    for day, steam_price, buff_price in prices:
         rows.extend(
             [
                 _row(day, "steam", "sell_price", steam_price, steam_price),
-                _row(day, "steam", "sales_count", 24, None),
                 _row(day, "buff163", "sell_price", buff_price, buff_price),
                 _row(day, "buff163", "buy_order_price", buff_price - 0.5, buff_price - 0.5),
                 _row(day, "buff163", "listing_count", 7, None),
             ]
         )
+        if include_sales_count:
+            rows.append(_row(day, "steam", "sales_count", 24, None))
     return pd.DataFrame(rows)
 
 

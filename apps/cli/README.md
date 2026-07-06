@@ -76,6 +76,18 @@ python -m apps.cli.refresh_market_history --persist --buff --buff-history-days 3
 
 ## Scraping Automatico Local
 
+## Reentrenamiento Periodico
+
+Construye el dataset de trading con las features temporales/rolling y entrena el modelo en una
+sola ejecucion apta para cron:
+
+```bash
+python -m apps.cli.retrain_trading_model --query-start 2025-06-16
+```
+
+Por defecto usa splits rodantes: validacion de 60 a 30 dias atras y test de los ultimos 30 dias.
+Los artefactos del modelo quedan en `model-runs/trading_profit_v1/<timestamp>`.
+
 Ejecuta `scrape_flow.py --persist` y despues refresca los articulos guardados que no se hayan
 actualizado en la ultima hora. Repite el ciclo cada 60 minutos:
 

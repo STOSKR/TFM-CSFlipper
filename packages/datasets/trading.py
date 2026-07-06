@@ -87,7 +87,9 @@ def build_trading_dataset_from_history(
 ) -> dict[str, Any]:
     frame = trading_examples_from_history(history, config=config)
     feature_columns = tuple(
-        column for column in frame.columns if column not in TRADING_NON_FEATURE_COLUMNS
+        column
+        for column in frame.columns
+        if column not in TRADING_NON_FEATURE_COLUMNS and not frame[column].isna().all()
     )
     numeric_features = tuple(
         column for column in feature_columns if pd.api.types.is_numeric_dtype(frame[column])
@@ -254,6 +256,17 @@ def trading_examples_from_history(
     daily["log_buff_price_eur"] = np.log1p(daily["buff_sell_price_eur"])
     daily["log_steam_sales_count"] = np.log1p(daily["steam_sales_count"].fillna(0))
     daily["log_buff_listing_count"] = np.log1p(daily["buff_listing_count"].fillna(0))
+    daily = _add_time_features(daily)
+    daily = _add_lag_features(
+        daily,
+        columns=(
+            "steam_sell_price_eur",
+            "buff_sell_price_eur",
+            "buff_buy_order_price_eur",
+            "steam_sales_count",
+            "buff_listing_count",
+        ),
+    )
 
     future = daily.loc[
         :,
@@ -460,6 +473,47 @@ def _ensure_metric_columns(frame: pd.DataFrame) -> pd.DataFrame:
     ):
         if column not in result:
             result[column] = np.nan
+    return result
+
+
+def _add_time_features(frame: pd.DataFrame) -> pd.DataFrame:
+    result = frame.copy()
+    dates = pd.to_datetime(result[TRADING_DATE_COLUMN])
+    result["day_of_week"] = dates.dt.dayofweek
+    result["month"] = dates.dt.month
+    result["is_weekend"] = dates.dt.dayofweek.isin((5, 6)).astype(int)
+    return result
+
+
+def _add_lag_features(
+    frame: pd.DataFrame,
+    *,
+    columns: tuple[str, ...],
+) -> pd.DataFrame:
+    result = frame.sort_values(["item_id", TRADING_DATE_COLUMN]).copy()
+    groups = result.groupby("item_id", sort=False)
+    for column in columns:
+        if column not in result:
+            continue
+        series = pd.to_numeric(result[column], errors="coerce")
+        grouped = series.groupby(result["item_id"], sort=False)
+        for days in (1, 3, 7):
+            lag = grouped.shift(days)
+            result[f"{column}_lag_{days}d"] = lag
+            result[f"{column}_change_{days}d"] = series - lag
+            result[f"{column}_return_{days}d"] = _safe_ratio(series - lag, lag)
+        result[f"{column}_rolling_mean_7d"] = groups[column].transform(
+            lambda values: pd.to_numeric(values, errors="coerce")
+            .shift(1)
+            .rolling(7, min_periods=2)
+            .mean()
+        )
+        result[f"{column}_rolling_std_7d"] = groups[column].transform(
+            lambda values: pd.to_numeric(values, errors="coerce")
+            .shift(1)
+            .rolling(7, min_periods=2)
+            .std()
+        )
     return result
 
 
