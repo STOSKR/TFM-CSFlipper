@@ -1,5 +1,5 @@
 [discovery]
-candidates_limit = 50
+candidates_limit = 25
 min_price = 100
 min_volume = 12
 currency = "EUR"
@@ -49,14 +49,14 @@ buy_mode = "Buy via STEAM Buy Order"
 
 [workers]
 steam_concurrency = 2
-buff_concurrency = 2
+buff_concurrency = 1
 batch_size = 10
 
 [delays]
 steam_min_seconds = 1.5
 steam_max_seconds = 4.0
-buff_min_seconds = 2.5
-buff_max_seconds = 6.0
+buff_min_seconds = 5.0
+buff_max_seconds = 10.0
 
 [risk]
 max_position_fraction = 0.20

@@ -30,7 +30,7 @@ def test_web_scrape_command_skips_refresh_by_default() -> None:
     assert "--no-refresh" in command
     assert command[command.index("--stale-minutes") + 1] == "480"
     assert command[command.index("--steam-concurrency") + 1] == "2"
-    assert command[command.index("--buff-concurrency") + 1] == "2"
+    assert command[command.index("--buff-concurrency") + 1] == "1"
     assert command[command.index("--buff-captcha-wait-seconds") + 1] == "300"
     assert "--score" in command
     assert "--concurrent-platforms" in command

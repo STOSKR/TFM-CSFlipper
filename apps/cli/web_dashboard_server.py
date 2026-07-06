@@ -229,14 +229,14 @@ def _web_scrape_command(
 def _web_scrape_env(*, show_browser: bool = False, refresh: bool = False) -> dict[str, str]:
     env = dict(os.environ)
     env.setdefault("SCRAPE_STREAMING", "true")
-    env.setdefault("SCRAPE_CANDIDATE_LIMIT", "50")
+    env.setdefault("SCRAPE_CANDIDATE_LIMIT", "25")
     env.setdefault("SCRAPE_ALL_PROFILES", "true")
     env.setdefault("SCRAPE_STEAM", "true")
     env.setdefault("SCRAPE_BUFF", "true")
     env["SCRAPE_REFRESH"] = "true" if refresh else "false"
     env.setdefault("SCRAPE_STALE_MINUTES", "480")
     env.setdefault("SCRAPE_STEAM_CONCURRENCY", "2")
-    env.setdefault("SCRAPE_BUFF_CONCURRENCY", "2")
+    env.setdefault("SCRAPE_BUFF_CONCURRENCY", "1")
     env.setdefault("SCRAPE_BUFF_CAPTCHA_WAIT_SECONDS", "300")
     env.setdefault("SCRAPE_SCORE", "true")
     env.setdefault("SCRAPE_CONCURRENT_PLATFORMS", "true")

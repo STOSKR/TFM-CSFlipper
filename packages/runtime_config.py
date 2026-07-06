@@ -15,7 +15,7 @@ DEFAULT_CONFIG_PATH = Path("csflipper_config.toml")
 
 @dataclass(frozen=True, slots=True)
 class DiscoveryConfig:
-    candidates_limit: int = 50
+    candidates_limit: int = 25
     min_price: Decimal | None = Decimal("300")
     min_volume: int | None = 12
     currency: str = "EUR"
@@ -67,8 +67,8 @@ class WorkerConfig:
 class DelayConfig:
     steam_min_seconds: float = 1.5
     steam_max_seconds: float = 4.0
-    buff_min_seconds: float = 2.5
-    buff_max_seconds: float = 6.0
+    buff_min_seconds: float = 5.0
+    buff_max_seconds: float = 10.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -99,7 +99,7 @@ def load_runtime_config(path: Path | str = DEFAULT_CONFIG_PATH) -> RuntimeConfig
 
 def _discovery_config(section: dict[str, Any]) -> DiscoveryConfig:
     return DiscoveryConfig(
-        candidates_limit=_int(section, "candidates_limit", 50),
+        candidates_limit=_int(section, "candidates_limit", 25),
         min_price=_optional_decimal(section, "min_price", Decimal("300")),
         min_volume=_optional_int(section, "min_volume", 12),
         currency=_str(section, "currency", "EUR"),
@@ -189,8 +189,8 @@ def _delay_config(section: dict[str, Any]) -> DelayConfig:
     return DelayConfig(
         steam_min_seconds=_float(section, "steam_min_seconds", 1.5),
         steam_max_seconds=_float(section, "steam_max_seconds", 4.0),
-        buff_min_seconds=_float(section, "buff_min_seconds", 2.5),
-        buff_max_seconds=_float(section, "buff_max_seconds", 6.0),
+        buff_min_seconds=_float(section, "buff_min_seconds", 5.0),
+        buff_max_seconds=_float(section, "buff_max_seconds", 10.0),
     )
 
 

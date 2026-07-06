@@ -16,13 +16,13 @@ from packages.runtime_config import load_runtime_config
 def test_render_stream_scrape_defaults_match_local_fast_flow() -> None:
     args = build_parser(load_runtime_config()).parse_args([])
 
-    assert args.limit == 50
+    assert args.limit == 25
     assert args.all_profiles is True
     assert args.steam is True
     assert args.buff is True
     assert args.steam_api is False
     assert args.steam_concurrency == 2
-    assert args.buff_concurrency == 2
+    assert args.buff_concurrency == 1
     assert args.batch_size == 10
     assert args.persist is True
     assert args.refresh is False
