@@ -2,11 +2,15 @@
 
 \section{Motivación}
 
-Los mercados de activos digitales han crecido alrededor de videojuegos, plataformas de intercambio, coleccionables virtuales y otros ecosistemas donde los bienes no tienen una forma física, pero sí un valor económico observable. En estos entornos aparecen problemas muy parecidos a los de los mercados financieros tradicionales: variación de precios, liquidez desigual, costes de transacción, riesgo de inventario y necesidad de reaccionar ante cambios de oferta y demanda. La diferencia principal es que muchas de las herramientas disponibles para analizarlos son todavía limitadas, fragmentadas o directamente manuales.
+Los mercados de activos digitales asociados a videojuegos han dejado de ser un fenómeno marginal. En el caso de \textit{Counter-Strike 2}, los objetos cosméticos como skins, cuchillos, guantes, pegatinas o cajas se compran y venden de forma continua en diferentes plataformas. Aunque estos activos no tienen una forma física, su precio se comporta como una señal económica observable: cambia con la demanda, la rareza, la liquidez, la condición del objeto, la disponibilidad en cada mercado y las expectativas de reventa.
 
-El caso de \textit{Counter-Strike 2} es un ejemplo especialmente interesante. Sus objetos cosméticos pueden comprarse y venderse en diferentes plataformas, presentan historiales de precio y se negocian con suficiente frecuencia como para construir modelos de análisis. Sin embargo, operar en este mercado no es trivial. Un activo aparentemente rentable puede dejar de serlo al considerar comisiones, retrasos en la venta, diferencias de moneda, falta de liquidez o cambios repentinos en la demanda. Por ello, una decisión simple de compra o venta acaba dependiendo de muchas variables que no siempre son fáciles de combinar manualmente.
+El interés de este TFM nace de una contradicción bastante clara. Por un lado, existe un mercado activo, con volumen, histórico de precios y oportunidades entre plataformas. Por otro, buena parte de la gestión real se sigue haciendo con hojas de cálculo, comprobaciones manuales y reglas estáticas. Esta forma de trabajo puede servir para un número pequeño de artículos, pero se vuelve frágil cuando se intenta seguir muchos objetos, comparar monedas, estimar comisiones, controlar capital bloqueado y reaccionar ante cambios de precio.
 
-La motivación de este trabajo nace de esa brecha entre el tamaño real del mercado y la falta de sistemas abiertos que integren adquisición de datos, simulación, evaluación de riesgo y toma de decisiones. En lugar de abordar el problema como una única predicción aislada, este TFM plantea una arquitectura multiagente donde distintos componentes aprenden o evalúan partes concretas del entorno. La hipótesis de partida es que esta división puede facilitar el aprendizaje de estrategias de inversión y hacer más manejable un problema que, tratado de forma monolítica, resulta demasiado amplio.
+El caso de \textit{Counter-Strike 2} añade además varias fricciones que hacen que una oportunidad aparente no siempre sea una buena decisión. Comprar un artículo barato no basta: hay que considerar la comisión de la plataforma, la conversión entre EUR y CNY, el margen real de salida, el volumen disponible, el \textit{trade hold}, el tiempo probable hasta la venta y el coste de oportunidad del capital inmovilizado. En la práctica, una operación rentable en bruto puede dejar de serlo cuando se calcula el beneficio neto.
+
+Antes de este proyecto, parte de estas decisiones ya se apoyaban en un Excel operativo con fórmulas de conversión de moneda, comisiones, beneficio, porcentaje de retorno, fechas de desbloqueo y capital en espera. Ese Excel ha servido como especificación inicial del dominio: no se ha migrado como estructura final, pero sí ha permitido identificar reglas económicas que debían convertirse en funciones reutilizables dentro del sistema.
+
+La motivación técnica del trabajo es transformar ese proceso manual en una plataforma reproducible de adquisición, simulación y decisión. El objetivo no es ejecutar compras reales durante el desarrollo del TFM, sino construir un entorno controlado en el que se puedan evaluar estrategias con datos históricos y reglas de mercado realistas. Sobre esa base se plantea una arquitectura multiagente en la que distintos agentes se especializan en detectar oportunidades, decidir operaciones y controlar el riesgo de cartera.
 
 \section{Objetivos}
 
@@ -16,21 +20,31 @@ Los objetivos específicos son:
 
 \begin{itemize}
   \item Analizar el dominio de los activos digitales de \textit{Counter-Strike 2} y las restricciones que afectan a la toma de decisiones.
-  \item Diseñar un flujo de adquisición y preparación de datos procedentes de mercados y fuentes externas.
-  \item Definir un modelo de cartera que permita simular operaciones de compra, venta y mantenimiento de activos.
-  \item Formular el problema como un entorno de aprendizaje por refuerzo con observaciones, acciones y recompensas coherentes con el dominio.
-  \item Proponer una arquitectura multiagente que distribuya la toma de decisiones entre agentes especializados.
-  \item Evaluar el comportamiento del sistema mediante experimentos, métricas de rentabilidad y medidas de riesgo.
+  \item Migrar las reglas económicas usadas de forma manual hacia módulos reutilizables de simulación y evaluación.
+  \item Diseñar un flujo de adquisición y preparación de datos procedentes de Steam, BUFF163, SteamDT, OCR y fuentes manuales.
+  \item Consolidar un modelo de persistencia que mantenga trazabilidad de fuente, fecha, moneda y calidad del dato.
+  \item Construir datasets temporales para predicción supervisada y para evaluación de oportunidades de trading.
+  \item Entrenar y evaluar modelos supervisados que estimen señales útiles para la decisión, especialmente probabilidades calibradas.
+  \item Definir un simulador de cartera que permita reproducir compras, ventas, posiciones bloqueadas, comisiones y valoración.
+  \item Formular el problema como un entorno de aprendizaje por refuerzo multiagente con observaciones, acciones y recompensas coherentes con el dominio.
+  \item Implementar una arquitectura con agentes especializados, manteniendo separadas la adquisición de datos, la predicción, la simulación y la decisión.
+  \item Evaluar el comportamiento del sistema mediante métricas de rentabilidad, riesgo, exposición y capital inmovilizado.
 \end{itemize}
+
+\section{Alcance y restricciones}
+
+El alcance del proyecto se centra en la simulación y en la evaluación. Durante el desarrollo del TFM no se ejecutan compras reales ni se mueve capital real. Cualquier decisión generada por el sistema se registra como recomendación o decisión simulada. Esta restricción es importante porque permite experimentar con estrategias sin introducir riesgos económicos ni depender de una integración operativa completa con plataformas externas.
+
+El proyecto tampoco asume que el aprendizaje por refuerzo multiagente sea útil por definición. La arquitectura se plantea como hipótesis de trabajo: si los datos, el simulador y las recompensas no son suficientemente informativos, el sistema debe mostrarlo en los resultados. Por este motivo se mantiene una separación explícita entre modelos supervisados, simulador, agentes MARL y evaluación experimental.
 
 \section{Estructura del documento}
 
-El resto del documento se organiza de la siguiente forma. El Capítulo 2 presenta el marco teórico necesario para entender el proyecto, incluyendo los mercados de activos digitales, el aprendizaje por refuerzo, el aprendizaje por refuerzo multiagente y su aplicación a problemas de decisión sobre carteras.
+El Capítulo 2 presenta el marco teórico necesario para entender el proyecto: mercados de activos digitales, aprendizaje por refuerzo, aprendizaje por refuerzo multiagente y toma de decisiones en carteras. La parte de estado del arte se completará comparando el trabajo con enfoques relacionados de predicción financiera, simulación y MARL.
 
-El Capítulo 3 describe la propuesta desarrollada en este TFM. En él se define la arquitectura general, el papel de los agentes, las observaciones disponibles, el espacio de acciones y la función de recompensa utilizada para guiar el aprendizaje.
+El Capítulo 3 describe la arquitectura multiagente propuesta. En él se define el problema, el flujo general del sistema, el entorno de decisión, los agentes y la función de recompensa.
 
-El Capítulo 4 se centra en la configuración del entorno experimental y en los datos empleados. Se explican las fuentes de información, el proceso de adquisición, la persistencia, la generación de características y el simulador usado para evaluar decisiones sin operar directamente sobre el mercado real.
+El Capítulo 4 se centra en los datos y en el entorno experimental. Se explican las fuentes de adquisición, la persistencia, las características utilizadas, el simulador de cartera y la interfaz de consulta.
 
-El Capítulo 5 recoge la experimentación y el análisis de resultados. Se describen las pruebas realizadas, las métricas utilizadas y la comparación entre estrategias o configuraciones relevantes.
+El Capítulo 5 recoge la experimentación realizada hasta el momento. Incluye la exploración de características, los modelos supervisados, el dataset de trading real, el estado del entrenamiento MARL y las limitaciones detectadas.
 
-Por último, el Capítulo 6 resume las conclusiones del trabajo, revisa el grado de cumplimiento de los objetivos y plantea posibles líneas de mejora futura.
+Por último, el Capítulo 6 resume las conclusiones parciales, revisa el grado de cumplimiento de los objetivos y plantea líneas de trabajo futuro.
