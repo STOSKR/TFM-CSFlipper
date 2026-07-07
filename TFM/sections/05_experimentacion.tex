@@ -2,16 +2,66 @@
 
 \section{Diseño experimental}
 
-% ponytail: definir escenarios, horizonte temporal y condiciones de comparación.
+La experimentación se ha desarrollado por fases. Primero se migraron reglas económicas y estructuras de datos. Después se construyeron datasets supervisados para estudiar señales de mercado. Más adelante se creó un dataset de trading basado en precios Steam/BUFF y se implementó el entorno multiagente. Esta secuencia evita entrenar agentes MARL sobre un entorno que todavía no representa bien el problema económico.
+
+\subsection{Escenarios de evaluación}
+
+Se han usado dos tipos de datasets. El primero predice dirección de mercado sobre histórico disponible y permite estudiar señales temporales de forma amplia. El segundo intenta modelar oportunidades reales de trading Steam/BUFF con precios normalizados, fees y horizonte temporal. Este segundo dataset es más cercano al objetivo del TFM, pero también es más exigente porque necesita histórico alineado entre plataformas.
+
+\subsection{Estrategias de comparación}
+
+La comparación experimental se plantea en tres niveles. El primero es un baseline simple o dummy para comprobar que los modelos aprenden algo más que la tasa base. El segundo compara modelos supervisados tabulares como regresión logística, random forest e histogram gradient boosting. El tercero, todavía pendiente de evaluación completa, comparará la arquitectura MARL frente a baselines de agente único y ablations con y sin probabilidad supervisada.
 
 \section{Métricas}
 
-% ponytail: saldo final, rentabilidad, drawdown, número de operaciones y exposición.
+\subsection{Métricas de rentabilidad}
+
+Las métricas de rentabilidad principales son beneficio neto, retorno porcentual, saldo final y número de señales operativas. En los modelos supervisados se usan además precisión, recall, F1, ROC-AUC, PR-AUC y Brier score. Para el uso operativo se da especial importancia a la precisión en umbrales altos, porque una señal menos frecuente pero más fiable puede ser más útil que muchas señales ruidosas.
+
+\subsection{Métricas de riesgo}
+
+Las métricas de riesgo incluyen drawdown, capital bloqueado medio, posiciones abiertas, exposición por activo o plataforma, operaciones rechazadas por riesgo e impacto del \textit{trade hold}. Estas métricas son necesarias para evaluar si una estrategia es realmente utilizable y no solo rentable en una métrica aislada.
 
 \section{Resultados}
 
-% ponytail: añadir tablas y gráficas cuando existan resultados cerrados.
+\subsection{Resultados del modelo supervisado}
+
+La fase supervisada produjo varios experimentos preliminares. En el dataset reciente de un año, los modelos random forest obtuvieron señales útiles en umbrales altos, aunque con un número limitado de casos. La selección por precisión a umbral 0,8 resultó más alineada con el objetivo operativo que seleccionar solo por ROC-AUC.
+
+\begin{table}[h]
+\centering
+\begin{tabularx}{\textwidth}{l l l X}
+\toprule
+Experimento & Modelo & Umbral & Resultado en test \\
+\midrule
+Smoke reciente & Random forest d18 & 0,8 & Precisión 0,946 con 92 señales \\
+Selección por precisión & Random forest d10 & 0,8 & Precisión 0,961 con 77 señales \\
+Default operativo & Random forest d18 & 0,85 & Precisión 0,962 con 53 señales \\
+\bottomrule
+\end{tabularx}
+\caption{Resultados supervisados preliminares sobre el dataset reciente.}
+\end{table}
+
+Estos resultados no se consideran definitivos. El número de señales en umbrales altos es reducido y no permite afirmar que el sistema generalice por artículo o por periodo. Sí indican que el pipeline de entrenamiento, calibración, selección por umbral y evaluación temporal funciona.
+
+\subsection{Dataset de trading real}
+
+El dataset \texttt{trading\_profit\_v1} se generó desde \texttt{market\_history\_points} usando precios Steam/BUFF, comisiones y horizonte temporal. La primera versión produjo 2.331 ejemplos y 50 artículos, pero con desbalance extremo en validación y test: solo un caso positivo en cada split para la dirección analizada. Por este motivo, las métricas de ese entrenamiento no se usan como evidencia de rendimiento operativo.
+
+El análisis posterior mostró que el histórico de BUFF empezó a estar mejor alineado tras corregir el parser y permitir backfill de puntos históricos. Aun así, la dirección más natural de arbitraje, comprar en BUFF y vender en Steam, todavía no generaba ejemplos suficientes a ocho días porque faltaba histórico futuro Steam alineado con los puntos BUFF recientes.
+
+\subsection{Resultados de la arquitectura multiagente}
+
+El entorno multiagente ya existe como smoke funcional. Se implementó un entorno PettingZoo con tres políticas, un wrapper para RLlib y un comando de entrenamiento corto con PPO multiagente. El smoke ejecuta entrenamiento, guarda checkpoint y devuelve métricas operativas como recompensa media, número de operaciones, efectivo, beneficio realizado, drawdown, capital bloqueado y posiciones abiertas.
+
+Sin embargo, el entrenamiento actual no debe presentarse como validación final de MAPPO con CTDE completo. El estado central está definido y expuesto, pero queda pendiente conectar el crítico centralizado de forma completa y comparar contra baselines. Esta distinción es importante para no confundir un flujo ejecutable con una evidencia experimental cerrada.
 
 \section{Discusión}
 
-% ponytail: explicar qué funciona, qué no y por qué puede estar pasando.
+\subsection{Casos favorables}
+
+El trabajo realizado muestra que el sistema ya puede integrar fuentes, construir datasets, entrenar modelos supervisados, calibrar probabilidades, simular reglas económicas y ejecutar un smoke multiagente. La separación entre adquisición, predicción, simulación y decisión ha resultado útil porque permite avanzar por partes y detectar bloqueos concretos sin rehacer toda la arquitectura.
+
+\subsection{Limitaciones observadas}
+
+La principal limitación actual es la disponibilidad de histórico alineado entre Steam y BUFF. Sin suficientes ejemplos positivos en validación y test, cualquier métrica de trading puede ser engañosa. También existe riesgo de sobreajuste en variables categóricas de alta cardinalidad y en señales de precisión alta con pocos casos. Por último, el entorno MARL necesita una validación experimental más amplia antes de poder concluir si la arquitectura multiagente mejora realmente a una estrategia simple.
