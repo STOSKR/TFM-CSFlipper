@@ -29,6 +29,11 @@
   {0.35em}
   {\Huge\color{black}}
   [\vspace{0.25em}{\color{tfmRule}\titlerule[0.7pt]}]
+\titleformat{name=\chapter,numberless}[display]
+  {\normalfont\bfseries}
+  {}
+  {0pt}
+  {\Huge\color{black}}
 \titleformat{\section}
   {\normalfont\Large\bfseries}
   {\thesection}
@@ -49,15 +54,16 @@
 \setlength{\cftafterloftitleskip}{1em}
 \setlength{\cftafterlottitleskip}{1em}
 \setlength{\cftbeforechapskip}{0.45em}
-\renewcommand{\cftaftertoctitle}{\par\noindent\rule{\textwidth}{0.4pt}\vskip0.8em}
-\renewcommand{\cftafterloftitle}{\par\noindent\rule{\textwidth}{0.4pt}\vskip0.8em}
-\renewcommand{\cftafterlottitle}{\par\noindent\rule{\textwidth}{0.4pt}\vskip0.8em}
+\newcommand{\indicetoprule}{\par\noindent\rule{\textwidth}{0.4pt}\vskip0.8em}
+\renewcommand{\cftaftertoctitle}{\indicetoprule}
+\renewcommand{\cftafterloftitle}{\indicetoprule}
+\renewcommand{\cftafterlottitle}{\indicetoprule}
 \newcommand{\indicebottomrule}{\par\vspace{0.45em}\noindent\rule{\textwidth}{0.4pt}\par}
 \makeatletter
 \renewcommand*{\float@listhead}[1]{%
   \@ifundefined{chapter}{\def\@tempa{\section*}}{\def\@tempa{\chapter*}}%
   \@tempa{#1\@mkboth{\MakeUppercase{#1}}{\MakeUppercase{#1}}}%
-  \par\noindent\rule{\textwidth}{0.4pt}\vskip0.8em%
+  \indicetoprule%
 }
 \makeatother
 
