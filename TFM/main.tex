@@ -6,7 +6,43 @@
 \usepackage{csquotes}
 \usepackage{graphicx}
 \usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage[margin=2.7cm]{geometry}
+\usepackage{titlesec}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{tocloft}
 \usepackage{hyperref}
+
+\floatname{algorithm}{Algoritmo}
+\renewcommand{\listalgorithmname}{Lista de algoritmos}
+\setlength{\emergencystretch}{3em}
+\titlespacing*{\chapter}{0pt}{-18pt}{1.2em}
+\titlespacing*{\section}{0pt}{1.1em}{0.45em}
+\titlespacing*{\subsection}{0pt}{0.8em}{0.35em}
+\titleformat{\chapter}[display]
+  {\normalfont\huge\bfseries}
+  {\chaptertitlename\ \thechapter}
+  {0.5em}
+  {}
+\setlength{\parskip}{0.35em}
+\setlength{\parindent}{1.2em}
+\setlength{\cftbeforetoctitleskip}{0pt}
+\setlength{\cftaftertoctitleskip}{1em}
+\setlength{\cftbeforeloftitleskip}{0pt}
+\setlength{\cftbeforelottitleskip}{0pt}
+\setlength{\cftafterloftitleskip}{1em}
+\setlength{\cftafterlottitleskip}{1em}
+\setlength{\cftbeforechapskip}{0.45em}
+\renewcommand{\cftaftertoctitle}{\par\noindent\rule{\textwidth}{0.4pt}\vskip0.8em}
+\renewcommand{\cftafterloftitle}{\par\noindent\rule{\textwidth}{0.4pt}\vskip0.8em}
+\renewcommand{\cftafterlottitle}{\par\noindent\rule{\textwidth}{0.4pt}\vskip0.8em}
+\renewcommand{\cftafterloftitle}{\par\noindent\rule{\textwidth}{0.4pt}\vskip0.8em}
+\AtBeginDocument{
+  \addtocontents{toc}{\protect\vspace{0.4em}\protect\noindent\protect\rule{\protect\textwidth}{0.4pt}\protect\par}
+  \addtocontents{lof}{\protect\vspace{0.4em}\protect\noindent\protect\rule{\protect\textwidth}{0.4pt}\protect\par}
+  \addtocontents{lot}{\protect\vspace{0.4em}\protect\noindent\protect\rule{\protect\textwidth}{0.4pt}\protect\par}
+}
 
 \hypersetup{
   colorlinks=true,
@@ -22,13 +58,31 @@
 \begin{document}
 
 % Portada omitida a propósito.
+\pagenumbering{arabic}
 
 \input{sections/00_resumenes}
 
+\cleardoublepage
 \tableofcontents
+
+\cleardoublepage
+\phantomsection
+\addcontentsline{toc}{chapter}{Índice de figuras}
 \listoffigures
+
+\cleardoublepage
+\phantomsection
+\addcontentsline{toc}{chapter}{Índice de tablas}
 \listoftables
+
+\cleardoublepage
+\phantomsection
+\addcontentsline{toc}{chapter}{Lista de algoritmos}
+\listofalgorithms
+
 \input{sections/00_acronimos}
+
+\cleardoublepage
 
 \input{sections/01_introduccion}
 \input{sections/02_marco_teorico}
