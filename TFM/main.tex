@@ -7,6 +7,7 @@
 \usepackage{graphicx}
 \usepackage{booktabs}
 \usepackage{tabularx}
+\usepackage{xcolor}
 \usepackage[margin=2.7cm]{geometry}
 \usepackage{titlesec}
 \usepackage{algorithm}
@@ -16,14 +17,28 @@
 
 \floatname{algorithm}{Algoritmo}
 \renewcommand{\listalgorithmname}{Lista de algoritmos}
+\definecolor{tfmRule}{gray}{0.35}
+\definecolor{tfmMuted}{gray}{0.28}
 \setlength{\emergencystretch}{3em}
-\titlespacing*{\chapter}{0pt}{-18pt}{1.2em}
+\titlespacing*{\chapter}{0pt}{-12pt}{1.45em}
 \titlespacing*{\section}{0pt}{1.1em}{0.45em}
 \titlespacing*{\subsection}{0pt}{0.8em}{0.35em}
 \titleformat{\chapter}[display]
-  {\normalfont\huge\bfseries}
-  {\chaptertitlename\ \thechapter}
-  {0.5em}
+  {\normalfont\bfseries}
+  {\color{tfmRule}\titlerule[0.7pt]\vspace{0.7em}\Large\scshape\color{tfmMuted}\chaptertitlename\ \thechapter}
+  {0.35em}
+  {\Huge\color{black}}
+  [\vspace{0.25em}{\color{tfmRule}\titlerule[0.7pt]}]
+\titleformat{\section}
+  {\normalfont\Large\bfseries}
+  {\thesection}
+  {0.75em}
+  {}
+  [{\color{tfmRule}\titlerule[0.35pt]}]
+\titleformat{\subsection}
+  {\normalfont\large\bfseries\color{tfmMuted}}
+  {\thesubsection}
+  {0.75em}
   {}
 \setlength{\parskip}{0.35em}
 \setlength{\parindent}{1.2em}
