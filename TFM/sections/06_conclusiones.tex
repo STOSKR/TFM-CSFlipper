@@ -2,8 +2,22 @@
 
 \section{Conclusiones principales}
 
-% ponytail: cerrar contra los objetivos, sin vender humo.
+El desarrollo realizado hasta el momento permite concluir que el problema no puede reducirse a una predicción aislada de subida o bajada de precio. En mercados como el de \textit{Counter-Strike 2}, la decisión depende de fricciones muy concretas: comisiones, conversión de moneda, liquidez, \textit{trade hold}, capital bloqueado y riesgo de cartera. Por ello, la arquitectura propuesta necesita combinar adquisición de datos, simulación económica y decisión multiagente.
+
+También se ha comprobado que la separación por capas facilita el avance del proyecto. Los agentes extractores se encargan de observar el mercado; el modelo supervisado produce señales probabilísticas; el simulador aplica reglas económicas; y los agentes MARL operan dentro de un entorno controlado. Esta división reduce el acoplamiento y permite validar cada parte por separado.
+
+\section{Cumplimiento de objetivos}
+
+Se ha avanzado en la mayoría de objetivos técnicos: existe un monorepo modular, un modelo de datos operativo, pipelines de adquisición, análisis del Excel original, construcción de datasets, entrenamiento supervisado, simulador de cartera y un entorno MARL funcional para smoke tests. También se han definido agentes Scout, Trader y Portfolio, junto con restricciones de riesgo y métricas de evaluación.
+
+Queda pendiente completar la validación experimental fuerte. En particular, todavía falta entrenar y comparar la arquitectura MARL frente a baselines de agente único, ejecutar ablations con y sin probabilidad supervisada y evaluar con datos no vistos suficientemente ricos.
+
+\section{Limitaciones}
+
+La limitación más importante es la escasez de histórico alineado entre plataformas para algunas direcciones de trading. El dataset real más cercano al objetivo operativo presenta pocos positivos en validación y test, por lo que no permite defender todavía una mejora robusta. Además, algunos resultados supervisados tienen alta precisión en umbrales altos, pero con pocas señales, lo que obliga a interpretarlos con prudencia.
+
+Otra limitación es que el smoke multiagente demuestra que el flujo ejecuta, pero no que el sistema haya aprendido una política superior. Para llegar a esa conclusión se necesita una evaluación reproducible con más episodios, más datos, baselines justos y métricas de riesgo.
 
 \section{Trabajo futuro}
 
-% ponytail: listar mejoras que realmente continúen el proyecto.
+Las líneas inmediatas de trabajo son acumular más histórico Steam/BUFF alineado, regenerar el dataset de trading con suficientes positivos, validar el modelo supervisado por ventanas temporales y entrenar MARL con una configuración CTDE completa. Después será necesario comparar contra baselines, estudiar ablations, generar gráficas de resultados y cerrar una discusión experimental honesta sobre cuándo la arquitectura multiagente aporta valor y cuándo no.
