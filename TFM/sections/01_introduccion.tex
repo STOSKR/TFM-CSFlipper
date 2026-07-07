@@ -1,0 +1,36 @@
+\chapter{Introducción}
+
+\section{Motivación}
+
+Los mercados de activos digitales han crecido alrededor de videojuegos, plataformas de intercambio, coleccionables virtuales y otros ecosistemas donde los bienes no tienen una forma física, pero sí un valor económico observable. En estos entornos aparecen problemas muy parecidos a los de los mercados financieros tradicionales: variación de precios, liquidez desigual, costes de transacción, riesgo de inventario y necesidad de reaccionar ante cambios de oferta y demanda. La diferencia principal es que muchas de las herramientas disponibles para analizarlos son todavía limitadas, fragmentadas o directamente manuales.
+
+El caso de \textit{Counter-Strike 2} es un ejemplo especialmente interesante. Sus objetos cosméticos pueden comprarse y venderse en diferentes plataformas, presentan historiales de precio y se negocian con suficiente frecuencia como para construir modelos de análisis. Sin embargo, operar en este mercado no es trivial. Un activo aparentemente rentable puede dejar de serlo al considerar comisiones, retrasos en la venta, diferencias de moneda, falta de liquidez o cambios repentinos en la demanda. Por ello, una decisión simple de compra o venta acaba dependiendo de muchas variables que no siempre son fáciles de combinar manualmente.
+
+La motivación de este trabajo nace de esa brecha entre el tamaño real del mercado y la falta de sistemas abiertos que integren adquisición de datos, simulación, evaluación de riesgo y toma de decisiones. En lugar de abordar el problema como una única predicción aislada, este TFM plantea una arquitectura multiagente donde distintos componentes aprenden o evalúan partes concretas del entorno. La hipótesis de partida es que esta división puede facilitar el aprendizaje de estrategias de inversión y hacer más manejable un problema que, tratado de forma monolítica, resulta demasiado amplio.
+
+\section{Objetivos}
+
+El objetivo principal de este TFM es diseñar y evaluar una arquitectura multiagente para apoyar la toma de decisiones en mercados de activos digitales, usando como caso de estudio la economía virtual de \textit{Counter-Strike 2}.
+
+Los objetivos específicos son:
+
+\begin{itemize}
+  \item Analizar el dominio de los activos digitales de \textit{Counter-Strike 2} y las restricciones que afectan a la toma de decisiones.
+  \item Diseñar un flujo de adquisición y preparación de datos procedentes de mercados y fuentes externas.
+  \item Definir un modelo de cartera que permita simular operaciones de compra, venta y mantenimiento de activos.
+  \item Formular el problema como un entorno de aprendizaje por refuerzo con observaciones, acciones y recompensas coherentes con el dominio.
+  \item Proponer una arquitectura multiagente que distribuya la toma de decisiones entre agentes especializados.
+  \item Evaluar el comportamiento del sistema mediante experimentos, métricas de rentabilidad y medidas de riesgo.
+\end{itemize}
+
+\section{Estructura del documento}
+
+El resto del documento se organiza de la siguiente forma. El Capítulo 2 presenta el marco teórico necesario para entender el proyecto, incluyendo los mercados de activos digitales, el aprendizaje por refuerzo, el aprendizaje por refuerzo multiagente y su aplicación a problemas de decisión sobre carteras.
+
+El Capítulo 3 describe la propuesta desarrollada en este TFM. En él se define la arquitectura general, el papel de los agentes, las observaciones disponibles, el espacio de acciones y la función de recompensa utilizada para guiar el aprendizaje.
+
+El Capítulo 4 se centra en la configuración del entorno experimental y en los datos empleados. Se explican las fuentes de información, el proceso de adquisición, la persistencia, la generación de características y el simulador usado para evaluar decisiones sin operar directamente sobre el mercado real.
+
+El Capítulo 5 recoge la experimentación y el análisis de resultados. Se describen las pruebas realizadas, las métricas utilizadas y la comparación entre estrategias o configuraciones relevantes.
+
+Por último, el Capítulo 6 resume las conclusiones del trabajo, revisa el grado de cumplimiento de los objetivos y plantea posibles líneas de mejora futura.

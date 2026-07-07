@@ -1,0 +1,28 @@
+\begin{thebibliography}{1}
+
+\bibitem{ray2018rllib}
+Eric Liang, Richard Liaw, Robert Nishihara, Philipp Moritz, Roy Fox, Ken
+  Goldberg, Joseph~E. Gonzalez, Michael~I. Jordan, and Ion Stoica.
+\newblock Rllib: Abstractions for distributed reinforcement learning.
+\newblock In {\em Proceedings of the 35th International Conference on Machine
+  Learning}, 2018.
+
+\bibitem{schulman2017ppo}
+John Schulman, Filip Wolski, Prafulla Dhariwal, Alec Radford, and Oleg Klimov.
+\newblock Proximal policy optimization algorithms.
+\newblock \url{https://arxiv.org/abs/1707.06347}, 2017.
+
+\bibitem{sutton2018reinforcement}
+Richard~S. Sutton and Andrew~G. Barto.
+\newblock {\em Reinforcement Learning: An Introduction}.
+\newblock MIT Press, 2 edition, 2018.
+
+\bibitem{terry2021pettingzoo}
+Justin~K. Terry, Benjamin Black, Nathaniel Grammel, Mario Jayakumar, Ananth
+  Hari, Ryan Sullivan, Luis Santos, Rodrigo Perez, Caroline Horsch, Clemens
+  Dieffendahl, Niall~L. Williams, Yashas Lokesh, Praveen~Ravi Hines, and Niall
+  Ravi.
+\newblock Pettingzoo: Gym for multi-agent reinforcement learning.
+\newblock In {\em Advances in Neural Information Processing Systems}, 2021.
+
+\end{thebibliography}

@@ -1,0 +1,49 @@
+\documentclass[12pt,a4paper]{report}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish,es-tabla]{babel}
+\usepackage{csquotes}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{hyperref}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=black,
+  citecolor=black,
+  urlcolor=blue
+}
+
+\title{Arquitectura multiagente para la toma de decisiones en mercados de activos digitales}
+\author{}
+\date{}
+
+\begin{document}
+
+% Portada omitida a propósito.
+
+\input{sections/00_resumenes}
+
+\tableofcontents
+\listoffigures
+\listoftables
+\input{sections/00_acronimos}
+
+\input{sections/01_introduccion}
+\input{sections/02_marco_teorico}
+\input{sections/03_propuesta}
+\input{sections/04_entorno_datos}
+\input{sections/05_experimentacion}
+\input{sections/06_conclusiones}
+
+\nocite{sutton2018reinforcement,schulman2017ppo,terry2021pettingzoo,ray2018rllib}
+\cleardoublepage
+\addcontentsline{toc}{chapter}{Bibliografía}
+\bibliographystyle{plain}
+\bibliography{bibliografia}
+
+\appendix
+\input{sections/99_anexos}
+
+\end{document}
