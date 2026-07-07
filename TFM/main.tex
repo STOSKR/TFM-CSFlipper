@@ -37,12 +37,14 @@
 \renewcommand{\cftaftertoctitle}{\par\noindent\rule{\textwidth}{0.4pt}\vskip0.8em}
 \renewcommand{\cftafterloftitle}{\par\noindent\rule{\textwidth}{0.4pt}\vskip0.8em}
 \renewcommand{\cftafterlottitle}{\par\noindent\rule{\textwidth}{0.4pt}\vskip0.8em}
-\renewcommand{\cftafterloftitle}{\par\noindent\rule{\textwidth}{0.4pt}\vskip0.8em}
-\AtBeginDocument{
-  \addtocontents{toc}{\protect\vspace{0.4em}\protect\noindent\protect\rule{\protect\textwidth}{0.4pt}\protect\par}
-  \addtocontents{lof}{\protect\vspace{0.4em}\protect\noindent\protect\rule{\protect\textwidth}{0.4pt}\protect\par}
-  \addtocontents{lot}{\protect\vspace{0.4em}\protect\noindent\protect\rule{\protect\textwidth}{0.4pt}\protect\par}
+\newcommand{\indicebottomrule}{\par\vspace{0.45em}\noindent\rule{\textwidth}{0.4pt}\par}
+\makeatletter
+\renewcommand*{\float@listhead}[1]{%
+  \@ifundefined{chapter}{\def\@tempa{\section*}}{\def\@tempa{\chapter*}}%
+  \@tempa{#1\@mkboth{\MakeUppercase{#1}}{\MakeUppercase{#1}}}%
+  \par\noindent\rule{\textwidth}{0.4pt}\vskip0.8em%
 }
+\makeatother
 
 \hypersetup{
   colorlinks=true,
@@ -64,21 +66,25 @@
 
 \cleardoublepage
 \tableofcontents
+\indicebottomrule
 
 \cleardoublepage
 \phantomsection
 \addcontentsline{toc}{chapter}{Índice de figuras}
 \listoffigures
+\indicebottomrule
 
 \cleardoublepage
 \phantomsection
 \addcontentsline{toc}{chapter}{Índice de tablas}
 \listoftables
+\indicebottomrule
 
 \cleardoublepage
 \phantomsection
 \addcontentsline{toc}{chapter}{Lista de algoritmos}
 \listofalgorithms
+\indicebottomrule
 
 \input{sections/00_acronimos}
 
