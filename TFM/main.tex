@@ -17,18 +17,23 @@
 
 \floatname{algorithm}{Algoritmo}
 \renewcommand{\listalgorithmname}{Lista de algoritmos}
+\definecolor{tfmAccent}{RGB}{28, 74, 94}
 \definecolor{tfmRule}{gray}{0.35}
 \definecolor{tfmMuted}{gray}{0.28}
+\definecolor{tfmSoft}{RGB}{233, 239, 242}
 \setlength{\emergencystretch}{3em}
 \titlespacing*{\chapter}{0pt}{-12pt}{1.45em}
 \titlespacing*{\section}{0pt}{1.1em}{0.45em}
 \titlespacing*{\subsection}{0pt}{0.8em}{0.35em}
 \titleformat{\chapter}[display]
-  {\normalfont\bfseries}
-  {\color{tfmRule}\titlerule[0.7pt]\vspace{0.7em}\Large\scshape\color{tfmMuted}\chaptertitlename\ \thechapter}
-  {0.35em}
+  {\normalfont\bfseries\raggedright}
+  {{\color{tfmAccent}\titlerule[0.9pt]}\vspace{0.7em}
+   \hfill\begingroup\setlength{\fboxsep}{6pt}
+   \colorbox{tfmSoft}{\Large\scshape\textcolor{tfmAccent}{\chaptertitlename\ \thechapter}}
+   \endgroup}
+  {0.9em}
   {\Huge\color{black}}
-  [\vspace{0.25em}{\color{tfmRule}\titlerule[0.7pt]}]
+  [\vspace{0.4em}{\color{tfmAccent}\titlerule[0.9pt]}]
 \titleformat{name=\chapter,numberless}[display]
   {\normalfont\bfseries}
   {}
@@ -36,13 +41,13 @@
   {\Huge\color{black}}
 \titleformat{\section}
   {\normalfont\Large\bfseries}
-  {\thesection}
+  {\textcolor{tfmAccent}{\thesection}}
   {0.75em}
   {}
   [{\color{tfmRule}\titlerule[0.35pt]}]
 \titleformat{\subsection}
   {\normalfont\large\bfseries\color{tfmMuted}}
-  {\thesubsection}
+  {\textcolor{tfmAccent}{\thesubsection}}
   {0.75em}
   {}
 \setlength{\parskip}{0.35em}
