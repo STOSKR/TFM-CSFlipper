@@ -8,9 +8,19 @@ El sistema trabaja con varias fuentes porque el mercado de CS2 está fragmentado
 
 Steam actúa como una de las fuentes principales de precio e histórico. En el proyecto se capturan variantes reales de artículos, precios actuales, moneda, buy orders y puntos históricos cuando están disponibles. La información se normaliza para que pueda combinarse con otras plataformas y para evitar que las decisiones dependan de nombres o formatos propios de una fuente.
 
-\subsection{Mercados externos}
+En la práctica, Steam no se usa solo como una tabla de precios. También aporta señales de liquidez y de comportamiento temporal. El histórico permite construir retornos, medias móviles, volatilidad y desviaciones frente a ventas recientes. Estas variables son necesarias para que el modelo no mire únicamente una fotografía puntual del mercado.
 
-BUFF163 se utiliza como mercado externo de comparación. Sus precios se reciben principalmente en CNY, por lo que el sistema conserva tanto el valor original como su conversión a EUR. Esta doble representación permite auditar el dato original y, al mismo tiempo, entrenar modelos sobre una moneda canónica. SteamDT se utiliza como apoyo para descubrir candidatos y estrategias de búsqueda, no como fuente única de decisión.
+\subsection{BUFF163 y mercados externos}
+
+BUFF163 se utiliza como mercado externo de comparación. Sus precios se reciben principalmente en CNY, por lo que el sistema conserva tanto el valor original como su conversión a EUR. Esta doble representación permite auditar el dato original y, al mismo tiempo, entrenar modelos sobre una moneda canónica. Las buy orders de BUFF son especialmente útiles porque ayudan a estimar si una salida tiene demanda real o si el precio observado es poco ejecutable.
+
+SteamDT se utiliza como apoyo para descubrir candidatos y estrategias de búsqueda, no como fuente única de decisión. Su función dentro del sistema es reducir el espacio de búsqueda inicial y ayudar a priorizar qué artículos merece la pena observar con más profundidad.
+
+\subsection{OCR e importación manual}
+
+El OCR se incorpora como vía secundaria de adquisición. Su objetivo es convertir capturas, tablas o interfaces no estructuradas en observaciones equivalentes a las obtenidas por scraping o API. El flujo incluye preprocesado de imagen, reconocimiento de texto, parsing estructurado, validación y persistencia. Aunque es más frágil que una fuente estructurada, resulta útil cuando una plataforma no expone datos cómodamente o cuando se quiere incorporar material histórico procedente de capturas.
+
+Las importaciones manuales y CSV cumplen una función complementaria. Permiten introducir muestras controladas, fixtures o históricos parciales sin depender de una sesión de navegador. Esta vía ha sido útil para validar parsers, modelos de persistencia y reglas económicas antes de automatizar el flujo completo.
 
 \section{Adquisición y persistencia}
 
@@ -26,6 +36,22 @@ La persistencia se apoya en Supabase/Postgres. La decisión de diseño es tratar
 
 También se define un esquema canónico más amplio con entidades como \texttt{assets}, \texttt{platforms}, \texttt{market\_observations}, \texttt{predictions}, \texttt{investment\_decisions} y \texttt{simulated\_positions}. Esta separación permite evolucionar desde el esquema operativo actual hacia una representación más trazable y auditable.
 
+\begin{table}[h]
+\centering
+\begin{tabularx}{\textwidth}{l X}
+\toprule
+Entidad & Uso dentro del TFM \\
+\midrule
+\texttt{market\_items} & Estado actual de cada variante real por plataforma. \\
+\texttt{market\_history\_points} & Serie temporal en formato largo para precios, buy orders y métricas. \\
+\texttt{predictions} & Salidas versionadas del modelo supervisado. \\
+\texttt{investment\_decisions} & Decisiones simuladas y razones asociadas. \\
+\texttt{simulated\_positions} & Posiciones abiertas, bloqueadas o cerradas por el simulador. \\
+\bottomrule
+\end{tabularx}
+\caption{Entidades principales para datos y evaluación.}
+\end{table}
+
 \section{Preparación de características}
 
 \subsection{Variables de mercado}
@@ -38,9 +64,28 @@ La exploración inicial detectó que algunas señales temporales aportan informa
 
 Las variables de cartera proceden del simulador. Incluyen saldo disponible, valor de posiciones abiertas, capital bloqueado por \textit{trade hold}, fecha de desbloqueo, exposición por activo, exposición por plataforma, beneficio realizado y drawdown. Estas variables son necesarias para que el agente Portfolio no decida únicamente por oportunidad local, sino por estado global de la cartera.
 
-\section{Simulador de cartera}
+\section{Reglas económicas migradas}
 
 El simulador reproduce las reglas económicas que antes estaban dispersas en el Excel operativo. No intenta copiar la hoja de cálculo, sino migrar sus reglas útiles a código comprobable: conversión EUR/CNY, comisiones, beneficio neto, rentabilidad porcentual, fecha de desbloqueo y capital bloqueado.
+
+\begin{table}[h]
+\centering
+\begin{tabularx}{\textwidth}{l X}
+\toprule
+Regla & Uso en la simulación \\
+\midrule
+Conversión EUR/CNY & Normaliza precios de Steam y BUFF para compararlos en una moneda común. \\
+Fee BUFF 0,975 & Estima el ingreso neto al vender en BUFF. \\
+Fee Steam 0,87 & Representa la comisión de mercado en ventas Steam. \\
+Cash-out conservador & Permite simular pérdida adicional al convertir saldo Steam en liquidez externa. \\
+\textit{Trade hold} & Bloquea posiciones durante un horizonte conservador de ocho días. \\
+Beneficio neto & Calcula diferencia entre ingreso neto de venta y coste de entrada. \\
+\bottomrule
+\end{tabularx}
+\caption{Reglas económicas procedentes del Excel operativo.}
+\end{table}
+
+\section{Simulador de cartera}
 
 \subsection{Operaciones permitidas}
 
@@ -55,3 +100,5 @@ El \textit{trade hold} se modela de forma conservadora como ocho días desde la 
 \section{Interfaz de consulta}
 
 El proyecto incluye una interfaz web como apoyo operativo. Su objetivo no es vender el sistema como producto final, sino hacer visible el estado de adquisición, modelos, simulador, restricciones y recomendaciones. La interfaz debe permitir responder rápidamente qué datos existen, qué modelo está activo, qué señales se están generando y por qué una oportunidad se recomienda, se observa o se descarta.
+
+La interfaz también ayuda a revisar la trazabilidad. En un sistema de decisión automatizada, no basta con mostrar una recomendación final: es necesario saber de dónde viene el dato, qué modelo lo ha procesado, qué restricciones se han aplicado y qué parte de la cartera queda afectada por la decisión.

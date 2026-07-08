@@ -2,13 +2,14 @@
 
 \section{Estructura del repositorio}
 
-El repositorio se organiza como un monorepo. La carpeta \texttt{apps} contiene aplicaciones y comandos ejecutables. La carpeta \texttt{packages} contiene la lógica reutilizable. La carpeta \texttt{docs} recoge decisiones y documentación técnica. La carpeta \texttt{tests} contiene pruebas unitarias e integración. La carpeta \texttt{backlog} mantiene el estado de tareas realizadas, pendientes y en progreso.
+El repositorio se organiza como un monorepo. La carpeta \texttt{apps} contiene aplicaciones y comandos ejecutables. La carpeta \texttt{packages} contiene la lógica reutilizable. La carpeta \texttt{docs} recoge decisiones y documentación técnica. La carpeta \texttt{tests} contiene pruebas unitarias e integración. La carpeta \texttt{TFM} mantiene la memoria en \LaTeX{}.
 
 Los módulos principales son:
 
 \begin{itemize}
   \item \texttt{apps/acquisition}: extractores, scraping, OCR, importadores y SteamDT.
   \item \texttt{apps/cli}: comandos de construcción de datasets, entrenamiento, scraping y evaluación.
+  \item \texttt{apps/web}: interfaz web local de consulta y control operativo.
   \item \texttt{packages/contracts}: contratos Pydantic compartidos.
   \item \texttt{packages/persistence}: conexión, repositorios y persistencia.
   \item \texttt{packages/prediction}: entrenamiento e inferencia supervisada.
@@ -27,22 +28,65 @@ Comandos representativos:
 python -m pytest tests/unit
 python -m ruff check
 python -m mypy apps packages tests/unit
-python scrape_flow.py --show-browser --persist
 python -m apps.cli.auto_scrape_loop --once
+python -m apps.cli.render_stream_scrape
+python -m apps.cli.web_dashboard_server
+\end{verbatim}
+
+\section{Comandos de datasets y modelos}
+
+Los comandos de datos y modelos separan adquisición, construcción de dataset, entrenamiento e inferencia. Esta separación permite repetir una fase sin rehacer todo el flujo.
+
+\begin{verbatim}
+python -m apps.cli.build_supervised_dataset
+python -m apps.cli.analyze_supervised_coverage
+python -m apps.cli.train_supervised_model
+python -m apps.cli.build_trading_dataset
+python -m apps.cli.retrain_trading_model
+python -m apps.cli.score_live_opportunities
 \end{verbatim}
 
 \section{Parámetros de entrenamiento}
 
 Los experimentos supervisados usan splits temporales, calibración de probabilidades y selección por precisión operativa en umbrales altos. En los smoke tests se compararon modelos dummy, regresión logística, random forest e histogram gradient boosting. El entrenamiento MARL usa RLlib con un entorno multiagente y tres políticas: Scout, Trader y Portfolio.
 
+\begin{table}[h]
+\centering
+\begin{tabularx}{\textwidth}{l X}
+\toprule
+Bloque & Parámetros relevantes \\
+\midrule
+Supervisado & Split temporal, umbral operativo, calibración, modelo candidato y columnas excluidas por leakage. \\
+Trading & Dirección de arbitraje, horizonte, fees, tipo de cambio, ventana histórica y target de beneficio neto. \\
+Simulación & Saldo inicial, tamaño máximo de posición, \textit{trade hold}, comisiones y límites de exposición. \\
+MARL & Número de episodios, políticas Scout/Trader/Portfolio, algoritmo PPO y métricas de cartera. \\
+\bottomrule
+\end{tabularx}
+\caption{Parámetros a versionar en los experimentos.}
+\end{table}
+
 \section{Modelo de datos}
 
 El modelo operativo actual gira alrededor de dos tablas principales: \texttt{market\_items} y \texttt{market\_history\_points}. La primera representa variantes reales de artículos y su estado actual por plataforma. La segunda almacena series temporales en formato largo, con una fila por artículo, plataforma, fecha y métrica. Esta estructura evita mezclar métricas distintas y permite añadir nuevas señales sin alterar la forma general del histórico.
+
+El esquema canónico previsto añade entidades como \texttt{assets}, \texttt{platforms}, \texttt{market\_observations}, \texttt{predictions}, \texttt{agent\_actions}, \texttt{investment\_decisions} y \texttt{simulated\_positions}. El objetivo de este esquema es mejorar trazabilidad, auditoría y separación entre observación, predicción y decisión.
 
 \section{Pruebas implementadas}
 
 El proyecto incluye pruebas para parsing de mercado, OCR, persistencia, datasets supervisados, entrenamiento supervisado, simulador de cartera, riesgo, entorno MARL, wrappers RLlib y flujos de scraping. La suite se ejecuta de forma recurrente con Pytest, Ruff y Mypy.
 
+Las pruebas más relevantes para la memoria son:
+
+\begin{itemize}
+  \item tests de reglas económicas y simulador de cartera;
+  \item tests de construcción de datasets supervisados y de trading;
+  \item tests de inferencia supervisada y servicio de scoring;
+  \item tests de entorno PettingZoo, recompensas MARL y adaptador RLlib;
+  \item tests de scraping, pipeline streaming, SteamDT, BUFF y OCR.
+\end{itemize}
+
 \section{Resultados adicionales}
 
 Los resultados intermedios se guardan en \texttt{model-runs} y los datasets derivados en \texttt{data/datasets}. Estas carpetas permiten conservar reportes de cobertura, exploración de características, métricas de entrenamiento, umbrales seleccionados y salidas de smoke tests sin mezclar los artefactos pesados con el código principal.
+
+Para que un experimento pueda incorporarse como evidencia final en la memoria, debe registrar como mínimo: configuración usada, periodo temporal, número de activos, tamaño de cada split, tasa de positivos, modelo o política evaluada, métricas principales y limitaciones observadas.
