@@ -4,9 +4,27 @@
 
 La experimentación se ha desarrollado por fases. Primero se migraron reglas económicas y estructuras de datos. Después se construyeron datasets supervisados para estudiar señales de mercado. Más adelante se creó un dataset de trading basado en precios Steam/BUFF y se implementó el entorno multiagente. Esta secuencia evita entrenar agentes MARL sobre un entorno que todavía no representa bien el problema económico.
 
+\begin{table}[h]
+\centering
+\begin{tabularx}{\textwidth}{l X X}
+\toprule
+Fase & Objetivo & Estado \\
+\midrule
+1 & Migrar reglas económicas del Excel a simulador comprobable. & Implementada y cubierta por pruebas. \\
+2 & Construir datasets supervisados y explorar características temporales. & Implementada con resultados preliminares. \\
+3 & Comparar modelos supervisados tabulares y umbrales operativos. & Implementada como smoke experimental. \\
+4 & Crear dataset real de trading Steam/BUFF con fees y horizonte. & Implementada, pero limitada por desbalance. \\
+5 & Ejecutar smoke MARL con PettingZoo, RLlib/PPO y tres políticas. & Funcional, no validación final. \\
+\bottomrule
+\end{tabularx}
+\caption{Fases experimentales desarrolladas hasta el momento.}
+\end{table}
+
 \subsection{Escenarios de evaluación}
 
 Se han usado dos tipos de datasets. El primero predice dirección de mercado sobre histórico disponible y permite estudiar señales temporales de forma amplia. El segundo intenta modelar oportunidades reales de trading Steam/BUFF con precios normalizados, fees y horizonte temporal. Este segundo dataset es más cercano al objetivo del TFM, pero también es más exigente porque necesita histórico alineado entre plataformas.
+
+El criterio de evaluación no es solo predictivo. Una señal puede tener buena precisión y aun así no ser operativa si aparece pocas veces, si depende de artículos concretos o si no supera costes de transacción. Por eso las métricas del modelo supervisado se interpretan como apoyo a la decisión, no como resultado económico final.
 
 \subsection{Estrategias de comparación}
 
@@ -23,6 +41,12 @@ Las métricas de rentabilidad principales son beneficio neto, retorno porcentual
 Las métricas de riesgo incluyen drawdown, capital bloqueado medio, posiciones abiertas, exposición por activo o plataforma, operaciones rechazadas por riesgo e impacto del \textit{trade hold}. Estas métricas son necesarias para evaluar si una estrategia es realmente utilizable y no solo rentable en una métrica aislada.
 
 \section{Resultados}
+
+\subsection{Migración de reglas económicas}
+
+La primera fase consistió en convertir reglas del Excel operativo en funciones comprobables. Se migraron conversiones EUR/CNY, factores de comisión, cálculo de beneficio neto, rentabilidad porcentual, fecha de desbloqueo y capital bloqueado. Esta fase no produce un resultado de rentabilidad por sí misma, pero es necesaria para que los experimentos posteriores midan el mismo dominio que se utilizaba manualmente.
+
+El resultado principal de esta fase es metodológico: las reglas económicas pasan de estar dispersas en fórmulas de hoja de cálculo a estar encapsuladas en módulos de simulación, con pruebas unitarias y parámetros explícitos. Esto reduce errores silenciosos y permite repetir un experimento con la misma configuración.
 
 \subsection{Resultados del modelo supervisado}
 
@@ -56,6 +80,12 @@ El entorno multiagente ya existe como smoke funcional. Se implementó un entorno
 
 Sin embargo, el entrenamiento actual no debe presentarse como validación final de MAPPO con CTDE completo. El estado central está definido y expuesto, pero queda pendiente conectar el crítico centralizado de forma completa y comparar contra baselines. Esta distinción es importante para no confundir un flujo ejecutable con una evidencia experimental cerrada.
 
+\section{Experimentos finales pendientes}
+
+Para cerrar la validación del TFM será necesario ejecutar una fase experimental más estricta. Primero debe regenerarse el dataset Steam/BUFF con más histórico alineado y suficientes positivos en validación y test. Después deben compararse baselines simples: comprar y mantener, umbral fijo de spread, agente único y política dummy.
+
+La evaluación MARL deberá incluir ablations. Las más relevantes son: sin probabilidad supervisada, sin agente Portfolio, sin penalización por capital bloqueado y sin restricciones de liquidez. Estas comparaciones permitirán distinguir si la mejora viene de la arquitectura multiagente, del modelo supervisado, de una regla de riesgo o simplemente de la estructura del simulador.
+
 \section{Discusión}
 
 \subsection{Casos favorables}
@@ -65,3 +95,7 @@ El trabajo realizado muestra que el sistema ya puede integrar fuentes, construir
 \subsection{Limitaciones observadas}
 
 La principal limitación actual es la disponibilidad de histórico alineado entre Steam y BUFF. Sin suficientes ejemplos positivos en validación y test, cualquier métrica de trading puede ser engañosa. También existe riesgo de sobreajuste en variables categóricas de alta cardinalidad y en señales de precisión alta con pocos casos. Por último, el entorno MARL necesita una validación experimental más amplia antes de poder concluir si la arquitectura multiagente mejora realmente a una estrategia simple.
+
+\subsection{Lectura de los resultados}
+
+La lectura correcta de los resultados actuales es prudente. El proyecto ya demuestra viabilidad técnica de integración y simulación, pero todavía no demuestra superioridad económica de una política multiagente. Esta diferencia es importante para que la memoria sea defendible: una arquitectura ejecutable es una contribución técnica, mientras que la mejora de rendimiento requiere evidencia experimental adicional.
