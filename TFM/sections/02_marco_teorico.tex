@@ -2,52 +2,74 @@
 
 \section{Mercados de activos digitales}
 
-% ponytail: pendiente de desarrollar con referencias y ejemplos concretos del dominio CS2.
+Un activo digital es un bien que existe dentro de un sistema informático y cuyo valor depende de reglas de acceso, escasez, utilidad percibida y capacidad de intercambio. En videojuegos, estos activos pueden tener una utilidad funcional, estética o social. Lehdonvirta estudia precisamente cómo los atributos funcionales, hedónicos y sociales influyen en la demanda de bienes virtuales \cite{lehdonvirta2009virtual}. Esta idea encaja bien con el mercado de \textit{Counter-Strike 2}, donde dos objetos técnicamente similares pueden tener precios muy distintos por rareza, apariencia, estado, popularidad o valor simbólico dentro de la comunidad.
+
+Las economías virtuales no son idénticas a los mercados financieros tradicionales, pero comparten algunos elementos: oferta limitada, negociación entre compradores y vendedores, formación de precios, costes de transacción y riesgo de liquidez. La diferencia principal es que el mercado está condicionado por una plataforma propietaria y por reglas del videojuego. El emisor del activo, las restricciones de intercambio y los cambios de diseño pueden alterar el valor de los objetos sin que exista una autoridad financiera externa que proteja al usuario.
 
 \subsection{Activos virtuales en Counter-Strike 2}
 
-% ponytail: explicar skins, cajas, rareza, estado, liquidez y mercados externos.
+En \textit{Counter-Strike 2}, los activos más relevantes para este trabajo son skins, cuchillos, guantes, pegatinas, cajas y otros objetos cosméticos intercambiables. Su precio depende de factores como rareza, condición visual, popularidad del arma, volumen negociado, float, presencia de StatTrak, patrones especiales y demanda puntual. Estos atributos no siempre aparecen de forma limpia en una API, por lo que el sistema debe combinar scraping, histórico, normalización y revisión de nombres para representar correctamente cada variante.
+
+El mercado no está concentrado en una única fuente. Steam actúa como mercado oficial y ofrece señales de precio e histórico, mientras que plataformas externas como BUFF163 permiten observar precios, buy orders y oportunidades que no aparecen con el mismo formato en Steam. Esta fragmentación crea diferencias de precio entre plataformas, pero también aumenta la dificultad de decidir: una oportunidad puede existir en una fuente y desaparecer antes de que el activo pueda venderse en otra.
 
 \subsection{Fricciones de mercado}
 
-% ponytail: comisiones, divisas, retrasos, spread, volumen y riesgo de inventario.
+Las fricciones son costes o restricciones que separan el precio observado del beneficio real. En este proyecto son especialmente importantes las comisiones de plataforma, la conversión entre EUR y CNY, el \textit{spread}, el volumen disponible, las buy orders, el \textit{trade hold} y el capital bloqueado. Por este motivo, el sistema no puede limitarse a comparar dos precios brutos. Debe calcular el precio neto de entrada, el precio neto de salida y el tiempo durante el cual la posición no puede cerrarse.
+
+La liquidez es otra fricción central. Un activo puede mostrar un margen alto, pero si apenas tiene volumen o si las buy orders son débiles, la venta real puede tardar demasiado o producirse a un precio inferior al esperado. En una cartera simulada, esa espera debe tener coste: el capital queda inmovilizado y no puede utilizarse para otras oportunidades.
 
 \section{Aprendizaje por refuerzo}
 
-% ponytail: explicar MDP, política, recompensa, retorno y exploración sin convertirlo en manual.
+El aprendizaje por refuerzo estudia problemas en los que un agente interactúa con un entorno, toma acciones y recibe recompensas. A diferencia del aprendizaje supervisado, donde el modelo aprende a reproducir etiquetas históricas, en RL el modelo aprende una política de actuación a partir de las consecuencias de sus acciones \cite{sutton2018reinforcement}. Esta formulación es útil cuando una decisión actual modifica el estado futuro, como ocurre al abrir una posición que queda bloqueada por \textit{trade hold}.
 
 \subsection{Procesos de decisión de Markov}
 
-% ponytail: estados, acciones, transición y recompensa.
+Un proceso de decisión de Markov se define mediante estados, acciones, transiciones y recompensas. El estado resume la información disponible; la acción representa lo que el agente decide; la transición describe cómo cambia el entorno; y la recompensa mide si la decisión ha sido favorable. En el contexto del TFM, el estado incluye variables de mercado y cartera, las acciones son comprar, vender, observar o mantener, y la recompensa se asocia al valor neto de la cartera simulada.
+
+La hipótesis de Markov no implica que el sistema conozca todo el futuro, sino que el estado utilizado contiene la información necesaria para tomar la mejor decisión disponible en ese momento. Por eso es importante construir observaciones ricas: precio, spread, liquidez, probabilidad supervisada, capital disponible, posiciones abiertas y capital bloqueado.
 
 \subsection{Política, retorno y exploración}
 
-% ponytail: conectar aprendizaje con decisiones secuenciales de cartera.
+La política es la regla que transforma observaciones en acciones. El retorno mide la recompensa acumulada a lo largo del episodio. En un mercado con fricciones, maximizar la recompensa inmediata puede ser mala estrategia: una compra aparentemente rentable puede bloquear capital, aumentar exposición o no encontrar salida. Por ello, la recompensa debe mirar más allá del margen instantáneo y considerar el resultado de cartera.
+
+La exploración permite probar acciones que todavía no se conocen bien. En mercados financieros o cuasi financieros, esta idea debe aplicarse con cuidado. En el TFM, la exploración se realiza en simulación, no con dinero real. Esta separación permite probar políticas y recompensas sin trasladar errores del entrenamiento al mercado real.
 
 \section{Aprendizaje por refuerzo multiagente}
 
-% ponytail: introducir MARL, coordinación, cooperación y descentralización.
+El aprendizaje por refuerzo multiagente extiende la formulación anterior a varios agentes que interactúan dentro de un mismo entorno. Esta ampliación introduce dificultades nuevas: cada agente aprende mientras los demás también cambian, por lo que el entorno puede volverse no estacionario desde el punto de vista individual. Lowe et al. señalan este problema y proponen entrenar agentes con información adicional durante el entrenamiento para mejorar la coordinación \cite{lowe2017maddpg}.
+
+En este TFM, la motivación para usar varios agentes no es decorativa. La decisión de cartera mezcla tareas de naturaleza distinta: detectar oportunidades, ejecutar acciones concretas y controlar exposición global. Separar estas responsabilidades permite que cada agente trabaje con un punto de vista más acotado, siempre que la recompensa cooperativa mantenga alineado el objetivo común.
 
 \subsection{Cooperación y coordinación entre agentes}
 
-% ponytail: explicar por qué dividir el mercado entre agentes puede ayudar.
+La cooperación aparece cuando los agentes comparten un objetivo global. Scout puede detectar oportunidades prometedoras, Trader puede decidir la acción operativa y Portfolio puede limitar decisiones que deterioren la cartera. Ninguno de estos roles tiene sentido de forma aislada si el resultado final no mejora el valor neto ajustado por riesgo.
+
+La coordinación es necesaria porque una decisión localmente buena puede ser globalmente mala. Por ejemplo, comprar un activo con spread atractivo puede ser razonable para Trader, pero no para Portfolio si ya existe demasiada exposición a ese tipo de objeto o si el capital bloqueado supera un límite aceptable. Esta tensión justifica usar recompensas individuales auxiliares y una recompensa cooperativa vinculada a la cartera.
 
 \subsection{Entrenamiento centralizado y ejecución descentralizada}
 
-% ponytail: incluir CTDE solo si se usa de verdad en el proyecto.
+El paradigma de entrenamiento centralizado y ejecución descentralizada, conocido como CTDE, permite entrenar con más información de la que cada agente tendrá en ejecución. La idea es que durante el entrenamiento puede existir un crítico o una función de valor con acceso al estado global, mientras que en ejecución cada actor decide con su observación local. Este enfoque aparece en trabajos multiagente como MADDPG \cite{lowe2017maddpg} y en variantes cooperativas basadas en PPO como MAPPO \cite{yu2022mappo}.
+
+La elección de PPO como base práctica se debe a su estabilidad y a su disponibilidad en herramientas maduras. Schulman et al. introducen PPO como un método de gradiente de política que limita actualizaciones demasiado agresivas \cite{schulman2017ppo}. Posteriormente, Yu et al. muestran que PPO puede funcionar como baseline fuerte en juegos cooperativos multiagente cuando se implementa con cuidado \cite{yu2022mappo}. En el proyecto, esta línea se traduce en un entorno PettingZoo y un wrapper para RLlib, pero todavía no se presenta como validación final de MAPPO.
 
 \section{Toma de decisiones en carteras}
 
-% ponytail: conectar rentabilidad, riesgo, liquidez, comisiones y horizonte temporal.
+La gestión de una cartera no consiste solo en elegir activos con rentabilidad esperada positiva. También debe controlar riesgo, concentración, liquidez, costes de transacción y horizonte temporal. La teoría moderna de carteras introdujo la idea de estudiar rentabilidad y riesgo conjuntamente, en lugar de analizar cada inversión de forma aislada \cite{markowitz1952portfolio}. Aunque el mercado de CS2 no sea un mercado bursátil regulado, la intuición sigue siendo útil: una cartera puede empeorar aunque una operación individual parezca atractiva.
 
 \subsection{Rentabilidad y riesgo}
 
-% ponytail: definir métricas básicas antes de métricas sofisticadas.
+En este TFM, la rentabilidad se mide mediante beneficio neto, retorno porcentual, saldo final y evolución del valor de cartera. El riesgo se observa mediante drawdown, capital bloqueado, exposición por activo o plataforma y operaciones rechazadas por restricciones. Estas métricas son más informativas que una simple precisión de predicción, porque conectan el modelo con el resultado económico simulado.
+
+El aprendizaje supervisado puede estimar una probabilidad útil, pero esa probabilidad no es una decisión. Una señal de subida o de spread rentable debe pasar por el simulador, por las comisiones, por la liquidez y por el estado de cartera. Esta separación evita que el sistema confunda predecir con invertir.
 
 \subsection{Liquidez y costes de transacción}
 
-% ponytail: explicar por qué una oportunidad bruta puede no ser rentable.
+Los costes de transacción son centrales en cualquier sistema de trading. En un mercado de baja o media liquidez, pequeñas diferencias de precio pueden desaparecer al aplicar comisiones, conversión de moneda o retrasos de venta. FinRL incorpora explícitamente restricciones como costes de transacción, liquidez y aversión al riesgo en entornos de trading con aprendizaje por refuerzo \cite{liu2021finrl}. Esa orientación resulta útil para este TFM, aunque el dominio sea distinto: el objetivo no es copiar un framework financiero, sino adoptar la disciplina de simular fricciones reales.
+
+En el caso CS2, las fricciones se vuelven todavía más visibles por el \textit{trade hold}. Durante varios días, una posición comprada no puede venderse, aunque el precio cambie. Esta restricción convierte una oportunidad puntual en una decisión temporal: el sistema debe estimar no solo el margen de entrada, sino la probabilidad de que el margen siga siendo válido cuando la posición pueda cerrarse.
 
 \section{Aplicaciones relacionadas}
 
-% ponytail: revisar trabajos cercanos solo cuando aporten algo al proyecto.
+Los trabajos de RL financiero muestran que entrenar agentes de trading exige reproducibilidad, backtesting y control de fricciones \cite{liu2021finrl}. Los trabajos de MARL muestran que la coordinación entre agentes puede ser útil, pero también introduce inestabilidad y necesidad de evaluación cuidadosa \cite{lowe2017maddpg,yu2022mappo}. El proyecto se sitúa en la intersección de ambas ideas: usa un mercado de activos digitales como entorno de decisión, incorpora señales supervisadas y plantea una arquitectura multiagente cooperativa.
+
+La diferencia principal respecto a una aplicación financiera clásica es el dominio. Los activos de CS2 son bienes virtuales controlados por plataformas, con liquidez fragmentada y reglas propias. La diferencia respecto a una simple herramienta de scraping es el objetivo: no basta con mostrar precios, sino que se busca evaluar decisiones de cartera bajo restricciones. Por ello, el trabajo combina adquisición de datos, simulación económica, predicción supervisada y aprendizaje por refuerzo multiagente dentro de una misma metodología.
