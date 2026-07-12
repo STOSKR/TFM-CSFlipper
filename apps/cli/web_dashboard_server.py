@@ -88,6 +88,8 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         command = _web_scrape_command(
             show_browser=payload.get("show_browser") is True,
             refresh=payload.get("refresh") is True,
+            scrape_buff=payload.get("scrape_buff") is True,
+            refresh_buff=payload.get("refresh_buff") is True,
         )
         started = self.server.scrape_runner.start(command)
         status = HTTPStatus.ACCEPTED if started else HTTPStatus.CONFLICT
@@ -185,9 +187,9 @@ def _scrape_status_payload(runner: ScrapeJobRunner) -> dict[str, Any]:
 def _local_commands() -> tuple[LocalCommand, ...]:
     return (
         LocalCommand(
-            id="refresh_history",
-            label="Refrescar historico",
-            description="Actualiza articulos con mas de 8 horas y completa series de precio.",
+            id="refresh_history_steam",
+            label="Refrescar historico Steam",
+            description="Actualiza articulos con mas de 8 horas sin tocar BUFF.",
             command=[
                 sys.executable,
                 "-u",
@@ -197,6 +199,22 @@ def _local_commands() -> tuple[LocalCommand, ...]:
                 "480",
                 "--persist",
                 "--no-buff",
+            ],
+            destructive=True,
+        ),
+        LocalCommand(
+            id="refresh_history_with_buff",
+            label="Refrescar historico Steam+BUFF",
+            description="Actualiza Steam y BUFF. Usar solo si la cuenta de BUFF esta disponible.",
+            command=[
+                sys.executable,
+                "-u",
+                "-m",
+                "apps.cli.refresh_market_history",
+                "--stale-minutes",
+                "480",
+                "--persist",
+                "--buff",
             ],
             destructive=True,
         ),
@@ -220,20 +238,34 @@ def _web_scrape_command(
     *,
     show_browser: bool = False,
     refresh: bool = False,
+    scrape_buff: bool = False,
+    refresh_buff: bool = False,
 ) -> list[str]:
     return build_scrape_job_command(
-        _web_scrape_env(show_browser=show_browser, refresh=refresh)
+        _web_scrape_env(
+            show_browser=show_browser,
+            refresh=refresh,
+            scrape_buff=scrape_buff,
+            refresh_buff=refresh_buff,
+        )
     )
 
 
-def _web_scrape_env(*, show_browser: bool = False, refresh: bool = False) -> dict[str, str]:
+def _web_scrape_env(
+    *,
+    show_browser: bool = False,
+    refresh: bool = False,
+    scrape_buff: bool = False,
+    refresh_buff: bool = False,
+) -> dict[str, str]:
     env = dict(os.environ)
     env.setdefault("SCRAPE_STREAMING", "true")
     env.setdefault("SCRAPE_CANDIDATE_LIMIT", "25")
     env.setdefault("SCRAPE_ALL_PROFILES", "true")
     env.setdefault("SCRAPE_STEAM", "true")
-    env.setdefault("SCRAPE_BUFF", "true")
+    env["SCRAPE_BUFF"] = "true" if scrape_buff else "false"
     env["SCRAPE_REFRESH"] = "true" if refresh else "false"
+    env["SCRAPE_REFRESH_BUFF"] = "true" if refresh and refresh_buff else "false"
     env.setdefault("SCRAPE_STALE_MINUTES", "480")
     env.setdefault("SCRAPE_STEAM_CONCURRENCY", "2")
     env.setdefault("SCRAPE_BUFF_CONCURRENCY", "1")

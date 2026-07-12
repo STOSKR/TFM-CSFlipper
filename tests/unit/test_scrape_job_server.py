@@ -96,6 +96,20 @@ def test_build_scrape_job_command_can_run_refresh_only() -> None:
     ]
 
 
+def test_build_scrape_job_command_can_run_refresh_only_with_buff() -> None:
+    command = build_scrape_job_command(
+        {
+            "SCRAPE_REFRESH_ONLY": "true",
+            "SCRAPE_REFRESH_BUFF": "true",
+            "SCRAPE_STALE_MINUTES": "1440",
+            "SCRAPE_PERSIST": "true",
+        }
+    )
+
+    assert "--buff" in command
+    assert "--no-buff" not in command
+
+
 def test_build_scrape_job_command_can_run_streaming_flow() -> None:
     command = build_scrape_job_command(
         {

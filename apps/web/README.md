@@ -28,12 +28,15 @@ python -m apps.cli.web_dashboard_server
 
 Abre `http://localhost:8000/#scraper`. En la vista **Scraper** puedes usar:
 
-- **Ejecutar scraping completo**: discovery, workers Steam/BUFF concurrentes, refresh de articulos con mas de 8 horas, persistencia y scoring.
-- **Refrescar historico**: actualiza articulos guardados que lleven mas de 8 horas sin comprobarse.
+- **Ejecutar scraping completo**: discovery, workers de plataforma, refresh opcional de articulos con mas de 8 horas, persistencia y scoring.
+- **Scraping BUFF**: permite elegir entre `Sin BUFF` y `Con BUFF`. Por defecto queda en `Sin BUFF`.
+- **Historico BUFF**: permite elegir si el refresco de historico toca BUFF. Por defecto queda en `Sin BUFF`.
+- **Refrescar historico Steam**: actualiza articulos guardados que lleven mas de 8 horas sin comprobarse, sin tocar BUFF.
+- **Refrescar historico Steam+BUFF**: ejecuta el refresco contra ambas plataformas. Usar solo si BUFF esta disponible.
 
 El scraping completo local procesa hasta 25 candidatos por perfil activo. Con los dos perfiles
-actuales son hasta 50 candidatos antes de deduplicar, en lotes de 10, con 2 workers Steam y
-1 worker BUFF. BUFF usa esperas aleatorias de 5 a 10 segundos entre peticiones.
+actuales son hasta 50 candidatos antes de deduplicar, en lotes de 10 y con 2 workers Steam.
+Si se activa BUFF, se usa 1 worker BUFF y esperas aleatorias de 5 a 10 segundos entre peticiones.
 
 El frontend no ejecuta texto libre: llama a `/api/commands/run` con un ID de una allowlist local.
 Mientras un comando esta ejecutandose, los botones quedan deshabilitados. Al terminar un comando

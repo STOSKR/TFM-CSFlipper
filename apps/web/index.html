@@ -122,6 +122,16 @@
                 <span aria-hidden="true"></span>
                 <strong>Refrescar historico</strong>
               </label>
+              <div class="segmented-control" aria-label="Uso de BUFF durante el scraping">
+                <span>Scraping BUFF</span>
+                <button class="active" type="button" data-scrape-buff="false" aria-pressed="true">Sin BUFF</button>
+                <button type="button" data-scrape-buff="true" aria-pressed="false">Con BUFF</button>
+              </div>
+              <div class="segmented-control" aria-label="Uso de BUFF durante el refresco de historico">
+                <span>Historico BUFF</span>
+                <button class="active" type="button" data-refresh-buff="false" aria-pressed="true">Sin BUFF</button>
+                <button type="button" data-refresh-buff="true" aria-pressed="false">Con BUFF</button>
+              </div>
               <button class="primary-action" id="scrape-start-button" type="button">Ejecutar scraping completo</button>
             </div>
           </div>

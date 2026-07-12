@@ -27,7 +27,9 @@ def test_scrape_status_payload_exposes_job_without_command_path() -> None:
 def test_web_scrape_command_skips_refresh_by_default() -> None:
     command = _web_scrape_command()
 
+    assert "--no-buff" in command
     assert "--no-refresh" in command
+    assert "--no-refresh-buff" in command
     assert command[command.index("--stale-minutes") + 1] == "480"
     assert command[command.index("--steam-concurrency") + 1] == "2"
     assert command[command.index("--buff-concurrency") + 1] == "1"
@@ -48,6 +50,7 @@ def test_web_scrape_command_can_skip_refresh() -> None:
 
     assert "--no-refresh" in command
     assert "--refresh" not in command
+    assert "--no-refresh-buff" in command
 
 
 def test_web_scrape_command_can_refresh() -> None:
@@ -55,19 +58,38 @@ def test_web_scrape_command_can_refresh() -> None:
 
     assert "--refresh" in command
     assert "--no-refresh" not in command
+    assert "--no-refresh-buff" in command
+
+
+def test_web_scrape_command_can_enable_buff_for_scraping_only() -> None:
+    command = _web_scrape_command(scrape_buff=True, refresh=True, refresh_buff=False)
+
+    assert "--buff" in command
+    assert "--refresh" in command
+    assert "--no-refresh-buff" in command
+
+
+def test_web_scrape_command_can_enable_buff_for_refresh() -> None:
+    command = _web_scrape_command(scrape_buff=False, refresh=True, refresh_buff=True)
+
+    assert "--no-buff" in command
+    assert "--refresh" in command
+    assert "--refresh-buff" in command
 
 
 def test_local_command_allowlist_exposes_expected_frontend_commands() -> None:
     commands = {command.id: command for command in _local_commands()}
 
-    assert set(commands) == {"refresh_history"}
-    assert _local_command("refresh_history") == commands["refresh_history"]
+    assert set(commands) == {"refresh_history_steam", "refresh_history_with_buff"}
+    assert _local_command("refresh_history_steam") == commands["refresh_history_steam"]
+    assert _local_command("refresh_history_with_buff") == commands["refresh_history_with_buff"]
     assert _local_command("rm_everything") is None
 
-    payload = _command_payload(commands["refresh_history"])
-    assert payload["id"] == "refresh_history"
+    payload = _command_payload(commands["refresh_history_steam"])
+    assert payload["id"] == "refresh_history_steam"
     assert "command" not in payload
-    assert commands["refresh_history"].command[
-        commands["refresh_history"].command.index("--stale-minutes") + 1
+    assert commands["refresh_history_steam"].command[
+        commands["refresh_history_steam"].command.index("--stale-minutes") + 1
     ] == "480"
-    assert "--no-buff" in commands["refresh_history"].command
+    assert "--no-buff" in commands["refresh_history_steam"].command
+    assert "--buff" in commands["refresh_history_with_buff"].command

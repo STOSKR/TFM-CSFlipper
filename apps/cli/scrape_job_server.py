@@ -150,7 +150,11 @@ def build_scrape_job_command(env: Mapping[str, str] | None = None) -> list[str]:
             command.append("--dry-run")
         if _bool(values.get("SCRAPE_SHOW_BROWSER"), default=False):
             command.append("--show-browser")
-        command.append("--no-buff")
+        refresh_buff = _bool(
+            values.get("SCRAPE_REFRESH_BUFF") or values.get("SCRAPE_BUFF"),
+            default=False,
+        )
+        command.append("--buff" if refresh_buff else "--no-buff")
         buff_captcha_wait = _optional_int(values.get("SCRAPE_BUFF_CAPTCHA_WAIT_SECONDS"))
         if buff_captcha_wait is not None:
             command.extend(["--buff-captcha-wait-seconds", str(buff_captcha_wait)])
@@ -250,6 +254,7 @@ def _build_streaming_scrape_job_command(values: Mapping[str, str]) -> list[str]:
     if buff_captcha_wait is not None:
         command.extend(["--buff-captcha-wait-seconds", str(buff_captcha_wait)])
     _append_bool_flag(command, values, "SCRAPE_REFRESH", "--refresh", "--no-refresh")
+    _append_bool_flag(command, values, "SCRAPE_REFRESH_BUFF", "--refresh-buff", "--no-refresh-buff")
     _append_bool_flag(command, values, "SCRAPE_SCORE", "--score", "--no-score")
     if _bool(values.get("SCRAPE_PERSIST"), default=True):
         command.append("--persist")

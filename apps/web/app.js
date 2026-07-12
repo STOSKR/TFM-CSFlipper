@@ -87,9 +87,13 @@ let scrapeWasRunning = false;
 let scrapeStatusTimer = null;
 let scrapeStatusSignature = "";
 let scrapeStatusIdlePolls = 0;
+let scrapeBuffEnabled = false;
+let refreshBuffEnabled = false;
 
 document.querySelector("#scrape-show-browser").checked = false;
 document.querySelector("#scrape-refresh-history").checked = false;
+updateBuffOptionButtons("scrape", scrapeBuffEnabled);
+updateBuffOptionButtons("refresh", refreshBuffEnabled);
 
 const statusLabels = {
   review: "Revisar",
@@ -347,6 +351,11 @@ function renderScrapeStatus(payload) {
   document.querySelector("#scrape-start-button").disabled = running;
   document.querySelector("#scrape-show-browser").disabled = running;
   document.querySelector("#scrape-refresh-history").disabled = running;
+  document
+    .querySelectorAll("[data-scrape-buff], [data-refresh-buff]")
+    .forEach((button) => {
+      button.disabled = running;
+    });
   updateCommandButtons(running);
   scheduleScrapeStatusRefresh(job);
   if (scrapeWasRunning && !running && returnCode === 0) {
@@ -444,12 +453,18 @@ async function startScrape() {
   const button = document.querySelector("#scrape-start-button");
   const showBrowser = document.querySelector("#scrape-show-browser").checked;
   const refresh = document.querySelector("#scrape-refresh-history").checked;
+  const refreshBuff = refresh ? refreshBuffEnabled : false;
   const status = document.querySelector("#scrape-action-status");
   button.disabled = true;
   status.textContent = "Lanzando scraper...";
   const response = await requestJson("./api/scrape/start", {
     method: "POST",
-    body: { show_browser: showBrowser, refresh },
+    body: {
+      show_browser: showBrowser,
+      refresh,
+      scrape_buff: scrapeBuffEnabled,
+      refresh_buff: refreshBuff,
+    },
   });
   if (response.payload) {
     renderScrapeStatus(response.payload);
@@ -481,6 +496,25 @@ async function runLocalCommand(commandId) {
   status.textContent =
     response.status === 409 ? "Ya hay un comando ejecutandose." : "No se pudo lanzar el comando.";
   updateCommandButtons(false);
+}
+
+function setScrapeBuffOption(enabled) {
+  scrapeBuffEnabled = enabled;
+  updateBuffOptionButtons("scrape", enabled);
+}
+
+function setRefreshBuffOption(enabled) {
+  refreshBuffEnabled = enabled;
+  updateBuffOptionButtons("refresh", enabled);
+}
+
+function updateBuffOptionButtons(kind, enabled) {
+  const selector = kind === "scrape" ? "[data-scrape-buff]" : "[data-refresh-buff]";
+  document.querySelectorAll(selector).forEach((button) => {
+    const isActive = button.dataset[kind === "scrape" ? "scrapeBuff" : "refreshBuff"] === String(enabled);
+    button.classList.toggle("active", isActive);
+    button.setAttribute("aria-pressed", String(isActive));
+  });
 }
 
 async function refreshDashboardView() {
@@ -580,6 +614,16 @@ document.querySelector("#recommendation-rows").addEventListener("click", (event)
   renderRecommendations();
 });
 document.querySelector("#scrape-start-button").addEventListener("click", startScrape);
+document.querySelectorAll("[data-scrape-buff]").forEach((button) => {
+  button.addEventListener("click", () => {
+    setScrapeBuffOption(button.dataset.scrapeBuff === "true");
+  });
+});
+document.querySelectorAll("[data-refresh-buff]").forEach((button) => {
+  button.addEventListener("click", () => {
+    setRefreshBuffOption(button.dataset.refreshBuff === "true");
+  });
+});
 document.querySelector("#command-list").addEventListener("click", (event) => {
   const button = event.target.closest("[data-command-id]");
   if (!button) {

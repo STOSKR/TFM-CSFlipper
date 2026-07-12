@@ -195,7 +195,7 @@ def _run_refresh(args: argparse.Namespace) -> int:
         command.append("--dry-run")
     if args.show_browser:
         command.append("--show-browser")
-    command.append("--no-buff")
+    command.append("--buff" if args.refresh_buff else "--no-buff")
     command.extend(["--buff-captcha-wait-seconds", str(args.buff_captcha_wait_seconds)])
     if args.concurrent_platforms:
         command.append("--concurrent-platforms")
@@ -369,6 +369,7 @@ def build_parser(runtime_config: Any) -> argparse.ArgumentParser:
     )
     parser.add_argument("--withdrawal-fee-percent", type=float)
     parser.add_argument("--refresh", action=argparse.BooleanOptionalAction, default=False)
+    parser.add_argument("--refresh-buff", action=argparse.BooleanOptionalAction, default=False)
     parser.add_argument("--stale-minutes", type=int, default=480)
     parser.add_argument("--refresh-limit", type=int)
     parser.add_argument(
