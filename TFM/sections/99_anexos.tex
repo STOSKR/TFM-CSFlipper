@@ -7,20 +7,20 @@ El repositorio se organiza como un monorepo. La carpeta \texttt{apps} contiene a
 Los módulos principales son:
 
 \begin{itemize}
-  \item \texttt{apps/acquisition}: extractores, scraping, OCR, importadores y SteamDT.
+  \item \texttt{apps/acquisition}: extractores, scraping, \acroref{OCR}{OCR}, importadores y SteamDT.
   \item \texttt{apps/cli}: comandos de construcción de datasets, entrenamiento, scraping y evaluación.
   \item \texttt{apps/web}: interfaz web local de consulta y control operativo.
   \item \texttt{packages/contracts}: contratos Pydantic compartidos.
   \item \texttt{packages/persistence}: conexión, repositorios y persistencia.
   \item \texttt{packages/prediction}: entrenamiento e inferencia supervisada.
   \item \texttt{packages/simulation}: reglas económicas, cartera, riesgo y backtesting.
-  \item \texttt{packages/marl}: entorno multiagente, wrappers PettingZoo/RLlib y entrenamiento.
-  \item \texttt{packages/vision}: OCR, preprocesado y parsing visual.
+  \item \texttt{packages/marl}: entorno multiagente, wrappers PettingZoo/\acroref{RLlib}{RLlib} y entrenamiento.
+  \item \texttt{packages/vision}: \acroref{OCR}{OCR}, preprocesado y parsing visual.
 \end{itemize}
 
 \section{Configuración del entorno}
 
-El entorno se define en \texttt{pyproject.toml}. El proyecto usa Python, Supabase/Postgres, Pytest, Ruff, Mypy y dependencias opcionales para MARL como Ray/RLlib, PettingZoo, Gymnasium y PyTorch. Para desarrollo local existe un \texttt{docker-compose.yml} con Postgres.
+El entorno se define en \texttt{pyproject.toml}. El proyecto usa Python, Supabase/Postgres, Pytest, Ruff, Mypy y dependencias opcionales para \acroref{MARL}{MARL} como Ray/\acroref{RLlib}{RLlib}, PettingZoo, Gymnasium y PyTorch. Para desarrollo local existe un \texttt{docker-compose.yml} con Postgres.
 
 Comandos representativos:
 
@@ -48,7 +48,7 @@ python -m apps.cli.score_live_opportunities
 
 \section{Parámetros de entrenamiento}
 
-Los experimentos supervisados usan splits temporales, calibración de probabilidades y selección por precisión operativa en umbrales altos. En los smoke tests se compararon modelos dummy, regresión logística, random forest e histogram gradient boosting. El entrenamiento MARL usa RLlib con un entorno multiagente y tres políticas: Scout, Trader y Portfolio.
+Los experimentos supervisados usan splits temporales, calibración de probabilidades y selección por precisión operativa en umbrales altos. En los smoke tests se compararon modelos dummy, regresión logística, random forest e histogram gradient boosting. El entrenamiento \acroref{MARL}{MARL} usa \acroref{RLlib}{RLlib} con un entorno multiagente y tres políticas: Scout, Trader y Portfolio.
 
 \begin{table}[h]
 \centering
@@ -59,7 +59,7 @@ Bloque & Parámetros relevantes \\
 Supervisado & Split temporal, umbral operativo, calibración, modelo candidato y columnas excluidas por leakage. \\
 Trading & Dirección de arbitraje, horizonte, fees, tipo de cambio, ventana histórica y target de beneficio neto. \\
 Simulación & Saldo inicial, tamaño máximo de posición, \textit{trade hold}, comisiones y límites de exposición. \\
-MARL & Número de episodios, políticas Scout/Trader/Portfolio, algoritmo PPO y métricas de cartera. \\
+\acroref{MARL}{MARL} & Número de episodios, políticas Scout/Trader/Portfolio, algoritmo \acroref{PPO}{PPO} y métricas de cartera. \\
 \bottomrule
 \end{tabularx}
 \caption{Parámetros a versionar en los experimentos.}
@@ -73,7 +73,7 @@ El esquema canónico previsto añade entidades como \texttt{assets}, \texttt{pla
 
 \section{Pruebas implementadas}
 
-El proyecto incluye pruebas para parsing de mercado, OCR, persistencia, datasets supervisados, entrenamiento supervisado, simulador de cartera, riesgo, entorno MARL, wrappers RLlib y flujos de scraping. La suite se ejecuta de forma recurrente con Pytest, Ruff y Mypy.
+El proyecto incluye pruebas para parsing de mercado, \acroref{OCR}{OCR}, persistencia, datasets supervisados, entrenamiento supervisado, simulador de cartera, riesgo, entorno \acroref{MARL}{MARL}, wrappers \acroref{RLlib}{RLlib} y flujos de scraping. La suite se ejecuta de forma recurrente con Pytest, Ruff y Mypy.
 
 Las pruebas más relevantes para la memoria son:
 
@@ -81,8 +81,8 @@ Las pruebas más relevantes para la memoria son:
   \item tests de reglas económicas y simulador de cartera;
   \item tests de construcción de datasets supervisados y de trading;
   \item tests de inferencia supervisada y servicio de scoring;
-  \item tests de entorno PettingZoo, recompensas MARL y adaptador RLlib;
-  \item tests de scraping, pipeline streaming, SteamDT, BUFF y OCR.
+  \item tests de entorno PettingZoo, recompensas \acroref{MARL}{MARL} y adaptador \acroref{RLlib}{RLlib};
+  \item tests de scraping, pipeline streaming, SteamDT, \acroref{BUFF}{BUFF} y \acroref{OCR}{OCR}.
 \end{itemize}
 
 \section{Resultados adicionales}

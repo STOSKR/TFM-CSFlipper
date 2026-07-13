@@ -2,7 +2,7 @@
 
 \section{Diseño experimental}
 
-La experimentación se ha desarrollado por fases. Primero se migraron reglas económicas y estructuras de datos. Después se construyeron datasets supervisados para estudiar señales de mercado. Más adelante se creó un dataset de trading basado en precios Steam/BUFF y se implementó el entorno multiagente. Esta secuencia evita entrenar agentes MARL sobre un entorno que todavía no representa bien el problema económico.
+La experimentación se ha desarrollado por fases. Primero se migraron reglas económicas y estructuras de datos. Después se construyeron datasets supervisados para estudiar señales de mercado. Más adelante se creó un dataset de trading basado en precios Steam/\acroref{BUFF}{BUFF} y se implementó el entorno multiagente. Esta secuencia evita entrenar agentes \acroref{MARL}{MARL} sobre un entorno que todavía no representa bien el problema económico.
 
 \begin{table}[h]
 \centering
@@ -13,8 +13,8 @@ Fase & Objetivo & Estado \\
 1 & Migrar reglas económicas del Excel a simulador comprobable. & Implementada y cubierta por pruebas. \\
 2 & Construir datasets supervisados y explorar características temporales. & Implementada con resultados preliminares. \\
 3 & Comparar modelos supervisados tabulares y umbrales operativos. & Implementada como smoke experimental. \\
-4 & Crear dataset real de trading Steam/BUFF con fees y horizonte. & Implementada, pero limitada por desbalance. \\
-5 & Ejecutar smoke MARL con PettingZoo, RLlib/PPO y tres políticas. & Funcional, no validación final. \\
+4 & Crear dataset real de trading Steam/\acroref{BUFF}{BUFF} con fees y horizonte. & Implementada, pero limitada por desbalance. \\
+5 & Ejecutar smoke \acroref{MARL}{MARL} con PettingZoo, \acroref{RLlib}{RLlib}/\acroref{PPO}{PPO} y tres políticas. & Funcional, no validación final. \\
 \bottomrule
 \end{tabularx}
 \caption{Fases experimentales desarrolladas hasta el momento.}
@@ -22,19 +22,19 @@ Fase & Objetivo & Estado \\
 
 \subsection{Escenarios de evaluación}
 
-Se han usado dos tipos de datasets. El primero predice dirección de mercado sobre histórico disponible y permite estudiar señales temporales de forma amplia. El segundo intenta modelar oportunidades reales de trading Steam/BUFF con precios normalizados, fees y horizonte temporal. Este segundo dataset es más cercano al objetivo del TFM, pero también es más exigente porque necesita histórico alineado entre plataformas.
+Se han usado dos tipos de datasets. El primero predice dirección de mercado sobre histórico disponible y permite estudiar señales temporales de forma amplia. El segundo intenta modelar oportunidades reales de trading Steam/\acroref{BUFF}{BUFF} con precios normalizados, fees y horizonte temporal. Este segundo dataset es más cercano al objetivo del \acroref{TFM}{TFM}, pero también es más exigente porque necesita histórico alineado entre plataformas.
 
 El criterio de evaluación no es solo predictivo. Una señal puede tener buena precisión y aun así no ser operativa si aparece pocas veces, si depende de artículos concretos o si no supera costes de transacción. Por eso las métricas del modelo supervisado se interpretan como apoyo a la decisión, no como resultado económico final.
 
 \subsection{Estrategias de comparación}
 
-La comparación experimental se plantea en tres niveles. El primero es un baseline simple o dummy para comprobar que los modelos aprenden algo más que la tasa base. El segundo compara modelos supervisados tabulares como regresión logística, random forest e histogram gradient boosting. El tercero, todavía pendiente de evaluación completa, comparará la arquitectura MARL frente a baselines de agente único y ablations con y sin probabilidad supervisada.
+La comparación experimental se plantea en tres niveles. El primero es un baseline simple o dummy para comprobar que los modelos aprenden algo más que la tasa base. El segundo compara modelos supervisados tabulares como regresión logística, random forest e histogram gradient boosting, familias ampliamente usadas para clasificación tabular \cite{breiman2001random,friedman2001greedy}. El tercero, todavía pendiente de evaluación completa, comparará la arquitectura \acroref{MARL}{MARL} frente a baselines de agente único y ablations con y sin probabilidad supervisada.
 
 \section{Métricas}
 
 \subsection{Métricas de rentabilidad}
 
-Las métricas de rentabilidad principales son beneficio neto, retorno porcentual, saldo final y número de señales operativas. En los modelos supervisados se usan además precisión, recall, F1, ROC-AUC, PR-AUC y Brier score. Para el uso operativo se da especial importancia a la precisión en umbrales altos, porque una señal menos frecuente pero más fiable puede ser más útil que muchas señales ruidosas.
+Las métricas de rentabilidad principales son beneficio neto, retorno porcentual, saldo final y número de señales operativas. En los modelos supervisados se usan además precisión, recall, \acroref{F1}{F1}, \acroref{ROC-AUC}{ROC-AUC}, \acroref{PR-AUC}{PR-AUC} y Brier score. Para el uso operativo se da especial importancia a la precisión en umbrales altos, porque una señal menos frecuente pero más fiable puede ser más útil que muchas señales ruidosas. La calibración de probabilidades es relevante porque la salida del modelo se usa como señal de decisión, no solo como etiqueta binaria \cite{niculescu2005predicting}.
 
 \subsection{Métricas de riesgo}
 
@@ -44,13 +44,13 @@ Las métricas de riesgo incluyen drawdown, capital bloqueado medio, posiciones a
 
 \subsection{Migración de reglas económicas}
 
-La primera fase consistió en convertir reglas del Excel operativo en funciones comprobables. Se migraron conversiones EUR/CNY, factores de comisión, cálculo de beneficio neto, rentabilidad porcentual, fecha de desbloqueo y capital bloqueado. Esta fase no produce un resultado de rentabilidad por sí misma, pero es necesaria para que los experimentos posteriores midan el mismo dominio que se utilizaba manualmente.
+La primera fase consistió en convertir reglas del Excel operativo en funciones comprobables. Se migraron conversiones \acroref{EUR}{EUR}/\acroref{CNY}{CNY}, factores de comisión, cálculo de beneficio neto, rentabilidad porcentual, fecha de desbloqueo y capital bloqueado. Esta fase no produce un resultado de rentabilidad por sí misma, pero es necesaria para que los experimentos posteriores midan el mismo dominio que se utilizaba manualmente.
 
 El resultado principal de esta fase es metodológico: las reglas económicas pasan de estar dispersas en fórmulas de hoja de cálculo a estar encapsuladas en módulos de simulación, con pruebas unitarias y parámetros explícitos. Esto reduce errores silenciosos y permite repetir un experimento con la misma configuración.
 
 \subsection{Resultados del modelo supervisado}
 
-La fase supervisada produjo varios experimentos preliminares. En el dataset reciente de un año, los modelos random forest obtuvieron señales útiles en umbrales altos, aunque con un número limitado de casos. La selección por precisión a umbral 0,8 resultó más alineada con el objetivo operativo que seleccionar solo por ROC-AUC.
+La fase supervisada produjo varios experimentos preliminares. En el dataset reciente de un año, los modelos random forest obtuvieron señales útiles en umbrales altos, aunque con un número limitado de casos. La selección por precisión a umbral 0,8 resultó más alineada con el objetivo operativo que seleccionar solo por \acroref{ROC-AUC}{ROC-AUC}.
 
 \begin{table}[h]
 \centering
@@ -70,23 +70,23 @@ Estos resultados no se consideran definitivos. El número de señales en umbrale
 
 \subsection{Dataset de trading real}
 
-El dataset \texttt{trading\_profit\_v1} se generó desde \texttt{market\_history\_points} usando precios Steam/BUFF, comisiones y horizonte temporal. La primera versión produjo 2.331 ejemplos y 50 artículos, pero con desbalance extremo en validación y test: solo un caso positivo en cada split para la dirección analizada. Por este motivo, las métricas de ese entrenamiento no se usan como evidencia de rendimiento operativo.
+El dataset \texttt{trading\_profit\_v1} se generó desde \texttt{market\_history\_points} usando precios Steam/\acroref{BUFF}{BUFF}, comisiones y horizonte temporal. La primera versión produjo 2.331 ejemplos y 50 artículos, pero con desbalance extremo en validación y test: solo un caso positivo en cada split para la dirección analizada. Por este motivo, las métricas de ese entrenamiento no se usan como evidencia de rendimiento operativo.
 
-El análisis posterior mostró que el histórico de BUFF empezó a estar mejor alineado tras corregir el parser y permitir backfill de puntos históricos. Aun así, la dirección más natural de arbitraje, comprar en BUFF y vender en Steam, todavía no generaba ejemplos suficientes a ocho días porque faltaba histórico futuro Steam alineado con los puntos BUFF recientes.
+El análisis posterior mostró que el histórico de \acroref{BUFF}{BUFF} empezó a estar mejor alineado tras corregir el parser y permitir backfill de puntos históricos. Aun así, la dirección más natural de arbitraje, comprar en \acroref{BUFF}{BUFF} y vender en Steam, todavía no generaba ejemplos suficientes a ocho días porque faltaba histórico futuro Steam alineado con los puntos \acroref{BUFF}{BUFF} recientes.
 
-A partir de esta limitación se adopta una separación metodológica: Steam se usa como fuente principal para aprender el riesgo temporal de salida, y BUFF queda como precio vivo de entrada en inferencia. El objetivo deja de ser predecir el precio exacto de BUFF; la recomendación evalúa si un precio BUFF puntual conserva margen suficiente frente a una salida Steam estimada y sus comisiones.
+A partir de esta limitación se adopta una separación metodológica: Steam se usa como fuente principal para aprender el riesgo temporal de salida, y \acroref{BUFF}{BUFF} queda como precio vivo de entrada en inferencia. El objetivo deja de ser predecir el precio exacto de \acroref{BUFF}{BUFF}; la recomendación evalúa si un precio \acroref{BUFF}{BUFF} puntual conserva margen suficiente frente a una salida Steam estimada y sus comisiones.
 
 \subsection{Resultados de la arquitectura multiagente}
 
-El entorno multiagente ya existe como smoke funcional. Se implementó un entorno PettingZoo con tres políticas, un wrapper para RLlib y un comando de entrenamiento corto con PPO multiagente. El smoke ejecuta entrenamiento, guarda checkpoint y devuelve métricas operativas como recompensa media, número de operaciones, efectivo, beneficio realizado, drawdown, capital bloqueado y posiciones abiertas.
+El entorno multiagente ya existe como smoke funcional. Se implementó un entorno PettingZoo con tres políticas, un wrapper para \acroref{RLlib}{RLlib} y un comando de entrenamiento corto con \acroref{PPO}{PPO} multiagente. El smoke ejecuta entrenamiento, guarda checkpoint y devuelve métricas operativas como recompensa media, número de operaciones, efectivo, beneficio realizado, drawdown, capital bloqueado y posiciones abiertas.
 
-Sin embargo, el entrenamiento actual no debe presentarse como validación final de MAPPO con CTDE completo. El estado central está definido y expuesto, pero queda pendiente conectar el crítico centralizado de forma completa y comparar contra baselines. Esta distinción es importante para no confundir un flujo ejecutable con una evidencia experimental cerrada.
+Sin embargo, el entrenamiento actual no debe presentarse como validación final de \acroref{MAPPO}{MAPPO} con \acroref{CTDE}{CTDE} completo. El estado central está definido y expuesto, pero queda pendiente conectar el crítico centralizado de forma completa y comparar contra baselines. Esta distinción es importante para no confundir un flujo ejecutable con una evidencia experimental cerrada.
 
 \section{Experimentos finales pendientes}
 
-Para cerrar la validación del TFM será necesario ejecutar una fase experimental más estricta. Primero debe validarse el modelo Steam-only de salida a ocho días y conectarlo a candidatos con precio BUFF vivo. Después deben compararse baselines simples: comprar todos los candidatos de SteamDT, comprar solo cuando el margen BUFF -> Steam es positivo, agente único y política dummy.
+Para cerrar la validación del \acroref{TFM}{TFM} será necesario ejecutar una fase experimental más estricta. Primero debe validarse el modelo Steam-only de salida a ocho días y conectarlo a candidatos con precio \acroref{BUFF}{BUFF} vivo. Después deben compararse baselines simples: comprar todos los candidatos de SteamDT, comprar solo cuando el margen \acroref{BUFF}{BUFF} -> Steam es positivo, agente único y política dummy.
 
-La evaluación MARL deberá incluir ablations. Las más relevantes son: sin probabilidad supervisada, sin agente Portfolio, sin penalización por capital bloqueado y sin restricciones de liquidez. Estas comparaciones permitirán distinguir si la mejora viene de la arquitectura multiagente, del modelo supervisado, de una regla de riesgo o simplemente de la estructura del simulador.
+La evaluación \acroref{MARL}{MARL} deberá incluir ablations. Las más relevantes son: sin probabilidad supervisada, sin agente Portfolio, sin penalización por capital bloqueado y sin restricciones de liquidez. Estas comparaciones permitirán distinguir si la mejora viene de la arquitectura multiagente, del modelo supervisado, de una regla de riesgo o simplemente de la estructura del simulador.
 
 \section{Discusión}
 
@@ -96,7 +96,7 @@ El trabajo realizado muestra que el sistema ya puede integrar fuentes, construir
 
 \subsection{Limitaciones observadas}
 
-La principal limitación actual es la disponibilidad de histórico alineado entre Steam y BUFF. Sin suficientes ejemplos positivos en validación y test, cualquier métrica de trading puede ser engañosa. También existe riesgo de sobreajuste en variables categóricas de alta cardinalidad y en señales de precisión alta con pocos casos. Por último, el entorno MARL necesita una validación experimental más amplia antes de poder concluir si la arquitectura multiagente mejora realmente a una estrategia simple.
+La principal limitación actual es la disponibilidad de histórico alineado entre Steam y \acroref{BUFF}{BUFF}. Sin suficientes ejemplos positivos en validación y test, cualquier métrica de trading puede ser engañosa. También existe riesgo de sobreajuste en variables categóricas de alta cardinalidad y en señales de precisión alta con pocos casos. Por último, el entorno \acroref{MARL}{MARL} necesita una validación experimental más amplia antes de poder concluir si la arquitectura multiagente mejora realmente a una estrategia simple.
 
 \subsection{Lectura de los resultados}
 

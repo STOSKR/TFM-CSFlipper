@@ -2,7 +2,7 @@
 
 \section{Fuentes de datos}
 
-El sistema trabaja con varias fuentes porque el mercado de CS2 está fragmentado. Ninguna fuente aislada contiene toda la información necesaria para decidir. Steam aporta precio, histórico y señales del mercado principal; BUFF163 permite comparar oportunidades y buy orders; SteamDT ayuda a descubrir candidatos; el OCR permite capturar datos cuando no existe una API cómoda; y los CSV o importaciones manuales sirven para integrar muestras controladas o material histórico.
+El sistema trabaja con varias fuentes porque el mercado de \acroref{CS2}{CS2} está fragmentado. Ninguna fuente aislada contiene toda la información necesaria para decidir. Steam aporta precio, histórico y señales del mercado principal; \acroref{BUFF}{BUFF163} permite comparar oportunidades y buy orders; SteamDT ayuda a descubrir candidatos; el \acroref{OCR}{OCR} permite capturar datos cuando no existe una \acroref{API}{API} cómoda; y los \acroref{CSV}{CSV} o importaciones manuales sirven para integrar muestras controladas o material histórico.
 
 \subsection{Mercado de Steam}
 
@@ -12,23 +12,23 @@ En la práctica, Steam no se usa solo como una tabla de precios. También aporta
 
 \subsection{BUFF163 y mercados externos}
 
-BUFF163 se utiliza como mercado externo de comparación. Sus precios se reciben principalmente en CNY, por lo que el sistema conserva tanto el valor original como su conversión a EUR. Esta doble representación permite auditar el dato original y, al mismo tiempo, entrenar modelos sobre una moneda canónica. Las buy orders de BUFF son especialmente útiles porque ayudan a estimar si una salida tiene demanda real o si el precio observado es poco ejecutable.
+\acroref{BUFF}{BUFF163} se utiliza como mercado externo de comparación. Sus precios se reciben principalmente en \acroref{CNY}{CNY}, por lo que el sistema conserva tanto el valor original como su conversión a \acroref{EUR}{EUR}. Esta doble representación permite auditar el dato original y, al mismo tiempo, entrenar modelos sobre una moneda canónica. Las buy orders de \acroref{BUFF}{BUFF} son especialmente útiles porque ayudan a estimar si una salida tiene demanda real o si el precio observado es poco ejecutable.
 
 SteamDT se utiliza como apoyo para descubrir candidatos y estrategias de búsqueda, no como fuente única de decisión. Su función dentro del sistema es reducir el espacio de búsqueda inicial y ayudar a priorizar qué artículos merece la pena observar con más profundidad.
 
-Tras las primeras pruebas, BUFF se separa del entrenamiento principal. El histórico masivo se apoya en Steam, mientras que BUFF se usa como precio vivo de entrada cuando se evalúa un flip concreto hacia Steam. De este modo el modelo no intenta predecir el precio de BUFF ni depende de scraping recurrente de BUFF para aprender patrones temporales.
+Tras las primeras pruebas, \acroref{BUFF}{BUFF} se separa del entrenamiento principal. El histórico masivo se apoya en Steam, mientras que \acroref{BUFF}{BUFF} se usa como precio vivo de entrada cuando se evalúa un flip concreto hacia Steam. De este modo el modelo no intenta predecir el precio de \acroref{BUFF}{BUFF} ni depende de scraping recurrente de \acroref{BUFF}{BUFF} para aprender patrones temporales.
 
 \subsection{OCR e importación manual}
 
-El OCR se incorpora como vía secundaria de adquisición. Su objetivo es convertir capturas, tablas o interfaces no estructuradas en observaciones equivalentes a las obtenidas por scraping o API. El flujo incluye preprocesado de imagen, reconocimiento de texto, parsing estructurado, validación y persistencia. Aunque es más frágil que una fuente estructurada, resulta útil cuando una plataforma no expone datos cómodamente o cuando se quiere incorporar material histórico procedente de capturas.
+El \acroref{OCR}{OCR} se incorpora como vía secundaria de adquisición. Su objetivo es convertir capturas, tablas o interfaces no estructuradas en observaciones equivalentes a las obtenidas por scraping o \acroref{API}{API}. El flujo incluye preprocesado de imagen, reconocimiento de texto, parsing estructurado, validación y persistencia. Aunque es más frágil que una fuente estructurada, resulta útil cuando una plataforma no expone datos cómodamente o cuando se quiere incorporar material histórico procedente de capturas.
 
-Las importaciones manuales y CSV cumplen una función complementaria. Permiten introducir muestras controladas, fixtures o históricos parciales sin depender de una sesión de navegador. Esta vía ha sido útil para validar parsers, modelos de persistencia y reglas económicas antes de automatizar el flujo completo.
+Las importaciones manuales y \acroref{CSV}{CSV} cumplen una función complementaria. Permiten introducir muestras controladas, fixtures o históricos parciales sin depender de una sesión de navegador. Esta vía ha sido útil para validar parsers, modelos de persistencia y reglas económicas antes de automatizar el flujo completo.
 
 \section{Adquisición y persistencia}
 
 \subsection{Pipeline de adquisición}
 
-La adquisición se organiza como una capa de agentes extractores. Estos procesos pueden ejecutarse como comandos CLI, jobs o servicios programados. Su función es capturar datos, normalizarlos, validar errores y guardarlos con trazabilidad. El flujo incluye scraping, refresco de históricos, OCR, importación manual y un bucle operativo local que puede ejecutar scraping y actualización periódica.
+La adquisición se organiza como una capa de agentes extractores. Estos procesos pueden ejecutarse como comandos \acroref{CLI}{CLI}, jobs o servicios programados. Su función es capturar datos, normalizarlos, validar errores y guardarlos con trazabilidad. El flujo incluye scraping, refresco de históricos, \acroref{OCR}{OCR}, importación manual y un bucle operativo local que puede ejecutar scraping y actualización periódica.
 
 La adquisición periódica contempla cookies o sesiones, delays configurables, límites de concurrencia, reintentos, deduplicación y registro de anomalías. Esta parte es importante porque las fuentes no siempre son estables: pueden cambiar el formato, limitar el ritmo de acceso o devolver información incompleta.
 
@@ -42,7 +42,7 @@ También se define un esquema canónico más amplio con entidades como \texttt{a
 \centering
 \begin{tabularx}{\textwidth}{l X}
 \toprule
-Entidad & Uso dentro del TFM \\
+Entidad & Uso dentro del \acroref{TFM}{TFM} \\
 \midrule
 \texttt{market\_items} & Estado actual de cada variante real por plataforma. \\
 \texttt{market\_history\_points} & Serie temporal en formato largo para precios, buy orders y métricas. \\
@@ -58,17 +58,17 @@ Entidad & Uso dentro del TFM \\
 
 \subsection{Variables de mercado}
 
-Las características de mercado incluyen precios Steam y BUFF normalizados, precios originales, spread bruto, spread neto, buy orders, volumen, liquidez, número de listings, antigüedad de variante y señales temporales. En la fase supervisada se exploraron variables de momentum y reversión como retornos a 1, 3 y 7 días, distancia a medias móviles, RSI, volatilidad y desviaciones de ventas.
+Las características de mercado incluyen precios Steam y \acroref{BUFF}{BUFF} normalizados, precios originales, spread bruto, spread neto, buy orders, volumen, liquidez, número de listings, antigüedad de variante y señales temporales. En la fase supervisada se exploraron variables de momentum y reversión como retornos a 1, 3 y 7 días, distancia a medias móviles, \acroref{RSI}{RSI}, volatilidad y desviaciones de ventas. Esta combinación de señales temporales y restricciones operativas sigue la misma lógica que los entornos de trading con control de fricciones \cite{liu2021finrl}.
 
 La exploración inicial detectó que algunas señales temporales aportan información moderada, mientras que ciertas variables categóricas de alta cardinalidad, como identificadores concretos de skins, deben tratarse con cuidado para evitar sobreajuste. Por ello, el entrenamiento separa variables de evaluación y variables de entrenamiento, y permite realizar ablations sin reconstruir todo el dataset.
 
 \subsection{Variables de cartera}
 
-Las variables de cartera proceden del simulador. Incluyen saldo disponible, valor de posiciones abiertas, capital bloqueado por \textit{trade hold}, fecha de desbloqueo, exposición por activo, exposición por plataforma, beneficio realizado y drawdown. Estas variables son necesarias para que el agente Portfolio no decida únicamente por oportunidad local, sino por estado global de la cartera.
+Las variables de cartera proceden del simulador. Incluyen saldo disponible, valor de posiciones abiertas, capital bloqueado por \textit{trade hold}, fecha de desbloqueo, exposición por activo, exposición por plataforma, beneficio realizado y drawdown. Estas variables son necesarias para que el agente Portfolio no decida únicamente por oportunidad local, sino por estado global de la cartera, coherentemente con la evaluación conjunta de rentabilidad y riesgo \cite{markowitz1952portfolio}.
 
 \section{Reglas económicas migradas}
 
-El simulador reproduce las reglas económicas que antes estaban dispersas en el Excel operativo. No intenta copiar la hoja de cálculo, sino migrar sus reglas útiles a código comprobable: conversión EUR/CNY, comisiones, beneficio neto, rentabilidad porcentual, fecha de desbloqueo y capital bloqueado.
+El simulador reproduce las reglas económicas que antes estaban dispersas en el Excel operativo. No intenta copiar la hoja de cálculo, sino migrar sus reglas útiles a código comprobable: conversión \acroref{EUR}{EUR}/\acroref{CNY}{CNY}, comisiones, beneficio neto, rentabilidad porcentual, fecha de desbloqueo y capital bloqueado.
 
 \begin{table}[h]
 \centering
@@ -76,8 +76,8 @@ El simulador reproduce las reglas económicas que antes estaban dispersas en el 
 \toprule
 Regla & Uso en la simulación \\
 \midrule
-Conversión EUR/CNY & Normaliza precios de Steam y BUFF para compararlos en una moneda común. \\
-Fee BUFF 0,975 & Estima el ingreso neto al vender en BUFF. \\
+Conversión \acroref{EUR}{EUR}/\acroref{CNY}{CNY} & Normaliza precios de Steam y \acroref{BUFF}{BUFF} para compararlos en una moneda común. \\
+Fee \acroref{BUFF}{BUFF} 0,975 & Estima el ingreso neto al vender en \acroref{BUFF}{BUFF}. \\
 Fee Steam 0,87 & Representa la comisión de mercado en ventas Steam. \\
 Cash-out conservador & Permite simular pérdida adicional al convertir saldo Steam en liquidez externa. \\
 \textit{Trade hold} & Bloquea posiciones durante un horizonte conservador de ocho días. \\
@@ -95,7 +95,7 @@ Las operaciones básicas son comprar, vender y mantener. Una compra abre una pos
 
 \subsection{Comisiones y valoración}
 
-El Excel operativo utiliza reglas de referencia que se han convertido en hipótesis de simulación. BUFF se modela con un factor neto de venta de 0,975. Steam usa una comisión de mercado del 0,87 y, en escenarios conservadores de salida a banco, puede aplicarse una pérdida adicional del 20\%. La conversión inicial simplificada usa 1 EUR = 8 CNY, aunque queda pendiente versionar tipos de cambio por fecha si se incorporan fuentes externas.
+El Excel operativo utiliza reglas de referencia que se han convertido en hipótesis de simulación. \acroref{BUFF}{BUFF} se modela con un factor neto de venta de 0,975. Steam usa una comisión de mercado del 0,87 y, en escenarios conservadores de salida a banco, puede aplicarse una pérdida adicional del 20\%. La conversión inicial simplificada usa 1 \acroref{EUR}{EUR} = 8 \acroref{CNY}{CNY}, aunque queda pendiente versionar tipos de cambio por fecha si se incorporan fuentes externas.
 
 El \textit{trade hold} se modela de forma conservadora como ocho días desde la compra, equivalente a siete días más una ventana de desbloqueo. Esta simplificación evita declarar vendible una posición demasiado pronto.
 

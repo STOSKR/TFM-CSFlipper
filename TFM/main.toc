@@ -27,7 +27,7 @@
 \contentsline {chapter}{\numberline {3}Arquitectura multiagente propuesta}{21}{chapter.3}%
 \contentsline {section}{\numberline {3.1}Definición del problema}{21}{section.3.1}%
 \contentsline {section}{\numberline {3.2}Visión general del sistema}{21}{section.3.2}%
-\contentsline {section}{\numberline {3.3}Flujo operativo}{22}{section.3.3}%
+\contentsline {section}{\numberline {3.3}Flujo operativo}{21}{section.3.3}%
 \contentsline {section}{\numberline {3.4}Definición del entorno}{22}{section.3.4}%
 \contentsline {subsection}{\numberline {3.4.1}Estado y observaciones}{22}{subsection.3.4.1}%
 \contentsline {subsection}{\numberline {3.4.2}Espacio de acciones}{23}{subsection.3.4.2}%
@@ -39,7 +39,7 @@
 \contentsline {section}{\numberline {3.6}Función de recompensa}{24}{section.3.6}%
 \contentsline {subsection}{\numberline {3.6.1}Recompensa individual}{24}{subsection.3.6.1}%
 \contentsline {subsection}{\numberline {3.6.2}Recompensa cooperativa}{24}{subsection.3.6.2}%
-\contentsline {section}{\numberline {3.7}Restricciones de riesgo}{24}{section.3.7}%
+\contentsline {section}{\numberline {3.7}Restricciones de riesgo}{25}{section.3.7}%
 \contentsline {chapter}{\numberline {4}Configuración del entorno y datos}{26}{chapter.4}%
 \contentsline {section}{\numberline {4.1}Fuentes de datos}{26}{section.4.1}%
 \contentsline {subsection}{\numberline {4.1.1}Mercado de Steam}{26}{subsection.4.1.1}%
@@ -76,7 +76,7 @@
 \contentsline {chapter}{\numberline {6}Conclusiones}{34}{chapter.6}%
 \contentsline {section}{\numberline {6.1}Conclusiones principales}{34}{section.6.1}%
 \contentsline {section}{\numberline {6.2}Cumplimiento de objetivos}{34}{section.6.2}%
-\contentsline {section}{\numberline {6.3}Limitaciones}{34}{section.6.3}%
+\contentsline {section}{\numberline {6.3}Limitaciones}{35}{section.6.3}%
 \contentsline {section}{\numberline {6.4}Trabajo futuro}{35}{section.6.4}%
 \contentsline {chapter}{Bibliografía}{36}{section.6.4}%
 \contentsline {chapter}{\numberline {A}Anexos}{37}{appendix.Alph1}%

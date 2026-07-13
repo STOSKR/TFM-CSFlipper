@@ -2,7 +2,7 @@
 
 \section{Definición del problema}
 
-El problema se formula como una tarea de decisión secuencial sobre una cartera simulada de activos digitales. En cada instante, el sistema recibe observaciones de mercado, estado de cartera y señales derivadas. A partir de esa información debe decidir si conviene comprar, vender, mantener en observación o rechazar una oportunidad.
+El problema se formula como una tarea de decisión secuencial sobre una cartera simulada de activos digitales, siguiendo la formulación general de los problemas de aprendizaje por refuerzo \cite{sutton2018reinforcement}. En cada instante, el sistema recibe observaciones de mercado, estado de cartera y señales derivadas. A partir de esa información debe decidir si conviene comprar, vender, mantener en observación o rechazar una oportunidad.
 
 La dificultad no está únicamente en predecir si un precio subirá. Una decisión operativa debe considerar el beneficio neto después de comisiones, el cambio de moneda, la liquidez disponible, el capital ya bloqueado, el tiempo de desbloqueo por \textit{trade hold} y la exposición acumulada a un mismo activo o plataforma. Por ello, el objetivo del sistema es maximizar el valor total de la cartera simulada bajo restricciones de riesgo y fricción de mercado.
 
@@ -10,7 +10,7 @@ La arquitectura propuesta separa el problema en dos niveles. El primer nivel obs
 
 \section{Visión general del sistema}
 
-La arquitectura se organiza en cinco capas: adquisición, persistencia, predicción, decisión multiagente y simulación. Cada capa tiene una responsabilidad concreta y se comunica con la siguiente mediante datos normalizados. Esta decisión de diseño reduce el acoplamiento y permite validar cada parte por separado.
+La arquitectura se organiza en cinco capas: adquisición, persistencia, predicción, decisión multiagente y simulación. Cada capa tiene una responsabilidad concreta y se comunica con la siguiente mediante datos normalizados. Esta decisión de diseño reduce el acoplamiento y permite validar cada parte por separado, una práctica habitual en entornos de trading reproducibles y backtesting \cite{liu2021finrl}.
 
 \begin{figure}[h]
 \centering
@@ -18,10 +18,10 @@ La arquitectura se organiza en cinco capas: adquisición, persistencia, predicci
 \begin{minipage}{0.92\textwidth}
 \centering
 \begin{tabularx}{0.95\textwidth}{>{\bfseries}l X}
-1. Adquisición & Steam, BUFF163, SteamDT, OCR e importaciones manuales capturan observaciones. \\
+1. Adquisición & Steam, \acroref{BUFF}{BUFF163}, SteamDT, \acroref{OCR}{OCR} e importaciones manuales capturan observaciones. \\
 2. Persistencia & Postgres/Supabase guarda artículos, históricos, snapshots, predicciones y decisiones simuladas. \\
 3. Predicción & El modelo supervisado genera probabilidades calibradas y señales de mercado. \\
-4. Decisión MARL & Scout, Trader y Portfolio deciden dentro del entorno PettingZoo/RLlib. \\
+4. Decisión \acroref{MARL}{MARL} & Scout, Trader y Portfolio deciden dentro del entorno PettingZoo/\acroref{RLlib}{RLlib}. \\
 5. Simulación & La cartera aplica comisiones, divisas, \textit{trade hold}, riesgo y métricas. \\
 \end{tabularx}
 \end{minipage}
@@ -29,13 +29,13 @@ La arquitectura se organiza en cinco capas: adquisición, persistencia, predicci
 \caption{Capas principales de la arquitectura propuesta.}
 \end{figure}
 
-La decisión final siempre queda registrada como simulada. Esto permite evaluar el sistema con métricas de cartera sin exponer capital real durante la investigación. La arquitectura puede generar recomendaciones, episodios y métricas, pero no envía órdenes reales a Steam, BUFF163 ni ninguna otra plataforma.
+La decisión final siempre queda registrada como simulada. Esto permite evaluar el sistema con métricas de cartera sin exponer capital real durante la investigación. La arquitectura puede generar recomendaciones, episodios y métricas, pero no envía órdenes reales a Steam, \acroref{BUFF}{BUFF163} ni ninguna otra plataforma.
 
 \section{Flujo operativo}
 
 El flujo operativo comienza con una lista de candidatos o una búsqueda de mercado. Los agentes extractores consultan las fuentes disponibles, capturan precios, buy orders, volumen y metadatos, y construyen observaciones normalizadas. Después, la persistencia conserva el histórico en formato auditable para que el dataset pueda reconstruirse sin depender de una sesión concreta de scraping.
 
-Sobre ese histórico se construyen características de mercado. El modelo supervisado produce una probabilidad calibrada de oportunidad rentable en un horizonte determinado. Esa probabilidad no se interpreta como una orden de compra, sino como una característica adicional que los agentes MARL pueden utilizar. Finalmente, el entorno multiagente genera una observación para cada política, recoge sus acciones y aplica las reglas del simulador.
+Sobre ese histórico se construyen características de mercado. El modelo supervisado produce una probabilidad calibrada de oportunidad rentable en un horizonte determinado. Esa probabilidad no se interpreta como una orden de compra, sino como una característica adicional que los agentes \acroref{MARL}{MARL} pueden utilizar. Finalmente, el entorno multiagente genera una observación para cada política, recoge sus acciones y aplica las reglas del simulador.
 
 \begin{algorithm}
 \caption{Ciclo general de toma de decisiones}
@@ -57,7 +57,7 @@ El entorno representa una cartera simulada que evoluciona a partir de datos hist
 
 \subsection{Estado y observaciones}
 
-Las observaciones combinan variables de mercado y variables de cartera. Entre las variables de mercado se incluyen precios de Steam y BUFF163 normalizados a EUR, precios originales en su moneda nativa, volumen, liquidez, spread bruto, spread neto, buy orders, edad de la variante y señales temporales como retornos, medias móviles, RSI o desviaciones de ventas. Entre las variables de cartera se incluyen efectivo disponible, capital bloqueado, posiciones abiertas, exposición por activo y estado de desbloqueo.
+Las observaciones combinan variables de mercado y variables de cartera. Entre las variables de mercado se incluyen precios de Steam y \acroref{BUFF}{BUFF163} normalizados a \acroref{EUR}{EUR}, precios originales en su moneda nativa, volumen, liquidez, spread bruto, spread neto, buy orders, edad de la variante y señales temporales como retornos, medias móviles, \acroref{RSI}{RSI} o desviaciones de ventas. Entre las variables de cartera se incluyen efectivo disponible, capital bloqueado, posiciones abiertas, exposición por activo y estado de desbloqueo.
 
 La salida del modelo supervisado se incorpora como una probabilidad calibrada de que una oportunidad mantenga un spread rentable en el horizonte definido. Esta señal permite aprovechar aprendizaje supervisado sin convertirlo en una decisión rígida. Si la probabilidad es alta pero la cartera está sobreexpuesta o el capital está bloqueado, el entorno puede rechazar o posponer la operación.
 
@@ -71,7 +71,7 @@ Cuando se ejecuta una compra simulada, el saldo disponible disminuye y se abre u
 
 \section{Agentes del sistema}
 
-La arquitectura distingue entre agentes extractores y agentes MARL. Los extractores no se entrenan mediante aprendizaje por refuerzo y no deciden operaciones. Su trabajo es adquirir datos desde Steam, BUFF163, SteamDT, OCR o CSV/API y transformarlos en observaciones persistidas. Los agentes MARL, en cambio, operan dentro del entorno de simulación.
+La arquitectura distingue entre agentes extractores y agentes \acroref{MARL}{MARL}. Los extractores no se entrenan mediante aprendizaje por refuerzo y no deciden operaciones. Su trabajo es adquirir datos desde Steam, \acroref{BUFF}{BUFF163}, SteamDT, \acroref{OCR}{OCR} o \acroref{CSV}{CSV}/\acroref{API}{API} y transformarlos en observaciones persistidas. Los agentes \acroref{MARL}{MARL}, en cambio, operan dentro del entorno de simulación.
 
 \begin{table}[h]
 \centering
@@ -79,12 +79,12 @@ La arquitectura distingue entre agentes extractores y agentes MARL. Los extracto
 \toprule
 Tipo & Agente & Responsabilidad \\
 \midrule
-Extractor & Steam/BUFF & Captura precios, históricos, buy orders, volumen y errores de plataforma. \\
+Extractor & Steam/\acroref{BUFF}{BUFF} & Captura precios, históricos, buy orders, volumen y errores de plataforma. \\
 Extractor & SteamDT & Descubre candidatos y ayuda a priorizar artículos que merecen scraping profundo. \\
-Extractor & OCR/CSV & Convierte capturas o ficheros manuales en observaciones estructuradas. \\
-MARL & Scout & Detecta oportunidades a partir de spread, liquidez y probabilidad supervisada. \\
-MARL & Trader & Decide comprar, vender, mantener u observar una oportunidad concreta. \\
-MARL & Portfolio & Controla capital, exposición, \textit{trade hold}, drawdown y restricciones globales. \\
+Extractor & \acroref{OCR}{OCR}/\acroref{CSV}{CSV} & Convierte capturas o ficheros manuales en observaciones estructuradas. \\
+\acroref{MARL}{MARL} & Scout & Detecta oportunidades a partir de spread, liquidez y probabilidad supervisada. \\
+\acroref{MARL}{MARL} & Trader & Decide comprar, vender, mantener u observar una oportunidad concreta. \\
+\acroref{MARL}{MARL} & Portfolio & Controla capital, exposición, \textit{trade hold}, drawdown y restricciones globales. \\
 \bottomrule
 \end{tabularx}
 \caption{Responsabilidades de los agentes del sistema.}
@@ -112,7 +112,7 @@ Las señales individuales pueden ayudar a entrenar comportamientos especializado
 
 \subsection{Recompensa cooperativa}
 
-La recompensa cooperativa se vincula al valor total de la cartera simulada. Debe considerar beneficio realizado, valoración de posiciones abiertas, capital bloqueado, drawdown, operaciones rechazadas por riesgo y costes de transacción. En la implementación actual, el entorno MARL ya expone métricas como recompensa media, operaciones, efectivo, beneficio realizado, drawdown, capital bloqueado y posiciones abiertas.
+La recompensa cooperativa se vincula al valor total de la cartera simulada. Debe considerar beneficio realizado, valoración de posiciones abiertas, capital bloqueado, drawdown, operaciones rechazadas por riesgo y costes de transacción, en línea con el tratamiento conjunto de rentabilidad y riesgo de la teoría de carteras \cite{markowitz1952portfolio}. En la implementación actual, el entorno \acroref{MARL}{MARL} ya expone métricas como recompensa media, operaciones, efectivo, beneficio realizado, drawdown, capital bloqueado y posiciones abiertas.
 
 \section{Restricciones de riesgo}
 
