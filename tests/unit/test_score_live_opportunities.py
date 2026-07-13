@@ -34,6 +34,9 @@ def test_score_live_opportunity_marks_positive_spread_as_review() -> None:
     assert signal.sell_platform == "STEAM"
     assert signal.expected_profit_eur == Decimal("2.40")
     assert signal.probability_profitable == Decimal("0.99000")
+    assert signal.model_name == "steam_exit_flip_recommendation"
+    assert signal.model_output["buff_role"] == "live_entry_price_only"
+    assert signal.model_output["steam_role"] == "trained_exit_risk"
 
 
 def test_score_live_opportunity_blocks_missing_prices() -> None:
@@ -54,6 +57,31 @@ def test_score_live_opportunity_blocks_missing_prices() -> None:
     )
 
     assert signal.status == "blocked"
-    assert signal.data_quality_status == "missing_data"
+    assert signal.data_quality_status == "missing_exit_price"
     assert signal.missing_fields == ("steam_price_eur",)
     assert signal.is_signal is False
+
+
+def test_score_live_opportunity_observes_missing_buff_entry_price() -> None:
+    signal = _score_row(
+        {
+            "id": uuid4(),
+            "representation_name": "AK_FT_0",
+            "name": "AK",
+            "quality": "Field-Tested",
+            "stattrak": False,
+            "steam_price_eur": Decimal("20"),
+            "buff_price_eur": None,
+            "probability_safe_exit": Decimal("0.8"),
+        },
+        economics=default_excel_economics_config(),
+        correlation_id="test",
+        min_profit_eur=Decimal("0"),
+        min_return=Decimal("0"),
+    )
+
+    assert signal.status == "observe"
+    assert signal.data_quality_status == "missing_entry_price"
+    assert signal.missing_fields == ("buff_price_eur",)
+    assert signal.is_signal is False
+    assert signal.model_output["note"] == "BUFF is a live entry quote, not a training target"

@@ -17,18 +17,15 @@ from packages.persistence.opportunity_signals import (
     MarketOpportunitySignal,
     MarketOpportunitySignalRepository,
 )
+from packages.prediction.steam_buff_flip import score_buff_to_steam_flip
 from packages.runtime_config import load_runtime_config
-from packages.simulation import BUFF163, STEAM
 from packages.simulation.economics import (
     MarketEconomicsConfig,
     default_excel_economics_config,
-    net_sale_value_eur,
-    return_ratio,
 )
 
-MODEL_NAME = "current_spread_baseline"
-MODEL_VERSION = "v1"
-DECISION_THRESHOLD = Decimal("0.60")
+MODEL_NAME = "steam_exit_flip_recommendation"
+MODEL_VERSION = "baseline_v1"
 
 
 @dataclass(frozen=True, slots=True)
@@ -133,96 +130,98 @@ def _score_row(
     min_profit_eur: Decimal,
     min_return: Decimal,
 ) -> MarketOpportunitySignal:
-    missing = tuple(
-        field
-        for field in ("steam_price_eur", "buff_price_eur")
-        if _decimal_or_none(row.get(field)) is None
-    )
     observed_at = _observed_at(row)
     feature_snapshot = _feature_snapshot(row)
-    if missing:
+    steam_price_eur = _decimal_or_none(row.get("steam_price_eur"))
+    buff_price_eur = _decimal_or_none(row.get("buff_price_eur"))
+    expected_steam_return_8d = _decimal_or_none(
+        row.get("expected_steam_return_8d") or row.get("steam_expected_return_8d")
+    )
+    probability_safe_exit = _decimal_or_none(
+        row.get("probability_safe_exit")
+        or row.get("steam_safe_exit_probability")
+        or row.get("direction_up_probability")
+    )
+    flip_score = score_buff_to_steam_flip(
+        steam_price_eur=steam_price_eur,
+        buff_entry_price_eur=buff_price_eur,
+        economics=economics,
+        min_profit_eur=min_profit_eur,
+        min_return=min_return,
+        probability_safe_exit=probability_safe_exit,
+        expected_steam_return_8d=expected_steam_return_8d,
+    )
+    if flip_score.data_quality_status != "ok":
         return MarketOpportunitySignal(
             item_id=UUID(str(row["id"])),
             observed_at=observed_at,
             correlation_id=correlation_id,
             model_name=MODEL_NAME,
             model_version=MODEL_VERSION,
-            route_label="BUFF listing -> STEAM listing",
-            buy_platform=BUFF163,
-            buy_price_type="listing",
-            sell_platform=STEAM,
-            sell_price_type="listing",
-            status="blocked",
-            reason="missing required live prices: " + ", ".join(missing),
-            data_quality_status="missing_data",
-            missing_fields=missing,
+            route_label=flip_score.route_label,
+            buy_platform=flip_score.buy_platform,
+            buy_price_type=flip_score.buy_price_type,
+            sell_platform=flip_score.sell_platform,
+            sell_price_type=flip_score.sell_price_type,
+            status=flip_score.status,
+            reason=flip_score.reason,
+            data_quality_status=flip_score.data_quality_status,
+            missing_fields=flip_score.missing_fields,
             feature_snapshot=feature_snapshot,
-            model_output={"scorer": MODEL_NAME, "usable": False},
+            model_output={
+                "scorer": MODEL_NAME,
+                "usable": False,
+                "probability_safe_exit": _text_or_none(flip_score.probability_safe_exit),
+                "expected_steam_return_8d": _text_or_none(
+                    flip_score.expected_steam_return_8d
+                ),
+                "risk_level": flip_score.risk_level,
+                "probability_source": flip_score.probability_source,
+                "note": "BUFF is a live entry quote, not a training target",
+            },
         )
 
-    steam_price_eur = _decimal_or_none(row.get("steam_price_eur"))
-    buff_price_eur = _decimal_or_none(row.get("buff_price_eur"))
-    assert steam_price_eur is not None
-    assert buff_price_eur is not None
-    exit_value_eur = net_sale_value_eur(
-        steam_price_eur,
-        sale_platform=STEAM,
-        sale_currency="EUR",
-        config=economics,
-    )
-    expected_profit = exit_value_eur - buff_price_eur
-    expected_return = return_ratio(expected_profit, buff_price_eur)
-    probability = _baseline_probability(expected_return)
-    is_signal = (
-        probability >= DECISION_THRESHOLD
-        and expected_profit >= min_profit_eur
-        and expected_return >= min_return
-    )
-    status = "review" if is_signal else "observe"
-    reason = (
-        "positive net spread above threshold"
-        if is_signal
-        else "net spread or probability below threshold"
-    )
     return MarketOpportunitySignal(
         item_id=UUID(str(row["id"])),
         observed_at=observed_at,
         correlation_id=correlation_id,
         model_name=MODEL_NAME,
         model_version=MODEL_VERSION,
-        route_label="BUFF listing -> STEAM listing",
-        buy_platform=BUFF163,
-        buy_price_type="listing",
-        sell_platform=STEAM,
-        sell_price_type="listing",
-        buy_price_eur=buff_price_eur,
-        exit_value_eur=exit_value_eur,
-        expected_profit_eur=expected_profit,
-        expected_return=expected_return,
-        probability_profitable=probability,
-        decision_threshold=DECISION_THRESHOLD,
-        is_signal=is_signal,
-        status=status,
-        reason=reason,
+        route_label=flip_score.route_label,
+        buy_platform=flip_score.buy_platform,
+        buy_price_type=flip_score.buy_price_type,
+        sell_platform=flip_score.sell_platform,
+        sell_price_type=flip_score.sell_price_type,
+        buy_price_eur=flip_score.buy_price_eur,
+        exit_value_eur=flip_score.exit_value_eur,
+        expected_profit_eur=flip_score.expected_profit_eur,
+        expected_return=flip_score.expected_return,
+        probability_profitable=flip_score.probability_safe_exit,
+        decision_threshold=flip_score.decision_threshold,
+        is_signal=flip_score.is_signal,
+        status=flip_score.status,
+        reason=flip_score.reason,
         data_quality_status="ok",
         feature_snapshot={
             **feature_snapshot,
-            "steam_net_sale_eur": str(exit_value_eur),
+            "expected_steam_return_8d": _text_or_none(flip_score.expected_steam_return_8d),
+            "steam_exit_value_eur": _text_or_none(flip_score.exit_value_eur),
             "min_profit_eur": str(min_profit_eur),
             "min_return": str(min_return),
         },
         model_output={
             "scorer": MODEL_NAME,
-            "probability_source": "heuristic_current_return",
-            "expected_profit_eur": str(expected_profit),
-            "expected_return": str(expected_return),
+            "probability_safe_exit": _text_or_none(flip_score.probability_safe_exit),
+            "expected_steam_return_8d": _text_or_none(flip_score.expected_steam_return_8d),
+            "expected_profit_eur": _text_or_none(flip_score.expected_profit_eur),
+            "expected_return": _text_or_none(flip_score.expected_return),
+            "risk_level": flip_score.risk_level,
+            "recommendation": flip_score.status,
+            "probability_source": flip_score.probability_source,
+            "buff_role": "live_entry_price_only",
+            "steam_role": "trained_exit_risk",
         },
     )
-
-
-def _baseline_probability(expected_return: Decimal) -> Decimal:
-    raw = Decimal("0.50") + expected_return * Decimal("5")
-    return min(Decimal("0.99"), max(Decimal("0.01"), raw)).quantize(Decimal("0.00001"))
 
 
 def _feature_snapshot(row: Mapping[str, Any]) -> dict[str, Any]:
