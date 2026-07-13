@@ -39,9 +39,9 @@ El alcance del proyecto se centra en la simulación y en la evaluación. Cualqui
 
 La arquitectura multiagente se plantea como una forma de separar responsabilidades dentro del proceso de decisión. La adquisición de datos, la predicción supervisada, el simulador económico, los agentes \acroref{MARL}{MARL} y la evaluación experimental se mantienen como capas diferenciadas para que cada parte pueda validarse, sustituirse o compararse sin comprometer el conjunto del sistema.
 
-Otra restricción relevante es la disponibilidad de histórico alineado entre plataformas. El mercado de Steam y el de \acroref{BUFF}{BUFF} no siempre ofrecen datos con la misma granularidad, moneda, horizonte o estabilidad de acceso. Por ello, una parte del trabajo consiste en construir una base experimental honesta, donde los resultados preliminares se distingan claramente de una validación definitiva.
+Otra restricción relevante es la disponibilidad de histórico alineado entre plataformas. El mercado de Steam y el de \acroref{BUFF}{BUFF} no siempre ofrecen datos con la misma granularidad, moneda, horizonte o estabilidad de acceso. Por ello, una parte del trabajo consiste en construir una base experimental, donde los resultados preliminares se distingan claramente de una validación definitiva.
 
-En la fase corregida del proyecto, esta restricción se aborda separando entrenamiento e inferencia: Steam se usa como fuente principal para aprender patrones temporales de salida, mientras que \acroref{BUFF}{BUFF} se reserva como precio vivo de entrada para evaluar flips concretos. Así, \acroref{BUFF}{BUFF} no se convierte en objetivo de predicción ni en dependencia masiva de entrenamiento.
+La metodología distingue entre el aprendizaje de patrones temporales y la evaluación operativa de oportunidades concretas. Esta separación permite aprovechar históricos más estables para entrenar modelos y, al mismo tiempo, incorporar precios puntuales de mercado cuando se simulan decisiones de cartera.
 
 \section{Metodología de desarrollo}
 
