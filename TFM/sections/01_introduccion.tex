@@ -41,6 +41,8 @@ El proyecto tampoco asume que el aprendizaje por refuerzo multiagente sea útil 
 
 Otra restricción relevante es la disponibilidad de histórico alineado entre plataformas. El mercado de Steam y el de BUFF163 no siempre ofrecen datos con la misma granularidad, moneda, horizonte o estabilidad de acceso. Por ello, una parte del trabajo consiste en construir una base experimental honesta, donde los resultados preliminares se distingan claramente de una validación definitiva.
 
+En la fase corregida del proyecto, esta restricción se aborda separando entrenamiento e inferencia: Steam se usa como fuente principal para aprender patrones temporales de salida, mientras que BUFF163 se reserva como precio vivo de entrada para evaluar flips concretos. Así, BUFF no se convierte en objetivo de predicción ni en dependencia masiva de entrenamiento.
+
 \section{Metodología de desarrollo}
 
 La memoria se organiza siguiendo el propio avance del proyecto. Primero se estudió el proceso manual y se extrajeron las reglas económicas del Excel operativo. Después se construyó una base de adquisición y persistencia para recoger datos de mercado. A continuación se generaron datasets supervisados y se evaluaron modelos tabulares para obtener señales probabilísticas. Finalmente se implementó un simulador de cartera y un entorno multiagente compatible con PettingZoo y RLlib para realizar pruebas funcionales.

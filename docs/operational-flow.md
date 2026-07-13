@@ -37,6 +37,12 @@ Los scrapers, OCR runners, workers, importadores CSV/API y SteamDT son agentes e
    -> probabilidad calibrada de spread rentable a 8 dias
    -> persistencia de predicciones versionadas
 
+3.b Modelo Steam de salida para flips
+   -> entrenamiento con historico Steam
+   -> probabilidad de salida segura a 8 dias
+   -> retorno Steam esperado
+   -> BUFF solo como precio vivo de entrada, no como target de entrenamiento
+
 4. Entorno MARL
    -> PettingZoo carga episodio historico
    -> observaciones locales con probabilidad supervisada
@@ -117,6 +123,12 @@ El modelo supervisado genera una probabilidad calibrada, no una orden. Esa predi
 - horizonte temporal;
 - snapshot de features;
 - `correlation_id`.
+
+En la linea corregida BUFF -> Steam, el aprendizaje temporal se apoya en Steam. BUFF no se
+predice ni se usa como fuente masiva de entrenamiento: se consulta de forma puntual para obtener
+precio de entrada. La recomendacion combina margen vivo BUFF -> Steam, comisiones, trade hold,
+probabilidad de salida segura y retorno esperado. Si falta BUFF, el candidato se observa como
+`missing_entry_price`.
 
 Las politicas MARL usan esa probabilidad como feature de observacion. El agente Portfolio añade o aprende sobre restricciones de cartera simulada:
 

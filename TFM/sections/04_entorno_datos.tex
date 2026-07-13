@@ -16,6 +16,8 @@ BUFF163 se utiliza como mercado externo de comparación. Sus precios se reciben 
 
 SteamDT se utiliza como apoyo para descubrir candidatos y estrategias de búsqueda, no como fuente única de decisión. Su función dentro del sistema es reducir el espacio de búsqueda inicial y ayudar a priorizar qué artículos merece la pena observar con más profundidad.
 
+Tras las primeras pruebas, BUFF se separa del entrenamiento principal. El histórico masivo se apoya en Steam, mientras que BUFF se usa como precio vivo de entrada cuando se evalúa un flip concreto hacia Steam. De este modo el modelo no intenta predecir el precio de BUFF ni depende de scraping recurrente de BUFF para aprender patrones temporales.
+
 \subsection{OCR e importación manual}
 
 El OCR se incorpora como vía secundaria de adquisición. Su objetivo es convertir capturas, tablas o interfaces no estructuradas en observaciones equivalentes a las obtenidas por scraping o API. El flujo incluye preprocesado de imagen, reconocimiento de texto, parsing estructurado, validación y persistencia. Aunque es más frágil que una fuente estructurada, resulta útil cuando una plataforma no expone datos cómodamente o cuando se quiere incorporar material histórico procedente de capturas.

@@ -74,6 +74,8 @@ El dataset \texttt{trading\_profit\_v1} se generó desde \texttt{market\_history
 
 El análisis posterior mostró que el histórico de BUFF empezó a estar mejor alineado tras corregir el parser y permitir backfill de puntos históricos. Aun así, la dirección más natural de arbitraje, comprar en BUFF y vender en Steam, todavía no generaba ejemplos suficientes a ocho días porque faltaba histórico futuro Steam alineado con los puntos BUFF recientes.
 
+A partir de esta limitación se adopta una separación metodológica: Steam se usa como fuente principal para aprender el riesgo temporal de salida, y BUFF queda como precio vivo de entrada en inferencia. El objetivo deja de ser predecir el precio exacto de BUFF; la recomendación evalúa si un precio BUFF puntual conserva margen suficiente frente a una salida Steam estimada y sus comisiones.
+
 \subsection{Resultados de la arquitectura multiagente}
 
 El entorno multiagente ya existe como smoke funcional. Se implementó un entorno PettingZoo con tres políticas, un wrapper para RLlib y un comando de entrenamiento corto con PPO multiagente. El smoke ejecuta entrenamiento, guarda checkpoint y devuelve métricas operativas como recompensa media, número de operaciones, efectivo, beneficio realizado, drawdown, capital bloqueado y posiciones abiertas.
@@ -82,7 +84,7 @@ Sin embargo, el entrenamiento actual no debe presentarse como validación final 
 
 \section{Experimentos finales pendientes}
 
-Para cerrar la validación del TFM será necesario ejecutar una fase experimental más estricta. Primero debe regenerarse el dataset Steam/BUFF con más histórico alineado y suficientes positivos en validación y test. Después deben compararse baselines simples: comprar y mantener, umbral fijo de spread, agente único y política dummy.
+Para cerrar la validación del TFM será necesario ejecutar una fase experimental más estricta. Primero debe validarse el modelo Steam-only de salida a ocho días y conectarlo a candidatos con precio BUFF vivo. Después deben compararse baselines simples: comprar todos los candidatos de SteamDT, comprar solo cuando el margen BUFF -> Steam es positivo, agente único y política dummy.
 
 La evaluación MARL deberá incluir ablations. Las más relevantes son: sin probabilidad supervisada, sin agente Portfolio, sin penalización por capital bloqueado y sin restricciones de liquidez. Estas comparaciones permitirán distinguir si la mejora viene de la arquitectura multiagente, del modelo supervisado, de una regla de riesgo o simplemente de la estructura del simulador.
 

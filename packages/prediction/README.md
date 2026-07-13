@@ -37,3 +37,16 @@ Este modelo predice `direction_up_probability` y debe usarse como feature para M
 - no entrena, recalibra ni decide compras.
 
 La transformacion desde snapshots live completos a las 46 features del modelo actual sigue siendo una responsabilidad separada. Este servicio valida y ejecuta inferencia sobre features ya calculadas.
+
+## Recomendacion Steam -> flip con BUFF
+
+`packages.prediction.steam_buff_flip` separa el aprendizaje temporal de Steam del precio vivo de
+BUFF:
+
+- Steam aporta la probabilidad de salida segura y el retorno esperado a 8 dias.
+- BUFF se usa solo como precio puntual de entrada para un flip BUFF -> Steam.
+- El scorer devuelve `review`, `observe` o `blocked`, junto con `probability_safe_exit`,
+  `expected_steam_return_8d`, `risk_level` y `expected_return`.
+
+Si falta el precio BUFF, la oportunidad queda en `observe` con `missing_entry_price`; no se trata
+como error del modelo porque BUFF no es target de entrenamiento.
