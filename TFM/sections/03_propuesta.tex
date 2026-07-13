@@ -1,12 +1,12 @@
 \chapter{Arquitectura multiagente propuesta}
 
-\section{Definición del problema}
+\section{Formulación técnica del sistema}
 
-El problema se formula como una tarea de decisión secuencial sobre una cartera simulada de activos digitales, siguiendo la formulación general de los problemas de aprendizaje por refuerzo \cite{sutton2018reinforcement}. En cada instante, el sistema recibe observaciones de mercado, estado de cartera y señales derivadas. A partir de esa información debe decidir si conviene comprar, vender, mantener en observación o rechazar una oportunidad.
+A partir del planteamiento descrito en el Capítulo 1, la propuesta traduce el caso de uso a una tarea de decisión secuencial sobre una cartera simulada de activos digitales, siguiendo la formulación general de los problemas de aprendizaje por refuerzo \cite{sutton2018reinforcement}. En cada instante, el sistema recibe observaciones de mercado, estado de cartera y señales derivadas. A partir de esa información decide si conviene comprar, vender, mantener en observación o rechazar una oportunidad.
 
-La dificultad no está únicamente en predecir si un precio subirá. Una decisión operativa debe considerar el beneficio neto después de comisiones, el cambio de moneda, la liquidez disponible, el capital ya bloqueado, el tiempo de desbloqueo por \textit{trade hold} y la exposición acumulada a un mismo activo o plataforma. Por ello, el objetivo del sistema es maximizar el valor total de la cartera simulada bajo restricciones de riesgo y fricción de mercado.
+La formulación técnica incorpora las fricciones que condicionan cada acción: beneficio neto después de comisiones, cambio de moneda, liquidez disponible, capital ya bloqueado, tiempo de desbloqueo por \textit{trade hold} y exposición acumulada a un mismo activo o plataforma. Con estos elementos, el objetivo del sistema es maximizar el valor total de la cartera simulada bajo restricciones de riesgo y fricción de mercado.
 
-La arquitectura propuesta separa el problema en dos niveles. El primer nivel observa y transforma el mercado: extrae datos, los normaliza, los guarda y calcula señales supervisadas. El segundo nivel toma decisiones dentro de un simulador: recibe observaciones ya preparadas, emite acciones y recibe recompensas según el comportamiento de la cartera. Esta separación evita que el agente de decisión tenga que resolver al mismo tiempo scraping, limpieza de datos, predicción y control de riesgo.
+La arquitectura propuesta separa esta formulación en dos niveles. El primer nivel observa y transforma el mercado: extrae datos, los normaliza, los guarda y calcula señales supervisadas. El segundo nivel toma decisiones dentro de un simulador: recibe observaciones ya preparadas, emite acciones y recibe recompensas según el comportamiento de la cartera. Esta separación permite aislar la adquisición de datos, la limpieza, la predicción y el control de riesgo como responsabilidades diferenciadas.
 
 \section{Visión general del sistema}
 
