@@ -71,20 +71,6 @@ El modelo operativo actual gira alrededor de dos tablas principales: \texttt{mar
 
 El esquema canónico previsto añade entidades como \texttt{assets}, \texttt{platforms}, \texttt{market\_observations}, \texttt{predictions}, \texttt{agent\_actions}, \texttt{investment\_decisions} y \texttt{simulated\_positions}. El objetivo de este esquema es mejorar trazabilidad, auditoría y separación entre observación, predicción y decisión.
 
-\section{Pruebas implementadas}
-
-El proyecto incluye pruebas para parsing de mercado, \acroref{OCR}{OCR}, persistencia, datasets supervisados, entrenamiento supervisado, simulador de cartera, riesgo, entorno \acroref{MARL}{MARL}, wrappers \acroref{RLlib}{RLlib} y flujos de scraping. La suite se ejecuta de forma recurrente con Pytest, Ruff y Mypy.
-
-Las pruebas más relevantes para la memoria son:
-
-\begin{itemize}
-  \item tests de reglas económicas y simulador de cartera;
-  \item tests de construcción de datasets supervisados y de trading;
-  \item tests de inferencia supervisada y servicio de scoring;
-  \item tests de entorno PettingZoo, recompensas \acroref{MARL}{MARL} y adaptador \acroref{RLlib}{RLlib};
-  \item tests de scraping, pipeline streaming, SteamDT, \acroref{BUFF}{BUFF} y \acroref{OCR}{OCR}.
-\end{itemize}
-
 \section{Resultados adicionales}
 
 Los resultados intermedios se guardan en \texttt{model-runs} y los datasets derivados en \texttt{data/datasets}. Estas carpetas permiten conservar reportes de cobertura, exploración de características, métricas de entrenamiento, umbrales seleccionados y salidas de smoke tests sin mezclar los artefactos pesados con el código principal.

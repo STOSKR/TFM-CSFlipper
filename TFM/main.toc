@@ -60,30 +60,31 @@
 \contentsline {section}{\numberline {5.1}Diseño experimental}{30}{section.5.1}%
 \contentsline {subsection}{\numberline {5.1.1}Escenarios de evaluación}{30}{subsection.5.1.1}%
 \contentsline {subsection}{\numberline {5.1.2}Estrategias de comparación}{31}{subsection.5.1.2}%
-\contentsline {section}{\numberline {5.2}Métricas}{31}{section.5.2}%
-\contentsline {subsection}{\numberline {5.2.1}Métricas de rentabilidad}{31}{subsection.5.2.1}%
-\contentsline {subsection}{\numberline {5.2.2}Métricas de riesgo}{31}{subsection.5.2.2}%
-\contentsline {section}{\numberline {5.3}Resultados}{31}{section.5.3}%
-\contentsline {subsection}{\numberline {5.3.1}Migración de reglas económicas}{31}{subsection.5.3.1}%
-\contentsline {subsection}{\numberline {5.3.2}Resultados del modelo supervisado}{31}{subsection.5.3.2}%
-\contentsline {subsection}{\numberline {5.3.3}Dataset de trading real}{32}{subsection.5.3.3}%
-\contentsline {subsection}{\numberline {5.3.4}Resultados de la arquitectura multiagente}{32}{subsection.5.3.4}%
-\contentsline {section}{\numberline {5.4}Experimentos finales pendientes}{33}{section.5.4}%
-\contentsline {section}{\numberline {5.5}Discusión}{33}{section.5.5}%
-\contentsline {subsection}{\numberline {5.5.1}Casos favorables}{33}{subsection.5.5.1}%
-\contentsline {subsection}{\numberline {5.5.2}Limitaciones observadas}{33}{subsection.5.5.2}%
-\contentsline {subsection}{\numberline {5.5.3}Lectura de los resultados}{33}{subsection.5.5.3}%
-\contentsline {chapter}{\numberline {6}Conclusiones}{34}{chapter.6}%
-\contentsline {section}{\numberline {6.1}Conclusiones principales}{34}{section.6.1}%
-\contentsline {section}{\numberline {6.2}Cumplimiento de objetivos}{34}{section.6.2}%
-\contentsline {section}{\numberline {6.3}Limitaciones}{35}{section.6.3}%
-\contentsline {section}{\numberline {6.4}Trabajo futuro}{35}{section.6.4}%
-\contentsline {chapter}{Bibliografía}{36}{section.6.4}%
-\contentsline {chapter}{\numberline {A}Anexos}{37}{appendix.Alph1}%
-\contentsline {section}{\numberline {A.1}Estructura del repositorio}{37}{section.Alph1.1}%
-\contentsline {section}{\numberline {A.2}Configuración del entorno}{37}{section.Alph1.2}%
-\contentsline {section}{\numberline {A.3}Comandos de datasets y modelos}{38}{section.Alph1.3}%
-\contentsline {section}{\numberline {A.4}Parámetros de entrenamiento}{38}{section.Alph1.4}%
-\contentsline {section}{\numberline {A.5}Modelo de datos}{38}{section.Alph1.5}%
-\contentsline {section}{\numberline {A.6}Pruebas implementadas}{39}{section.Alph1.6}%
-\contentsline {section}{\numberline {A.7}Resultados adicionales}{39}{section.Alph1.7}%
+\contentsline {section}{\numberline {5.2}Validación técnica y pruebas}{31}{section.5.2}%
+\contentsline {section}{\numberline {5.3}Métricas}{31}{section.5.3}%
+\contentsline {subsection}{\numberline {5.3.1}Métricas de rentabilidad}{31}{subsection.5.3.1}%
+\contentsline {subsection}{\numberline {5.3.2}Métricas de riesgo}{32}{subsection.5.3.2}%
+\contentsline {section}{\numberline {5.4}Resultados}{32}{section.5.4}%
+\contentsline {subsection}{\numberline {5.4.1}Migración de reglas económicas}{32}{subsection.5.4.1}%
+\contentsline {subsection}{\numberline {5.4.2}Resultados del modelo supervisado}{33}{subsection.5.4.2}%
+\contentsline {subsection}{\numberline {5.4.3}Dataset de trading real}{33}{subsection.5.4.3}%
+\contentsline {subsection}{\numberline {5.4.4}Dificultades y pivotaciones}{33}{subsection.5.4.4}%
+\contentsline {subsection}{\numberline {5.4.5}Resultados de la arquitectura multiagente}{34}{subsection.5.4.5}%
+\contentsline {section}{\numberline {5.5}Experimentos finales pendientes}{34}{section.5.5}%
+\contentsline {section}{\numberline {5.6}Discusión}{34}{section.5.6}%
+\contentsline {subsection}{\numberline {5.6.1}Casos favorables}{34}{subsection.5.6.1}%
+\contentsline {subsection}{\numberline {5.6.2}Limitaciones observadas}{35}{subsection.5.6.2}%
+\contentsline {subsection}{\numberline {5.6.3}Lectura de los resultados}{35}{subsection.5.6.3}%
+\contentsline {chapter}{\numberline {6}Conclusiones}{36}{chapter.6}%
+\contentsline {section}{\numberline {6.1}Conclusiones principales}{36}{section.6.1}%
+\contentsline {section}{\numberline {6.2}Cumplimiento de objetivos}{36}{section.6.2}%
+\contentsline {section}{\numberline {6.3}Limitaciones}{37}{section.6.3}%
+\contentsline {section}{\numberline {6.4}Trabajo futuro}{37}{section.6.4}%
+\contentsline {chapter}{Bibliografía}{38}{section.6.4}%
+\contentsline {chapter}{\numberline {A}Anexos}{39}{appendix.Alph1}%
+\contentsline {section}{\numberline {A.1}Estructura del repositorio}{39}{section.Alph1.1}%
+\contentsline {section}{\numberline {A.2}Configuración del entorno}{39}{section.Alph1.2}%
+\contentsline {section}{\numberline {A.3}Comandos de datasets y modelos}{40}{section.Alph1.3}%
+\contentsline {section}{\numberline {A.4}Parámetros de entrenamiento}{40}{section.Alph1.4}%
+\contentsline {section}{\numberline {A.5}Modelo de datos}{40}{section.Alph1.5}%
+\contentsline {section}{\numberline {A.6}Resultados adicionales}{41}{section.Alph1.6}%

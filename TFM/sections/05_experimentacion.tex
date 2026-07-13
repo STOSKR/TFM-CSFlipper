@@ -30,6 +30,30 @@ El criterio de evaluación no es solo predictivo. Una señal puede tener buena p
 
 La comparación experimental se plantea en tres niveles. El primero es un baseline simple o dummy para comprobar que los modelos aprenden algo más que la tasa base. El segundo compara modelos supervisados tabulares como regresión logística, random forest e histogram gradient boosting, familias ampliamente usadas para clasificación tabular \cite{breiman2001random,friedman2001greedy}. El tercero, todavía pendiente de evaluación completa, comparará la arquitectura \acroref{MARL}{MARL} frente a baselines de agente único y ablations con y sin probabilidad supervisada.
 
+\section{Validación técnica y pruebas}
+
+Las pruebas no se tratan como material auxiliar, sino como parte de la evidencia experimental del proyecto. Antes de interpretar resultados de modelos o agentes, se comprueba que las piezas que producen esos resultados funcionan de forma aislada: reglas económicas, parsing de mercado, persistencia, construcción de datasets, inferencia supervisada, simulador de cartera, restricciones de riesgo, entorno PettingZoo, adaptador \acroref{RLlib}{RLlib}, comandos de episodios y panel web.
+
+La suite automatizada se organiza principalmente con Pytest y se complementa con Ruff y Mypy. Las pruebas unitarias cubren el comportamiento determinista del simulador, los cálculos heredados del Excel, el \acroref{OCR}{OCR}, SteamDT, Steam, \acroref{BUFF}{BUFF}, los datasets supervisados, el dataset de trading, el servicio de scoring y los componentes \acroref{MARL}{MARL}. También existe una prueba de integración para repositorios de persistencia, separada porque depende de una base de datos disponible.
+
+\begin{table}[h]
+\centering
+\begin{tabularx}{\textwidth}{l X X}
+\toprule
+Bloque & Cobertura principal & Evidencia que aporta \\
+\midrule
+Reglas económicas y cartera & Excel, simulador, riesgo y capital bloqueado. & Verifica fees, conversión, beneficio neto, \textit{trade hold}, posiciones y rechazos por riesgo. \\
+Datos y scraping & Parsing, SteamDT, Steam, \acroref{BUFF}{BUFF}, \acroref{OCR}{OCR} y pipeline streaming. & Comprueba que las fuentes se normalizan antes de construir señales o históricos. \\
+Modelos supervisados & Dataset, entrenamiento, inferencia y scoring de oportunidades. & Valida generación de características, carga de modelos e inferencia operativa. \\
+Simulación \acroref{MARL}{MARL} & Entorno, episodios, recompensas, PettingZoo y adaptador \acroref{RLlib}{RLlib}. & Comprueba acciones, observaciones y compatibilidad con entrenamiento multiagente. \\
+Interfaz y operación & Panel web, servidor de scraping y payload operativo. & Verifica que la interfaz expone estado, recomendaciones y ejecución de tareas. \\
+\bottomrule
+\end{tabularx}
+\caption{Bloques de pruebas incorporados a la validación del proyecto.}
+\end{table}
+
+Las pruebas de rendimiento se integran en la evaluación del capítulo porque condicionan la utilidad real del sistema. En este proyecto el rendimiento no se mide solo por tiempo de ejecución, sino también por cobertura de datos, número de señales generadas, coste de entrenamiento, capital bloqueado, drawdown y operaciones rechazadas. Los smoke tests de entrenamiento y los episodios \acroref{MARL}{MARL} registran estas métricas para comprobar que el sistema no solo ejecuta, sino que produce salidas interpretables y comparables entre configuraciones.
+
 \section{Métricas}
 
 \subsection{Métricas de rentabilidad}
@@ -75,6 +99,14 @@ El dataset \texttt{trading\_profit\_v1} se ha generado desde \texttt{market\_his
 El análisis posterior ha mostrado que el histórico de \acroref{BUFF}{BUFF} ha empezado a estar mejor alineado tras corregir el parser y permitir backfill de puntos históricos. Aun así, la dirección más natural de arbitraje, comprar en \acroref{BUFF}{BUFF} y vender en Steam, todavía no genera ejemplos suficientes a ocho días porque falta histórico futuro Steam alineado con los puntos \acroref{BUFF}{BUFF} recientes.
 
 A partir de esta limitación, la validación distingue entre aprendizaje temporal e inferencia operativa: Steam se usa como fuente principal para aprender el riesgo temporal de salida, y \acroref{BUFF}{BUFF} queda como precio vivo de entrada en inferencia. El objetivo no es predecir el precio exacto de \acroref{BUFF}{BUFF}; la recomendación evalúa si un precio \acroref{BUFF}{BUFF} puntual conserva margen suficiente frente a una salida Steam estimada y sus comisiones.
+
+\subsection{Dificultades y pivotaciones}
+
+Durante el desarrollo se han producido varias decisiones de pivotaje. La primera aparece al migrar el Excel operativo: el valor principal no estaba en copiar una hoja de cálculo, sino en extraer reglas económicas verificables y convertirlas en simulación reproducible. Esta decisión desplaza el trabajo desde una herramienta manual hacia un sistema auditable.
+
+La segunda pivotación afecta a las fuentes de datos. El planteamiento inicial intentaba alinear históricos de Steam y \acroref{BUFF}{BUFF} para entrenar directamente sobre oportunidades de arbitraje entre plataformas. Las primeras pruebas mostraron dos problemas: falta de histórico alineado suficiente y riesgo operativo al consultar \acroref{BUFF}{BUFF} de forma reiterada. Por ello, el enfoque se ajusta: Steam se mantiene como fuente principal de aprendizaje temporal y \acroref{BUFF}{BUFF} se usa de forma puntual como precio vivo de entrada para evaluar flips concretos.
+
+La tercera pivotación aparece en la parte multiagente. Antes de ampliar entrenamiento y episodios, se prioriza que el entorno, las recompensas, restricciones y métricas sean comprobables. Por eso el estado actual se presenta como smoke funcional y no como validación definitiva de \acroref{MAPPO}{MAPPO}. Esta decisión evita basar conclusiones en un entrenamiento que todavía depende de más datos, más episodios y comparaciones contra baselines.
 
 \subsection{Resultados de la arquitectura multiagente}
 

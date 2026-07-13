@@ -8,11 +8,13 @@ También se ha comprobado que la separación por capas facilita el avance del pr
 
 La contribución principal de esta fase no es afirmar que el sistema gane dinero, sino construir una base reproducible para estudiar esa pregunta. El proyecto ya dispone de una arquitectura modular, un flujo de adquisición, un modelo de persistencia, un simulador económico, datasets derivados, modelos supervisados preliminares y un entorno multiagente funcional para smoke tests.
 
+Una conclusión metodológica relevante es que el proyecto ha evolucionado a partir de las dificultades encontradas. La falta de histórico Steam/\acroref{BUFF}{BUFF} suficientemente alineado, el riesgo de scraping reiterado y el desbalance de los primeros datasets de trading han llevado a separar entrenamiento e inferencia operativa. Esta pivotación no cambia el objetivo del sistema, pero sí mejora su viabilidad: el aprendizaje temporal se apoya en Steam y la comparación con \acroref{BUFF}{BUFF} se reserva para evaluar oportunidades concretas.
+
 \section{Cumplimiento de objetivos}
 
 Se ha avanzado en la mayoría de objetivos técnicos: existe un monorepo modular, un modelo de datos operativo, pipelines de adquisición, análisis del Excel original, construcción de datasets, entrenamiento supervisado, simulador de cartera y un entorno \acroref{MARL}{MARL} funcional para pruebas cortas. También se han definido agentes Scout, Trader y Portfolio, junto con restricciones de riesgo y métricas de evaluación.
 
-El cumplimiento experimental todavía es parcial. Los resultados supervisados muestran que el pipeline funciona y que algunos modelos producen señales de alta precisión en umbrales exigentes, pero el número de señales es limitado. El dataset real de trading Steam/\acroref{BUFF}{BUFF} está construido, aunque su primera versión presenta desbalance extremo en validación y test. El entorno \acroref{MARL}{MARL} ejecuta, pero no constituye todavía una evaluación comparativa completa.
+El cumplimiento experimental todavía es parcial. Los resultados supervisados muestran que el pipeline funciona y que algunos modelos producen señales de alta precisión en umbrales exigentes, pero el número de señales es limitado. El dataset real de trading Steam/\acroref{BUFF}{BUFF} está construido, aunque su primera versión presenta desbalance extremo en validación y test. El entorno \acroref{MARL}{MARL} ejecuta, pero no constituye todavía una evaluación comparativa completa. Las pruebas automatizadas y los smoke tests de rendimiento forman parte del capítulo experimental porque verifican que las métricas obtenidas proceden de componentes comprobados.
 
 \section{Limitaciones}
 
