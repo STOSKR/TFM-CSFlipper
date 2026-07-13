@@ -1,4 +1,4 @@
-"""BUFF163 browser scraper with verbose diagnostics."""
+"""BUFF browser scraper with verbose diagnostics."""
 
 from __future__ import annotations
 
@@ -54,12 +54,12 @@ def normalize_buff_goods_url(value: object) -> str | None:
     return text if _buff_goods_id(text) else None
 
 
-class Buff163Error(RuntimeError):
-    """Raised when BUFF163 cannot return a usable observation."""
+class BuffError(RuntimeError):
+    """Raised when BUFF cannot return a usable observation."""
 
 
 @dataclass(frozen=True, slots=True)
-class Buff163Candidate:
+class BuffCandidate:
     market_hash_name: str
     buff_url: str
     asset_name: str | None = None
@@ -69,7 +69,7 @@ class Buff163Candidate:
 
 
 @dataclass(frozen=True, slots=True)
-class Buff163Observation:
+class BuffObservation:
     observation: MarketObservationContract
     asset_name: str
     category: str | None
@@ -78,14 +78,14 @@ class Buff163Observation:
 
 
 @dataclass(frozen=True, slots=True)
-class Buff163CandidateError:
-    candidate: Buff163Candidate
+class BuffCandidateError:
+    candidate: BuffCandidate
     message: str
     debug_log: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
-class Buff163ConnectorConfig:
+class BuffConnectorConfig:
     headless: bool = True
     timeout_ms: int = 30000
     wait_after_load_ms: int = 2500
@@ -95,36 +95,36 @@ class Buff163ConnectorConfig:
     min_delay_seconds: float = 0.0
     max_delay_seconds: float = 0.0
     max_concurrency: int = 1
-    session_state_path: Path | None = Path("data/browser-state/buff163_storage_state.json")
+    session_state_path: Path | None = Path("data/browser-state/buff_storage_state.json")
 
 
-class Buff163Connector:
-    """Playwright connector for BUFF163 item pages."""
+class BuffConnector:
+    """Playwright connector for BUFF item pages."""
 
     def __init__(
         self,
-        config: Buff163ConnectorConfig | None = None,
+        config: BuffConnectorConfig | None = None,
         *,
         log: LogCallback | None = None,
         progress_log: LogCallback | None = None,
     ) -> None:
-        self._config = config or Buff163ConnectorConfig()
+        self._config = config or BuffConnectorConfig()
         self._log = log
         self._progress_log = progress_log
 
     async def fetch_candidates(
         self,
-        candidates: list[Buff163Candidate],
+        candidates: list[BuffCandidate],
         *,
         correlation_id: str,
-    ) -> tuple[Buff163Observation, ...]:
+    ) -> tuple[BuffObservation, ...]:
         observations, errors = await self.fetch_candidates_lenient(
             candidates,
             correlation_id=correlation_id,
         )
         if errors:
             first_error = errors[0]
-            raise Buff163Error(
+            raise BuffError(
                 f"BUFF request failed for {first_error.candidate.market_hash_name}: "
                 f"{first_error.message}"
             )
@@ -132,17 +132,17 @@ class Buff163Connector:
 
     async def fetch_candidates_lenient(
         self,
-        candidates: list[Buff163Candidate],
+        candidates: list[BuffCandidate],
         *,
         correlation_id: str,
-    ) -> tuple[tuple[Buff163Observation, ...], tuple[Buff163CandidateError, ...]]:
+    ) -> tuple[tuple[BuffObservation, ...], tuple[BuffCandidateError, ...]]:
         if not candidates:
             return (), ()
 
         try:
             from playwright.async_api import async_playwright
         except ModuleNotFoundError as exc:  # pragma: no cover - environment dependent
-            raise Buff163Error(
+            raise BuffError(
                 "Playwright is required. Run: python -m pip install playwright"
             ) from exc
 
@@ -176,8 +176,8 @@ class Buff163Connector:
 
             async def fetch_one(
                 index: int,
-                candidate: Buff163Candidate,
-            ) -> Buff163Observation | Buff163CandidateError:
+                candidate: BuffCandidate,
+            ) -> BuffObservation | BuffCandidateError:
                 async with semaphore:
                     debug_log: list[str] = []
                     self._emit_fetch_start(
@@ -198,7 +198,7 @@ class Buff163Connector:
                     except Exception as exc:
                         message = str(exc) or exc.__class__.__name__
                         self._emit(candidate.market_hash_name, f"ERROR {message}")
-                        return Buff163CandidateError(
+                        return BuffCandidateError(
                             candidate=candidate,
                             message=message,
                             debug_log=tuple(debug_log),
@@ -215,7 +215,7 @@ class Buff163Connector:
                 for completed, task in enumerate(asyncio.as_completed(tasks), start=1):
                     result = await task
                     results.append(result)
-                    if isinstance(result, Buff163Observation):
+                    if isinstance(result, BuffObservation):
                         ok_count += 1
                     else:
                         error_count += 1
@@ -232,21 +232,21 @@ class Buff163Connector:
                 await browser.close()
 
         observations = tuple(
-            result for result in results if isinstance(result, Buff163Observation)
+            result for result in results if isinstance(result, BuffObservation)
         )
         errors = tuple(
-            result for result in results if isinstance(result, Buff163CandidateError)
+            result for result in results if isinstance(result, BuffCandidateError)
         )
         return observations, errors
 
     async def _fetch_one(
         self,
         context: Any,
-        candidate: Buff163Candidate,
+        candidate: BuffCandidate,
         *,
         correlation_id: str,
         debug_log: list[str],
-    ) -> Buff163Observation:
+    ) -> BuffObservation:
         await self._sleep_between_requests()
         self._debug(candidate.market_hash_name, debug_log, f"opening {candidate.buff_url}")
         page = await context.new_page()
@@ -361,7 +361,7 @@ class Buff163Connector:
             excerpt = " ".join(body_text.split())[:300]
             self._debug(candidate.market_hash_name, debug_log, f"body_excerpt={excerpt!r}")
             reason = _buff_page_block_reason(title, body_text)
-            raise Buff163Error(
+            raise BuffError(
                 f"BUFF price not found for {candidate.market_hash_name} "
                 f"goods_id={_buff_goods_id(candidate.buff_url) or '-'} "
                 f"sell_api={_api_summary(api_payloads.get('sellOrder'))} "
@@ -385,7 +385,7 @@ class Buff163Connector:
         observation = MarketObservationContract(
             correlation_id=correlation_id,
             asset_id=asset_id,
-            platform_id="buff163",
+            platform_id="buff",
             observed_at=datetime.now(tz=UTC),
             price=parse_required_market_decimal(price_text),
             currency=currency,
@@ -410,7 +410,7 @@ class Buff163Connector:
                 "debug_log": tuple(debug_log),
             },
         )
-        return Buff163Observation(
+        return BuffObservation(
             observation=observation,
             asset_name=asset_name,
             category=candidate.category,
@@ -444,7 +444,7 @@ class Buff163Connector:
     async def _wait_for_manual_challenge(
         self,
         page: Any,
-        candidate: Buff163Candidate,
+        candidate: BuffCandidate,
         *,
         debug_log: list[str],
     ) -> None:
@@ -468,7 +468,7 @@ class Buff163Connector:
             remaining = max(0, round(deadline - time.monotonic()))
             self._emit_captcha_progress("waiting", candidate, remaining_seconds=remaining)
         self._emit_captcha_progress("timeout", candidate, remaining_seconds=0)
-        raise Buff163Error(
+        raise BuffError(
             f"BUFF captcha still present after {wait_seconds}s for {candidate.market_hash_name}"
         )
 
@@ -478,7 +478,7 @@ class Buff163Connector:
 
     def _emit(self, item: str, message: str) -> None:
         if self._log:
-            self._log(f"[buff163] {item}: {message}")
+            self._log(f"[buff] {item}: {message}")
 
     def _emit_progress(
         self,
@@ -487,11 +487,11 @@ class Buff163Connector:
         total: int,
         ok_count: int,
         error_count: int,
-        result: Buff163Observation | Buff163CandidateError,
+        result: BuffObservation | BuffCandidateError,
     ) -> None:
         if self._progress_log is None:
             return
-        if isinstance(result, Buff163Observation):
+        if isinstance(result, BuffObservation):
             item = result.observation.raw_payload.get("market_hash_name") or result.asset_name
             state = "ok"
             message = ""
@@ -510,7 +510,7 @@ class Buff163Connector:
         *,
         index: int,
         total: int,
-        candidate: Buff163Candidate,
+        candidate: BuffCandidate,
     ) -> None:
         if self._progress_log is None:
             return
@@ -526,7 +526,7 @@ class Buff163Connector:
     def _emit_captcha_progress(
         self,
         state: str,
-        candidate: Buff163Candidate,
+        candidate: BuffCandidate,
         *,
         remaining_seconds: int,
     ) -> None:

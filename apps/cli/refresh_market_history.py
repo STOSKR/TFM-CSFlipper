@@ -13,7 +13,7 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
-from apps.acquisition.buff163_market import Buff163ConnectorConfig, normalize_buff_goods_url
+from apps.acquisition.buff_market import BuffConnectorConfig, normalize_buff_goods_url
 from apps.acquisition.platform_workers import (
     PlatformWorkerConfig,
     PlatformWorkerResult,
@@ -170,7 +170,7 @@ async def recommended_buff_history_days(
                         item_id,
                         max(observed_at) as latest_observed_at
                     from market_history_points
-                    where platform_id = 'buff163'
+                    where platform_id = 'buff'
                       and metric_name in (
                         'sell_price',
                         'buy_order_price',
@@ -297,7 +297,7 @@ def _compact_platform_status(
     error = errors.get(key)
     if error is not None:
         return f"{label}=error message={_compact_message(error.message)}"
-    if platform_id == "buff163" and not candidate.buff_url:
+    if platform_id == "buff" and not candidate.buff_url:
         return f"{label}=skip"
     return f"{label}=missing"
 
@@ -335,7 +335,7 @@ def _observation_market_hash(record: Any) -> str | None:
 
 
 def _platform_label(platform_id: str) -> str:
-    return "buff" if platform_id == "buff163" else platform_id
+    return "buff" if platform_id == "buff" else platform_id
 
 
 def _format_price(value: Decimal) -> str:
@@ -372,7 +372,7 @@ def _worker_config(
             min_delay_seconds=args.steam_min_delay,
             max_delay_seconds=args.steam_max_delay,
         ),
-        buff_config=Buff163ConnectorConfig(
+        buff_config=BuffConnectorConfig(
             headless=not args.show_browser,
             manual_login_wait_ms=args.buff_login_wait * 1000 if args.buff_login else 0,
             session_state_path=None if args.no_buff_session_state else args.buff_session_state,
@@ -448,7 +448,7 @@ def main() -> None:
     parser.add_argument(
         "--buff-session-state",
         type=Path,
-        default=Path("data/browser-state/buff163_storage_state.json"),
+        default=Path("data/browser-state/buff_storage_state.json"),
     )
     parser.add_argument("--no-buff-session-state", action="store_true")
     parser.add_argument(

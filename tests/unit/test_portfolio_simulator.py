@@ -4,7 +4,7 @@ from decimal import Decimal
 import pytest
 
 from packages.simulation import (
-    BUFF163,
+    BUFF,
     STEAM,
     InsufficientCapitalError,
     MarketMark,
@@ -25,7 +25,7 @@ def test_buy_creates_locked_position_and_blocks_capital() -> None:
     position = simulator.buy(
         item_id="item-1",
         item_name="AK-47 | Slate",
-        buy_platform=BUFF163,
+        buy_platform=BUFF,
         buy_price=Decimal("80"),
         buy_currency="CNY",
         purchased_at=date(2026, 1, 1),
@@ -51,7 +51,7 @@ def test_position_cannot_be_sold_before_trade_hold_unlock() -> None:
     position = simulator.buy(
         item_id="item-1",
         item_name="AK-47 | Slate",
-        buy_platform=BUFF163,
+        buy_platform=BUFF,
         buy_price=Decimal("80"),
         buy_currency="CNY",
         purchased_at=date(2026, 1, 1),
@@ -72,7 +72,7 @@ def test_sell_after_unlock_realizes_net_profit_and_releases_cash() -> None:
     position = simulator.buy(
         item_id="item-1",
         item_name="AK-47 | Slate",
-        buy_platform=BUFF163,
+        buy_platform=BUFF,
         buy_price=Decimal("80"),
         buy_currency="CNY",
         purchased_at=date(2026, 1, 1),
@@ -104,7 +104,7 @@ def test_sell_rejects_insufficient_liquidity() -> None:
     position = simulator.buy(
         item_id="item-1",
         item_name="AK-47 | Slate",
-        buy_platform=BUFF163,
+        buy_platform=BUFF,
         buy_price=Decimal("80"),
         buy_currency="CNY",
         purchased_at=date(2026, 1, 1),
@@ -180,7 +180,7 @@ def test_buy_rejects_insufficient_capital() -> None:
         simulator.buy(
             item_id="item-1",
             item_name="AK-47 | Slate",
-            buy_platform=BUFF163,
+            buy_platform=BUFF,
             buy_price=Decimal("80"),
             buy_currency="CNY",
             purchased_at=date(2026, 1, 1),

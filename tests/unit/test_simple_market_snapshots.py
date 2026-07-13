@@ -49,7 +49,7 @@ def test_build_simple_market_snapshots_merges_platforms_by_item_variant() -> Non
         },
     )
     buff_record = _record(
-        platform_id="buff163",
+        platform_id="buff",
         price=Decimal("105.20"),
         currency="CNY",
         market_hash_name=candidate.market_hash_name,
@@ -73,7 +73,7 @@ def test_build_simple_market_snapshots_merges_platforms_by_item_variant() -> Non
         (candidate,),
         (
             PlatformWorkerResult("steam", (steam_record,)),
-            PlatformWorkerResult("buff163", (buff_record,)),
+            PlatformWorkerResult("buff", (buff_record,)),
         ),
         scraped_at=scraped_at,
     )
@@ -313,15 +313,15 @@ async def test_simple_market_snapshot_repository_persists_history_points() -> No
     assert connection.args[0][3] == "AK-47 | Slate_FT_1"
     history_rows = connection.args[1]
     assert len(history_rows) == 5
-    assert history_rows[0][1] == "buff163"
+    assert history_rows[0][1] == "buff"
     assert history_rows[0][3] == "buy_order_price"
     assert history_rows[0][4] == Decimal("14.80")
     assert history_rows[0][5] == "CNY"
     assert len(history_rows[0]) == 7
-    assert history_rows[1][1] == "buff163"
+    assert history_rows[1][1] == "buff"
     assert history_rows[1][3] == "listing_count"
     assert history_rows[1][4] == Decimal("11")
-    assert history_rows[2][1] == "buff163"
+    assert history_rows[2][1] == "buff"
     assert history_rows[2][3] == "sell_price"
     assert history_rows[2][4] == Decimal("15.20")
     assert history_rows[2][5] == "CNY"
@@ -372,13 +372,13 @@ async def test_simple_market_snapshot_repository_persists_current_buff_price_as_
     assert len(connection.statements) == 2
     history_rows = connection.args[1]
     assert len(history_rows) == 1
-    assert history_rows[0][1] == "buff163"
+    assert history_rows[0][1] == "buff"
     assert history_rows[0][2] == datetime(2026, 6, 9, 12, 0, tzinfo=UTC)
     assert history_rows[0][3] == "sell_price"
     assert history_rows[0][4] == Decimal("105.20")
     assert history_rows[0][5] == "CNY"
     assert json.loads(history_rows[0][6]) == {
-        "buff163": {
+        "buff": {
             "source": "buff_current_sell_price",
             "price": "105.20",
         }

@@ -118,11 +118,11 @@ async def test_streaming_pipeline_tracks_platform_errors() -> None:
     ) -> tuple[PlatformWorkerResult, ...]:
         return (
             PlatformWorkerResult(
-                platform_id="buff163",
+                platform_id="buff",
                 observations=(),
                 errors=(
                     WorkerError(
-                        platform_id="buff163",
+                        platform_id="buff",
                         market_hash_name="bad",
                         message="not found",
                     ),
@@ -143,7 +143,7 @@ async def test_streaming_pipeline_tracks_platform_errors() -> None:
         build_snapshots=build_snapshots,
     )
 
-    assert summary.errors_by_platform == {"buff163": 1}
+    assert summary.errors_by_platform == {"buff": 1}
 
 
 @pytest.mark.asyncio

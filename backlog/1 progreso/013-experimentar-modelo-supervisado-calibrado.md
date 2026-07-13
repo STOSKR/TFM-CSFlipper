@@ -70,15 +70,15 @@ El `MomentumBaselinePredictor` existente es util para pruebas tempranas, pero no
 - Smoke con defaults operativos en `model-runs/supervised_direction_recent_1y/operational_default_20260615`: ganador `random_forest_depth18`. Umbral elegido con validation calibrado: 0,85 con 52 senales y precision 0,942. En test al mismo umbral: 53 senales y precision 0,962. Sigue sin ser definitivo porque no hay suficientes senales repetidas por articulo.
 - Creado `packages.datasets.trading` y el CLI `python -m apps.cli.build_trading_dataset` para construir un dataset de trading real desde `market_history_points`, usando `price_eur`, fees de Steam/BUFF, horizonte configurable y splits temporales train/validation/test.
 - El builder conserva columnas de trazabilidad (`item_id`, `representation_name`, nombre, calidad, StatTrak y dia observado), pero entrena solo con features numericas de mercado y economia: precios Steam/BUFF en EUR, liquidez, spreads, beneficios/retornos actuales y versiones logaritmicas.
-- Comprobacion actualizada de datos reales de Supabase: ya existe `buff163/sell_price`
+- Comprobacion actualizada de datos reales de Supabase: ya existe `buff/sell_price`
   en `market_items` y `market_history_points`, pero el historico alineado es todavia
   escaso para generar ejemplos `buff_to_steam_sell` a 8 dias. Por eso el primer dataset
   real se mantiene en direccion `steam_to_buff_buy_order`, y la direccion natural
   `buff_to_steam_sell` queda bloqueada hasta acumular mas dias/articulos con listing BUFF.
 - Generado `data/datasets/trading_profit_v1` con `--query-start 2025-01-01 --trade-direction steam_to_buff_buy_order --future-tolerance-days 7`. Resultado: 2.331 ejemplos, 50 articulos, train 1.141 filas con tasa positiva 5,08%, validation 453 filas con tasa positiva 0,22% y test 737 filas con tasa positiva 0,14%.
 - Smoke de entrenamiento en `model-runs/trading_profit_v1/operational_smoke_20260616`: ganador tecnico `random_forest_depth10`, pero no se considera util para decision operativa. Validation y test tienen solo 1 caso positivo cada uno; por eso ROC-AUC/PR-AUC pueden ser artificialmente altos y la seleccion no encuentra senales a umbrales operativos.
-- Decision provisional: el pipeline real de trading ya existe, pero necesitamos mas senal antes de entrenar un modelo fiable. Prioridad de datos: acumular historico recurrente de `buff163/sell_price` o listings comparables, aumentar dias/articulos, y evaluar targets con margen minimo para no aprender oportunidades teoricas sin liquidez.
-- Probe actualizado: `buff163/sell_price` tiene 121 filas / 119 articulos, concentradas
+- Decision provisional: el pipeline real de trading ya existe, pero necesitamos mas senal antes de entrenar un modelo fiable. Prioridad de datos: acumular historico recurrente de `buff/sell_price` o listings comparables, aumentar dias/articulos, y evaluar targets con margen minimo para no aprender oportunidades teoricas sin liquidez.
+- Probe actualizado: `buff/sell_price` tiene 121 filas / 119 articulos, concentradas
   principalmente en 2026-06-16; `buff_to_steam_sell` genera 0 ejemplos con horizonte 8
   dias y tolerancia 7 dias, mientras `steam_to_buff_buy_order` genera 5.343 ejemplos
   pero mantiene positivos muy escasos en validation/test.
@@ -96,8 +96,8 @@ El `MomentumBaselinePredictor` existente es util para pruebas tempranas, pero no
   filtraba por ultimo timestamp conocido y bloqueaba backfill de puntos historicos perdidos.
   Se elimina ese filtro y se delega la deduplicacion al `on conflict` de Postgres.
 - Tras reejecutar el refresh con backfill permitido, la BD queda mucho mas alineada:
-  `buff163/sell_price` 5.063 filas / 119 articulos, `buff163/buy_order_price` 11.915
-  filas / 119 articulos y `buff163/listing_count` 5.875 filas / 119 articulos. En el dia
+  `buff/sell_price` 5.063 filas / 119 articulos, `buff/buy_order_price` 11.915
+  filas / 119 articulos y `buff/listing_count` 5.875 filas / 119 articulos. En el dia
   2026-06-18 hay 1.032 `sell_price`, 797 `buy_order_price` y 795 `listing_count`.
 - El dataset natural `buff_to_steam_sell` sigue generando 0 ejemplos para horizonte 8 dias
   porque los dias con `buff_sell_price` empiezan practicamente el 2026-06-15 y el historico
@@ -134,13 +134,13 @@ El `MomentumBaselinePredictor` existente es util para pruebas tempranas, pero no
 - `python -m apps.cli.build_trading_dataset --output data/datasets/trading_profit_v1 --query-start 2025-01-01 --trade-direction steam_to_buff_buy_order --future-tolerance-days 7`
 - `python -m apps.cli.train_supervised_model --dataset-dir data/datasets/trading_profit_v1 --output-dir model-runs/trading_profit_v1/operational_smoke_20260616 --max-train-rows 0 --max-validation-rows 0 --max-test-rows 0 --cv-splits 3 --models dummy logistic random_forest hist_gradient_boosting --selection-threshold 0.8 --min-selection-signals 1`
 - `python -m pytest tests/unit`
-- `python -m pytest tests/unit/test_buff163_market.py tests/unit/test_simple_market_snapshots.py`
-- `python -m ruff check apps/acquisition/buff163_market.py tests/unit/test_buff163_market.py`
-- `python -m mypy apps/acquisition/buff163_market.py tests/unit/test_buff163_market.py`
-- `python -m pytest tests/unit/test_buff163_market.py tests/unit/test_refresh_market_history.py tests/unit/test_platform_workers.py`
-- `python -m ruff check apps/acquisition/buff163_market.py apps/acquisition/platform_workers.py apps/cli/refresh_market_history.py tests/unit/test_buff163_market.py`
-- `python -m mypy apps/acquisition/buff163_market.py apps/acquisition/platform_workers.py apps/cli/refresh_market_history.py tests/unit/test_buff163_market.py`
-- `python -m pytest tests/unit/test_simple_market_snapshots.py tests/unit/test_buff163_market.py tests/unit/test_refresh_market_history.py`
+- `python -m pytest tests/unit/test_buff_market.py tests/unit/test_simple_market_snapshots.py`
+- `python -m ruff check apps/acquisition/buff_market.py tests/unit/test_buff_market.py`
+- `python -m mypy apps/acquisition/buff_market.py tests/unit/test_buff_market.py`
+- `python -m pytest tests/unit/test_buff_market.py tests/unit/test_refresh_market_history.py tests/unit/test_platform_workers.py`
+- `python -m ruff check apps/acquisition/buff_market.py apps/acquisition/platform_workers.py apps/cli/refresh_market_history.py tests/unit/test_buff_market.py`
+- `python -m mypy apps/acquisition/buff_market.py apps/acquisition/platform_workers.py apps/cli/refresh_market_history.py tests/unit/test_buff_market.py`
+- `python -m pytest tests/unit/test_simple_market_snapshots.py tests/unit/test_buff_market.py tests/unit/test_refresh_market_history.py`
 - `python -m ruff check packages/persistence/simple_market.py tests/unit/test_simple_market_snapshots.py`
 - `python -m mypy packages/persistence/simple_market.py tests/unit/test_simple_market_snapshots.py`
 - `python -m apps.cli.build_trading_dataset --output model-runs/probe_buff_to_steam_after_backfill --query-start 2025-01-01 --trade-direction buff_to_steam_sell --future-tolerance-days 7`
@@ -163,4 +163,4 @@ El `MomentumBaselinePredictor` existente es util para pruebas tempranas, pero no
 - Las metricas de precision alta tienen pocas senales y no bastan para afirmar rendimiento "con cualquier articulo"; hay que validar por ventanas temporales multiples y exigir minimo de senales por grupo antes de usar una cifra como evidencia fuerte.
 - El siguiente salto real debe ser un dataset de trading desde Supabase con Steam/BUFF, fees y target de beneficio neto futuro; sin eso el modelo solo predice direccion, no oportunidad de compra rentable.
 - El primer dataset real revela desbalance extremo en validation/test para `steam_to_buff_buy_order`; no usar sus metricas como evidencia de precision por articulo.
-- Sin historico alineado suficiente de `buff163/sell_price` no podemos modelar bien la compra en BUFF y venta futura en Steam, que es la direccion mas alineada con el arbitraje operativo original.
+- Sin historico alineado suficiente de `buff/sell_price` no podemos modelar bien la compra en BUFF y venta futura en Steam, que es la direccion mas alineada con el arbitraje operativo original.

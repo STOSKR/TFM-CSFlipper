@@ -21,7 +21,7 @@ from packages.marl.rewards import (
     shared_reward_map,
 )
 from packages.simulation import (
-    BUFF163,
+    BUFF,
     STEAM,
     MarketEconomicsConfig,
     PortfolioRiskConfig,
@@ -508,7 +508,7 @@ def _state_features(
     features = {
         "buy_price_eur": _float(step.buy_price_eur),
         "buy_platform_is_steam": _platform_flag(step.buy_platform, STEAM),
-        "buy_platform_is_buff": _platform_flag(step.buy_platform, BUFF163),
+        "buy_platform_is_buff": _platform_flag(step.buy_platform, BUFF),
         "buy_price_is_listing": _price_type_flag(
             step.buy_price_type,
             PRICE_TYPE_LISTING,
@@ -518,7 +518,7 @@ def _state_features(
             PRICE_TYPE_BUY_ORDER,
         ),
         "sell_platform_is_steam": _platform_flag(step.sell_platform, STEAM),
-        "sell_platform_is_buff": _platform_flag(step.sell_platform, BUFF163),
+        "sell_platform_is_buff": _platform_flag(step.sell_platform, BUFF),
         "sell_price_is_listing": _price_type_flag(
             step.sell_price_type,
             PRICE_TYPE_LISTING,

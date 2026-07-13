@@ -1,7 +1,7 @@
 """Simulation and market economics helpers."""
 
 from packages.simulation.economics import (
-    BUFF163,
+    BUFF,
     STEAM,
     EconomicResult,
     MarketEconomicsConfig,
@@ -35,7 +35,7 @@ from packages.simulation.risk import (
 )
 
 __all__ = [
-    "BUFF163",
+    "BUFF",
     "STEAM",
     "EconomicResult",
     "InsufficientCapitalError",

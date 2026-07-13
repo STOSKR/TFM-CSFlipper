@@ -201,7 +201,7 @@ python steamdt.py 20 --no-session-state
 SteamDT se usa como discovery. Despues, el JSON guardado alimenta dos workers en paralelo:
 
 - worker `steam`: abre Steam Market con Playwright por defecto.
-- worker `buff163`: abre el enlace `buff_url` de cada candidato con Playwright.
+- worker `buff`: abre el enlace `buff_url` de cada candidato con Playwright.
 
 Ejemplo completo:
 
@@ -249,7 +249,7 @@ python market_workers.py --show-browser --buff-login
 La sesion BUFF queda en:
 
 ```text
-data/browser-state/buff163_storage_state.json
+data/browser-state/buff_storage_state.json
 ```
 
 Si quieres comparar contra el conector HTTP antiguo de Steam:

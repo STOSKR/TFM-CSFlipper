@@ -11,7 +11,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from apps.acquisition.buff163_market import Buff163ConnectorConfig, normalize_buff_goods_url
+from apps.acquisition.buff_market import BuffConnectorConfig, normalize_buff_goods_url
 from apps.acquisition.platform_workers import (
     PlatformWorkerConfig,
     PlatformWorkerResult,
@@ -63,7 +63,7 @@ async def run(args: argparse.Namespace) -> int:
             min_delay_seconds=args.steam_min_delay,
             max_delay_seconds=args.steam_max_delay,
         ),
-        buff_config=Buff163ConnectorConfig(
+        buff_config=BuffConnectorConfig(
             headless=not args.show_browser,
             manual_login_wait_ms=args.buff_login_wait * 1000 if args.buff_login else 0,
             session_state_path=None if args.no_buff_session_state else args.buff_session_state,
@@ -178,7 +178,7 @@ def main() -> None:
     parser.add_argument(
         "--buff-session-state",
         type=Path,
-        default=Path("data/browser-state/buff163_storage_state.json"),
+        default=Path("data/browser-state/buff_storage_state.json"),
     )
     parser.add_argument("--no-buff-session-state", action="store_true")
     parser.add_argument(
@@ -293,7 +293,7 @@ def build_simple_market_snapshots(
                     record.observation.raw_payload.get("recent_sales") or []
                 )
                 entry["steam_buy_orders"] = record.observation.raw_payload.get("buy_orders") or []
-            elif platform_id == "buff163":
+            elif platform_id == "buff":
                 entry["buff_price"] = record.observation.price
                 entry["buff_currency"] = record.observation.currency
                 entry["buff_url"] = entry["buff_url"] or record.observation.source_reference
@@ -395,7 +395,7 @@ async def _save_login_states(args: argparse.Namespace, logger: logging.Logger) -
                 tasks.append(
                     _login_platform(
                         browser,
-                        name="buff163",
+                        name="buff",
                         url="https://buff.163.com/market/csgo",
                         state_path=(
                             None

@@ -3,11 +3,11 @@ from decimal import Decimal
 
 import pytest
 
-from apps.acquisition.buff163_market import (
-    Buff163Candidate,
-    Buff163CandidateError,
-    Buff163Connector,
-    Buff163Observation,
+from apps.acquisition.buff_market import (
+    BuffCandidate,
+    BuffCandidateError,
+    BuffConnector,
+    BuffObservation,
     _buff_manual_challenge_present,
     _buff_page_block_reason,
     extract_buff_api_buy_orders,
@@ -264,12 +264,12 @@ def test_extract_buff_price_history_v2_reads_buff_lines_payload() -> None:
 
 def test_buff_connector_emits_compact_progress_lines() -> None:
     lines: list[str] = []
-    connector = Buff163Connector(progress_log=lines.append)
-    observation = Buff163Observation(
+    connector = BuffConnector(progress_log=lines.append)
+    observation = BuffObservation(
         observation=MarketObservationContract(
             correlation_id="test",
             asset_id="asset",
-            platform_id="buff163",
+            platform_id="buff",
             observed_at=datetime(2026, 6, 16, 12, 0, tzinfo=UTC),
             price=Decimal("12.34"),
             currency="CNY",
@@ -281,8 +281,8 @@ def test_buff_connector_emits_compact_progress_lines() -> None:
         quality="Field-Tested",
         variant_key="field_tested_st0",
     )
-    error = Buff163CandidateError(
-        candidate=Buff163Candidate(
+    error = BuffCandidateError(
+        candidate=BuffCandidate(
             market_hash_name="M4A1-S | Nitro (Minimal Wear)",
             buff_url="https://buff.163.com/goods/1",
         ),
@@ -313,11 +313,11 @@ def test_buff_connector_emits_compact_progress_lines() -> None:
 
 def test_buff_connector_emits_manual_captcha_progress() -> None:
     lines: list[str] = []
-    connector = Buff163Connector(progress_log=lines.append)
+    connector = BuffConnector(progress_log=lines.append)
 
     connector._emit_captcha_progress(
         "detected",
-        Buff163Candidate(
+        BuffCandidate(
             market_hash_name="AK-47 | Slate (Field-Tested)",
             buff_url="https://buff.163.com/goods/1",
         ),
@@ -348,7 +348,7 @@ async def test_buff_manual_challenge_ignores_loaded_goods_page() -> None:
 
 @pytest.mark.asyncio
 async def test_buff_connector_lenient_empty_candidates() -> None:
-    observations, errors = await Buff163Connector().fetch_candidates_lenient(
+    observations, errors = await BuffConnector().fetch_candidates_lenient(
         [],
         correlation_id="test",
     )

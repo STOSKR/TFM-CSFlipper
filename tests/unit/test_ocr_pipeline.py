@@ -47,7 +47,7 @@ async def test_extract_ocr_observations_from_text_fixture() -> None:
     )
 
     assert len(records) == 2
-    assert records[1].observation.platform_id == "buff163"
+    assert records[1].observation.platform_id == "buff"
 
 
 @pytest.mark.asyncio

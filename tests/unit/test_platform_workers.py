@@ -146,7 +146,7 @@ async def test_scrape_candidate_platforms_can_run_platforms_sequentially(monkeyp
 
     async def fake_buff(*args, **kwargs) -> PlatformWorkerResult:
         events.append(f"buff_start_after_steam={steam_finished}")
-        return PlatformWorkerResult("buff163", ())
+        return PlatformWorkerResult("buff", ())
 
     monkeypatch.setattr("apps.acquisition.platform_workers._scrape_steam_browser", fake_steam)
     monkeypatch.setattr("apps.acquisition.platform_workers._scrape_buff", fake_buff)
@@ -163,5 +163,5 @@ async def test_scrape_candidate_platforms_can_run_platforms_sequentially(monkeyp
         config=PlatformWorkerConfig(concurrent_platforms=False),
     )
 
-    assert tuple(result.platform_id for result in results) == ("steam", "buff163")
+    assert tuple(result.platform_id for result in results) == ("steam", "buff")
     assert events == ["steam_start", "steam_done", "buff_start_after_steam=True"]

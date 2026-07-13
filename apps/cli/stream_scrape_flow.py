@@ -9,7 +9,7 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from apps.acquisition.buff163_market import Buff163ConnectorConfig
+from apps.acquisition.buff_market import BuffConnectorConfig
 from apps.acquisition.platform_workers import (
     PlatformWorkerConfig,
     PlatformWorkerResult,
@@ -130,7 +130,7 @@ def main() -> None:
     parser.add_argument(
         "--buff-session-state",
         type=Path,
-        default=Path("data/browser-state/buff163_storage_state.json"),
+        default=Path("data/browser-state/buff_storage_state.json"),
     )
     parser.add_argument("--no-buff-session-state", action="store_true")
     parser.add_argument(
@@ -191,7 +191,7 @@ def _worker_config(args: argparse.Namespace) -> PlatformWorkerConfig:
             min_delay_seconds=args.steam_min_delay,
             max_delay_seconds=args.steam_max_delay,
         ),
-        buff_config=Buff163ConnectorConfig(
+        buff_config=BuffConnectorConfig(
             headless=not args.show_browser,
             manual_login_wait_ms=args.buff_login_wait * 1000 if args.buff_login else 0,
             session_state_path=None if args.no_buff_session_state else args.buff_session_state,

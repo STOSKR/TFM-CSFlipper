@@ -2,7 +2,7 @@
 
 ## Objetivo
 
-Completar y validar el flujo de scraping para guardar snapshots comparables de Steam Market y Buff163 con historico suficiente para entrenamiento y simulacion.
+Completar y validar el flujo de scraping para guardar snapshots comparables de Steam Market y Buff con historico suficiente para entrenamiento y simulacion.
 
 ## Contexto
 
@@ -11,7 +11,7 @@ El flujo simple ya persiste `market_items` y `market_snapshots`, pero aun falta 
 ## Alcance
 
 - Mantener `market_items` y `market_snapshots` como esquema operativo inicial.
-- Validar selectores reales de Steam y Buff163 para precio, buy orders, ultimas ventas y volumen.
+- Validar selectores reales de Steam y Buff para precio, buy orders, ultimas ventas y volumen.
 - Guardar o derivar series historicas por item, plataforma y timestamp.
 - Etiquetar cada snapshot con estrategia de descubrimiento, moneda, fuente y calidad de extraccion.
 - Ajustar `market_workers.py` como comando principal de scraping profundo.
@@ -23,7 +23,7 @@ El flujo simple ya persiste `market_items` y `market_snapshots`, pero aun falta 
 - Ejecutar `python steamdt.py 50 --show` genera candidatos con nombre, calidad, StatTrak y URLs.
 - Ejecutar `python market_workers.py --show-browser --persist` guarda datos en `market_items` y `market_snapshots`.
 - La vista `market_snapshot_view` muestra datos listos para revision.
-- Hay muestras reales con precio, spread, volumen y buy orders de Steam y Buff163.
+- Hay muestras reales con precio, spread, volumen y buy orders de Steam y Buff.
 - Hay tests unitarios del mapeo candidato + observaciones -> snapshot simple.
 - Queda documentado que los scripts existentes alimentan datos, pero no sustituyen al entorno PettingZoo ni a los agentes Scout, Trader y Portfolio.
 
@@ -106,9 +106,9 @@ El flujo simple ya persiste `market_items` y `market_snapshots`, pero aun falta 
 - `python -m pytest tests/unit`
 - `python scrape_flow.py --persist`
 - Consulta manual a `market_snapshot_view` para validar conteos y muestra de 10 snapshots recientes.
-- `python -m pytest tests/unit/test_buff163_market.py tests/unit/test_simple_market_snapshots.py`
-- `python -m ruff check apps/acquisition/buff163_market.py tests/unit/test_buff163_market.py`
-- `python -m mypy apps/acquisition/buff163_market.py tests/unit/test_buff163_market.py`
+- `python -m pytest tests/unit/test_buff_market.py tests/unit/test_simple_market_snapshots.py`
+- `python -m ruff check apps/acquisition/buff_market.py tests/unit/test_buff_market.py`
+- `python -m mypy apps/acquisition/buff_market.py tests/unit/test_buff_market.py`
 
 ## Bloqueos o riesgos
 

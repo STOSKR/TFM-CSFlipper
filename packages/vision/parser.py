@@ -24,8 +24,7 @@ QUALITY_PATTERN = re.compile(
 PLATFORMS = {
     "steam": "steam",
     "steam market": "steam",
-    "buff": "buff163",
-    "buff163": "buff163",
+    "buff": "buff",
 }
 
 

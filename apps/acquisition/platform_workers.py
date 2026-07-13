@@ -10,11 +10,11 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
-from apps.acquisition.buff163_market import (
-    Buff163Candidate,
-    Buff163Connector,
-    Buff163ConnectorConfig,
-    Buff163Observation,
+from apps.acquisition.buff_market import (
+    BuffCandidate,
+    BuffConnector,
+    BuffConnectorConfig,
+    BuffObservation,
     normalize_buff_goods_url,
 )
 from apps.acquisition.steam_browser_market import (
@@ -46,7 +46,7 @@ class WorkerError:
 class PlatformWorkerResult:
     platform_id: str
     observations: tuple[
-        SteamMarketObservation | SteamBrowserObservation | Buff163Observation,
+        SteamMarketObservation | SteamBrowserObservation | BuffObservation,
         ...,
     ]
     errors: tuple[WorkerError, ...] = ()
@@ -62,7 +62,7 @@ class PlatformWorkerConfig:
     steam_browser_config: SteamBrowserConnectorConfig = field(
         default_factory=SteamBrowserConnectorConfig
     )
-    buff_config: Buff163ConnectorConfig = field(default_factory=Buff163ConnectorConfig)
+    buff_config: BuffConnectorConfig = field(default_factory=BuffConnectorConfig)
 
 
 async def scrape_candidate_platforms(
@@ -275,14 +275,14 @@ async def _scrape_steam_browser(
 async def _scrape_buff(
     candidates: tuple[SteamDTCandidate, ...],
     *,
-    config: Buff163ConnectorConfig,
+    config: BuffConnectorConfig,
     correlation_id: str,
     log: LogCallback | None,
     progress_log: LogCallback | None,
 ) -> PlatformWorkerResult:
     buff_candidates = _unique_buff_candidates(
         [
-            Buff163Candidate(
+            BuffCandidate(
                 market_hash_name=candidate.market_hash_name,
                 buff_url=buff_url,
                 asset_name=candidate.item_name,
@@ -297,9 +297,9 @@ async def _scrape_buff(
     )
     _emit(
         progress_log,
-        f"platform_start=buff163 total={len(buff_candidates)} concurrency={config.max_concurrency}",
+        f"platform_start=buff total={len(buff_candidates)} concurrency={config.max_concurrency}",
     )
-    connector = Buff163Connector(config, log=log, progress_log=progress_log)
+    connector = BuffConnector(config, log=log, progress_log=progress_log)
     try:
         observations, buff_errors = await connector.fetch_candidates_lenient(
             buff_candidates,
@@ -307,13 +307,13 @@ async def _scrape_buff(
         )
     except Exception as exc:
         message = str(exc) or exc.__class__.__name__
-        _emit(progress_log, f"platform_error=buff163 message={_compact_log_text(message)}")
+        _emit(progress_log, f"platform_error=buff message={_compact_log_text(message)}")
         return PlatformWorkerResult(
-            "buff163",
+            "buff",
             (),
             tuple(
                 WorkerError(
-                    platform_id="buff163",
+                    platform_id="buff",
                     market_hash_name=candidate.market_hash_name,
                     message=str(exc),
                 )
@@ -322,7 +322,7 @@ async def _scrape_buff(
         )
     errors = [
         WorkerError(
-            platform_id="buff163",
+            platform_id="buff",
             market_hash_name=error.candidate.market_hash_name,
             message=error.message,
             debug_log=error.debug_log,
@@ -332,9 +332,9 @@ async def _scrape_buff(
 
     _emit(
         progress_log,
-        f"platform_done=buff163 ok={len(observations)} errors={len(errors)}",
+        f"platform_done=buff ok={len(observations)} errors={len(errors)}",
     )
-    return PlatformWorkerResult("buff163", tuple(observations), tuple(errors))
+    return PlatformWorkerResult("buff", tuple(observations), tuple(errors))
 
 
 def _candidate_from_row(row: dict[str, Any]) -> SteamDTCandidate:
@@ -387,9 +387,9 @@ def _unique_steam_browser_candidates(
     return unique
 
 
-def _unique_buff_candidates(candidates: list[Buff163Candidate]) -> list[Buff163Candidate]:
+def _unique_buff_candidates(candidates: list[BuffCandidate]) -> list[BuffCandidate]:
     seen: set[tuple[str, str]] = set()
-    unique: list[Buff163Candidate] = []
+    unique: list[BuffCandidate] = []
     for candidate in candidates:
         key = (candidate.market_hash_name, candidate.buff_url)
         if key in seen:

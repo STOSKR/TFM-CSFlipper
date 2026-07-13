@@ -15,7 +15,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 from packages.simulation.economics import (
-    BUFF163,
+    BUFF,
     STEAM,
     MarketEconomicsConfig,
     default_excel_economics_config,
@@ -218,7 +218,7 @@ def trading_examples_from_history(
         lambda value: float(
             net_sale_value_eur(
                 Decimal(str(value)),
-                sale_platform=BUFF163,
+                sale_platform=BUFF,
                 sale_currency="EUR",
                 config=economics,
             )
@@ -373,7 +373,7 @@ def _economics_config(config: TradingDatasetBuildConfig) -> MarketEconomicsConfi
         trade_hold_days=config.horizon_days,
         sale_fee_factors={
             STEAM: config.steam_sale_factor,
-            BUFF163: config.buff_sale_factor,
+            BUFF: config.buff_sale_factor,
         },
         steam_cashout_loss=config.steam_cashout_loss,
         steam_cashout_loss_scenarios=default_config.steam_cashout_loss_scenarios,
@@ -431,7 +431,7 @@ def _future_cash_value(frame: pd.DataFrame, trade_direction: str) -> pd.Series:
 def _route_columns(trade_direction: str) -> dict[str, str]:
     if trade_direction == "buff_to_steam_sell":
         return {
-            "buy_platform": BUFF163,
+            "buy_platform": BUFF,
             "buy_price_type": "listing",
             "sell_platform": STEAM,
             "sell_price_type": "listing",
@@ -441,7 +441,7 @@ def _route_columns(trade_direction: str) -> dict[str, str]:
         return {
             "buy_platform": STEAM,
             "buy_price_type": "listing",
-            "sell_platform": BUFF163,
+            "sell_platform": BUFF,
             "sell_price_type": "buy_order",
             "cash_destination": "reinvest",
         }
@@ -453,11 +453,11 @@ def _metric_column(platform: str, metric: str) -> str:
         return "steam_sell_price_eur"
     if platform == "steam" and metric == "sales_count":
         return "steam_sales_count"
-    if platform == "buff163" and metric == "sell_price":
+    if platform == "buff" and metric == "sell_price":
         return "buff_sell_price_eur"
-    if platform == "buff163" and metric == "buy_order_price":
+    if platform == "buff" and metric == "buy_order_price":
         return "buff_buy_order_price_eur"
-    if platform == "buff163" and metric == "listing_count":
+    if platform == "buff" and metric == "listing_count":
         return "buff_listing_count"
     return f"{platform}_{metric}"
 

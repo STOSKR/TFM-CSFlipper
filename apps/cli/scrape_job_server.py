@@ -727,7 +727,7 @@ def _platform_start_text(line: str) -> str:
 
 
 def _browser_step_text(line: str) -> str:
-    platform = "steam" if line.startswith("steam_browser=") else "buff163"
+    platform = "steam" if line.startswith("steam_browser=") else "buff"
     step = _line_text_value(line, f"{platform if platform == 'steam' else 'buff'}_browser") or ""
     labels = {
         "launch_start": "lanzando navegador",
@@ -753,7 +753,7 @@ def _buff_captcha_text(line: str) -> str:
 
 
 def _platform_progress_text(line: str) -> str:
-    platform = "steam" if line.startswith("steam_progress=") else "buff163"
+    platform = "steam" if line.startswith("steam_progress=") else "buff"
     progress_key = f"{platform if platform == 'steam' else 'buff'}_progress"
     progress = _line_text_value(line, progress_key)
     if progress is None:
@@ -765,7 +765,7 @@ def _platform_progress_text(line: str) -> str:
 
 
 def _platform_fetch_start_text(line: str) -> str:
-    platform = "steam" if line.startswith("steam_fetch_start=") else "buff163"
+    platform = "steam" if line.startswith("steam_fetch_start=") else "buff"
     progress = _line_text_value(line, "steam_fetch_start") or _line_text_value(
         line,
         "buff_fetch_start",
@@ -787,7 +787,7 @@ def _platform_error_text(line: str) -> str:
 
 
 def _platform_label(platform: str) -> str:
-    return "BUFF" if platform == "buff163" else platform.upper()
+    return "BUFF" if platform == "buff" else platform.upper()
 
 
 def _line_int_value(line: str, key: str) -> int | None:

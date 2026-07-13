@@ -9,7 +9,7 @@ from enum import StrEnum
 from types import MappingProxyType
 
 STEAM = "STEAM"
-BUFF163 = "BUFF"
+BUFF = "BUFF"
 
 EUR = "EUR"
 CNY = "CNY"
@@ -79,7 +79,7 @@ def default_excel_economics_config(
         trade_hold_days=trade_hold_days,
         sale_fee_factors={
             STEAM: Decimal("0.87"),
-            BUFF163: Decimal("0.975"),
+            BUFF: Decimal("0.975"),
         },
         steam_cashout_loss=Decimal("0.20"),
         steam_cashout_loss_scenarios=(

@@ -232,7 +232,7 @@ create index if not exists idx_simulated_positions_status
 insert into platforms (code, name, fee_percentage, metadata)
 values
     ('steam', 'Steam Community Market', null, '{"kind": "market"}'::jsonb),
-    ('buff163', 'BUFF163', null, '{"kind": "market"}'::jsonb),
+    ('buff', 'BUFF', null, '{"kind": "market"}'::jsonb),
     ('csfloat', 'CSFloat', null, '{"kind": "market"}'::jsonb),
     ('manual', 'Manual Import', null, '{"kind": "internal"}'::jsonb)
 on conflict (code) do nothing;

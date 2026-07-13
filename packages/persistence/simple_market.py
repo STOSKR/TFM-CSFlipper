@@ -426,13 +426,13 @@ def _history_points_from_snapshot(snapshot: SimpleMarketSnapshot) -> tuple[dict[
     if snapshot.buff_price is not None:
         rows.append(
             {
-                "platform_id": "buff163",
+                "platform_id": "buff",
                 "observed_at": snapshot.scraped_at,
                 "metric_name": "sell_price",
                 "metric_value": snapshot.buff_price,
                 "currency": _currency(snapshot.buff_currency),
                 "raw_payload": {
-                    "buff163": {
+                    "buff": {
                         "source": "buff_current_sell_price",
                         "price": str(snapshot.buff_price),
                     }
@@ -453,33 +453,33 @@ def _history_points_from_snapshot(snapshot: SimpleMarketSnapshot) -> tuple[dict[
         if sell_price is not None:
             rows.append(
                 {
-                    "platform_id": "buff163",
+                    "platform_id": "buff",
                     "observed_at": observed_at,
                     "metric_name": "sell_price",
                     "metric_value": sell_price,
                     "currency": currency,
-                    "raw_payload": {"buff163": dict(row)},
+                    "raw_payload": {"buff": dict(row)},
                 }
             )
         if buy_order_price is not None:
             rows.append(
                 {
-                    "platform_id": "buff163",
+                    "platform_id": "buff",
                     "observed_at": observed_at,
                     "metric_name": "buy_order_price",
                     "metric_value": buy_order_price,
                     "currency": currency,
-                    "raw_payload": {"buff163": dict(row)},
+                    "raw_payload": {"buff": dict(row)},
                 }
             )
         if listing_count is not None:
             rows.append(
                 {
-                    "platform_id": "buff163",
+                    "platform_id": "buff",
                     "observed_at": observed_at,
                     "metric_name": "listing_count",
                     "metric_value": Decimal(listing_count),
-                    "raw_payload": {"buff163": dict(row)},
+                    "raw_payload": {"buff": dict(row)},
                 }
             )
 

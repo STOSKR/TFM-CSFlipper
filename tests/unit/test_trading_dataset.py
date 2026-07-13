@@ -183,9 +183,9 @@ def _history_frame(
         rows.extend(
             [
                 _row(day, "steam", "sell_price", steam_price, steam_price),
-                _row(day, "buff163", "sell_price", buff_price, buff_price),
-                _row(day, "buff163", "buy_order_price", buff_price - 0.5, buff_price - 0.5),
-                _row(day, "buff163", "listing_count", 7, None),
+                _row(day, "buff", "sell_price", buff_price, buff_price),
+                _row(day, "buff", "buy_order_price", buff_price - 0.5, buff_price - 0.5),
+                _row(day, "buff", "listing_count", 7, None),
             ]
         )
         if include_sales_count:

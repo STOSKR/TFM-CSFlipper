@@ -8,7 +8,7 @@ from inspect import getsource
 
 import pytest
 
-from apps.acquisition.buff163_market import Buff163Observation
+from apps.acquisition.buff_market import BuffObservation
 from apps.acquisition.platform_workers import PlatformWorkerResult, WorkerError
 from apps.acquisition.steam_market import SteamMarketObservation
 from apps.cli.refresh_market_history import (
@@ -152,11 +152,11 @@ def test_compact_refresh_lines_show_prices_errors_and_skips() -> None:
             ),
         ),
         PlatformWorkerResult(
-            platform_id="buff163",
+            platform_id="buff",
             observations=(
-                Buff163Observation(
+                BuffObservation(
                     observation=_observation(
-                        platform_id="buff163",
+                        platform_id="buff",
                         market_hash_name="AK-47 | Slate (Field-Tested)",
                         price=Decimal("86"),
                         currency="CNY",

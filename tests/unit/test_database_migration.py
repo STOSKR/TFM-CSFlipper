@@ -173,7 +173,7 @@ def test_long_market_history_points_migration_uses_platform_rows() -> None:
     assert "platform_id," in sql
     assert "observed_at" in sql
     assert "'steam'" in sql
-    assert "'buff163'" in sql
+    assert "'buff'" in sql
     assert "drop table market_history_points" in sql
 
 

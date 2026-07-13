@@ -172,7 +172,7 @@ begin
                 )
                 select
                     item_id,
-                    'buff163',
+                    'buff',
                     observed_at,
                     %s,
                     %s,

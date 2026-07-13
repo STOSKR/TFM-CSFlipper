@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from packages.marl import MarketEpisodeStep, MarketMARLEnvironment, load_market_episode_steps
-from packages.simulation import BUFF163, STEAM
+from packages.simulation import BUFF, STEAM
 
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
@@ -110,7 +110,7 @@ def _demo_steps() -> tuple[MarketEpisodeStep, ...]:
             item_id="buff-to-steam",
             representation_name="AK-47 | Slate_FT_0",
             observed_day=date(2026, 1, 1),
-            buy_platform=BUFF163,
+            buy_platform=BUFF,
             buy_price_type="listing",
             sell_platform=STEAM,
             sell_price_type="listing",
@@ -126,7 +126,7 @@ def _demo_steps() -> tuple[MarketEpisodeStep, ...]:
             observed_day=date(2026, 1, 2),
             buy_platform=STEAM,
             buy_price_type="buy_order",
-            sell_platform=BUFF163,
+            sell_platform=BUFF,
             sell_price_type="listing",
             buy_price_eur=Decimal("20"),
             current_exit_net_eur=Decimal("19"),

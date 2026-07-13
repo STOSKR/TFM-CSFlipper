@@ -2,7 +2,7 @@ from datetime import date
 from decimal import Decimal
 
 from packages.simulation import (
-    BUFF163,
+    BUFF,
     STEAM,
     PortfolioRiskConfig,
     PortfolioSimulator,
@@ -16,7 +16,7 @@ def test_portfolio_risk_allows_candidate_inside_limits() -> None:
     simulator.buy(
         item_id="item-1",
         item_name="AK-47 | Slate",
-        buy_platform=BUFF163,
+        buy_platform=BUFF,
         buy_price=Decimal("80"),
         buy_currency="CNY",
         purchased_at=date(2026, 1, 1),
@@ -51,7 +51,7 @@ def test_portfolio_risk_blocks_candidate_that_breaks_exposure_limits() -> None:
     simulator.buy(
         item_id="item-1",
         item_name="AK-47 | Slate",
-        buy_platform=BUFF163,
+        buy_platform=BUFF,
         buy_price=Decimal("160"),
         buy_currency="CNY",
         purchased_at=date(2026, 1, 1),
@@ -69,7 +69,7 @@ def test_portfolio_risk_blocks_candidate_that_breaks_exposure_limits() -> None:
         ),
         candidate=RiskCandidate(
             item_id="item-1",
-            buy_platform=BUFF163,
+            buy_platform=BUFF,
             buy_value_eur=Decimal("25"),
             available_quantity=2,
         ),
@@ -111,7 +111,7 @@ def test_portfolio_risk_without_candidate_observes_existing_max_exposures() -> N
     simulator.buy(
         item_id="item-1",
         item_name="AK-47 | Slate",
-        buy_platform=BUFF163,
+        buy_platform=BUFF,
         buy_price=Decimal("80"),
         buy_currency="CNY",
         purchased_at=date(2026, 1, 1),
@@ -119,7 +119,7 @@ def test_portfolio_risk_without_candidate_observes_existing_max_exposures() -> N
     simulator.buy(
         item_id="item-2",
         item_name="M4A1-S | Nitro",
-        buy_platform=BUFF163,
+        buy_platform=BUFF,
         buy_price=Decimal("120"),
         buy_currency="CNY",
         purchased_at=date(2026, 1, 1),

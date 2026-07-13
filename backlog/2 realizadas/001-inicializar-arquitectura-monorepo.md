@@ -113,7 +113,7 @@ Riesgos:
 
 ### `Cs-Tracker`
 
-Proyecto Python orientado a arbitraje BUFF163 -> Steam con Playwright, Pydantic, Supabase, Click y structlog.
+Proyecto Python orientado a arbitraje BUFF -> Steam con Playwright, Pydantic, Supabase, Click y structlog.
 
 Piezas aprovechables:
 
@@ -137,7 +137,7 @@ Proyecto Python más cercano a una librería de extracción histórica multi-fue
 Piezas aprovechables:
 
 - `src/extraction/kernel.py`: kernel asíncrono con concurrencia limitada, reintentos, métricas y dumps de anomalías. Muy aprovechable para `apps/acquisition/` y `packages/persistence`/outbox como patrón de observabilidad.
-- `src/extraction/connectors/`: conectores probe-first para Steam, SteamDT, Buff163, CSFloat y CS.Money. Encaja directamente con la tarea `006`.
+- `src/extraction/connectors/`: conectores probe-first para Steam, SteamDT, Buff, CSFloat y CS.Money. Encaja directamente con la tarea `006`.
 - `src/extraction/models.py`: dataclasses limpias para `ExtractionTarget`, `PricePoint`, `ConnectorExtraction` y métricas. Buena base conceptual para contratos/dominio, aunque en el monorepo los contratos compartidos deben ir con Pydantic V2.
 - `src/cs2_trend/domain/canonical_id.py`: generación determinista de IDs canónicos de items. Encaja en `packages/domain/` y tarea `002`.
 - `src/cs2_price_trend/quality/`: validación Pandera de históricos, contratos tabulares y saneamiento. Encaja en `packages/prediction/` o adquisición antes de persistir observaciones.

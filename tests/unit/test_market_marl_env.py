@@ -10,7 +10,7 @@ from packages.marl import (
     MarketEpisodeStep,
     MarketMARLEnvironment,
 )
-from packages.simulation import BUFF163, PortfolioRiskConfig
+from packages.simulation import BUFF, PortfolioRiskConfig
 
 
 def test_market_marl_agent_specs_define_local_contracts() -> None:
@@ -145,7 +145,7 @@ def test_market_marl_env_can_execute_buy_from_buff_candidate() -> None:
                 item_id="item-1",
                 representation_name="AK-47 | Slate_FT_0",
                 observed_day=date(2026, 1, 1),
-                buy_platform=BUFF163,
+                buy_platform=BUFF,
                 buy_price_type="buy_order",
                 sell_platform="STEAM",
                 sell_price_type="buy_order",

@@ -2,7 +2,7 @@
 
 ## Objetivo
 
-Diseñar e implementar el entorno de simulacion de mercado en PettingZoo con datos historicos reales de Steam Market y Buff163.
+Diseñar e implementar el entorno de simulacion de mercado en PettingZoo con datos historicos reales de Steam Market y Buff.
 
 ## Contexto
 

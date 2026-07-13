@@ -2,7 +2,7 @@
 
 ## Objetivo
 
-Implementar el pipeline de extraccion y procesamiento de datos historicos de precios, spreads, volumen y tendencias de Steam Market y Buff163 para entrenar el modelo supervisado.
+Implementar el pipeline de extraccion y procesamiento de datos historicos de precios, spreads, volumen y tendencias de Steam Market y Buff para entrenar el modelo supervisado.
 
 ## Contexto
 
@@ -11,7 +11,7 @@ El modelo supervisado predice la probabilidad calibrada de que el spread entre S
 ## Alcance
 
 - Extraer historico desde `market_items`, `market_history_points` y fuentes historicas validadas.
-- Alinear observaciones de Steam y Buff163 por item, timestamp, moneda y ventana temporal.
+- Alinear observaciones de Steam y Buff por item, timestamp, moneda y ventana temporal.
 - Calcular features de precio, spread neto, volumen, liquidez, tendencia, volatilidad y comisiones.
 - Construir la etiqueta supervisada: spread rentable a 8 dias segun formula versionada.
 - Separar dataset de entrenamiento, validacion y test respetando orden temporal.

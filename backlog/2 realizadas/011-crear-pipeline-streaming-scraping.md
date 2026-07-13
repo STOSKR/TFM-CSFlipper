@@ -48,9 +48,9 @@ El flujo actual ya evita abrir paginas detalle de SteamDT, trabaja con batches e
 
 ## Pruebas ejecutadas
 
-- `python -m pytest tests/unit/test_streaming_pipeline.py tests/unit/test_buff163_market.py tests/unit/test_simple_market_snapshots.py`
-- `python -m ruff check apps/acquisition/streaming_pipeline.py apps/cli/stream_scrape_flow.py apps/cli/scrape_candidate_platforms.py apps/acquisition/buff163_market.py tests/unit/test_streaming_pipeline.py tests/unit/test_buff163_market.py`
-- `python -m mypy apps/acquisition/streaming_pipeline.py apps/cli/stream_scrape_flow.py apps/cli/scrape_candidate_platforms.py apps/acquisition/buff163_market.py tests/unit/test_streaming_pipeline.py tests/unit/test_buff163_market.py`
+- `python -m pytest tests/unit/test_streaming_pipeline.py tests/unit/test_buff_market.py tests/unit/test_simple_market_snapshots.py`
+- `python -m ruff check apps/acquisition/streaming_pipeline.py apps/cli/stream_scrape_flow.py apps/cli/scrape_candidate_platforms.py apps/acquisition/buff_market.py tests/unit/test_streaming_pipeline.py tests/unit/test_buff_market.py`
+- `python -m mypy apps/acquisition/streaming_pipeline.py apps/cli/stream_scrape_flow.py apps/cli/scrape_candidate_platforms.py apps/acquisition/buff_market.py tests/unit/test_streaming_pipeline.py tests/unit/test_buff_market.py`
 - `python -m apps.cli.stream_scrape_flow --no-steam --no-buff --batch-size 10 --queue-size 2 --output %TEMP%/csflipper_stream_smoke.json --log-file %TEMP%/csflipper_stream_smoke.log`
 - `python -m pytest tests/unit`
 - `python -m ruff check .`

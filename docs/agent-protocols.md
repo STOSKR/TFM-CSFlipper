@@ -13,7 +13,7 @@ Los scrapers, conectores API, OCR, importadores CSV y SteamDT pueden considerars
 | Agente extractor | Responsabilidad | Paquetes principales |
 | --- | --- | --- |
 | Steam Market extractor | Captura precio, volumen, buy orders e historico disponible de Steam. | `apps/acquisition/`, `packages/persistence/` |
-| Buff163 extractor | Captura precio, volumen, buy orders e historico disponible de Buff163. | `apps/acquisition/`, `packages/persistence/` |
+| Buff extractor | Captura precio, volumen, buy orders e historico disponible de Buff. | `apps/acquisition/`, `packages/persistence/` |
 | SteamDT extractor | Descubre candidatos y estrategias de busqueda. | `steamdt.py`, `market_workers.py` |
 | OCR extractor | Convierte capturas en observaciones estructuradas. | `packages/vision/`, `apps/acquisition/` |
 | CSV/API importer | Carga historicos o muestras controladas. | `apps/acquisition/`, `packages/contracts/` |

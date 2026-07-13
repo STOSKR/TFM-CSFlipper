@@ -363,7 +363,7 @@ def test_scrape_progress_parser_maps_streaming_steps() -> None:
         20,
         "BUFF 1/4",
     )
-    assert _progress_from_line("platform_done=buff163 ok=3 errors=1") == (
+    assert _progress_from_line("platform_done=buff ok=3 errors=1") == (
         20,
         "BUFF terminado: ok=3, errores=1",
     )

@@ -76,7 +76,7 @@ El sistema se organiza en dos familias de agentes. Los agentes extractores obser
 
 ```text
 Agentes extractores
-  -> Historico Steam Market / Buff163
+  -> Historico Steam Market / BUFF
   -> Dataset supervisado
   -> Modelo calibrado de spread rentable a 8 dias
   -> Entorno PettingZoo

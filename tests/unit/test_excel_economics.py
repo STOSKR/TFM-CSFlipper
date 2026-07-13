@@ -4,7 +4,7 @@ from decimal import Decimal
 import pytest
 
 from packages.simulation import (
-    BUFF163,
+    BUFF,
     STEAM,
     PositionStatus,
     calculate_trade_result,
@@ -62,7 +62,7 @@ def test_steam_purchase_to_buff_sale_applies_buff_fee() -> None:
         buy_currency="EUR",
         sell_price=Decimal("347.5"),
         sell_currency="CNY",
-        sell_platform=BUFF163,
+        sell_platform=BUFF,
         config=config,
     )
 
@@ -114,7 +114,7 @@ def test_effective_cash_and_fee_factors_match_calculators() -> None:
     config = default_excel_economics_config()
 
     assert effective_cash_value(Decimal("100"), platform=STEAM, config=config) == Decimal("80.0")
-    assert effective_cash_value(Decimal("100"), platform=BUFF163, config=config) == Decimal("100")
+    assert effective_cash_value(Decimal("100"), platform=BUFF, config=config) == Decimal("100")
     assert steam_cashout_factor(config) == Decimal("0.80")
     assert steam_cashout_factor(config, cashout_loss=Decimal("0.15")) == Decimal("0.85")
     assert steam_cashout_factor(config, cashout_loss=Decimal("0.10")) == Decimal("0.90")
@@ -122,7 +122,7 @@ def test_effective_cash_and_fee_factors_match_calculators() -> None:
     assert steam_balance_cost_factor(config, cashout_loss=Decimal("0.15")) == Decimal("0.7395")
     assert steam_balance_cost_factor(config, cashout_loss=Decimal("0.10")) == Decimal("0.7830")
     assert config.sale_fee_factors[STEAM] == Decimal("0.87")
-    assert config.sale_fee_factors[BUFF163] == Decimal("0.975")
+    assert config.sale_fee_factors[BUFF] == Decimal("0.975")
 
 
 def test_return_ratio_guards_zero_invested_amount() -> None:

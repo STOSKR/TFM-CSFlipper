@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from decimal import Decimal
 
-from packages.simulation import BUFF163, STEAM
+from packages.simulation import BUFF, STEAM
 from packages.simulation.economics import (
     MarketEconomicsConfig,
     net_sale_value_eur,
@@ -108,7 +108,7 @@ def score_buff_to_steam_flip(
     )
     return SteamBuffFlipScore(
         route_label="BUFF listing -> Steam listing",
-        buy_platform=BUFF163,
+        buy_platform=BUFF,
         buy_price_type="listing",
         sell_platform=STEAM,
         sell_price_type="listing",
@@ -165,7 +165,7 @@ def _missing_score(
 ) -> SteamBuffFlipScore:
     return SteamBuffFlipScore(
         route_label="BUFF listing -> Steam listing",
-        buy_platform=BUFF163,
+        buy_platform=BUFF,
         buy_price_type="listing",
         sell_platform=STEAM,
         sell_price_type="listing",

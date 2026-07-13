@@ -6,7 +6,7 @@ python scrape_flow.py --show-browser --persist
 
 Sistema multiagente para simular decisiones de inversión en mercados de activos digitales de Counter-Strike 2.
 
-El proyecto observa precios, liquidez y señales de mercado de plataformas como Steam Market y Buff163; consolida histórico en Supabase/Postgres; calcula probabilidades supervisadas calibradas sobre spreads; y entrena agentes MARL cooperativos para decidir operaciones simuladas.
+El proyecto observa precios, liquidez y señales de mercado de plataformas como Steam Market y BUFF; consolida histórico en Supabase/Postgres; calcula probabilidades supervisadas calibradas sobre spreads; y entrena agentes MARL cooperativos para decidir operaciones simuladas.
 
 ## Estado del Proyecto
 

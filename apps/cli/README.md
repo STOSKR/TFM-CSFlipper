@@ -271,7 +271,7 @@ python market_workers.py --show-browser --buff-login
 ```
 
 Las cookies/localStorage de BUFF se guardan en
-`data/browser-state/buff163_storage_state.json` y se reutilizan en ejecuciones posteriores.
+`data/browser-state/buff_storage_state.json` y se reutilizan en ejecuciones posteriores.
 
 Puedes desactivar una plataforma durante pruebas:
 
