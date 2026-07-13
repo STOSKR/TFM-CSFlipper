@@ -43,7 +43,7 @@
 \contentsline {chapter}{\numberline {4}Configuración del entorno y datos}{26}{chapter.4}%
 \contentsline {section}{\numberline {4.1}Fuentes de datos}{26}{section.4.1}%
 \contentsline {subsection}{\numberline {4.1.1}Mercado de Steam}{26}{subsection.4.1.1}%
-\contentsline {subsection}{\numberline {4.1.2}BUFF163 y mercados externos}{26}{subsection.4.1.2}%
+\contentsline {subsection}{\numberline {4.1.2}BUFF y mercados externos}{26}{subsection.4.1.2}%
 \contentsline {subsection}{\numberline {4.1.3}OCR e importación manual}{27}{subsection.4.1.3}%
 \contentsline {section}{\numberline {4.2}Adquisición y persistencia}{27}{section.4.2}%
 \contentsline {subsection}{\numberline {4.2.1}Pipeline de adquisición}{27}{subsection.4.2.1}%

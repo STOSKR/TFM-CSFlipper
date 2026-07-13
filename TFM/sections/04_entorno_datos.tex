@@ -2,7 +2,7 @@
 
 \section{Fuentes de datos}
 
-El sistema trabaja con varias fuentes porque el mercado de \acroref{CS2}{CS2} está fragmentado. Ninguna fuente aislada contiene toda la información necesaria para decidir. Steam aporta precio, histórico y señales del mercado principal; \acroref{BUFF}{BUFF163} permite comparar oportunidades y buy orders; SteamDT ayuda a descubrir candidatos; el \acroref{OCR}{OCR} permite capturar datos cuando no existe una \acroref{API}{API} cómoda; y los \acroref{CSV}{CSV} o importaciones manuales sirven para integrar muestras controladas o material histórico.
+El sistema trabaja con varias fuentes porque el mercado de \acroref{CS2}{CS2} está fragmentado. Ninguna fuente aislada contiene toda la información necesaria para decidir. Steam aporta precio, histórico y señales del mercado principal; \acroref{BUFF}{BUFF} permite comparar oportunidades y buy orders; SteamDT ayuda a descubrir candidatos; el \acroref{OCR}{OCR} permite capturar datos cuando no existe una \acroref{API}{API} cómoda; y los \acroref{CSV}{CSV} o importaciones manuales sirven para integrar muestras controladas o material histórico.
 
 \subsection{Mercado de Steam}
 
@@ -10,9 +10,9 @@ Steam actúa como una de las fuentes principales de precio e histórico. En el p
 
 En la práctica, Steam no se usa solo como una tabla de precios. También aporta señales de liquidez y de comportamiento temporal. El histórico permite construir retornos, medias móviles, volatilidad y desviaciones frente a ventas recientes. Estas variables son necesarias para que el modelo no mire únicamente una fotografía puntual del mercado.
 
-\subsection{BUFF163 y mercados externos}
+\subsection{BUFF y mercados externos}
 
-\acroref{BUFF}{BUFF163} se utiliza como mercado externo de comparación. Sus precios se reciben principalmente en \acroref{CNY}{CNY}, por lo que el sistema conserva tanto el valor original como su conversión a \acroref{EUR}{EUR}. Esta doble representación permite auditar el dato original y, al mismo tiempo, entrenar modelos sobre una moneda canónica. Las buy orders de \acroref{BUFF}{BUFF} son especialmente útiles porque ayudan a estimar si una salida tiene demanda real o si el precio observado es poco ejecutable.
+\acroref{BUFF}{BUFF} se utiliza como mercado externo de comparación. Sus precios se reciben principalmente en \acroref{CNY}{CNY}, por lo que el sistema conserva tanto el valor original como su conversión a \acroref{EUR}{EUR}. Esta doble representación permite auditar el dato original y, al mismo tiempo, entrenar modelos sobre una moneda canónica. Las buy orders de \acroref{BUFF}{BUFF} son especialmente útiles porque ayudan a estimar si una salida tiene demanda real o si el precio observado es poco ejecutable.
 
 SteamDT se utiliza como apoyo para descubrir candidatos y estrategias de búsqueda, no como fuente única de decisión. Su función dentro del sistema es reducir el espacio de búsqueda inicial y ayudar a priorizar qué artículos merece la pena observar con más profundidad.
 

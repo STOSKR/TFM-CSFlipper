@@ -18,7 +18,7 @@ La arquitectura se organiza en cinco capas: adquisición, persistencia, predicci
 \begin{minipage}{0.92\textwidth}
 \centering
 \begin{tabularx}{0.95\textwidth}{>{\bfseries}l X}
-1. Adquisición & Steam, \acroref{BUFF}{BUFF163}, SteamDT, \acroref{OCR}{OCR} e importaciones manuales capturan observaciones. \\
+1. Adquisición & Steam, \acroref{BUFF}{BUFF}, SteamDT, \acroref{OCR}{OCR} e importaciones manuales capturan observaciones. \\
 2. Persistencia & Postgres/Supabase guarda artículos, históricos, snapshots, predicciones y decisiones simuladas. \\
 3. Predicción & El modelo supervisado genera probabilidades calibradas y señales de mercado. \\
 4. Decisión \acroref{MARL}{MARL} & Scout, Trader y Portfolio deciden dentro del entorno PettingZoo/\acroref{RLlib}{RLlib}. \\
@@ -29,7 +29,7 @@ La arquitectura se organiza en cinco capas: adquisición, persistencia, predicci
 \caption{Capas principales de la arquitectura propuesta.}
 \end{figure}
 
-La decisión final siempre queda registrada como simulada. Esto permite evaluar el sistema con métricas de cartera sin exponer capital real durante la investigación. La arquitectura puede generar recomendaciones, episodios y métricas, pero no envía órdenes reales a Steam, \acroref{BUFF}{BUFF163} ni ninguna otra plataforma.
+La decisión final siempre queda registrada como simulada. Esto permite evaluar el sistema con métricas de cartera sin exponer capital real durante la investigación. La arquitectura puede generar recomendaciones, episodios y métricas, pero no envía órdenes reales a Steam, \acroref{BUFF}{BUFF} ni ninguna otra plataforma.
 
 \section{Flujo operativo}
 
@@ -57,7 +57,7 @@ El entorno representa una cartera simulada que evoluciona a partir de datos hist
 
 \subsection{Estado y observaciones}
 
-Las observaciones combinan variables de mercado y variables de cartera. Entre las variables de mercado se incluyen precios de Steam y \acroref{BUFF}{BUFF163} normalizados a \acroref{EUR}{EUR}, precios originales en su moneda nativa, volumen, liquidez, spread bruto, spread neto, buy orders, edad de la variante y señales temporales como retornos, medias móviles, \acroref{RSI}{RSI} o desviaciones de ventas. Entre las variables de cartera se incluyen efectivo disponible, capital bloqueado, posiciones abiertas, exposición por activo y estado de desbloqueo.
+Las observaciones combinan variables de mercado y variables de cartera. Entre las variables de mercado se incluyen precios de Steam y \acroref{BUFF}{BUFF} normalizados a \acroref{EUR}{EUR}, precios originales en su moneda nativa, volumen, liquidez, spread bruto, spread neto, buy orders, edad de la variante y señales temporales como retornos, medias móviles, \acroref{RSI}{RSI} o desviaciones de ventas. Entre las variables de cartera se incluyen efectivo disponible, capital bloqueado, posiciones abiertas, exposición por activo y estado de desbloqueo.
 
 La salida del modelo supervisado se incorpora como una probabilidad calibrada de que una oportunidad mantenga un spread rentable en el horizonte definido. Esta señal permite aprovechar aprendizaje supervisado sin convertirlo en una decisión rígida. Si la probabilidad es alta pero la cartera está sobreexpuesta o el capital está bloqueado, el entorno puede rechazar o posponer la operación.
 
@@ -71,7 +71,7 @@ Cuando se ejecuta una compra simulada, el saldo disponible disminuye y se abre u
 
 \section{Agentes del sistema}
 
-La arquitectura distingue entre agentes extractores y agentes \acroref{MARL}{MARL}. Los extractores no se entrenan mediante aprendizaje por refuerzo y no deciden operaciones. Su trabajo es adquirir datos desde Steam, \acroref{BUFF}{BUFF163}, SteamDT, \acroref{OCR}{OCR} o \acroref{CSV}{CSV}/\acroref{API}{API} y transformarlos en observaciones persistidas. Los agentes \acroref{MARL}{MARL}, en cambio, operan dentro del entorno de simulación.
+La arquitectura distingue entre agentes extractores y agentes \acroref{MARL}{MARL}. Los extractores no se entrenan mediante aprendizaje por refuerzo y no deciden operaciones. Su trabajo es adquirir datos desde Steam, \acroref{BUFF}{BUFF}, SteamDT, \acroref{OCR}{OCR} o \acroref{CSV}{CSV}/\acroref{API}{API} y transformarlos en observaciones persistidas. Los agentes \acroref{MARL}{MARL}, en cambio, operan dentro del entorno de simulación.
 
 \begin{table}[h]
 \centering

@@ -28,7 +28,7 @@ Los objetivos específicos se agrupan en cuatro bloques:
 
 \begin{itemize}
   \item \textbf{Comprensión del dominio}: analizar el mercado de activos digitales de \textit{Counter-Strike 2}, sus plataformas, restricciones, comisiones, divisas, liquidez y efectos del \textit{trade hold}.
-  \item \textbf{Construcción de datos}: diseñar un flujo de adquisición y preparación de datos procedentes de Steam, \acroref{BUFF}{BUFF163}, SteamDT, \acroref{OCR}{OCR} y fuentes manuales, manteniendo trazabilidad de fuente, fecha, moneda y calidad del dato.
+  \item \textbf{Construcción de datos}: diseñar un flujo de adquisición y preparación de datos procedentes de Steam, \acroref{BUFF}{BUFF}, SteamDT, \acroref{OCR}{OCR} y fuentes manuales, manteniendo trazabilidad de fuente, fecha, moneda y calidad del dato.
   \item \textbf{Simulación y predicción}: migrar reglas económicas del proceso manual a código comprobable, construir datasets temporales, entrenar modelos supervisados y generar señales probabilísticas que puedan usarse dentro del entorno de decisión.
   \item \textbf{Decisión multiagente}: formular el problema como un entorno de aprendizaje por refuerzo multiagente, definir agentes especializados, establecer recompensas coherentes con la cartera y evaluar el comportamiento mediante métricas de rentabilidad, riesgo, exposición y capital inmovilizado.
 \end{itemize}
@@ -39,9 +39,9 @@ El alcance del proyecto se centra en la simulación y en la evaluación. Cualqui
 
 La arquitectura multiagente se plantea como una forma de separar responsabilidades dentro del proceso de decisión. La adquisición de datos, la predicción supervisada, el simulador económico, los agentes \acroref{MARL}{MARL} y la evaluación experimental se mantienen como capas diferenciadas para que cada parte pueda validarse, sustituirse o compararse sin comprometer el conjunto del sistema.
 
-Otra restricción relevante es la disponibilidad de histórico alineado entre plataformas. El mercado de Steam y el de \acroref{BUFF}{BUFF163} no siempre ofrecen datos con la misma granularidad, moneda, horizonte o estabilidad de acceso. Por ello, una parte del trabajo consiste en construir una base experimental honesta, donde los resultados preliminares se distingan claramente de una validación definitiva.
+Otra restricción relevante es la disponibilidad de histórico alineado entre plataformas. El mercado de Steam y el de \acroref{BUFF}{BUFF} no siempre ofrecen datos con la misma granularidad, moneda, horizonte o estabilidad de acceso. Por ello, una parte del trabajo consiste en construir una base experimental honesta, donde los resultados preliminares se distingan claramente de una validación definitiva.
 
-En la fase corregida del proyecto, esta restricción se aborda separando entrenamiento e inferencia: Steam se usa como fuente principal para aprender patrones temporales de salida, mientras que \acroref{BUFF}{BUFF163} se reserva como precio vivo de entrada para evaluar flips concretos. Así, \acroref{BUFF}{BUFF} no se convierte en objetivo de predicción ni en dependencia masiva de entrenamiento.
+En la fase corregida del proyecto, esta restricción se aborda separando entrenamiento e inferencia: Steam se usa como fuente principal para aprender patrones temporales de salida, mientras que \acroref{BUFF}{BUFF} se reserva como precio vivo de entrada para evaluar flips concretos. Así, \acroref{BUFF}{BUFF} no se convierte en objetivo de predicción ni en dependencia masiva de entrenamiento.
 
 \section{Metodología de desarrollo}
 
