@@ -19,6 +19,7 @@
         <nav class="nav-list">
           <a href="#recommendations" class="active">Deals</a>
           <a href="#scraper">Scraper</a>
+          <a href="#login">Login</a>
           <a href="#model">Modelo</a>
           <a href="#agents">Agentes</a>
           <a href="#portfolio">Riesgo</a>
@@ -167,6 +168,42 @@
             </div>
             <div class="command-list" id="command-list"></div>
           </div>
+        </section>
+
+        <section id="login" class="band view login-view" aria-labelledby="login-title" hidden>
+          <div class="section-toolbar">
+            <div>
+              <p class="eyebrow">Sesiones locales</p>
+              <h2 id="login-title">Login de plataformas</h2>
+            </div>
+            <span class="badge observe">Navegador visible</span>
+          </div>
+          <div class="login-grid">
+            <article class="ops-status">
+              <span class="ops-label">Estado</span>
+              <strong id="login-running-state">Parado</strong>
+              <span id="login-last-run">Sin login en esta sesion</span>
+            </article>
+            <article class="ops-status">
+              <span class="ops-label">Resultado</span>
+              <strong id="login-return-code">Pendiente</strong>
+              <span id="login-finished-at">Esperando primera ejecucion</span>
+            </article>
+          </div>
+          <div class="command-library" aria-label="Logins locales disponibles">
+            <div class="command-list" id="login-command-list"></div>
+          </div>
+          <div class="progress-panel" aria-live="polite">
+            <div class="progress-head">
+              <strong id="login-progress-text">Esperando login</strong>
+              <span id="login-progress-percent">0%</span>
+            </div>
+            <span class="progress-meter" aria-hidden="true">
+              <span id="login-progress-bar"></span>
+            </span>
+            <ol class="scrape-log" id="login-log"></ol>
+          </div>
+          <p class="inline-status" id="login-action-status" role="status"></p>
         </section>
 
         <section id="model" class="band view model-view" aria-labelledby="model-title" hidden>

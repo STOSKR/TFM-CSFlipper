@@ -14,6 +14,10 @@ def test_web_mvp_static_files_are_wired() -> None:
     assert 'id="sort-select"' in html
     assert 'id="recommendation-summary"' in html
     assert 'href="#scraper"' in html
+    assert 'href="#login"' in html
+    assert 'id="login-command-list"' in html
+    assert 'id="login-action-status"' in html
+    assert "Login de plataformas" in html
     assert 'id="scrape-start-button"' in html
     assert 'id="scrape-show-browser"' in html
     assert 'id="scrape-refresh-history"' in html
@@ -45,6 +49,8 @@ def test_web_mvp_static_files_are_wired() -> None:
     assert "fallbackDashboard" in js
     assert "compareRecommendations" in js
     assert "renderSummary" in js
+    assert "renderLoginCommands" in js
+    assert "renderLoginStatus" in js
     assert "formatRouteDetail" in js
     assert "renderDealDetail" in js
     assert "data-deal-index" in js
@@ -63,6 +69,7 @@ def test_web_mvp_static_files_are_wired() -> None:
     assert "command.command" not in js
     assert "./api/commands/run" in js
     assert "data-command-id" in js
+    assert "#login-command-list" in js
     assert "./api/scrape/start" in js
     assert 'document.querySelector("#scrape-show-browser").checked = false' in js
     assert 'document.querySelector("#scrape-refresh-history").checked = false' in js
@@ -74,6 +81,8 @@ def test_web_mvp_static_files_are_wired() -> None:
     assert "--text-body: 1rem" in css
     assert ".switch-control" in css
     assert ".segmented-control" in css
+    assert ".login-view" in css
+    assert ".login-grid" in css
     assert ".progress-panel" in css
     assert ".scrape-log" in css
     assert "RLlib smoke listo" in js

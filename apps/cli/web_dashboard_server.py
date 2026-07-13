@@ -152,6 +152,7 @@ class LocalCommand:
     label: str
     description: str
     command: list[str]
+    group: str = "maintenance"
     destructive: bool = False
 
 
@@ -186,6 +187,42 @@ def _scrape_status_payload(runner: ScrapeJobRunner) -> dict[str, Any]:
 
 def _local_commands() -> tuple[LocalCommand, ...]:
     return (
+        LocalCommand(
+            id="login_steam",
+            label="Login Steam",
+            description="Abre Steam Market en navegador visible y guarda la sesion local.",
+            command=[
+                sys.executable,
+                "-u",
+                "-m",
+                "apps.cli.scrape_candidate_platforms",
+                "--login-only",
+                "--steam",
+                "--no-buff",
+                "--show-browser",
+                "--login-wait",
+                "180",
+            ],
+            group="login",
+        ),
+        LocalCommand(
+            id="login_buff",
+            label="Login BUFF",
+            description="Abre BUFF en navegador visible y guarda la sesion local.",
+            command=[
+                sys.executable,
+                "-u",
+                "-m",
+                "apps.cli.scrape_candidate_platforms",
+                "--login-only",
+                "--no-steam",
+                "--buff",
+                "--show-browser",
+                "--login-wait",
+                "180",
+            ],
+            group="login",
+        ),
         LocalCommand(
             id="refresh_history_steam",
             label="Refrescar historico Steam",
@@ -230,6 +267,7 @@ def _command_payload(command: LocalCommand) -> dict[str, Any]:
         "id": command.id,
         "label": command.label,
         "description": command.description,
+        "group": command.group,
         "destructive": command.destructive,
     }
 

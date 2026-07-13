@@ -80,16 +80,31 @@ def test_web_scrape_command_can_enable_buff_for_refresh() -> None:
 def test_local_command_allowlist_exposes_expected_frontend_commands() -> None:
     commands = {command.id: command for command in _local_commands()}
 
-    assert set(commands) == {"refresh_history_steam", "refresh_history_with_buff"}
+    assert set(commands) == {
+        "login_steam",
+        "login_buff",
+        "refresh_history_steam",
+        "refresh_history_with_buff",
+    }
+    assert _local_command("login_steam") == commands["login_steam"]
+    assert _local_command("login_buff") == commands["login_buff"]
     assert _local_command("refresh_history_steam") == commands["refresh_history_steam"]
     assert _local_command("refresh_history_with_buff") == commands["refresh_history_with_buff"]
     assert _local_command("rm_everything") is None
 
     payload = _command_payload(commands["refresh_history_steam"])
     assert payload["id"] == "refresh_history_steam"
+    assert payload["group"] == "maintenance"
     assert "command" not in payload
     assert commands["refresh_history_steam"].command[
         commands["refresh_history_steam"].command.index("--stale-minutes") + 1
     ] == "480"
     assert "--no-buff" in commands["refresh_history_steam"].command
     assert "--buff" in commands["refresh_history_with_buff"].command
+    assert _command_payload(commands["login_steam"])["group"] == "login"
+    assert "--login-only" in commands["login_steam"].command
+    assert "--steam" in commands["login_steam"].command
+    assert "--no-buff" in commands["login_steam"].command
+    assert "--login-only" in commands["login_buff"].command
+    assert "--no-steam" in commands["login_buff"].command
+    assert "--buff" in commands["login_buff"].command

@@ -709,7 +709,8 @@ input[type="search"] {
 }
 
 .operations-panel,
-.model-view {
+.model-view,
+.login-view {
   display: grid;
   align-content: start;
   gap: 14px;
@@ -869,6 +870,7 @@ input[type="search"] {
 
 .operations-panel,
 .model-view,
+.login-view,
 #agents,
 #portfolio,
 #backlog {
@@ -876,10 +878,15 @@ input[type="search"] {
 }
 
 .ops-grid,
-.model-grid {
+.model-grid,
+.login-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(180px, 1fr));
   gap: 10px;
+}
+
+.login-grid {
+  grid-template-columns: repeat(2, minmax(180px, 1fr));
 }
 
 .ops-status,
@@ -1223,6 +1230,7 @@ input[type="search"] {
   .status-rail,
   .ops-grid,
   .model-grid,
+  .login-grid,
   .agent-list,
   .risk-grid,
   .split,

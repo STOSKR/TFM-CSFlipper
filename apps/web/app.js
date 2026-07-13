@@ -348,6 +348,7 @@ function renderScrapeStatus(payload) {
   document.querySelector("#scrape-progress-percent").textContent = `${progressPercent}%`;
   document.querySelector("#scrape-progress-bar").style.width = `${progressPercent}%`;
   renderScrapeLog(job.log_tail);
+  renderLoginStatus(job, running, returnCode, progressPercent, progressText);
   document.querySelector("#scrape-start-button").disabled = running;
   document.querySelector("#scrape-show-browser").disabled = running;
   document.querySelector("#scrape-refresh-history").disabled = running;
@@ -364,6 +365,24 @@ function renderScrapeStatus(payload) {
   scrapeWasRunning = running;
 }
 
+function renderLoginStatus(job, running, returnCode, progressPercent, progressText) {
+  const startedAt = formatDate(job.last_started_at);
+  const finishedAt = formatDate(job.last_finished_at);
+  document.querySelector("#login-running-state").textContent = running ? "Ejecutando" : "Parado";
+  document.querySelector("#login-last-run").textContent = job.last_started_at
+    ? `Inicio: ${startedAt}`
+    : "Sin login en esta sesion";
+  document.querySelector("#login-return-code").textContent =
+    returnCode === null || returnCode === undefined ? "Pendiente" : String(returnCode);
+  document.querySelector("#login-finished-at").textContent = job.last_finished_at
+    ? `Fin: ${finishedAt}`
+    : "Esperando finalizacion";
+  document.querySelector("#login-progress-text").textContent = progressText;
+  document.querySelector("#login-progress-percent").textContent = `${progressPercent}%`;
+  document.querySelector("#login-progress-bar").style.width = `${progressPercent}%`;
+  renderLoginLog(job.log_tail);
+}
+
 function renderScrapeLog(lines) {
   const root = document.querySelector("#scrape-log");
   const visibleLines = Array.isArray(lines) ? lines.slice(-8) : [];
@@ -372,6 +391,16 @@ function renderScrapeLog(lines) {
       .map((line) => `<li>${escapeHtml(line)}</li>`)
       .join("")
     : `<li class="muted">Sin eventos de ejecucion todavia.</li>`;
+}
+
+function renderLoginLog(lines) {
+  const root = document.querySelector("#login-log");
+  const visibleLines = Array.isArray(lines) ? lines.slice(-8) : [];
+  root.innerHTML = visibleLines.length
+    ? visibleLines
+      .map((line) => `<li>${escapeHtml(line)}</li>`)
+      .join("")
+    : `<li class="muted">Sin eventos de login todavia.</li>`;
 }
 
 async function loadScrapeStatus() {
@@ -415,7 +444,8 @@ async function loadCommands() {
     return;
   }
   localCommands = response.payload?.commands || [];
-  renderCommands(localCommands);
+  renderCommands(localCommands.filter((command) => command.group !== "login"));
+  renderLoginCommands(localCommands.filter((command) => command.group === "login"));
   updateCommandButtons(Boolean(response.payload?.job?.running));
 }
 
@@ -439,6 +469,28 @@ function renderCommands(commands) {
       `)
       .join("")
     : `<div class="empty-list"><strong>Sin comandos</strong><span>No hay comandos configurados.</span></div>`;
+}
+
+function renderLoginCommands(commands) {
+  document.querySelector("#login-command-list").innerHTML = commands.length
+    ? commands
+      .map((command) => `
+        <article class="command-row">
+          <div>
+            <strong>${escapeHtml(command.label)}</strong>
+            <span>${escapeHtml(command.description)}</span>
+          </div>
+          <button
+            class="secondary-action"
+            type="button"
+            data-command-id="${escapeAttributeText(command.id)}"
+          >
+            Iniciar
+          </button>
+        </article>
+      `)
+      .join("")
+    : `<div class="empty-list"><strong>Sin logins</strong><span>No hay comandos de login configurados.</span></div>`;
 }
 
 function updateCommandButtons(running) {
@@ -478,8 +530,8 @@ async function startScrape() {
 }
 
 async function runLocalCommand(commandId) {
-  const status = document.querySelector("#scrape-action-status");
   const command = localCommands.find((item) => item.id === commandId);
+  const status = document.querySelector(command?.group === "login" ? "#login-action-status" : "#scrape-action-status");
   status.textContent = command ? `Lanzando ${command.label}...` : "Lanzando comando...";
   updateCommandButtons(true);
   const response = await requestJson("./api/commands/run", {
@@ -631,6 +683,13 @@ document.querySelector("#command-list").addEventListener("click", (event) => {
   }
   runLocalCommand(button.dataset.commandId);
 });
+document.querySelector("#login-command-list").addEventListener("click", (event) => {
+  const button = event.target.closest("[data-command-id]");
+  if (!button) {
+    return;
+  }
+  runLocalCommand(button.dataset.commandId);
+});
 
 setupNavigation();
 loadDashboard().then(renderAll);
@@ -647,6 +706,7 @@ function setupNavigation() {
   const titles = {
     recommendations: "Deals",
     scraper: "Scraper",
+    login: "Login",
     model: "Modelo",
     agents: "Agentes",
     portfolio: "Riesgo",
