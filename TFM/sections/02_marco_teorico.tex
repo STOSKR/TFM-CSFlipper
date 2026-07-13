@@ -73,3 +73,57 @@ En el caso \acroref{CS2}{CS2}, las fricciones se vuelven todavía más visibles 
 Los trabajos de \acroref{RL}{RL} financiero muestran que entrenar agentes de trading exige reproducibilidad, backtesting y control de fricciones \cite{liu2021finrl}. Los trabajos de \acroref{MARL}{MARL} muestran que la coordinación entre agentes puede ser útil, pero también introduce inestabilidad y necesidad de evaluación cuidadosa \cite{lowe2017maddpg,yu2022mappo}. El proyecto se sitúa en la intersección de ambas ideas: usa un mercado de activos digitales como entorno de decisión, incorpora señales supervisadas y plantea una arquitectura multiagente cooperativa.
 
 La diferencia principal respecto a una aplicación financiera clásica es el dominio. Los activos de \acroref{CS2}{CS2} son bienes virtuales controlados por plataformas, con liquidez fragmentada y reglas propias. La diferencia respecto a una simple herramienta de scraping es el objetivo: no basta con mostrar precios, sino que se busca evaluar decisiones de cartera bajo restricciones. Por ello, el trabajo combina adquisición de datos, simulación económica, predicción supervisada y aprendizaje por refuerzo multiagente dentro de una misma metodología.
+
+\section{Tecnologías utilizadas}
+
+Siguiendo la estructura observada en el TFG de referencia, las tecnologías del proyecto se presentan indicando su función general y su aplicación concreta dentro del sistema. No se enumeran como una lista aislada de herramientas, sino como parte de la justificación técnica de la solución: cada tecnología cubre una necesidad de adquisición, persistencia, predicción, simulación, entrenamiento o validación.
+
+\begin{figure}[h]
+\centering
+\fbox{%
+\begin{minipage}{0.92\textwidth}
+\centering
+\begin{tabularx}{0.96\textwidth}{>{\bfseries}l X}
+\toprule
+Bloque & Tecnologías principales \\
+\midrule
+Adquisición & Python, Playwright, HTTPX, Steam, SteamDT, \acroref{BUFF}{BUFF} y \acroref{OCR}{OCR}. \\
+Persistencia & Postgres/Supabase, SQLAlchemy, AsyncPG y PyArrow. \\
+Predicción & Pandas, NumPy, scikit-learn y Joblib. \\
+Simulación & Módulos propios de cartera, riesgo, comisiones y \textit{trade hold}. \\
+Multiagente & PettingZoo, Ray/\acroref{RLlib}{RLlib}, Gymnasium, PyTorch y \acroref{PPO}{PPO}. \\
+Validación & Pytest, pytest-asyncio, Ruff, Mypy y pruebas de integración. \\
+Interfaz & HTML, CSS, JavaScript y servidor web local en Python. \\
+\bottomrule
+\end{tabularx}
+\end{minipage}}
+\caption{Resumen visual de la pila tecnológica utilizada en el proyecto.}
+\end{figure}
+
+\subsection{Herramientas de desarrollo}
+
+El proyecto se desarrolla como un monorepo en Python 3.11. Git se utiliza para versionar cambios y mantener trazabilidad de las decisiones técnicas. La estructura separa aplicaciones ejecutables, paquetes reutilizables, documentación, datos derivados y pruebas, lo que permite evolucionar el sistema sin mezclar adquisición, predicción, simulación y evaluación.
+
+Pytest y pytest-asyncio se emplean para automatizar pruebas unitarias y asíncronas. Ruff se usa como herramienta de análisis estático y estilo, mientras que Mypy permite detectar errores de tipado en módulos críticos. Estas herramientas no forman parte de la lógica de negocio, pero sí de la evidencia de calidad del desarrollo.
+
+\subsection{Adquisición y tratamiento de datos}
+
+La adquisición de datos se implementa principalmente en Python. HTTPX permite consultar fuentes HTTP cuando existe una interfaz estable, mientras que Playwright se reserva para escenarios en los que el dato solo está disponible mediante navegación o renderizado de página. En el caso del \acroref{OCR}{OCR}, OpenCV y Tesseract permiten extraer información visual cuando el dato no se recibe en formato estructurado.
+
+Pandas, NumPy y PyArrow se utilizan para preparar conjuntos de datos, generar características temporales y conservar datasets derivados en formatos reproducibles. Esta capa conecta las fuentes de mercado con los modelos supervisados y con los episodios del simulador.
+
+\subsection{Persistencia y modelo de datos}
+
+Postgres, a través de Supabase en el planteamiento operativo, actúa como base de persistencia para artículos, observaciones de mercado, históricos, predicciones y decisiones simuladas. AsyncPG y SQLAlchemy facilitan el acceso desde Python y permiten separar consultas, repositorios y lógica de dominio.
+
+La elección de una base relacional se ajusta al tipo de información del proyecto: series temporales, activos, plataformas, precios, señales y decisiones deben poder relacionarse y auditarse posteriormente. Esta trazabilidad es importante para explicar por qué una oportunidad ha sido recomendada, observada o descartada.
+
+\subsection{Predicción, simulación y entrenamiento multiagente}
+
+scikit-learn se utiliza para los modelos supervisados tabulares, especialmente regresión logística, random forest e histogram gradient boosting. Joblib permite persistir modelos entrenados para usarlos después en inferencia. Estas tecnologías cubren la parte predictiva, pero la decisión final se evalúa dentro del simulador de cartera.
+
+La simulación económica se implementa con módulos propios porque las reglas del dominio son específicas: comisiones, conversión de moneda, beneficio neto, \textit{trade hold}, capital bloqueado y restricciones de exposición. Sobre esta base se construye el entorno multiagente con PettingZoo y el adaptador de entrenamiento con Ray/\acroref{RLlib}{RLlib}. PyTorch y Gymnasium forman parte del ecosistema de entrenamiento usado por \acroref{RLlib}{RLlib}.
+
+\subsection{Interfaz y operación local}
+
+La interfaz web local se implementa con HTML, CSS y JavaScript, servida desde Python. Su objetivo es mostrar estado de scraping, datos disponibles, recomendaciones, métricas y tareas operativas. No se presenta como producto final, sino como herramienta de observabilidad del sistema durante el desarrollo y la evaluación.

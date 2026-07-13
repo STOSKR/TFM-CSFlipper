@@ -24,67 +24,73 @@
 \contentsline {subsection}{\numberline {2.4.1}Rentabilidad y riesgo}{19}{subsection.2.4.1}%
 \contentsline {subsection}{\numberline {2.4.2}Liquidez y costes de transacción}{19}{subsection.2.4.2}%
 \contentsline {section}{\numberline {2.5}Aplicaciones relacionadas}{19}{section.2.5}%
-\contentsline {chapter}{\numberline {3}Arquitectura multiagente propuesta}{21}{chapter.3}%
-\contentsline {section}{\numberline {3.1}Formulación técnica del sistema}{21}{section.3.1}%
-\contentsline {section}{\numberline {3.2}Visión general del sistema}{21}{section.3.2}%
-\contentsline {section}{\numberline {3.3}Flujo operativo}{21}{section.3.3}%
-\contentsline {section}{\numberline {3.4}Definición del entorno}{22}{section.3.4}%
-\contentsline {subsection}{\numberline {3.4.1}Estado y observaciones}{22}{subsection.3.4.1}%
-\contentsline {subsection}{\numberline {3.4.2}Espacio de acciones}{23}{subsection.3.4.2}%
-\contentsline {subsection}{\numberline {3.4.3}Transición del entorno}{23}{subsection.3.4.3}%
-\contentsline {section}{\numberline {3.5}Agentes del sistema}{23}{section.3.5}%
-\contentsline {subsection}{\numberline {3.5.1}Scout}{24}{subsection.3.5.1}%
-\contentsline {subsection}{\numberline {3.5.2}Trader}{24}{subsection.3.5.2}%
-\contentsline {subsection}{\numberline {3.5.3}Portfolio}{24}{subsection.3.5.3}%
-\contentsline {section}{\numberline {3.6}Función de recompensa}{24}{section.3.6}%
-\contentsline {subsection}{\numberline {3.6.1}Recompensa individual}{24}{subsection.3.6.1}%
-\contentsline {subsection}{\numberline {3.6.2}Recompensa cooperativa}{24}{subsection.3.6.2}%
-\contentsline {section}{\numberline {3.7}Restricciones de riesgo}{25}{section.3.7}%
-\contentsline {chapter}{\numberline {4}Configuración del entorno y datos}{26}{chapter.4}%
-\contentsline {section}{\numberline {4.1}Fuentes de datos}{26}{section.4.1}%
-\contentsline {subsection}{\numberline {4.1.1}Mercado de Steam}{26}{subsection.4.1.1}%
-\contentsline {subsection}{\numberline {4.1.2}BUFF y mercados externos}{26}{subsection.4.1.2}%
-\contentsline {subsection}{\numberline {4.1.3}OCR e importación manual}{27}{subsection.4.1.3}%
-\contentsline {section}{\numberline {4.2}Adquisición y persistencia}{27}{section.4.2}%
-\contentsline {subsection}{\numberline {4.2.1}Pipeline de adquisición}{27}{subsection.4.2.1}%
-\contentsline {subsection}{\numberline {4.2.2}Modelo de persistencia}{27}{subsection.4.2.2}%
-\contentsline {section}{\numberline {4.3}Preparación de características}{27}{section.4.3}%
-\contentsline {subsection}{\numberline {4.3.1}Variables de mercado}{27}{subsection.4.3.1}%
-\contentsline {subsection}{\numberline {4.3.2}Variables de cartera}{28}{subsection.4.3.2}%
-\contentsline {section}{\numberline {4.4}Reglas económicas migradas}{28}{section.4.4}%
-\contentsline {section}{\numberline {4.5}Simulador de cartera}{28}{section.4.5}%
-\contentsline {subsection}{\numberline {4.5.1}Operaciones permitidas}{28}{subsection.4.5.1}%
-\contentsline {subsection}{\numberline {4.5.2}Comisiones y valoración}{29}{subsection.4.5.2}%
-\contentsline {section}{\numberline {4.6}Interfaz de consulta}{29}{section.4.6}%
-\contentsline {chapter}{\numberline {5}Experimentación y análisis}{30}{chapter.5}%
-\contentsline {section}{\numberline {5.1}Diseño experimental}{30}{section.5.1}%
-\contentsline {subsection}{\numberline {5.1.1}Escenarios de evaluación}{30}{subsection.5.1.1}%
-\contentsline {subsection}{\numberline {5.1.2}Estrategias de comparación}{31}{subsection.5.1.2}%
-\contentsline {section}{\numberline {5.2}Validación técnica y pruebas}{31}{section.5.2}%
-\contentsline {section}{\numberline {5.3}Métricas}{31}{section.5.3}%
-\contentsline {subsection}{\numberline {5.3.1}Métricas de rentabilidad}{31}{subsection.5.3.1}%
-\contentsline {subsection}{\numberline {5.3.2}Métricas de riesgo}{32}{subsection.5.3.2}%
-\contentsline {section}{\numberline {5.4}Resultados}{32}{section.5.4}%
-\contentsline {subsection}{\numberline {5.4.1}Migración de reglas económicas}{32}{subsection.5.4.1}%
-\contentsline {subsection}{\numberline {5.4.2}Resultados del modelo supervisado}{33}{subsection.5.4.2}%
-\contentsline {subsection}{\numberline {5.4.3}Dataset de trading real}{33}{subsection.5.4.3}%
-\contentsline {subsection}{\numberline {5.4.4}Dificultades y pivotaciones}{33}{subsection.5.4.4}%
-\contentsline {subsection}{\numberline {5.4.5}Resultados de la arquitectura multiagente}{34}{subsection.5.4.5}%
-\contentsline {section}{\numberline {5.5}Experimentos finales pendientes}{34}{section.5.5}%
-\contentsline {section}{\numberline {5.6}Discusión}{34}{section.5.6}%
-\contentsline {subsection}{\numberline {5.6.1}Casos favorables}{34}{subsection.5.6.1}%
-\contentsline {subsection}{\numberline {5.6.2}Limitaciones observadas}{35}{subsection.5.6.2}%
-\contentsline {subsection}{\numberline {5.6.3}Lectura de los resultados}{35}{subsection.5.6.3}%
-\contentsline {chapter}{\numberline {6}Conclusiones}{36}{chapter.6}%
-\contentsline {section}{\numberline {6.1}Conclusiones principales}{36}{section.6.1}%
-\contentsline {section}{\numberline {6.2}Cumplimiento de objetivos}{36}{section.6.2}%
-\contentsline {section}{\numberline {6.3}Limitaciones}{37}{section.6.3}%
-\contentsline {section}{\numberline {6.4}Trabajo futuro}{37}{section.6.4}%
-\contentsline {chapter}{Bibliografía}{38}{section.6.4}%
-\contentsline {chapter}{\numberline {A}Anexos}{39}{appendix.Alph1}%
-\contentsline {section}{\numberline {A.1}Estructura del repositorio}{39}{section.Alph1.1}%
-\contentsline {section}{\numberline {A.2}Configuración del entorno}{39}{section.Alph1.2}%
-\contentsline {section}{\numberline {A.3}Comandos de datasets y modelos}{40}{section.Alph1.3}%
-\contentsline {section}{\numberline {A.4}Parámetros de entrenamiento}{40}{section.Alph1.4}%
-\contentsline {section}{\numberline {A.5}Modelo de datos}{40}{section.Alph1.5}%
-\contentsline {section}{\numberline {A.6}Resultados adicionales}{41}{section.Alph1.6}%
+\contentsline {section}{\numberline {2.6}Tecnologías utilizadas}{20}{section.2.6}%
+\contentsline {subsection}{\numberline {2.6.1}Herramientas de desarrollo}{20}{subsection.2.6.1}%
+\contentsline {subsection}{\numberline {2.6.2}Adquisición y tratamiento de datos}{20}{subsection.2.6.2}%
+\contentsline {subsection}{\numberline {2.6.3}Persistencia y modelo de datos}{21}{subsection.2.6.3}%
+\contentsline {subsection}{\numberline {2.6.4}Predicción, simulación y entrenamiento multiagente}{21}{subsection.2.6.4}%
+\contentsline {subsection}{\numberline {2.6.5}Interfaz y operación local}{21}{subsection.2.6.5}%
+\contentsline {chapter}{\numberline {3}Arquitectura multiagente propuesta}{22}{chapter.3}%
+\contentsline {section}{\numberline {3.1}Formulación técnica del sistema}{22}{section.3.1}%
+\contentsline {section}{\numberline {3.2}Visión general del sistema}{22}{section.3.2}%
+\contentsline {section}{\numberline {3.3}Flujo operativo}{22}{section.3.3}%
+\contentsline {section}{\numberline {3.4}Definición del entorno}{23}{section.3.4}%
+\contentsline {subsection}{\numberline {3.4.1}Estado y observaciones}{23}{subsection.3.4.1}%
+\contentsline {subsection}{\numberline {3.4.2}Espacio de acciones}{24}{subsection.3.4.2}%
+\contentsline {subsection}{\numberline {3.4.3}Transición del entorno}{24}{subsection.3.4.3}%
+\contentsline {section}{\numberline {3.5}Agentes del sistema}{24}{section.3.5}%
+\contentsline {subsection}{\numberline {3.5.1}Scout}{25}{subsection.3.5.1}%
+\contentsline {subsection}{\numberline {3.5.2}Trader}{25}{subsection.3.5.2}%
+\contentsline {subsection}{\numberline {3.5.3}Portfolio}{25}{subsection.3.5.3}%
+\contentsline {section}{\numberline {3.6}Función de recompensa}{25}{section.3.6}%
+\contentsline {subsection}{\numberline {3.6.1}Recompensa individual}{25}{subsection.3.6.1}%
+\contentsline {subsection}{\numberline {3.6.2}Recompensa cooperativa}{25}{subsection.3.6.2}%
+\contentsline {section}{\numberline {3.7}Restricciones de riesgo}{26}{section.3.7}%
+\contentsline {chapter}{\numberline {4}Configuración del entorno y datos}{27}{chapter.4}%
+\contentsline {section}{\numberline {4.1}Fuentes de datos}{27}{section.4.1}%
+\contentsline {subsection}{\numberline {4.1.1}Mercado de Steam}{27}{subsection.4.1.1}%
+\contentsline {subsection}{\numberline {4.1.2}BUFF y mercados externos}{27}{subsection.4.1.2}%
+\contentsline {subsection}{\numberline {4.1.3}OCR e importación manual}{28}{subsection.4.1.3}%
+\contentsline {section}{\numberline {4.2}Adquisición y persistencia}{28}{section.4.2}%
+\contentsline {subsection}{\numberline {4.2.1}Pipeline de adquisición}{28}{subsection.4.2.1}%
+\contentsline {subsection}{\numberline {4.2.2}Modelo de persistencia}{28}{subsection.4.2.2}%
+\contentsline {section}{\numberline {4.3}Preparación de características}{28}{section.4.3}%
+\contentsline {subsection}{\numberline {4.3.1}Variables de mercado}{28}{subsection.4.3.1}%
+\contentsline {subsection}{\numberline {4.3.2}Variables de cartera}{29}{subsection.4.3.2}%
+\contentsline {section}{\numberline {4.4}Reglas económicas migradas}{29}{section.4.4}%
+\contentsline {section}{\numberline {4.5}Simulador de cartera}{29}{section.4.5}%
+\contentsline {subsection}{\numberline {4.5.1}Operaciones permitidas}{29}{subsection.4.5.1}%
+\contentsline {subsection}{\numberline {4.5.2}Comisiones y valoración}{30}{subsection.4.5.2}%
+\contentsline {section}{\numberline {4.6}Interfaz de consulta}{30}{section.4.6}%
+\contentsline {chapter}{\numberline {5}Experimentación y análisis}{31}{chapter.5}%
+\contentsline {section}{\numberline {5.1}Diseño experimental}{31}{section.5.1}%
+\contentsline {subsection}{\numberline {5.1.1}Escenarios de evaluación}{31}{subsection.5.1.1}%
+\contentsline {subsection}{\numberline {5.1.2}Estrategias de comparación}{32}{subsection.5.1.2}%
+\contentsline {section}{\numberline {5.2}Validación técnica y pruebas}{32}{section.5.2}%
+\contentsline {section}{\numberline {5.3}Métricas}{32}{section.5.3}%
+\contentsline {subsection}{\numberline {5.3.1}Métricas de rentabilidad}{32}{subsection.5.3.1}%
+\contentsline {subsection}{\numberline {5.3.2}Métricas de riesgo}{33}{subsection.5.3.2}%
+\contentsline {section}{\numberline {5.4}Resultados}{33}{section.5.4}%
+\contentsline {subsection}{\numberline {5.4.1}Migración de reglas económicas}{33}{subsection.5.4.1}%
+\contentsline {subsection}{\numberline {5.4.2}Resultados del modelo supervisado}{34}{subsection.5.4.2}%
+\contentsline {subsection}{\numberline {5.4.3}Dataset de trading real}{34}{subsection.5.4.3}%
+\contentsline {subsection}{\numberline {5.4.4}Dificultades y pivotaciones}{34}{subsection.5.4.4}%
+\contentsline {subsection}{\numberline {5.4.5}Resultados de la arquitectura multiagente}{35}{subsection.5.4.5}%
+\contentsline {section}{\numberline {5.5}Experimentos finales pendientes}{35}{section.5.5}%
+\contentsline {section}{\numberline {5.6}Discusión}{35}{section.5.6}%
+\contentsline {subsection}{\numberline {5.6.1}Casos favorables}{35}{subsection.5.6.1}%
+\contentsline {subsection}{\numberline {5.6.2}Limitaciones observadas}{36}{subsection.5.6.2}%
+\contentsline {subsection}{\numberline {5.6.3}Lectura de los resultados}{36}{subsection.5.6.3}%
+\contentsline {chapter}{\numberline {6}Conclusiones}{37}{chapter.6}%
+\contentsline {section}{\numberline {6.1}Conclusiones principales}{37}{section.6.1}%
+\contentsline {section}{\numberline {6.2}Cumplimiento de objetivos}{37}{section.6.2}%
+\contentsline {section}{\numberline {6.3}Limitaciones}{38}{section.6.3}%
+\contentsline {section}{\numberline {6.4}Trabajo futuro}{38}{section.6.4}%
+\contentsline {chapter}{Bibliografía}{39}{section.6.4}%
+\contentsline {chapter}{\numberline {A}Anexos}{40}{appendix.Alph1}%
+\contentsline {section}{\numberline {A.1}Estructura del repositorio}{40}{section.Alph1.1}%
+\contentsline {section}{\numberline {A.2}Configuración del entorno}{40}{section.Alph1.2}%
+\contentsline {section}{\numberline {A.3}Comandos de datasets y modelos}{41}{section.Alph1.3}%
+\contentsline {section}{\numberline {A.4}Parámetros de entrenamiento}{41}{section.Alph1.4}%
+\contentsline {section}{\numberline {A.5}Modelo de datos}{41}{section.Alph1.5}%
+\contentsline {section}{\numberline {A.6}Resultados adicionales}{42}{section.Alph1.6}%
