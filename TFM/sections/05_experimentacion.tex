@@ -2,7 +2,7 @@
 
 \section{Diseño experimental}
 
-La experimentación se ha desarrollado por fases. Primero se migraron reglas económicas y estructuras de datos. Después se construyeron datasets supervisados para estudiar señales de mercado. Más adelante se creó un dataset de trading basado en precios Steam/\acroref{BUFF}{BUFF} y se implementó el entorno multiagente. Esta secuencia evita entrenar agentes \acroref{MARL}{MARL} sobre un entorno que todavía no representa bien el problema económico.
+La experimentación se ha desarrollado por fases. Primero, se han migrado reglas económicas y estructuras de datos. Después, se han construido datasets supervisados para estudiar señales de mercado. Más adelante, se ha creado un dataset de trading basado en precios Steam/\acroref{BUFF}{BUFF} y se ha implementado el entorno multiagente. Esta secuencia evita entrenar agentes \acroref{MARL}{MARL} sobre un entorno que todavía no representa bien el problema económico.
 
 \begin{table}[h]
 \centering
@@ -44,13 +44,13 @@ Las métricas de riesgo incluyen drawdown, capital bloqueado medio, posiciones a
 
 \subsection{Migración de reglas económicas}
 
-La primera fase consistió en convertir reglas del Excel operativo en funciones comprobables. Se migraron conversiones \acroref{EUR}{EUR}/\acroref{CNY}{CNY}, factores de comisión, cálculo de beneficio neto, rentabilidad porcentual, fecha de desbloqueo y capital bloqueado. Esta fase no produce un resultado de rentabilidad por sí misma, pero es necesaria para que los experimentos posteriores midan el mismo dominio que se utilizaba manualmente.
+La primera fase ha consistido en convertir reglas del Excel operativo en funciones comprobables. Se han migrado conversiones \acroref{EUR}{EUR}/\acroref{CNY}{CNY}, factores de comisión, cálculo de beneficio neto, rentabilidad porcentual, fecha de desbloqueo y capital bloqueado. Esta fase no produce un resultado de rentabilidad por sí misma, pero es necesaria para que los experimentos posteriores midan el mismo dominio que se utilizaba manualmente.
 
 El resultado principal de esta fase es metodológico: las reglas económicas pasan de estar dispersas en fórmulas de hoja de cálculo a estar encapsuladas en módulos de simulación, con pruebas unitarias y parámetros explícitos. Esto reduce errores silenciosos y permite repetir un experimento con la misma configuración.
 
 \subsection{Resultados del modelo supervisado}
 
-La fase supervisada produjo varios experimentos preliminares. En el dataset reciente de un año, los modelos random forest obtuvieron señales útiles en umbrales altos, aunque con un número limitado de casos. La selección por precisión a umbral 0,8 resultó más alineada con el objetivo operativo que seleccionar solo por \acroref{ROC-AUC}{ROC-AUC}.
+La fase supervisada ha producido varios experimentos preliminares. En el dataset reciente de un año, los modelos random forest han obtenido señales útiles en umbrales altos, aunque con un número limitado de casos. La selección por precisión a umbral 0,8 ha resultado más alineada con el objetivo operativo que seleccionar solo por \acroref{ROC-AUC}{ROC-AUC}.
 
 \begin{table}[h]
 \centering
@@ -70,15 +70,15 @@ Estos resultados no se consideran definitivos. El número de señales en umbrale
 
 \subsection{Dataset de trading real}
 
-El dataset \texttt{trading\_profit\_v1} se generó desde \texttt{market\_history\_points} usando precios Steam/\acroref{BUFF}{BUFF}, comisiones y horizonte temporal. La primera versión produjo 2.331 ejemplos y 50 artículos, pero con desbalance extremo en validación y test: solo un caso positivo en cada split para la dirección analizada. Por este motivo, las métricas de ese entrenamiento no se usan como evidencia de rendimiento operativo.
+El dataset \texttt{trading\_profit\_v1} se ha generado desde \texttt{market\_history\_points} usando precios Steam/\acroref{BUFF}{BUFF}, comisiones y horizonte temporal. La primera versión ha producido 2.331 ejemplos y 50 artículos, pero con desbalance extremo en validación y test: solo un caso positivo en cada split para la dirección analizada. Por este motivo, las métricas de ese entrenamiento no se usan como evidencia de rendimiento operativo.
 
-El análisis posterior mostró que el histórico de \acroref{BUFF}{BUFF} empezó a estar mejor alineado tras corregir el parser y permitir backfill de puntos históricos. Aun así, la dirección más natural de arbitraje, comprar en \acroref{BUFF}{BUFF} y vender en Steam, todavía no generaba ejemplos suficientes a ocho días porque faltaba histórico futuro Steam alineado con los puntos \acroref{BUFF}{BUFF} recientes.
+El análisis posterior ha mostrado que el histórico de \acroref{BUFF}{BUFF} ha empezado a estar mejor alineado tras corregir el parser y permitir backfill de puntos históricos. Aun así, la dirección más natural de arbitraje, comprar en \acroref{BUFF}{BUFF} y vender en Steam, todavía no genera ejemplos suficientes a ocho días porque falta histórico futuro Steam alineado con los puntos \acroref{BUFF}{BUFF} recientes.
 
-A partir de esta limitación se adopta una separación metodológica: Steam se usa como fuente principal para aprender el riesgo temporal de salida, y \acroref{BUFF}{BUFF} queda como precio vivo de entrada en inferencia. El objetivo deja de ser predecir el precio exacto de \acroref{BUFF}{BUFF}; la recomendación evalúa si un precio \acroref{BUFF}{BUFF} puntual conserva margen suficiente frente a una salida Steam estimada y sus comisiones.
+A partir de esta limitación, la validación distingue entre aprendizaje temporal e inferencia operativa: Steam se usa como fuente principal para aprender el riesgo temporal de salida, y \acroref{BUFF}{BUFF} queda como precio vivo de entrada en inferencia. El objetivo no es predecir el precio exacto de \acroref{BUFF}{BUFF}; la recomendación evalúa si un precio \acroref{BUFF}{BUFF} puntual conserva margen suficiente frente a una salida Steam estimada y sus comisiones.
 
 \subsection{Resultados de la arquitectura multiagente}
 
-El entorno multiagente ya existe como smoke funcional. Se implementó un entorno PettingZoo con tres políticas, un wrapper para \acroref{RLlib}{RLlib} y un comando de entrenamiento corto con \acroref{PPO}{PPO} multiagente. El smoke ejecuta entrenamiento, guarda checkpoint y devuelve métricas operativas como recompensa media, número de operaciones, efectivo, beneficio realizado, drawdown, capital bloqueado y posiciones abiertas.
+El entorno multiagente ya existe como smoke funcional. Se ha implementado un entorno PettingZoo con tres políticas, un wrapper para \acroref{RLlib}{RLlib} y un comando de entrenamiento corto con \acroref{PPO}{PPO} multiagente. El smoke ejecuta entrenamiento, guarda checkpoint y devuelve métricas operativas como recompensa media, número de operaciones, efectivo, beneficio realizado, drawdown, capital bloqueado y posiciones abiertas.
 
 Sin embargo, el entrenamiento actual no debe presentarse como validación final de \acroref{MAPPO}{MAPPO} con \acroref{CTDE}{CTDE} completo. El estado central está definido y expuesto, pero queda pendiente conectar el crítico centralizado de forma completa y comparar contra baselines. Esta distinción es importante para no confundir un flujo ejecutable con una evidencia experimental cerrada.
 

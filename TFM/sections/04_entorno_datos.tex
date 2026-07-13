@@ -58,7 +58,7 @@ Entidad & Uso dentro del \acroref{TFM}{TFM} \\
 
 \subsection{Variables de mercado}
 
-Las características de mercado incluyen precios Steam y \acroref{BUFF}{BUFF} normalizados, precios originales, spread bruto, spread neto, buy orders, volumen, liquidez, número de listings, antigüedad de variante y señales temporales. En la fase supervisada se exploraron variables de momentum y reversión como retornos a 1, 3 y 7 días, distancia a medias móviles, \acroref{RSI}{RSI}, volatilidad y desviaciones de ventas. Esta combinación de señales temporales y restricciones operativas sigue la misma lógica que los entornos de trading con control de fricciones \cite{liu2021finrl}.
+Las características de mercado incluyen precios Steam y \acroref{BUFF}{BUFF} normalizados, precios originales, spread bruto, spread neto, buy orders, volumen, liquidez, número de listings, antigüedad de variante y señales temporales. En la fase supervisada se han explorado variables de momentum y reversión como retornos a 1, 3 y 7 días, distancia a medias móviles, \acroref{RSI}{RSI}, volatilidad y desviaciones de ventas. Esta combinación de señales temporales y restricciones operativas sigue la misma lógica que los entornos de trading con control de fricciones \cite{liu2021finrl}.
 
 La exploración inicial detectó que algunas señales temporales aportan información moderada, mientras que ciertas variables categóricas de alta cardinalidad, como identificadores concretos de skins, deben tratarse con cuidado para evitar sobreajuste. Por ello, el entrenamiento separa variables de evaluación y variables de entrenamiento, y permite realizar ablations sin reconstruir todo el dataset.
 
