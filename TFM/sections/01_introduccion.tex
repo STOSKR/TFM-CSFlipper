@@ -45,7 +45,7 @@ La metodología distingue entre el aprendizaje de patrones temporales y la evalu
 
 \section{Metodología de desarrollo}
 
-Primero, se ha estudiado el proceso manual y se han extraído las reglas económicas del Excel operativo. Después, se ha construido una base de adquisición y persistencia para recoger datos de mercado. A continuación, se han preparado datasets supervisados y se han evaluado modelos tabulares para obtener señales probabilísticas. Finalmente, se ha implementado un simulador de cartera y un entorno multiagente compatible con PettingZoo y \acroref{RLlib}{RLlib} para realizar pruebas funcionales.
+El desarrollo se ha organizado siguiendo el propio avance del proyecto. Primero, se ha estudiado el proceso manual y se han extraído las reglas económicas del Excel operativo. Después, se ha construido una base de adquisición y persistencia para recoger datos de mercado. A continuación, se han preparado conjuntos de datos supervisados y se han evaluado modelos tabulares para obtener señales probabilísticas. Finalmente, se ha implementado un simulador de cartera y un entorno multiagente compatible con PettingZoo y \acroref{RLlib}{RLlib} para realizar pruebas funcionales.
 
 Esta metodología incremental evita entrenar agentes sobre un entorno poco fiable. En lugar de empezar directamente por \acroref{MARL}{MARL}, el proyecto construye primero las piezas que hacen verificable la decisión: datos, reglas económicas, simulación, métricas y trazabilidad. La arquitectura multiagente se apoya en estas capas, no las sustituye.
 
