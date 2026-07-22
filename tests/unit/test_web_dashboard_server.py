@@ -1,10 +1,12 @@
 from apps.cli.scrape_job_server import ScrapeJobRunner
+from apps.cli.session_state_metadata import write_session_metadata
 from apps.cli.web_dashboard_server import (
     _command_payload,
     _limit_from_query,
     _local_command,
     _local_commands,
     _scrape_status_payload,
+    _session_payload,
     _web_scrape_command,
 )
 
@@ -22,6 +24,20 @@ def test_scrape_status_payload_exposes_job_without_command_path() -> None:
 
     assert payload["job"]["running"] is False
     assert "command" not in payload
+
+
+def test_session_payload_exposes_buff_cookie_counter(tmp_path, monkeypatch) -> None:
+    monkeypatch.chdir(tmp_path)
+    state_path = tmp_path / "data/browser-state/buff_storage_state.json"
+    state_path.parent.mkdir(parents=True)
+    state_path.write_text("{}", encoding="utf-8")
+    write_session_metadata(platform="buff", state_path=state_path)
+
+    payload = _session_payload()
+
+    assert payload["buff"]["exists"] is True
+    assert payload["buff"]["captured_at"] is not None
+    assert payload["buff"]["days_remaining"] == 9
 
 
 def test_web_scrape_command_skips_refresh_by_default() -> None:

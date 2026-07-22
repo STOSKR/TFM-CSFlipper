@@ -20,6 +20,7 @@ from apps.cli.scrape_job_server import (
     _snapshot_payload,
     build_scrape_job_command,
 )
+from apps.cli.session_state_metadata import read_session_metadata
 from packages.persistence.connection import create_pool
 from packages.runtime_config import load_runtime_config
 from packages.web import build_dashboard_payload, market_items_query
@@ -80,6 +81,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             HTTPStatus.OK,
             {
                 "commands": [_command_payload(command) for command in _local_commands()],
+                "sessions": _session_payload(),
                 "job": _snapshot_payload(self.server.scrape_runner.snapshot()),
             },
         )
@@ -270,6 +272,19 @@ def _command_payload(command: LocalCommand) -> dict[str, Any]:
         "description": command.description,
         "group": command.group,
         "destructive": command.destructive,
+    }
+
+
+def _session_payload() -> dict[str, dict[str, Any]]:
+    return {
+        "steam": read_session_metadata(
+            platform="steam",
+            state_path=Path("data/browser-state/steam_storage_state.json"),
+        ),
+        "buff": read_session_metadata(
+            platform="buff",
+            state_path=Path("data/browser-state/buff_storage_state.json"),
+        ),
     }
 
 

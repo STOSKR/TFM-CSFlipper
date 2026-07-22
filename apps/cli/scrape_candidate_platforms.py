@@ -25,6 +25,7 @@ from apps.acquisition.steamdt_hanging import (
     SteamDTCandidate,
 )
 from apps.cli.platform_selection import add_platform_flags, platform_selection_from_args
+from apps.cli.session_state_metadata import write_session_metadata
 from packages.domain.market_parsing import quality_from_market_hash
 from packages.persistence.connection import create_pool
 from packages.persistence.simple_market import (
@@ -449,8 +450,16 @@ async def _login_platform(
         if state_path:
             await asyncio.to_thread(state_path.parent.mkdir, parents=True, exist_ok=True)
             await context.storage_state(path=str(state_path))
+            metadata = await asyncio.to_thread(
+                write_session_metadata,
+                platform=name,
+                state_path=state_path,
+            )
             print(f"{name}_session_state_saved={state_path}")
+            print(f"{name}_session_captured_at={metadata['captured_at']}")
+            print(f"{name}_session_expires_at={metadata['expires_at']}")
             logger.info("%s_session_state_saved=%s", name, state_path)
+            logger.info("%s_session_expires_at=%s", name, metadata["expires_at"])
         else:
             print(f"{name}_session_state_saved=disabled")
             logger.info("%s_session_state_saved=disabled", name)

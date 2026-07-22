@@ -83,6 +83,7 @@ let dashboard = fallbackDashboard;
 let visibleRecommendations = [];
 let selectedDealIndex = 0;
 let localCommands = [];
+let sessionState = {};
 let scrapeWasRunning = false;
 let scrapeStatusTimer = null;
 let scrapeStatusSignature = "";
@@ -444,6 +445,7 @@ async function loadCommands() {
     return;
   }
   localCommands = response.payload?.commands || [];
+  sessionState = response.payload?.sessions || {};
   renderCommands(localCommands.filter((command) => command.group !== "login"));
   renderLoginCommands(localCommands.filter((command) => command.group === "login"));
   updateCommandButtons(Boolean(response.payload?.job?.running));
@@ -479,6 +481,7 @@ function renderLoginCommands(commands) {
           <div>
             <strong>${escapeHtml(command.label)}</strong>
             <span>${escapeHtml(command.description)}</span>
+            <span>${escapeHtml(sessionSummary(command.id))}</span>
           </div>
           <button
             class="secondary-action"
@@ -491,6 +494,24 @@ function renderLoginCommands(commands) {
       `)
       .join("")
     : `<div class="empty-list"><strong>Sin logins</strong><span>No hay comandos de login configurados.</span></div>`;
+}
+
+function sessionSummary(commandId) {
+  const platform = commandId === "login_buff" ? "buff" : "steam";
+  const session = sessionState[platform];
+  if (!session?.exists) {
+    return "Sesion local no capturada";
+  }
+  if (!session.captured_at || !session.expires_at) {
+    return "Sesion local guardada sin contador";
+  }
+  const captured = formatDate(session.captured_at);
+  const expires = formatDate(session.expires_at);
+  const days = session.days_remaining ?? 0;
+  if (session.expired) {
+    return `Capturada ${captured}. Caducada; recapturar.`;
+  }
+  return `Capturada ${captured}. Caduca ${expires}. Quedan ${days} dias.`;
 }
 
 function updateCommandButtons(running) {
