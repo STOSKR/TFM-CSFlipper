@@ -67,6 +67,22 @@ def test_build_scrape_job_command_accepts_render_env_overrides() -> None:
     ]
 
 
+def test_build_scrape_job_command_can_opt_into_buff_in_legacy_loop() -> None:
+    command = build_scrape_job_command({"SCRAPE_BUFF": "true"})
+
+    assert command == [
+        sys.executable,
+        "-u",
+        "-m",
+        "apps.cli.auto_scrape_loop",
+        "--once",
+        "--stale-minutes",
+        "480",
+        "--persist",
+        "--buff",
+    ]
+
+
 def test_build_scrape_job_command_can_run_refresh_only() -> None:
     command = build_scrape_job_command(
         {

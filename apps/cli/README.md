@@ -9,16 +9,17 @@ Guia completa de opciones: [../../docs/steamdt-scraping-options.md](../../docs/s
 Ejecuta discovery en SteamDT y despues Steam/BUFF workers con el JSON recien generado:
 
 ```bash
-python scrape_flow.py
+python scrape_flow.py --no-buff
 ```
 
 Para ver navegadores y persistir snapshots:
 
 ```bash
-python scrape_flow.py --show-browser --persist
+python scrape_flow.py --show-browser --persist --no-buff
 ```
 
-Por defecto no persiste y no muestra navegadores.
+Por defecto no persiste y no muestra navegadores. Si la cuenta de BUFF esta bloqueada, manten
+`--no-buff`; el flujo automatico local ya lo aplica por defecto.
 
 ## Flujo Streaming Local
 

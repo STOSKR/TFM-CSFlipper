@@ -32,6 +32,8 @@ def build_scrape_flow_command(args: argparse.Namespace) -> list[str]:
         command.append("--persist")
     if args.show_browser:
         command.append("--show-browser")
+    if not args.buff:
+        command.append("--no-buff")
     return command
 
 
@@ -98,6 +100,12 @@ def main() -> None:
     parser.add_argument("--refresh-limit", type=int)
     parser.add_argument("--persist", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--show-browser", action="store_true")
+    parser.add_argument(
+        "--buff",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="Enable BUFF in discovery and platform workers. Default is off.",
+    )
     parser.add_argument("--once", action="store_true")
     args = parser.parse_args()
     raise SystemExit(run_loop(args))

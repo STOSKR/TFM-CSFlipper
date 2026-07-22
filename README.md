@@ -1,6 +1,6 @@
 # Comandos utiles
 
-python scrape_flow.py --show-browser --persist
+python scrape_flow.py --show-browser --persist --no-buff
 
 # CS2 Consorcio de Inversión
 
