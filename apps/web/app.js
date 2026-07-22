@@ -505,6 +505,11 @@ function sessionSummary(commandId) {
   if (!session?.exists) {
     return "No encuentro cookies guardadas en disco";
   }
+  if (platform === "steam") {
+    return session.captured_at
+      ? `Cookies de Steam guardadas (${formatDate(session.captured_at)})`
+      : "Cookies de Steam guardadas";
+  }
   if (!session.captured_at || !session.expires_at) {
     return "Cookies guardadas; recaptura para iniciar el contador";
   }

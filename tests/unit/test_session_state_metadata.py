@@ -27,7 +27,20 @@ def test_session_metadata_tracks_nine_day_counter(tmp_path: Path) -> None:
     assert payload["expired"] is False
 
 
-def test_session_metadata_handles_missing_sidecar(tmp_path: Path) -> None:
+def test_steam_session_metadata_has_no_expiry(tmp_path: Path) -> None:
+    state_path = tmp_path / "steam_storage_state.json"
+    state_path.write_text("{}", encoding="utf-8")
+    write_session_metadata(platform="steam", state_path=state_path)
+
+    payload = read_session_metadata(platform="steam", state_path=state_path)
+
+    assert payload["exists"] is True
+    assert payload["captured_at"] is not None
+    assert payload["expires_at"] is None
+    assert payload["days_remaining"] is None
+
+
+def test_steam_session_without_sidecar_has_no_expiry(tmp_path: Path) -> None:
     state_path = tmp_path / "steam_storage_state.json"
     state_path.write_text("{}", encoding="utf-8")
 
@@ -35,4 +48,4 @@ def test_session_metadata_handles_missing_sidecar(tmp_path: Path) -> None:
 
     assert payload["exists"] is True
     assert payload["captured_at"] is not None
-    assert payload["days_remaining"] is not None
+    assert payload["expires_at"] is None
