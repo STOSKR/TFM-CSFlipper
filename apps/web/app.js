@@ -87,7 +87,7 @@ let scrapeWasRunning = false;
 let scrapeStatusTimer = null;
 let scrapeStatusSignature = "";
 let scrapeStatusIdlePolls = 0;
-let scrapeBuffEnabled = false;
+let scrapeBuffEnabled = true;
 let refreshBuffEnabled = false;
 
 document.querySelector("#scrape-show-browser").checked = false;

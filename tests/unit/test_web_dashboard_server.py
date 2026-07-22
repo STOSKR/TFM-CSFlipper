@@ -27,7 +27,8 @@ def test_scrape_status_payload_exposes_job_without_command_path() -> None:
 def test_web_scrape_command_skips_refresh_by_default() -> None:
     command = _web_scrape_command()
 
-    assert "--no-buff" in command
+    assert "--steam" in command
+    assert "--buff" in command
     assert "--no-refresh" in command
     assert "--no-refresh-buff" in command
     assert command[command.index("--stale-minutes") + 1] == "480"
@@ -67,6 +68,13 @@ def test_web_scrape_command_can_enable_buff_for_scraping_only() -> None:
     assert "--buff" in command
     assert "--refresh" in command
     assert "--no-refresh-buff" in command
+
+
+def test_web_scrape_command_can_disable_buff_for_scraping() -> None:
+    command = _web_scrape_command(scrape_buff=False)
+
+    assert "--steam" in command
+    assert "--no-buff" in command
 
 
 def test_web_scrape_command_can_enable_buff_for_refresh() -> None:

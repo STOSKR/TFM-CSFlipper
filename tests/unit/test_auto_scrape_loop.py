@@ -18,7 +18,9 @@ def test_build_auto_scrape_commands_default_to_persisted_hourly_refresh() -> Non
         steamdt_profile_timeout=None,
         persist=True,
         show_browser=False,
-        buff=False,
+        steam=True,
+        buff=True,
+        refresh_buff=False,
         stale_minutes=60,
         refresh_limit=None,
     )
@@ -28,7 +30,8 @@ def test_build_auto_scrape_commands_default_to_persisted_hourly_refresh() -> Non
         "scrape_flow.py",
         "50",
         "--persist",
-        "--no-buff",
+        "--steam",
+        "--buff",
     ]
     assert build_stale_refresh_command(args) == [
         sys.executable,
@@ -37,6 +40,7 @@ def test_build_auto_scrape_commands_default_to_persisted_hourly_refresh() -> Non
         "--stale-minutes",
         "60",
         "--persist",
+        "--steam",
         "--no-buff",
     ]
 
@@ -50,7 +54,8 @@ def test_build_auto_scrape_command_passes_steamdt_overrides() -> None:
         steamdt_profile_timeout=120,
         persist=True,
         show_browser=False,
-        buff=False,
+        steam=True,
+        buff=True,
     )
 
     assert build_scrape_flow_command(args) == [
@@ -65,7 +70,8 @@ def test_build_auto_scrape_command_passes_steamdt_overrides() -> None:
         "--steamdt-profile-timeout",
         "120",
         "--persist",
-        "--no-buff",
+        "--steam",
+        "--buff",
     ]
 
 
@@ -78,6 +84,7 @@ def test_build_auto_scrape_command_can_opt_into_buff() -> None:
         steamdt_profile_timeout=None,
         persist=True,
         show_browser=False,
+        steam=True,
         buff=True,
     )
 
@@ -85,6 +92,51 @@ def test_build_auto_scrape_command_can_opt_into_buff() -> None:
         sys.executable,
         "scrape_flow.py",
         "--persist",
+        "--steam",
+        "--buff",
+    ]
+
+
+def test_build_auto_scrape_command_can_disable_buff() -> None:
+    args = argparse.Namespace(
+        limit=None,
+        all_profiles=None,
+        steamdt_timeout=None,
+        steamdt_retries=None,
+        steamdt_profile_timeout=None,
+        persist=True,
+        show_browser=False,
+        steam=True,
+        buff=False,
+    )
+
+    assert build_scrape_flow_command(args) == [
+        sys.executable,
+        "scrape_flow.py",
+        "--persist",
+        "--steam",
+        "--no-buff",
+    ]
+
+
+def test_build_auto_refresh_can_opt_into_buff_history() -> None:
+    args = argparse.Namespace(
+        persist=True,
+        stale_minutes=60,
+        refresh_limit=None,
+        steam=True,
+        refresh_buff=True,
+    )
+
+    assert build_stale_refresh_command(args) == [
+        sys.executable,
+        "-m",
+        "apps.cli.refresh_market_history",
+        "--stale-minutes",
+        "60",
+        "--persist",
+        "--steam",
+        "--buff",
     ]
 
 
@@ -98,7 +150,9 @@ def test_run_loop_once_runs_scrape_then_stale_refresh() -> None:
         steamdt_profile_timeout=None,
         persist=True,
         show_browser=False,
-        buff=False,
+        steam=True,
+        buff=True,
+        refresh_buff=False,
         stale_minutes=60,
         refresh_limit=25,
         interval_minutes=60,
@@ -113,7 +167,7 @@ def test_run_loop_once_runs_scrape_then_stale_refresh() -> None:
 
     assert code == 0
     assert calls == [
-        (sys.executable, "scrape_flow.py", "--persist", "--no-buff"),
+        (sys.executable, "scrape_flow.py", "--persist", "--steam", "--buff"),
         (
             sys.executable,
             "-m",
@@ -121,6 +175,7 @@ def test_run_loop_once_runs_scrape_then_stale_refresh() -> None:
             "--stale-minutes",
             "60",
             "--persist",
+            "--steam",
             "--no-buff",
             "--limit",
             "25",

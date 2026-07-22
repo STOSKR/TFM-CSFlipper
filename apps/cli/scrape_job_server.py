@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Any, cast
 from urllib.parse import parse_qs, urlparse
 
+from apps.cli.platform_selection import append_platform_flags, platform_selection_from_env
 from packages.runtime_config import load_runtime_config
 
 CommandRunner = Callable[[Sequence[str]], int]
@@ -204,8 +205,8 @@ def build_scrape_job_command(env: Mapping[str, str] | None = None) -> list[str]:
         command.append("--no-persist")
     if _bool(values.get("SCRAPE_SHOW_BROWSER"), default=False):
         command.append("--show-browser")
-    if _bool(values.get("SCRAPE_BUFF"), default=False):
-        command.append("--buff")
+    if values.get("SCRAPE_STEAM") is not None or values.get("SCRAPE_BUFF") is not None:
+        append_platform_flags(command, platform_selection_from_env(values))
     return command
 
 
@@ -224,8 +225,8 @@ def _build_streaming_scrape_job_command(values: Mapping[str, str]) -> list[str]:
         command.append(
             "--all-profiles" if _bool(all_profiles, default=False) else "--no-all-profiles"
         )
-    _append_bool_flag(command, values, "SCRAPE_STEAM", "--steam", "--no-steam")
-    _append_bool_flag(command, values, "SCRAPE_BUFF", "--buff", "--no-buff")
+    if values.get("SCRAPE_STEAM") is not None or values.get("SCRAPE_BUFF") is not None:
+        append_platform_flags(command, platform_selection_from_env(values))
     if _bool(values.get("SCRAPE_STEAM_API"), default=False):
         command.append("--steam-api")
     steamdt_timeout = _optional_int(values.get("SCRAPE_STEAMDT_TIMEOUT"))

@@ -24,6 +24,7 @@ from apps.acquisition.steam_market import SteamMarketConnectorConfig
 from apps.acquisition.steamdt_hanging import (
     SteamDTCandidate,
 )
+from apps.cli.platform_selection import add_platform_flags, platform_selection_from_args
 from packages.domain.market_parsing import quality_from_market_hash
 from packages.persistence.connection import create_pool
 from packages.persistence.simple_market import (
@@ -45,9 +46,10 @@ async def run(args: argparse.Namespace) -> int:
     candidates = load_steamdt_candidates(candidates_path)
     logger.info("loaded_candidates=%s", len(candidates))
     print(f"candidates_loaded={len(candidates)}")
+    selection = platform_selection_from_args(args)
     config = PlatformWorkerConfig(
-        fetch_steam=args.steam,
-        fetch_buff=args.buff,
+        fetch_steam=selection.steam,
+        fetch_buff=selection.buff,
         steam_browser=not args.steam_api,
         concurrent_platforms=args.concurrent_platforms,
         steam_config=SteamMarketConnectorConfig(
@@ -141,8 +143,7 @@ def main() -> None:
         help="Directory used to find the latest steamdt_candidates_*.json",
     )
     parser.add_argument("--output", type=Path, help="Where to write combined worker results")
-    parser.add_argument("--steam", action=argparse.BooleanOptionalAction, default=True)
-    parser.add_argument("--buff", action=argparse.BooleanOptionalAction, default=True)
+    add_platform_flags(parser)
     parser.add_argument(
         "--concurrent-platforms",
         action=argparse.BooleanOptionalAction,

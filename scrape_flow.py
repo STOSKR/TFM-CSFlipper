@@ -8,6 +8,13 @@ import sys
 from datetime import UTC, datetime
 from pathlib import Path
 
+from apps.cli.platform_selection import (
+    add_platform_flags,
+    append_no_buff_when_disabled,
+    append_platform_flags,
+    platform_selection_from_args,
+)
+
 
 def default_candidates_path() -> Path:
     run_id = datetime.now(tz=UTC).strftime("%Y%m%d_%H%M%S")
@@ -55,7 +62,7 @@ def main() -> int:
     parser.add_argument("--min", dest="min_price", type=float, help="Minimum SteamDT price filter")
     parser.add_argument("--max", dest="max_price", type=float, help="Maximum SteamDT price filter")
     parser.add_argument("--vol", dest="min_volume", type=int, help="Minimum SteamDT volume filter")
-    parser.add_argument("--no-buff", action="store_true", help="Disable BUFF in SteamDT discovery.")
+    add_platform_flags(parser)
     parser.add_argument("--uu", action="store_true", help="Enable UU in SteamDT discovery.")
     parser.add_argument("--no-uu", action="store_true", help="Disable UU in SteamDT discovery.")
     parser.add_argument("--c5", action="store_true", help="Enable C5GAME in SteamDT discovery.")
@@ -130,8 +137,7 @@ def build_steamdt_command(args: argparse.Namespace, candidates_path: Path) -> li
         command.extend(["--max", str(args.max_price)])
     if args.min_volume is not None:
         command.extend(["--vol", str(args.min_volume)])
-    if args.no_buff:
-        command.append("--no-buff")
+    append_no_buff_when_disabled(command, platform_selection_from_args(args))
     if args.uu:
         command.append("--uu")
     if args.no_uu:
@@ -159,8 +165,7 @@ def build_workers_command(args: argparse.Namespace, candidates_path: Path) -> li
         command.append("--steam-login")
     if args.buff_login:
         command.append("--buff-login")
-    if args.no_buff:
-        command.append("--no-buff")
+    append_platform_flags(command, platform_selection_from_args(args))
     if args.steam_api:
         command.append("--steam-api")
     if args.concurrent_platforms is not None:

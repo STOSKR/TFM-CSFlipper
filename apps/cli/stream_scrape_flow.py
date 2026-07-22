@@ -25,6 +25,7 @@ from apps.acquisition.streaming_pipeline import (
     iter_candidates,
     run_streaming_pipeline,
 )
+from apps.cli.platform_selection import add_platform_flags, platform_selection_from_args
 from apps.cli.scrape_candidate_platforms import (
     build_simple_market_snapshots,
     persist_simple_market_snapshots,
@@ -108,8 +109,7 @@ def main() -> None:
     parser.add_argument("--candidates", type=Path)
     parser.add_argument("--candidates-dir", type=Path, default=Path("data/flow-runs"))
     parser.add_argument("--output", type=Path)
-    parser.add_argument("--steam", action=argparse.BooleanOptionalAction, default=True)
-    parser.add_argument("--buff", action=argparse.BooleanOptionalAction, default=True)
+    add_platform_flags(parser)
     parser.add_argument(
         "--concurrent-platforms",
         action=argparse.BooleanOptionalAction,
@@ -173,9 +173,10 @@ def main() -> None:
 
 
 def _worker_config(args: argparse.Namespace) -> PlatformWorkerConfig:
+    selection = platform_selection_from_args(args)
     return PlatformWorkerConfig(
-        fetch_steam=args.steam,
-        fetch_buff=args.buff,
+        fetch_steam=selection.steam,
+        fetch_buff=selection.buff,
         steam_browser=not args.steam_api,
         concurrent_platforms=args.concurrent_platforms,
         steam_config=SteamMarketConnectorConfig(

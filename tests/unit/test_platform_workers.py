@@ -165,3 +165,61 @@ async def test_scrape_candidate_platforms_can_run_platforms_sequentially(monkeyp
 
     assert tuple(result.platform_id for result in results) == ("steam", "buff")
     assert events == ["steam_start", "steam_done", "buff_start_after_steam=True"]
+
+
+@pytest.mark.asyncio
+async def test_scrape_candidate_platforms_keeps_steam_when_buff_returns_errors(
+    monkeypatch,
+) -> None:
+    observation = MarketObservationContract(
+        correlation_id="test",
+        asset_id="p2000_oceanic__well_worn",
+        platform_id="steam",
+        observed_at=datetime(2026, 6, 8, 10, 0, tzinfo=UTC),
+        price=Decimal("1.23"),
+        currency="EUR",
+        source_type=SourceType.SCRAPING,
+    )
+    steam_record = SteamMarketObservation(
+        observation=observation,
+        asset_name="P2000 | Oceanic",
+        category=None,
+        quality="Well-Worn",
+        variant_key="well_worn_st0",
+    )
+
+    async def fake_steam(*args, **kwargs) -> PlatformWorkerResult:
+        return PlatformWorkerResult("steam", (steam_record,))
+
+    async def fake_buff(*args, **kwargs) -> PlatformWorkerResult:
+        return PlatformWorkerResult(
+            "buff",
+            (),
+            (
+                WorkerError(
+                    platform_id="buff",
+                    market_hash_name="P2000 | Oceanic (Well-Worn)",
+                    message="account blocked",
+                ),
+            ),
+        )
+
+    monkeypatch.setattr("apps.acquisition.platform_workers._scrape_steam_browser", fake_steam)
+    monkeypatch.setattr("apps.acquisition.platform_workers._scrape_buff", fake_buff)
+
+    results = await scrape_candidate_platforms(
+        (
+            SteamDTCandidate(
+                item_name="P2000 | Oceanic",
+                market_hash_name="P2000 | Oceanic (Well-Worn)",
+                buff_url="https://buff.163.com/goods/123",
+                steam_url="https://steam.example/item",
+            ),
+        )
+    )
+    payload = worker_results_to_jsonable(results)
+
+    assert payload["summary"]["steam"] == {"observations": 1, "errors": 0}
+    assert payload["summary"]["buff"] == {"observations": 0, "errors": 1}
+    assert payload["observations"][0]["platform_id"] == "steam"
+    assert payload["errors"][0]["message"] == "account blocked"

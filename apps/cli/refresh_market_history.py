@@ -23,6 +23,7 @@ from apps.acquisition.platform_workers import (
 from apps.acquisition.steam_browser_market import SteamBrowserConnectorConfig
 from apps.acquisition.steam_market import SteamMarketConnectorConfig
 from apps.acquisition.steamdt_hanging import SteamDTCandidate
+from apps.cli.platform_selection import add_platform_flags, platform_selection_from_args
 from apps.cli.scrape_candidate_platforms import (
     build_simple_market_snapshots,
     simple_results_to_jsonable,
@@ -354,9 +355,10 @@ def _worker_config(
     *,
     buff_history_days: int | None = None,
 ) -> PlatformWorkerConfig:
+    selection = platform_selection_from_args(args)
     return PlatformWorkerConfig(
-        fetch_steam=args.steam,
-        fetch_buff=args.buff,
+        fetch_steam=selection.steam,
+        fetch_buff=selection.buff,
         steam_browser=not args.steam_api,
         concurrent_platforms=args.concurrent_platforms,
         steam_config=SteamMarketConnectorConfig(
@@ -426,8 +428,7 @@ def main() -> None:
         help="Only refresh items not updated in the last N minutes.",
     )
     parser.add_argument("--output", type=Path)
-    parser.add_argument("--steam", action=argparse.BooleanOptionalAction, default=True)
-    parser.add_argument("--buff", action=argparse.BooleanOptionalAction, default=False)
+    add_platform_flags(parser, buff_default=False)
     parser.add_argument(
         "--concurrent-platforms",
         action=argparse.BooleanOptionalAction,

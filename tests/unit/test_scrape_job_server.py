@@ -79,7 +79,25 @@ def test_build_scrape_job_command_can_opt_into_buff_in_legacy_loop() -> None:
         "--stale-minutes",
         "480",
         "--persist",
+        "--steam",
         "--buff",
+    ]
+
+
+def test_build_scrape_job_command_can_disable_buff_from_env() -> None:
+    command = build_scrape_job_command({"SCRAPE_BUFF": "false"})
+
+    assert command == [
+        sys.executable,
+        "-u",
+        "-m",
+        "apps.cli.auto_scrape_loop",
+        "--once",
+        "--stale-minutes",
+        "480",
+        "--persist",
+        "--steam",
+        "--no-buff",
     ]
 
 

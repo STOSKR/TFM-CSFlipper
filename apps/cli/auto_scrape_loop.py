@@ -8,6 +8,13 @@ import sys
 import time
 from collections.abc import Callable, Sequence
 
+from apps.cli.platform_selection import (
+    PlatformSelection,
+    add_platform_flags,
+    append_platform_flags,
+    platform_selection_from_args,
+)
+
 Runner = Callable[[Sequence[str]], int]
 Sleeper = Callable[[float], None]
 
@@ -32,8 +39,7 @@ def build_scrape_flow_command(args: argparse.Namespace) -> list[str]:
         command.append("--persist")
     if args.show_browser:
         command.append("--show-browser")
-    if not args.buff:
-        command.append("--no-buff")
+    append_platform_flags(command, platform_selection_from_args(args))
     return command
 
 
@@ -47,7 +53,13 @@ def build_stale_refresh_command(args: argparse.Namespace) -> list[str]:
     ]
     if args.persist:
         command.append("--persist")
-    command.append("--no-buff")
+    append_platform_flags(
+        command,
+        PlatformSelection(
+            steam=bool(getattr(args, "steam", True)),
+            buff=bool(getattr(args, "refresh_buff", False)),
+        ),
+    )
     if args.refresh_limit is not None:
         command.extend(["--limit", str(args.refresh_limit)])
     return command
@@ -100,12 +112,8 @@ def main() -> None:
     parser.add_argument("--refresh-limit", type=int)
     parser.add_argument("--persist", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--show-browser", action="store_true")
-    parser.add_argument(
-        "--buff",
-        action=argparse.BooleanOptionalAction,
-        default=False,
-        help="Enable BUFF in discovery and platform workers. Default is off.",
-    )
+    add_platform_flags(parser)
+    parser.add_argument("--refresh-buff", action=argparse.BooleanOptionalAction, default=False)
     parser.add_argument("--once", action="store_true")
     args = parser.parse_args()
     raise SystemExit(run_loop(args))

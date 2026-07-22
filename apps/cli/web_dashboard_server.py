@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
+from apps.cli.platform_selection import PlatformSelection, platform_env
 from apps.cli.scrape_job_server import (
     ScrapeJobRunner,
     _snapshot_payload,
@@ -276,7 +277,7 @@ def _web_scrape_command(
     *,
     show_browser: bool = False,
     refresh: bool = False,
-    scrape_buff: bool = False,
+    scrape_buff: bool = True,
     refresh_buff: bool = False,
 ) -> list[str]:
     return build_scrape_job_command(
@@ -293,15 +294,14 @@ def _web_scrape_env(
     *,
     show_browser: bool = False,
     refresh: bool = False,
-    scrape_buff: bool = False,
+    scrape_buff: bool = True,
     refresh_buff: bool = False,
 ) -> dict[str, str]:
     env = dict(os.environ)
     env.setdefault("SCRAPE_STREAMING", "true")
     env.setdefault("SCRAPE_CANDIDATE_LIMIT", "25")
     env.setdefault("SCRAPE_ALL_PROFILES", "true")
-    env.setdefault("SCRAPE_STEAM", "true")
-    env["SCRAPE_BUFF"] = "true" if scrape_buff else "false"
+    env.update(platform_env(PlatformSelection(steam=True, buff=scrape_buff)))
     env["SCRAPE_REFRESH"] = "true" if refresh else "false"
     env["SCRAPE_REFRESH_BUFF"] = "true" if refresh and refresh_buff else "false"
     env.setdefault("SCRAPE_STALE_MINUTES", "480")

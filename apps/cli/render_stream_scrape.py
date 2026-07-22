@@ -28,6 +28,7 @@ from apps.acquisition.steamdt_hanging import (
 )
 from apps.acquisition.streaming_pipeline import StreamingPipelineConfig, run_streaming_pipeline
 from apps.cli.discover_steamdt_hanging import _selected_profiles, _tag_candidates
+from apps.cli.platform_selection import add_platform_flags, platform_selection_from_args
 from apps.cli.scrape_candidate_platforms import (
     build_simple_market_snapshots,
     persist_simple_market_snapshots,
@@ -229,9 +230,10 @@ def _subprocess_env() -> dict[str, str]:
 
 
 def _worker_config(args: argparse.Namespace) -> PlatformWorkerConfig:
+    selection = platform_selection_from_args(args)
     return PlatformWorkerConfig(
-        fetch_steam=args.steam,
-        fetch_buff=args.buff,
+        fetch_steam=selection.steam,
+        fetch_buff=selection.buff,
         steam_browser=not args.steam_api,
         concurrent_platforms=args.concurrent_platforms,
         steam_config=SteamMarketConnectorConfig(
@@ -310,8 +312,7 @@ def build_parser(runtime_config: Any) -> argparse.ArgumentParser:
         default=Path("data/browser-state/steamdt_storage_state.json"),
     )
     parser.add_argument("--no-session-state", action="store_true")
-    parser.add_argument("--steam", action=argparse.BooleanOptionalAction, default=True)
-    parser.add_argument("--buff", action=argparse.BooleanOptionalAction, default=True)
+    add_platform_flags(parser)
     parser.add_argument(
         "--concurrent-platforms",
         action=argparse.BooleanOptionalAction,
