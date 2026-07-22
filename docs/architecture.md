@@ -48,7 +48,7 @@ El núcleo de decisión usa aprendizaje por refuerzo multiagente cooperativo:
 - Trader decide compra, venta, mantener y tamaño de posición;
 - Portfolio gestiona riesgo, exposición y capital bloqueado.
 
-El entrenamiento usa PettingZoo y RLlib con MAPPO bajo CTDE: crítico centralizado durante entrenamiento y ejecución descentralizada por actor local en inferencia. La probabilidad supervisada entra como feature de observación, no como decisión final.
+El objetivo de entrenamiento es MAPPO bajo CTDE: critico centralizado durante entrenamiento y ejecucion descentralizada por actor local en inferencia. El estado actual es mas pequeno: existe un smoke PPO multiagente con PettingZoo/RLlib, checkpoint y estado central expuesto; falta conectar el critico centralizado antes de presentarlo como MAPPO/CTDE completo. La probabilidad supervisada entra como feature de observacion, no como decision final.
 
 ### 5. Simulación y Evaluación
 

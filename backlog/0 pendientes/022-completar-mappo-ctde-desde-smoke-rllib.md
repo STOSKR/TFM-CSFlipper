@@ -1,12 +1,12 @@
-# Entrenar MARL con MAPPO en RLlib
+# Completar MAPPO/CTDE desde smoke RLlib
 
 ## Objetivo
 
-Entrenar el sistema MARL con MAPPO via RLlib bajo el paradigma CTDE: critico centralizado durante entrenamiento y ejecucion descentralizada por actor local en inferencia.
+Convertir el smoke PPO multiagente ya funcional en un entrenamiento MAPPO/CTDE defendible: critico centralizado durante entrenamiento y ejecucion descentralizada por actor local en inferencia.
 
 ## Contexto
 
-El entrenamiento debe usar el entorno PettingZoo, tres politicas cooperativas y estado global para el critico centralizado. La inferencia no debe depender del estado global completo.
+Ya existe integracion PettingZoo/RLlib, tres politicas cooperativas, checkpoint y estado central expuesto. Lo que falta no es "arrancar RLlib", sino conectar el estado global al value function/critico centralizado y dejar evidencia reproducible.
 
 ## Alcance
 

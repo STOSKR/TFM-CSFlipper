@@ -4,6 +4,8 @@
 
 La persistencia preferente es Supabase/Postgres. El modelo se diseña para trazabilidad, auditoría y análisis temporal.
 
+Estado actual: el esquema canonico sigue documentado como destino conceptual, pero el flujo operativo vivo de scraping y entrenamiento usa sobre todo `market_items` y `market_history_points`. Para tareas nuevas, no crear tablas nuevas sobre el esquema canonico sin comprobar antes si el flujo simple ya cubre el caso.
+
 ## Entidades Principales
 
 ### assets

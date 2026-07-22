@@ -7,15 +7,19 @@ TFM-CSFlipper/
 ├── apps/
 │   ├── agents/              # Entrada futura para agentes MARL/coordinadores
 │   ├── acquisition/         # Agentes extractores: API, scraping, CSV/JSON, SteamDT y OCR
-│   └── cli/                 # Comandos manuales de desarrollo y diagnóstico
+│   ├── cli/                 # Comandos manuales de desarrollo y diagnostico
+│   └── web/                 # Dashboard local operativo
 ├── packages/
 │   ├── contracts/           # Contratos Pydantic V2 compartidos
+│   ├── datasets/            # Builders y analisis de datasets supervisados/trading
 │   ├── decision/            # Restricciones de riesgo y traducción de acciones simuladas
 │   ├── domain/              # Entidades y reglas puras del negocio
+│   ├── marl/                # Entorno multiagente, PettingZoo y smoke RLlib
 │   ├── persistence/         # Supabase/Postgres, repositorios y outbox
 │   ├── prediction/          # Features, datasets e inferencia temporal
 │   ├── simulation/          # Trade hold, cartera, comisiones y backtesting
-│   └── vision/              # OpenCV, Tesseract, OCR y parsing visual
+│   ├── vision/              # OpenCV, Tesseract, OCR y parsing visual
+│   └── web/                 # Payloads del dashboard
 ├── docs/
 │   ├── architecture.md      # Arquitectura general y flujo del sistema
 │   ├── agent-protocols.md   # Agentes extractores, agentes MARL y contratos
@@ -139,14 +143,11 @@ Todos los mensajes entre agentes deben definirse en `packages/contracts/`. La li
 
 ## Orden de Implementación Recomendado
 
-El orden vivo está en `backlog/0 pendientes/`. Resumen:
+El orden vivo esta en `backlog/0 pendientes/`. Resumen actualizado:
 
-1. Validar formulas, datos historicos y scraping Steam-Buff.
-2. Construir dataset supervisado con target de spread rentable a 8 dias.
-3. Experimentar, calibrar y serializar el modelo supervisado.
-4. Implementar simulador de cartera, trade hold y restricciones de riesgo.
-5. Implementar entorno PettingZoo con Scout, Trader y Portfolio.
-6. Integrar la probabilidad supervisada en observaciones.
-7. Diseñar recompensa cooperativa y entrenar MAPPO con RLlib bajo CTDE.
-8. Validar contra baseline single-agent y ablations.
-9. Implementar inferencia productiva y visualizacion.
+1. Mantener el scraping Steam/BUFF y acumular historico alineado suficiente.
+2. Cerrar el dataset real de trading con positivos suficientes en validation/test.
+3. Usar el modelo supervisado versionado solo como feature MARL experimental.
+4. Completar MAPPO/CTDE desde el smoke PPO/RLlib ya existente.
+5. Validar MARL contra baseline single-agent y ablations.
+6. Implementar inferencia productiva solo despues de tener evaluacion defendible.

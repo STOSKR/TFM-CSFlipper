@@ -14,3 +14,7 @@ Si se usa la URL de runtime con `asyncpg`, cambia temporalmente el prefijo
 El esquema canonico usa `assets`, `platforms`, `market_observations`, `outbox_events`,
 `predictions`, `risk_profiles`, `votes`, `investment_decisions` y `simulated_positions`.
 La tabla `legacy_scraped_items` es solo staging para datos antiguos de `cs-tracker`.
+
+El flujo operativo actual de scraping y datasets usa principalmente `market_items` y
+`market_history_points`, añadidas en migraciones posteriores. Ese esquema simple es la fuente
+practica para Steam/BUFF hasta que haga falta consolidarlo con el esquema canonico.

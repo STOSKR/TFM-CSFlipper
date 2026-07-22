@@ -10,6 +10,14 @@ El proyecto observa precios, liquidez y señales de mercado de plataformas como 
 
 ## Estado del Proyecto
 
+Estado actual resumido:
+
+- Base tecnica sana: unit tests y lint pasan; `mypy apps packages` debe mantenerse limpio.
+- Modelo supervisado versionado: existe un artefacto experimental para usar como feature MARL, no como regla de compra.
+- Dataset real de trading: pipeline listo, pero la senal Steam/BUFF aun es escasa para defender metricas finales.
+- MARL: hay smoke PPO/RLlib con checkpoint; MAPPO/CTDE completo queda pendiente.
+- Web local: existe dashboard operativo en `apps/web` servido por `python -m apps.cli.web_dashboard_server`.
+
 Antes de empezar cualquier tarea, lee el tablero Kanban físico:
 
 ```text
