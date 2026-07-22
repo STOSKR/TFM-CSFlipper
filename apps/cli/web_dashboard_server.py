@@ -323,9 +323,14 @@ def main() -> None:
     args = parser.parse_args()
 
     web_dir = args.web_dir.resolve()
+
+    class StaticDashboardHandler(DashboardHandler):
+        def __init__(self, *handler_args: Any, **handler_kwargs: Any) -> None:
+            super().__init__(*handler_args, directory=str(web_dir), **handler_kwargs)
+
     server = DashboardHTTPServer(
         (args.host, args.port),
-        lambda *handler_args: DashboardHandler(*handler_args, directory=str(web_dir)),
+        StaticDashboardHandler,
         scrape_runner=ScrapeJobRunner(),
     )
     print(f"web_dashboard_server listening http://{args.host}:{args.port}", flush=True)

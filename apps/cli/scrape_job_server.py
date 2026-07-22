@@ -17,12 +17,13 @@ from datetime import UTC, datetime
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 from urllib.parse import parse_qs, urlparse
 
 from packages.runtime_config import load_runtime_config
 
 CommandRunner = Callable[[Sequence[str]], int]
+_SIGKILL = cast(signal.Signals, getattr(signal, "SIGKILL", signal.SIGTERM))
 
 
 @dataclass(frozen=True, slots=True)
@@ -442,16 +443,19 @@ def _terminate_posix_process_group(process: subprocess.Popen[Any]) -> None:
         try:
             process.wait(timeout=5)
         except subprocess.TimeoutExpired:
-            _kill_posix_process_group(process.pid, signal.SIGKILL)
+            _kill_posix_process_group(process.pid, _SIGKILL)
             process.wait(timeout=5)
         return
     time.sleep(0.2)
-    _kill_posix_process_group(process.pid, signal.SIGKILL)
+    _kill_posix_process_group(process.pid, _SIGKILL)
 
 
 def _kill_posix_process_group(process_id: int, sig: signal.Signals) -> bool:
+    killpg = cast(Callable[[int, int], None] | None, getattr(os, "killpg", None))
+    if killpg is None:
+        return False
     try:
-        os.killpg(process_id, sig)
+        killpg(process_id, int(sig))
     except ProcessLookupError:
         return False
     except PermissionError as exc:

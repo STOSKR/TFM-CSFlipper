@@ -271,7 +271,7 @@ async def _await_with_heartbeat(
     label: str,
     interval_seconds: float = 30.0,
 ) -> Any:
-    task = asyncio.create_task(awaitable)
+    task: asyncio.Future[Any] = asyncio.ensure_future(awaitable)
     elapsed = 0.0
     while True:
         done, _pending = await asyncio.wait({task}, timeout=interval_seconds)
