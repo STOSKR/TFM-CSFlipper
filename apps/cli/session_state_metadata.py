@@ -56,6 +56,17 @@ def read_session_metadata(
         "expired": None,
     }
     if not metadata_path.exists():
+        if exists:
+            try:
+                file_captured_at = datetime.fromtimestamp(state_path.stat().st_mtime, tz=UTC)
+            except OSError:
+                return payload
+            file_expires_at = file_captured_at + timedelta(days=SESSION_TTL_DAYS)
+            payload["captured_at"] = file_captured_at.isoformat()
+            payload["expires_at"] = file_expires_at.isoformat()
+            remaining = (file_expires_at - current_time).total_seconds()
+            payload["days_remaining"] = max(0, math.ceil(remaining / 86400))
+            payload["expired"] = remaining <= 0
         return payload
     try:
         raw = json.loads(metadata_path.read_text(encoding="utf-8"))

@@ -34,5 +34,5 @@ def test_session_metadata_handles_missing_sidecar(tmp_path: Path) -> None:
     payload = read_session_metadata(platform="steam", state_path=state_path)
 
     assert payload["exists"] is True
-    assert payload["captured_at"] is None
-    assert payload["days_remaining"] is None
+    assert payload["captured_at"] is not None
+    assert payload["days_remaining"] is not None

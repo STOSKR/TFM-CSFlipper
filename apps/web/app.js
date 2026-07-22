@@ -372,7 +372,7 @@ function renderLoginStatus(job, running, returnCode, progressPercent, progressTe
   document.querySelector("#login-running-state").textContent = running ? "Ejecutando" : "Parado";
   document.querySelector("#login-last-run").textContent = job.last_started_at
     ? `Inicio: ${startedAt}`
-    : "Sin login en esta sesion";
+    : "Sin login lanzado desde esta pantalla";
   document.querySelector("#login-return-code").textContent =
     returnCode === null || returnCode === undefined ? "Pendiente" : String(returnCode);
   document.querySelector("#login-finished-at").textContent = job.last_finished_at
@@ -499,11 +499,14 @@ function renderLoginCommands(commands) {
 function sessionSummary(commandId) {
   const platform = commandId === "login_buff" ? "buff" : "steam";
   const session = sessionState[platform];
+  if (!session) {
+    return "Estado local no disponible; reinicia el servidor";
+  }
   if (!session?.exists) {
-    return "Sesion local no capturada";
+    return "No encuentro cookies guardadas en disco";
   }
   if (!session.captured_at || !session.expires_at) {
-    return "Sesion local guardada sin contador";
+    return "Cookies guardadas; recaptura para iniciar el contador";
   }
   const captured = formatDate(session.captured_at);
   const expires = formatDate(session.expires_at);
