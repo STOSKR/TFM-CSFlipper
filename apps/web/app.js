@@ -183,7 +183,8 @@ function renderRecommendations() {
           </span>
           <span class="deal-profit">
             <strong>${escapeHtml(item.profit)}</strong>
-            <small>${escapeHtml(item.steam)} / ${escapeHtml(item.buff)}</small>
+            <small><b>Steam</b> ${escapeHtml(formatMarketPrice(item.steamEur, item.steam))}</small>
+            <small><b>BUFF</b> ${escapeHtml(formatMarketPrice(item.buffEur, item.buff))}</small>
           </span>
           <span class="deal-signal">
             <span class="badge ${escapeHtml(item.status)}">${escapeHtml(statusLabels[item.status] || item.status)}</span>
@@ -213,19 +214,19 @@ function renderDealDetail(item) {
   root.innerHTML = `
     <div class="detail-header">
       <div>
-        <p class="eyebrow">Deal seleccionado</p>
+        <p class="eyebrow">Oportunidad seleccionada</p>
         <h2>${escapeHtml(item.name)}</h2>
         <span>${escapeHtml(item.quality)}${item.stattrak ? " - StatTrak" : ""}</span>
       </div>
       <span class="badge ${escapeHtml(item.status)}">${escapeHtml(statusLabels[item.status] || item.status)}</span>
     </div>
     <div class="detail-profit">
-      <span>Profit actual</span>
+      <span>Margen estimado</span>
       <strong>${escapeHtml(item.profit)}</strong>
     </div>
     <dl class="detail-grid">
-      <div><dt>Steam</dt><dd>${escapeHtml(item.steam)}</dd></div>
-      <div><dt>BUFF</dt><dd>${escapeHtml(item.buff)}</dd></div>
+      <div><dt>Steam</dt><dd>${escapeHtml(formatMarketPrice(item.steamEur, item.steam))}</dd></div>
+      <div><dt>BUFF</dt><dd>${escapeHtml(formatMarketPrice(item.buffEur, item.buff))}</dd></div>
       <div><dt>Ruta</dt><dd>${escapeHtml(item.route || "Sin ruta")}</dd></div>
       <div><dt>Scraping</dt><dd>${escapeHtml(formatDate(item.scrapedAt))}</dd></div>
     </dl>
@@ -733,9 +734,9 @@ function setupNavigation() {
     .filter(Boolean);
   const defaultId = "recommendations";
   const titles = {
-    recommendations: "Deals",
+    recommendations: "Oportunidades",
     scraper: "Scraper",
-    login: "Login",
+    login: "Sesiones",
     model: "Modelo",
     agents: "Agentes",
     portfolio: "Riesgo",
@@ -806,6 +807,20 @@ function formatDate(value) {
     dateStyle: "short",
     timeStyle: "short",
   }).format(new Date(timestamp));
+}
+
+function formatMarketPrice(eurValue, sourceValue) {
+  const eur = Number(eurValue);
+  if (!Number.isFinite(eur)) {
+    return sourceValue || "Pendiente";
+  }
+  const eurText = new Intl.NumberFormat("es-ES", {
+    style: "currency",
+    currency: "EUR",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(eur);
+  return sourceValue ? `${eurText} · ${sourceValue}` : eurText;
 }
 
 function formatRouteDetail(item) {
