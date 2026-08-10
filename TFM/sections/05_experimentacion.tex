@@ -183,6 +183,26 @@ La combinación sin histórico ni aumentación obtiene el mejor equilibrio entre
 
 La lectura debe mantenerse prudente. Los 19 artículos disponibles en el corte aparecen tanto en entrenamiento como en prueba y la etiqueta positiva representa el 89,5\% de la prueba. Una estrategia que marca muchos casos como favorables puede alcanzar precisión elevada por la propia distribución de la muestra. El corte de mayo confirma este problema: de 361 ejemplos de entrenamiento, 76 de validación y 95 de prueba, las dos últimas particiones contienen exclusivamente etiquetas positivas. En esas condiciones ROC-AUC no es una métrica definida y no se entrena un modelo para presentarlo como comparación válida. Este resultado establece una condición de continuación clara: ampliar la cobertura cruzada BUFF--Steam y equilibrar los eventos antes de convertir el modelo en recomendación operativa.
 
+\subsection{Comprobación del corte reciente}
+
+Con la base de datos conectada se repitió la construcción del dataset el 11 de agosto de 2026. Se empleó la ventana desde diciembre de 2025, un horizonte de ocho días, una purga de ocho días y una prueba acotada a julio de 2026. La comprobación usa las dos direcciones de intercambio disponibles y conserva los mismos 19 artículos. El resultado no habilita otro entrenamiento. Sirve para comprobar si la nueva captura ha aportado variedad suficiente de etiquetas.
+
+\begin{table}[htbp]
+\centering
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}X r r r >{\raggedright\arraybackslash}X}
+\toprule
+Ruta & Entrenamiento & Validación & Prueba & Lectura \\
+\midrule
+BUFF $\rightarrow$ Steam & 551 / 95,6\% + & 76 / 100\% + & 84 / 98,8\% + & Predominan los márgenes positivos. \\
+Steam $\rightarrow$ BUFF & 551 / 0\% + & 76 / 0\% + & 84 / 0\% + & Predominan los márgenes negativos. \\
+\bottomrule
+\end{tabularx}
+\caption{Distribución del corte reciente.}
+\label{tab:corte-reciente}
+\end{table}
+
+El contraste es deliberadamente incómodo, pero es importante. En ambas rutas falta una clase en validación y prueba, por lo que ROC-AUC, calibración y una comparación de políticas no son interpretables. Entrenar con esta muestra produciría una clasificación trivial y no aportaría evidencia sobre el sistema. La prioridad experimental pasa a ser mantener capturas recurrentes de más artículos, incluir oportunidades descartadas y conservar decisiones cerradas para que la recompensa MARL pueda distinguir compras acertadas, compras fallidas y decisiones de espera.
+
 \subsection{Evidencia de pruebas automatizadas}
 
 La suite completa se ejecutó el 11 de agosto de 2026 sobre el repositorio restaurado y obtuvo 278 pruebas superadas en 35,20 segundos. Las tres pruebas de integración utilizaron el \texttt{DATABASE\_URL} PostgreSQL configurado en Supabase. Registran un snapshot de mercado, comprueban la actualización de una cotización y guardan una señal de oportunidad vinculada a un artículo. Cada una abre una transacción externa y la revierte al terminar, por lo que la comprobación no añade datos de prueba al histórico utilizado por los experimentos.
