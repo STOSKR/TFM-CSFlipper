@@ -23,5 +23,10 @@ model-runs/
 models/checkpoints/
 apps/web/data/
 
+# Metadatos generados por latexmk. El PDF final y sus índices rastreados se conservan.
+TFM/*.fdb_latexmk
+TFM/*.fls
+TFM/*.loa
+
 # Material local pendiente de revisar; no versionar repos/datos brutos.
 material_a_integrar/
