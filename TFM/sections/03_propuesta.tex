@@ -65,6 +65,27 @@ La salida del modelo supervisado se incorpora como una probabilidad calibrada de
 
 El espacio de acciones se mantiene deliberadamente simple. Las acciones principales son comprar, vender, mantener y observar. En la parte de compra o venta puede añadirse un tamaño de posición discreto para limitar el número de combinaciones. Esta simplificación permite entrenar y depurar el entorno antes de introducir acciones continuas o reglas de asignación más complejas.
 
+En la versión implementada, Scout puede ignorar o marcar una oportunidad, Trader puede mantener o solicitar la compra de una unidad y Portfolio puede rechazar o aprobar el riesgo. La compra solo se ejecuta cuando los tres agentes eligen la acción favorable y el candidato cumple los límites.
+
+\begin{algorithm}[H]
+\caption{Decisión cooperativa}
+\label{alg:decision-cooperativa}
+\begin{algorithmic}[1]
+\Require Candidato $c_t$, estado de cartera $s_t$ y observaciones locales
+\Ensure Transición de cartera y recompensa compartida $R_t$
+\State $a_t^{S} \gets \pi_S(o_t^{S})$ \Comment{Scout marca o ignora}
+\State $a_t^{T} \gets \pi_T(o_t^{T},m_t^{T})$ \Comment{Trader mantiene o compra}
+\State $a_t^{P} \gets \pi_P(o_t^{P},m_t^{P})$ \Comment{Portfolio rechaza o aprueba}
+\If{$a_t^{S}=\textit{marcar}$ \textbf{and} $a_t^{T}=\textit{comprar}$ \textbf{and} $a_t^{P}=\textit{aprobar}$ \textbf{and} $c_t$ cumple los límites}
+  \State Abrir una posición simulada y bloquear su capital
+\Else
+  \State Mantener el saldo y registrar el motivo de no ejecución
+\EndIf
+\State Actualizar posiciones liquidables, saldo, exposición y \textit{drawdown}
+\State Calcular $R_t$ y devolver la misma recompensa a los tres agentes
+\end{algorithmic}
+\end{algorithm}
+
 \subsection{Transición del entorno}
 
 Cuando se ejecuta una compra simulada, el saldo disponible disminuye y se abre una posición. Esa posición queda bloqueada durante el periodo de \textit{trade hold}. Mientras está bloqueada no puede venderse, pero sí afecta a la exposición y al capital inmovilizado. Cuando se ejecuta una venta simulada, el simulador calcula el ingreso neto aplicando comisiones, conversión de moneda y reglas de valoración. El estado de cartera se actualiza después de cada paso.

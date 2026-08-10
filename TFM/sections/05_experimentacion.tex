@@ -30,6 +30,23 @@ El criterio de evaluación no es solo predictivo. Una señal puede tener buena p
 
 La comparación experimental se plantea en tres niveles. El primero es un baseline simple o dummy para comprobar que los modelos aprenden algo más que la tasa base. El segundo compara modelos supervisados tabulares como regresión logística, random forest e histogram gradient boosting, familias ampliamente usadas para clasificación tabular \cite{breiman2001random,friedman2001greedy}. El tercero, todavía pendiente de evaluación completa, comparará la arquitectura \acroref{MARL}{MARL} frente a baselines de agente único y ablations con y sin probabilidad supervisada.
 
+\begin{algorithm}[H]
+\caption{Entrenamiento PPO}
+\label{alg:entrenamiento-ppo}
+\begin{algorithmic}[1]
+\Require Entorno paralelo, políticas Scout, Trader y Portfolio, semillas y pasos
+\Ensure Checkpoint y métricas de validación y prueba
+\State Inicializar una política PPO por rol y las máscaras de acción del entorno
+\For{cada iteración de entrenamiento}
+  \State Ejecutar episodios y registrar $(o_t^i,a_t^i,R_t,m_t^i)$
+  \State Estimar ventajas $\widehat{A}_t$ a partir de las transiciones registradas
+  \State Optimizar cada política con el objetivo recortado de PPO
+\EndFor
+\State Evaluar el checkpoint en un bloque temporal posterior sin actualizar parámetros
+\State Guardar saldo, operaciones, acciones inválidas y recompensa por semilla
+\end{algorithmic}
+\end{algorithm}
+
 \section{Validación técnica y pruebas}
 
 Las pruebas no se tratan como material auxiliar, sino como parte de la evidencia experimental del proyecto. Antes de interpretar resultados de modelos o agentes, se comprueba que las piezas que producen esos resultados funcionan de forma aislada: reglas económicas, parsing de mercado, persistencia, construcción de datasets, inferencia supervisada, simulador de cartera, restricciones de riesgo, entorno PettingZoo, adaptador \acroref{RLlib}{RLlib}, comandos de episodios y panel web.

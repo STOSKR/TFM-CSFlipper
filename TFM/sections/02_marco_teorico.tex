@@ -24,7 +24,15 @@ El aprendizaje por refuerzo estudia problemas en los que un agente interactúa c
 
 \subsection{Procesos de decisión de Markov}
 
-Un proceso de decisión de Markov, o \acroref{MDP}{MDP}, se define mediante estados, acciones, transiciones y recompensas. El estado resume la información disponible; la acción representa lo que el agente decide; la transición describe cómo cambia el entorno; y la recompensa mide si la decisión ha sido favorable. En el contexto del \acroref{TFM}{TFM}, el estado incluye variables de mercado y cartera, las acciones son comprar, vender, observar o mantener, y la recompensa se asocia al valor neto de la cartera simulada.
+Un proceso de decisión de Markov, o \acroref{MDP}{MDP}, se define mediante el estado, las acciones, la transición, la recompensa y el factor de descuento:
+
+\[
+\mathcal{M}=(\mathcal{S},\mathcal{A},P,R,\gamma),
+\qquad
+G_t=\sum_{k=0}^{\infty}\gamma^k r_{t+k+1}.
+\]
+
+$G_t$ resume la recompensa futura descontada desde el instante $t$. El estado resume la información disponible, la acción representa lo que el agente decide, la transición describe cómo cambia el entorno y la recompensa mide si la decisión ha sido favorable. En el contexto del \acroref{TFM}{TFM}, el estado incluye variables de mercado y cartera, las acciones son comprar, vender, observar o mantener, y la recompensa se asocia al valor neto de la cartera simulada.
 
 La hipótesis de Markov no implica que el sistema conozca todo el futuro, sino que el estado utilizado contiene la información necesaria para tomar la mejor decisión disponible en ese momento. Por eso es importante construir observaciones ricas: precio, spread, liquidez, probabilidad supervisada, capital disponible, posiciones abiertas y capital bloqueado.
 
@@ -46,11 +54,35 @@ La cooperación aparece cuando los agentes comparten un objetivo global. Scout p
 
 La coordinación es necesaria porque una decisión localmente buena puede ser globalmente mala. Por ejemplo, comprar un activo con spread atractivo puede ser razonable para Trader, pero no para Portfolio si ya existe demasiada exposición a ese tipo de objeto o si el capital bloqueado supera un límite aceptable. Esta tensión justifica usar recompensas individuales auxiliares y una recompensa cooperativa vinculada a la cartera.
 
+Para $N$ agentes, cada paso combina observaciones y acciones locales. En una tarea cooperativa con recompensa compartida se puede expresar como:
+
+\[
+\mathbf{o}_t=(o_t^1,\ldots,o_t^N),
+\qquad
+\mathbf{a}_t=(a_t^1,\ldots,a_t^N),
+\qquad
+r_t^1=\cdots=r_t^N=R_t.
+\]
+
+Cada política recibe solo su observación $o_t^i$. El estado global se registra para diagnóstico, pero no alimenta todavía un crítico centralizado, por lo que la implementación actual no se presenta como \acroref{MAPPO}{MAPPO} completo.
+
 \subsection{Entrenamiento centralizado y ejecución descentralizada}
 
 El paradigma de entrenamiento centralizado y ejecución descentralizada, conocido como \acroref{CTDE}{CTDE}, permite entrenar con más información de la que cada agente tendrá en ejecución. La idea es que durante el entrenamiento puede existir un crítico o una función de valor con acceso al estado global, mientras que en ejecución cada actor decide con su observación local. Este enfoque aparece en trabajos multiagente como \acroref{MADDPG}{MADDPG} \cite{lowe2017maddpg} y en variantes cooperativas basadas en \acroref{PPO}{PPO} como \acroref{MAPPO}{MAPPO} \cite{yu2022mappo}.
 
-La elección de \acroref{PPO}{PPO} como base práctica se debe a su estabilidad y a su disponibilidad en herramientas maduras. Schulman et al. introducen \acroref{PPO}{PPO} como un método de gradiente de política que limita actualizaciones demasiado agresivas \cite{schulman2017ppo}. Posteriormente, Yu et al. muestran que \acroref{PPO}{PPO} puede funcionar como baseline fuerte en juegos cooperativos multiagente cuando se implementa con cuidado \cite{yu2022mappo}. En el proyecto, esta línea se traduce en un entorno PettingZoo y un wrapper para \acroref{RLlib}{RLlib}, pero todavía no se presenta como validación final de \acroref{MAPPO}{MAPPO}.
+La elección de \acroref{PPO}{PPO} como base práctica se debe a su estabilidad y a su disponibilidad en herramientas maduras. Schulman et al. introducen \acroref{PPO}{PPO} como un método de gradiente de política que limita actualizaciones demasiado agresivas \cite{schulman2017ppo}. Para una acción observada, el cociente entre la política nueva y la anterior es:
+
+\[
+r_t(\theta)=\frac{\pi_\theta(a_t\mid o_t)}{\pi_{\theta_{\mathrm{old}}}(a_t\mid o_t)},
+\qquad
+L^{\mathrm{CLIP}}(\theta)=
+\mathbb{E}_t\!\left[
+\min\!\left(r_t(\theta)\widehat{A}_t,
+\operatorname{clip}(r_t(\theta),1-\varepsilon,1+\varepsilon)\widehat{A}_t\right)
+\right].
+\]
+
+El recorte evita que una actualización cambie en exceso la probabilidad de una acción. Posteriormente, Yu et al. muestran que \acroref{PPO}{PPO} puede funcionar como baseline fuerte en juegos cooperativos multiagente cuando se implementa con cuidado \cite{yu2022mappo}. En el proyecto, esta línea se traduce en un entorno PettingZoo y un wrapper para \acroref{RLlib}{RLlib}, pero todavía no se presenta como validación final de \acroref{MAPPO}{MAPPO}.
 
 \section{Toma de decisiones en carteras}
 

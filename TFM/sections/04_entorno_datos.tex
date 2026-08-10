@@ -22,6 +22,35 @@ Tras las primeras pruebas, \acroref{BUFF}{BUFF} se separa del entrenamiento prin
 
 El \acroref{OCR}{OCR} se incorpora como vía secundaria de adquisición. Su objetivo es convertir capturas, tablas o interfaces no estructuradas en observaciones equivalentes a las obtenidas por scraping o \acroref{API}{API}. El flujo incluye preprocesado de imagen, reconocimiento de texto, parsing estructurado, validación y persistencia. Aunque es más frágil que una fuente estructurada, resulta útil cuando una plataforma no expone datos cómodamente o cuando se quiere incorporar material histórico procedente de capturas.
 
+Para reconstruir una serie desde una captura de gráfico, el proceso localiza la zona de dibujo y los ejes, extrae anclas de fecha y precio mediante OCR, segmenta la línea de precio por color y convierte sus píxeles en valores. Cuando hay anclas suficientes, usa los ajustes lineales:
+
+\[
+\widehat{d}(x)=a_xx+b_x,
+\qquad
+\widehat{p}(y)=a_yy+b_y,
+\]
+
+donde $x$ e $y$ son coordenadas de píxel, $\widehat{d}$ es la fecha estimada y $\widehat{p}$ es el precio estimado. Para los mensajes P2P, el pipeline aplica PaddleOCR y extrae artículo, precio, moneda y cantidad. PaddleOCR combina detector y reconocedor de texto \cite{du2020ppocr}.
+
+\begin{algorithm}[H]
+\caption{Reconstrucción OCR}
+\label{alg:ocr-reconstruccion}
+\begin{algorithmic}[1]
+\Require Captura $I$ de un gráfico y anclas de fecha y precio
+\Ensure Serie $(\widehat{d},\widehat{p})$ con evidencia de depuración
+\State Localizar área de dibujo y ejes de $I$
+\State Mejorar el recorte y extraer anclas con OCR
+\If{hay al menos dos anclas por eje}
+  \State Ajustar $\widehat{d}(x)$ y $\widehat{p}(y)$ por regresión lineal
+  \State Segmentar la línea de precio por color y muestrear sus píxeles
+  \State Convertir cada píxel $(x,y)$ en $(\widehat{d}(x),\widehat{p}(y))$
+  \State Guardar serie, anclas, máscara y superposición de comprobación
+\Else
+  \State Marcar la captura para anclaje o revisión manual
+\EndIf
+\end{algorithmic}
+\end{algorithm}
+
 Las importaciones manuales y \acroref{CSV}{CSV} cumplen una función complementaria. Permiten introducir muestras controladas, fixtures o históricos parciales sin depender de una sesión de navegador. Esta vía ha sido útil para validar parsers, modelos de persistencia y reglas económicas antes de automatizar el flujo completo.
 
 \section{Adquisición y persistencia}
@@ -61,6 +90,36 @@ Entidad & Uso dentro del \acroref{TFM}{TFM} \\
 Las características de mercado incluyen precios Steam y \acroref{BUFF}{BUFF} normalizados, precios originales, spread bruto, spread neto, buy orders, volumen, liquidez, número de listings, antigüedad de variante y señales temporales. En la fase supervisada se han explorado variables de momentum y reversión como retornos a 1, 3 y 7 días, distancia a medias móviles, \acroref{RSI}{RSI}, volatilidad y desviaciones de ventas. Esta combinación de señales temporales y restricciones operativas sigue la misma lógica que los entornos de trading con control de fricciones \cite{liu2021finrl}.
 
 La exploración inicial detectó que algunas señales temporales aportan información moderada, mientras que ciertas variables categóricas de alta cardinalidad, como identificadores concretos de skins, deben tratarse con cuidado para evitar sobreajuste. Por ello, el entrenamiento separa variables de evaluación y variables de entrenamiento, y permite realizar ablations sin reconstruir todo el dataset.
+
+\subsection{Dataset temporal de trading}
+
+Para cada observación de un artículo en el día $t$, el constructor busca la primera salida disponible a partir de $t+h$, donde $h=8$ días representa el bloqueo aplicado por el simulador. La etiqueta no representa una subida de precio aislada, sino una operación que supera los umbrales económicos tras aplicar comisiones y conversión:
+
+\[
+y_t = 1 \Longleftrightarrow \pi_{t+h} \geq \pi_{\min}
+\ \land\ \rho_{t+h} \geq \rho_{\min}.
+\]
+
+Los conjuntos se separan por fecha y se elimina una franja de purga antes de cada frontera para que una salida futura no coincida con el entrenamiento de un periodo anterior.
+
+\begin{algorithm}[H]
+\caption{Dataset temporal}
+\label{alg:dataset-temporal}
+\begin{algorithmic}[1]
+\Require Históricos Steam/BUFF, horizonte $h$, fechas de corte y purga $g$
+\Ensure Conjuntos de entrenamiento, validación y prueba trazables
+\ForAll{observaciones $(i,t)$ ordenadas por artículo y fecha}
+  \State Calcular variables disponibles hasta $t$
+  \State Buscar la primera salida del artículo $i$ a partir de $t+h$
+  \If{la salida es válida}
+    \State Calcular $\pi_{t+h}$, $\rho_{t+h}$ y la etiqueta $y_t$
+    \State Conservar $(i,t)$, sus variables y la fecha de salida
+  \EndIf
+\EndFor
+\State Excluir $g$ días antes de cada frontera temporal
+\State Separar por fecha y guardar filas, artículos y rango de cada conjunto
+\end{algorithmic}
+\end{algorithm}
 
 \subsection{Variables de cartera}
 

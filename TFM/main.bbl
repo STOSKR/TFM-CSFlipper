@@ -41,6 +41,12 @@ John Schulman, Filip Wolski, Prafulla Dhariwal, Alec Radford, and Oleg Klimov.
 \newblock Proximal policy optimization algorithms.
 \newblock \url{https://arxiv.org/abs/1707.06347}, 2017.
 
+\bibitem{du2020ppocr}
+Yuning Du, Chenxia Li, Ruoyu Guo, Xiaoting Yin, Weiwei Liu, Jun Zhou, Yifan
+  Bai, Zilin Yu, Yehua Yang, Qingqing Dang, and Haoshuang Wang.
+\newblock {PP-OCR}: A practical ultra lightweight {OCR} system.
+\newblock \url{https://arxiv.org/abs/2009.09941}, 2020.
+
 \bibitem{breiman2001random}
 Leo Breiman.
 \newblock Random forests.
