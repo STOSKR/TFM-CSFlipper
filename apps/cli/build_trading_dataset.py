@@ -41,12 +41,15 @@ async def run(args: argparse.Namespace) -> int:
             start_date=args.start_date,
             validation_start=args.validation_start,
             test_start=args.test_start,
+            test_end=args.test_end,
+            purge_gap_days=args.purge_gap_days,
         ),
     )
     print(f"dataset_dir={metadata['output_dir']}")
     print(f"rows_included={metadata['rows_included']}")
     print(f"horizon_days={metadata['horizon_days']}")
     print(f"future_tolerance_days={metadata['future_tolerance_days']}")
+    print(f"purge_gap_days={metadata['purge_gap_days']}")
     print(f"trade_direction={metadata['trade_direction']}")
     print(f"target={metadata['target_column']}")
     print(f"steam_sale_factor={metadata['steam_sale_factor']}")
@@ -114,6 +117,12 @@ def main() -> None:
     )
     parser.add_argument("--horizon-days", type=int, default=8)
     parser.add_argument("--future-tolerance-days", type=int, default=7)
+    parser.add_argument(
+        "--purge-gap-days",
+        type=int,
+        default=0,
+        help="Days excluded before each split boundary to prevent outcome overlap.",
+    )
     parser.add_argument("--min-profit-eur", type=str, default="0")
     parser.add_argument("--min-return", type=str, default="0")
     parser.add_argument("--cny-per-eur", type=str, default="8")
@@ -121,6 +130,11 @@ def main() -> None:
     parser.add_argument("--start-date", type=_date_arg)
     parser.add_argument("--validation-start", type=_date_arg, default=datetime(2026, 1, 1))
     parser.add_argument("--test-start", type=_date_arg, default=datetime(2026, 3, 1))
+    parser.add_argument(
+        "--test-end",
+        type=_date_arg,
+        help="Exclusive end date for a bounded test window.",
+    )
     parser.add_argument("--query-start", type=_date_arg)
     parser.add_argument("--limit-rows", type=int, default=None)
     args = parser.parse_args()

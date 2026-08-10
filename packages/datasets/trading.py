@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
@@ -78,6 +78,8 @@ class TradingDatasetBuildConfig:
     start_date: datetime | None = None
     validation_start: datetime = datetime(2026, 1, 1)
     test_start: datetime = datetime(2026, 3, 1)
+    test_end: datetime | None = None
+    purge_gap_days: int = 0
 
 
 def build_trading_dataset_from_history(
@@ -132,6 +134,7 @@ def build_trading_dataset_from_history(
         "trade_direction": config.trade_direction,
         "horizon_days": config.horizon_days,
         "future_tolerance_days": config.future_tolerance_days,
+        "purge_gap_days": config.purge_gap_days,
         "min_profit_eur": str(config.min_profit_eur),
         "min_return": str(config.min_return),
         "cny_per_eur": str(config.cny_per_eur),
@@ -144,12 +147,17 @@ def build_trading_dataset_from_history(
                 if config.start_date is not None
                 else None
             ),
-            "train": f"{TRADING_DATE_COLUMN} < {config.validation_start.date().isoformat()}",
+            "train": f"{TRADING_DATE_COLUMN} < {(config.validation_start - timedelta(days=config.purge_gap_days)).date().isoformat()}",
             "validation": (
                 f"{config.validation_start.date().isoformat()} <= {TRADING_DATE_COLUMN} "
-                f"< {config.test_start.date().isoformat()}"
+                f"< {(config.test_start - timedelta(days=config.purge_gap_days)).date().isoformat()}"
             ),
-            "test": f"{TRADING_DATE_COLUMN} >= {config.test_start.date().isoformat()}",
+            "test": (
+                f"{config.test_start.date().isoformat()} <= {TRADING_DATE_COLUMN} "
+                f"< {config.test_end.date().isoformat()}"
+                if config.test_end is not None
+                else f"{TRADING_DATE_COLUMN} >= {config.test_start.date().isoformat()}"
+            ),
         },
         "splits": split_stats,
         "trace_columns": list(TRADING_TRACE_COLUMNS),
@@ -531,13 +539,18 @@ def _split_frames(
     config: TradingDatasetBuildConfig,
 ) -> dict[str, pd.DataFrame]:
     dates = pd.to_datetime(frame[TRADING_DATE_COLUMN])
+    train_end = pd.Timestamp((config.validation_start - timedelta(days=config.purge_gap_days)).date())
+    validation_end = pd.Timestamp((config.test_start - timedelta(days=config.purge_gap_days)).date())
+    test_mask = dates >= pd.Timestamp(config.test_start.date())
+    if config.test_end is not None:
+        test_mask &= dates < pd.Timestamp(config.test_end.date())
     return {
-        "train": frame[dates < pd.Timestamp(config.validation_start.date())],
+        "train": frame[dates < train_end],
         "validation": frame[
             (dates >= pd.Timestamp(config.validation_start.date()))
-            & (dates < pd.Timestamp(config.test_start.date()))
+            & (dates < validation_end)
         ],
-        "test": frame[dates >= pd.Timestamp(config.test_start.date())],
+        "test": frame[test_mask],
     }
 
 
