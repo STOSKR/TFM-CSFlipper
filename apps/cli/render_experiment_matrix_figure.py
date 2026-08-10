@@ -8,10 +8,10 @@ from pathlib import Path
 
 
 EXPERIMENTS = (
-    ("Histórico\nsin aug.", "history_logistic_no_augmentation"),
-    ("Sin hist.\nsin aug.", "static_no_augmentation"),
-    ("Histórico\ncon jitter", "history_jitter"),
-    ("Sin hist.\ncon jitter", "static_jitter"),
+    ("Histórico\nsin aug.", "logistic_history_no_augmentation"),
+    ("Sin hist.\nsin aug.", "logistic_static_no_augmentation"),
+    ("Histórico\ncon jitter", "logistic_history_jitter"),
+    ("Sin hist.\ncon jitter", "logistic_static_jitter"),
 )
 
 

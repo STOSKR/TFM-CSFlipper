@@ -185,7 +185,7 @@ La lectura debe mantenerse prudente. Los 19 artículos disponibles en el corte a
 
 \subsection{Evidencia de pruebas automatizadas}
 
-La evidencia técnica se vuelve a ejecutar sobre el repositorio restaurado el 10 de agosto de 2026. La suite completa obtiene 276 pruebas superadas en 26,85 segundos. Incluye 273 pruebas unitarias y tres pruebas de integración contra la base de datos configurada. Las integraciones registran un snapshot de mercado, comprueban la actualización de una cotización y guardan una señal de oportunidad vinculada a un artículo. Cada una abre una transacción externa y la revierte al terminar, por lo que la comprobación no añade datos de prueba al histórico utilizado por los experimentos.
+La evidencia técnica se volvió a ejecutar sobre el repositorio restaurado el 10 de agosto de 2026. La comprobación inicial registró 276 pruebas superadas en 26,85 segundos. Tras añadir las pruebas de aumentación temporal, la ejecución actual sin integración obtiene 275 pruebas superadas en 19,04 segundos. Las tres pruebas de integración requieren un \texttt{DATABASE\_URL} PostgreSQL válido. No se ejecutan con una URL web de proyecto de Supabase. Las integraciones registran un snapshot de mercado, comprueban la actualización de una cotización y guardan una señal de oportunidad vinculada a un artículo. Cada una abre una transacción externa y la revierte al terminar, por lo que la comprobación no añade datos de prueba al histórico utilizado por los experimentos.
 
 \begin{table}[htbp]
 \centering
@@ -193,12 +193,12 @@ La evidencia técnica se vuelve a ejecutar sobre el repositorio restaurado el 10
 \toprule
 Bloque & Pruebas & Alcance \\
 \midrule
-Unitarias & 273 & Economía, OCR, conectores, scraping, datasets, simulador, MARL y panel web. \\
-Integración & 3 & Persistencia de snapshots, actualización de precios y señales en PostgreSQL con reversión. \\
-Suite completa & 276 & Resultado: todas las pruebas superadas. \\
+Unitarias actuales & 275 & Economía, OCR, conectores, scraping, datasets, simulador, MARL y panel web. \\
+Integración & 3 & Persistencia de snapshots, actualización de precios y señales con un DSN PostgreSQL válido. \\
+Total definido & 278 & La integración se repite al restaurar la conexión de base de datos. \\
 \bottomrule
 \end{tabularx}
-\caption{Ejecución de pruebas automatizadas recuperada.}
+\caption{Cobertura automatizada y condición de integración.}
 \label{tab:pruebas-recuperadas}
 \end{table}
 

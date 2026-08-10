@@ -91,16 +91,16 @@
 \contentsline {subsection}{\numberline {6.6.1}Casos favorables}{45}{subsection.6.6.1}%
 \contentsline {subsection}{\numberline {6.6.2}Limitaciones observadas}{45}{subsection.6.6.2}%
 \contentsline {subsection}{\numberline {6.6.3}Lectura de los resultados}{45}{subsection.6.6.3}%
-\contentsline {chapter}{\numberline {7}Conclusiones}{46}{chapter.7}%
-\contentsline {section}{\numberline {7.1}Conclusiones principales}{46}{section.7.1}%
-\contentsline {section}{\numberline {7.2}Cumplimiento de objetivos}{46}{section.7.2}%
-\contentsline {section}{\numberline {7.3}Limitaciones}{47}{section.7.3}%
-\contentsline {section}{\numberline {7.4}Trabajo futuro}{47}{section.7.4}%
-\contentsline {chapter}{Bibliografía}{48}{section.7.4}%
-\contentsline {chapter}{\numberline {A}Anexos}{49}{appendix.Alph1}%
-\contentsline {section}{\numberline {A.1}Estructura del repositorio}{49}{section.Alph1.1}%
-\contentsline {section}{\numberline {A.2}Configuración del entorno}{49}{section.Alph1.2}%
-\contentsline {section}{\numberline {A.3}Comandos de datasets y modelos}{50}{section.Alph1.3}%
-\contentsline {section}{\numberline {A.4}Parámetros de entrenamiento}{50}{section.Alph1.4}%
-\contentsline {section}{\numberline {A.5}Modelo de datos}{50}{section.Alph1.5}%
-\contentsline {section}{\numberline {A.6}Resultados adicionales}{51}{section.Alph1.6}%
+\contentsline {chapter}{\numberline {7}Conclusiones}{47}{chapter.7}%
+\contentsline {section}{\numberline {7.1}Conclusiones principales}{47}{section.7.1}%
+\contentsline {section}{\numberline {7.2}Cumplimiento de objetivos}{47}{section.7.2}%
+\contentsline {section}{\numberline {7.3}Limitaciones}{48}{section.7.3}%
+\contentsline {section}{\numberline {7.4}Trabajo futuro}{48}{section.7.4}%
+\contentsline {chapter}{Bibliografía}{49}{section.7.4}%
+\contentsline {chapter}{\numberline {A}Anexos}{50}{appendix.Alph1}%
+\contentsline {section}{\numberline {A.1}Estructura del repositorio}{50}{section.Alph1.1}%
+\contentsline {section}{\numberline {A.2}Configuración del entorno}{50}{section.Alph1.2}%
+\contentsline {section}{\numberline {A.3}Comandos de datasets y modelos}{51}{section.Alph1.3}%
+\contentsline {section}{\numberline {A.4}Parámetros de entrenamiento}{51}{section.Alph1.4}%
+\contentsline {section}{\numberline {A.5}Modelo de datos}{51}{section.Alph1.5}%
+\contentsline {section}{\numberline {A.6}Resultados adicionales}{52}{section.Alph1.6}%
