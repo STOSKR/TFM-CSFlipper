@@ -455,8 +455,10 @@ input[type="search"] {
 .deal-list-head,
 .deal-card {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(176px, 0.33fr) 108px;
-  gap: 12px;
+  /* La tabla concentra el espacio en el artículo. Precios y acción son
+     columnas estables para poder escanear filas sin huecos innecesarios. */
+  grid-template-columns: minmax(0, 1fr) 210px 78px;
+  gap: 9px;
 }
 
 .deal-list-head {
@@ -1110,7 +1112,7 @@ input[type="search"] {
 
   .deal-list-head,
   .deal-card {
-    grid-template-columns: minmax(0, 1fr) 154px 96px;
+    grid-template-columns: minmax(0, 1fr) 176px 78px;
     gap: 9px;
   }
 
