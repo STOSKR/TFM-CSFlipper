@@ -29,7 +29,7 @@ La arquitectura se organiza en cinco capas: adquisición, persistencia, predicci
 \caption{Capas principales de la arquitectura propuesta.}
 \end{figure}
 
-La decisión final siempre queda registrada como simulada. Esto permite evaluar el sistema con métricas de cartera sin exponer capital real durante la investigación. La arquitectura puede generar recomendaciones, episodios y métricas, pero no envía órdenes reales a Steam, \acroref{BUFF}{BUFF} ni ninguna otra plataforma.
+La decisión final siempre queda registrada como simulada. Esto permite evaluar el sistema con métricas de cartera sin exponer capital durante la investigación. La arquitectura puede generar recomendaciones, episodios y métricas, pero no envía órdenes a Steam, \acroref{BUFF}{BUFF} ni ninguna otra plataforma.
 
 \section{Flujo operativo}
 
@@ -125,11 +125,11 @@ Portfolio controla la coherencia global de la cartera. Su observación incorpora
 
 \section{Función de recompensa}
 
-La recompensa debe reflejar el objetivo real del sistema: mejorar el valor neto de la cartera sin ignorar riesgo ni fricción. Una recompensa basada solo en comprar barato o en detectar subida de precio sería incompleta, porque no tendría en cuenta si la operación puede cerrarse, si el capital queda bloqueado o si el spread desaparece antes de poder vender.
+La recompensa debe reflejar el objetivo del sistema: mejorar el valor neto de la cartera sin ignorar riesgo ni fricción. Una recompensa basada solo en comprar barato o en detectar subida de precio sería incompleta, porque no tendría en cuenta si la operación puede cerrarse, si el capital queda bloqueado o si el spread desaparece antes de poder vender.
 
 \subsection{Recompensa individual}
 
-Las señales individuales pueden ayudar a entrenar comportamientos especializados. Scout puede recibir recompensa por identificar oportunidades que más adelante resultan útiles; Trader por ejecutar acciones con beneficio neto; y Portfolio por evitar sobreexposición, operaciones ilíquidas o capital bloqueado excesivo. Estas recompensas no sustituyen al objetivo global, pero pueden guiar el aprendizaje de cada rol.
+Las señales individuales pueden ayudar a entrenar comportamientos especializados. Scout puede recibir recompensa por identificar oportunidades que más adelante resultan útiles. Trader puede recibirla por ejecutar acciones con beneficio neto y Portfolio por evitar sobreexposición, operaciones ilíquidas o capital bloqueado excesivo. Estas recompensas no sustituyen al objetivo global, pero pueden guiar el aprendizaje de cada rol.
 
 \subsection{Recompensa cooperativa}
 
@@ -137,6 +137,6 @@ La recompensa cooperativa se vincula al valor total de la cartera simulada. Debe
 
 \section{Restricciones de riesgo}
 
-Las restricciones de riesgo se introducen antes de escalar el entrenamiento. Las más importantes son: no usar capital inexistente, limitar exposición por activo o plataforma, rechazar operaciones con liquidez insuficiente, respetar el \textit{trade hold}, controlar el capital bloqueado y separar claramente simulación de operación real. Estas reglas son sencillas, pero evitan que los agentes aprendan políticas imposibles de ejecutar en el mercado real.
+Las restricciones de riesgo se introducen antes de escalar el entrenamiento. Las más importantes son: no usar capital inexistente, limitar exposición por activo o plataforma, rechazar operaciones con liquidez insuficiente, respetar el \textit{trade hold}, controlar el capital bloqueado y separar claramente simulación de operación. Estas reglas son sencillas, pero evitan que los agentes aprendan políticas imposibles de ejecutar en el mercado.
 
 La salida del sistema debe ser siempre auditable. Cada predicción, acción o decisión simulada debe poder relacionarse con su fuente de datos, versión de modelo, episodio y configuración de simulación. Esta trazabilidad es necesaria para interpretar resultados y para distinguir entre error de datos, error de modelo y mala política de decisión.

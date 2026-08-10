@@ -2,7 +2,7 @@
 
 \section{Fuentes de datos}
 
-El sistema trabaja con varias fuentes porque el mercado de \acroref{CS2}{CS2} está fragmentado. Ninguna fuente aislada contiene toda la información necesaria para decidir. Steam aporta precio, histórico y señales del mercado principal; \acroref{BUFF}{BUFF} permite comparar oportunidades y buy orders; SteamDT ayuda a descubrir candidatos; el \acroref{OCR}{OCR} permite capturar datos cuando no existe una \acroref{API}{API} cómoda; y los \acroref{CSV}{CSV} o importaciones manuales sirven para integrar muestras controladas o material histórico.
+El sistema trabaja con varias fuentes porque el mercado de \acroref{CS2}{CS2} está fragmentado. Ninguna fuente aislada contiene toda la información necesaria para decidir. Steam aporta precio, histórico y señales del mercado principal. \acroref{BUFF}{BUFF} permite comparar oportunidades y buy orders. SteamDT ayuda a descubrir candidatos. El \acroref{OCR}{OCR} permite capturar datos cuando no existe una \acroref{API}{API} cómoda. Los \acroref{CSV}{CSV} o importaciones manuales sirven para integrar muestras controladas o material histórico.
 
 \subsection{Mercado de Steam}
 
@@ -12,7 +12,7 @@ En la práctica, Steam no se usa solo como una tabla de precios. También aporta
 
 \subsection{BUFF y mercados externos}
 
-\acroref{BUFF}{BUFF} se utiliza como mercado externo de comparación. Sus precios se reciben principalmente en \acroref{CNY}{CNY}, por lo que el sistema conserva tanto el valor original como su conversión a \acroref{EUR}{EUR}. Esta doble representación permite auditar el dato original y, al mismo tiempo, entrenar modelos sobre una moneda canónica. Las buy orders de \acroref{BUFF}{BUFF} son especialmente útiles porque ayudan a estimar si una salida tiene demanda real o si el precio observado es poco ejecutable.
+\acroref{BUFF}{BUFF} se utiliza como mercado externo de comparación. Sus precios se reciben principalmente en \acroref{CNY}{CNY}, por lo que el sistema conserva tanto el valor original como su conversión a \acroref{EUR}{EUR}. Esta doble representación permite auditar el dato original y, al mismo tiempo, entrenar modelos sobre una moneda canónica. Las buy orders de \acroref{BUFF}{BUFF} son especialmente útiles porque ayudan a estimar si una salida tiene demanda o si el precio observado es poco ejecutable.
 
 SteamDT se utiliza como apoyo para descubrir candidatos y estrategias de búsqueda, no como fuente única de decisión. Su función dentro del sistema es reducir el espacio de búsqueda inicial y ayudar a priorizar qué artículos merece la pena observar con más profundidad.
 
@@ -63,7 +63,7 @@ La adquisición periódica contempla cookies o sesiones, delays configurables, l
 
 \subsection{Modelo de persistencia}
 
-La persistencia se apoya en Supabase/Postgres. La decisión de diseño es tratar la base de datos como fuente de verdad y mantener el histórico de forma append-only siempre que sea posible. Las tablas operativas principales son \texttt{market\_items} y \texttt{market\_history\_points}. La primera mantiene una fila por variante real de artículo y estado actual por plataforma; la segunda guarda series temporales en formato largo por artículo, plataforma, fecha y métrica.
+La persistencia se apoya en Supabase/Postgres. La decisión de diseño es tratar la base de datos como fuente de verdad y mantener el histórico de forma append-only siempre que sea posible. Las tablas operativas principales son \texttt{market\_items} y \texttt{market\_history\_points}. La primera mantiene una fila por variante de artículo y estado actual por plataforma. La segunda guarda series temporales en formato largo por artículo, plataforma, fecha y métrica.
 
 También se define un esquema canónico más amplio con entidades como \texttt{assets}, \texttt{platforms}, \texttt{market\_observations}, \texttt{predictions}, \texttt{investment\_decisions} y \texttt{simulated\_positions}. Esta separación permite evolucionar desde el esquema operativo actual hacia una representación más trazable y auditable.
 
@@ -73,7 +73,7 @@ También se define un esquema canónico más amplio con entidades como \texttt{a
 \toprule
 Entidad & Uso dentro del \acroref{TFM}{TFM} \\
 \midrule
-\texttt{market\_items} & Estado actual de cada variante real por plataforma. \\
+\texttt{market\_items} & Estado actual de cada variante por plataforma. \\
 \texttt{market\_history\_points} & Serie temporal en formato largo para precios, buy orders y métricas. \\
 \texttt{predictions} & Salidas versionadas del modelo supervisado. \\
 \texttt{investment\_decisions} & Decisiones simuladas y razones asociadas. \\

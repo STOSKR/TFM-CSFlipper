@@ -13,7 +13,7 @@ Fase & Objetivo & Estado \\
 1 & Migrar reglas económicas del Excel a simulador comprobable. & Implementada y cubierta por pruebas. \\
 2 & Construir datasets supervisados y explorar características temporales. & Implementada con resultados preliminares. \\
 3 & Comparar modelos supervisados tabulares y umbrales operativos. & Implementada como smoke experimental. \\
-4 & Crear dataset real de trading Steam/\acroref{BUFF}{BUFF} con fees y horizonte. & Implementada, pero limitada por desbalance. \\
+4 & Crear dataset operativo de trading Steam/\acroref{BUFF}{BUFF} con fees y horizonte. & Implementada, pero limitada por desbalance. \\
 5 & Ejecutar smoke \acroref{MARL}{MARL} con PettingZoo, \acroref{RLlib}{RLlib}/\acroref{PPO}{PPO} y tres políticas. & Funcional, no validación final. \\
 \bottomrule
 \end{tabularx}
@@ -69,7 +69,7 @@ Interfaz y operación & Panel web, servidor de scraping y payload operativo. & V
 \caption{Bloques de pruebas incorporados a la validación del proyecto.}
 \end{table}
 
-Las pruebas de rendimiento se integran en la evaluación del capítulo porque condicionan la utilidad real del sistema. En este proyecto el rendimiento no se mide solo por tiempo de ejecución, sino también por cobertura de datos, número de señales generadas, coste de entrenamiento, capital bloqueado, drawdown y operaciones rechazadas. Los smoke tests de entrenamiento y los episodios \acroref{MARL}{MARL} registran estas métricas para comprobar que el sistema no solo ejecuta, sino que produce salidas interpretables y comparables entre configuraciones.
+Las pruebas de rendimiento se integran en la evaluación del capítulo porque condicionan la utilidad del sistema. En este proyecto el rendimiento no se mide solo por tiempo de ejecución, sino también por cobertura de datos, número de señales generadas, coste de entrenamiento, capital bloqueado, drawdown y operaciones rechazadas. Los smoke tests de entrenamiento y los episodios \acroref{MARL}{MARL} registran estas métricas para comprobar que el sistema no solo ejecuta, sino que produce salidas interpretables y comparables entre configuraciones.
 
 \section{Métricas}
 
@@ -109,13 +109,67 @@ Default operativo & Random forest d18 & 0,85 & Precisión 0,962 con 53 señales 
 
 Estos resultados no se consideran definitivos. El número de señales en umbrales altos es reducido y no permite afirmar que el sistema generalice por artículo o por periodo. Sí indican que el pipeline de entrenamiento, calibración, selección por umbral y evaluación temporal funciona.
 
-\subsection{Dataset de trading real}
+\subsection{Protocolo temporal reproducible}
+
+La validación se ha repetido el 10 de agosto de 2026 con los datos disponibles desde el 1 de diciembre de 2025. Cada ejemplo representa la posibilidad de comprar un artículo en BUFF y venderlo en Steam tras un horizonte de ocho días. La etiqueta vale uno cuando, después de aplicar las comisiones configuradas, el retorno supera el 10\%. El precio de entrada se toma de BUFF y la salida de Steam se valora con el factor de venta de 0,87 empleado por el simulador.
+
+El orden temporal se conserva en todas las fases. Para el corte de marzo se usaron 171 ejemplos de entrenamiento, 76 de validación y 95 de prueba. El entrenamiento termina el 20 de enero, la validación ocupa del 2 al 20 de febrero y la prueba comprende del 4 al 28 de marzo. Se eliminan ocho días antes de cada frontera para que el horizonte futuro de una observación no alcance el bloque siguiente. Ningún parámetro se modifica al consultar la prueba.
+
+La selección compara las familias dummy, regresión logística, random forest e histogram gradient boosting. La configuración se elige en validación mediante precisión al umbral 0,85 con al menos tres señales. Después se calibra con sigmoide y se mide sobre el bloque de prueba. Además, se ejecuta una ablación de la regresión logística sin retardos, cambios, retornos ni medias móviles de uno, tres y siete días. Esta comparación responde a una pregunta concreta: si el histórico añade información o solamente complejidad.
+
+\begin{table}[htbp]
+\centering
+\begin{tabularx}{\textwidth}{l r r r r}
+\toprule
+Configuración & ROC-AUC & Brier & Precisión @0,85 & Señales \\
+\midrule
+Logística con histórico & 0,641 & 0,075 & 0,929 & 85 \\
+Logística sin histórico & 0,760 & 0,072 & 0,970 & 67 \\
+Random forest con histórico & 0,742 & 0,074 & 0,942 & 86 \\
+HGB con histórico & 0,649 & 0,082 & 0,915 & 82 \\
+\bottomrule
+\end{tabularx}
+\caption{Resultados del corte temporal de marzo.}
+\label{tab:resultados-marzo}
+\end{table}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/experimentacion/01_modelos_marzo.png}
+\caption{Comparación de modelos y ablación temporal en marzo. Un Brier menor indica mejor calibración.}
+\label{fig:modelos-marzo}
+\end{figure}
+
+El mejor resultado del corte es la regresión logística sin características históricas. Su ROC-AUC alcanza 0,760 y su Brier es 0,072. Por tanto, en este periodo concreto los retardos y medias móviles no aportan una mejora medible. Random forest se acerca con ROC-AUC de 0,742. El resultado no permite concluir que las características temporales sean inútiles en cualquier periodo, pero sí descarta asumir su beneficio sin contrastarlo.
+
+La lectura debe mantenerse prudente. Los 19 artículos disponibles en el corte aparecen tanto en entrenamiento como en prueba y la etiqueta positiva representa el 89,5\% de la prueba. Una estrategia que marca muchos casos como favorables puede alcanzar precisión elevada por la propia distribución de la muestra. El corte de mayo confirma este problema: de 361 ejemplos de entrenamiento, 76 de validación y 95 de prueba, las dos últimas particiones contienen exclusivamente etiquetas positivas. En esas condiciones ROC-AUC no es una métrica definida y no se entrena un modelo para presentarlo como comparación válida. Este resultado establece una condición de continuación clara: ampliar la cobertura cruzada BUFF--Steam y equilibrar los eventos antes de convertir el modelo en recomendación operativa.
+
+\subsection{Evidencia de pruebas automatizadas}
+
+La evidencia técnica se vuelve a ejecutar sobre el repositorio restaurado el 10 de agosto de 2026. La suite completa obtiene 276 pruebas superadas en 26,85 segundos. Incluye 273 pruebas unitarias y tres pruebas de integración contra la base de datos configurada. Las integraciones registran un snapshot de mercado, comprueban la actualización de una cotización y guardan una señal de oportunidad vinculada a un artículo. Cada una abre una transacción externa y la revierte al terminar, por lo que la comprobación no añade datos de prueba al histórico utilizado por los experimentos.
+
+\begin{table}[htbp]
+\centering
+\begin{tabularx}{\textwidth}{l r X}
+\toprule
+Bloque & Pruebas & Alcance \\
+\midrule
+Unitarias & 273 & Economía, OCR, conectores, scraping, datasets, simulador, MARL y panel web. \\
+Integración & 3 & Persistencia de snapshots, actualización de precios y señales en PostgreSQL con reversión. \\
+Suite completa & 276 & Resultado: todas las pruebas superadas. \\
+\bottomrule
+\end{tabularx}
+\caption{Ejecución de pruebas automatizadas recuperada.}
+\label{tab:pruebas-recuperadas}
+\end{table}
+
+\subsection{Dataset de trading operativo}
 
 El dataset \texttt{trading\_profit\_v1} se ha generado desde \texttt{market\_history\_points} usando precios Steam/\acroref{BUFF}{BUFF}, comisiones y horizonte temporal. La primera versión ha producido 2.331 ejemplos y 50 artículos, pero con desbalance extremo en validación y test: solo un caso positivo en cada split para la dirección analizada. Por este motivo, las métricas de ese entrenamiento no se usan como evidencia de rendimiento operativo.
 
 El análisis posterior ha mostrado que el histórico de \acroref{BUFF}{BUFF} ha empezado a estar mejor alineado tras corregir el parser y permitir backfill de puntos históricos. Aun así, la dirección más natural de arbitraje, comprar en \acroref{BUFF}{BUFF} y vender en Steam, todavía no genera ejemplos suficientes a ocho días porque falta histórico futuro Steam alineado con los puntos \acroref{BUFF}{BUFF} recientes.
 
-A partir de esta limitación, la validación distingue entre aprendizaje temporal e inferencia operativa: Steam se usa como fuente principal para aprender el riesgo temporal de salida, y \acroref{BUFF}{BUFF} queda como precio vivo de entrada en inferencia. El objetivo no es predecir el precio exacto de \acroref{BUFF}{BUFF}; la recomendación evalúa si un precio \acroref{BUFF}{BUFF} puntual conserva margen suficiente frente a una salida Steam estimada y sus comisiones.
+A partir de esta limitación, la validación distingue entre aprendizaje temporal e inferencia operativa: Steam se usa como fuente principal para aprender el riesgo temporal de salida y \acroref{BUFF}{BUFF} queda como precio vivo de entrada en inferencia. El objetivo no es predecir el precio exacto de \acroref{BUFF}{BUFF}. La recomendación evalúa si un precio \acroref{BUFF}{BUFF} puntual conserva margen suficiente frente a una salida Steam estimada y sus comisiones.
 
 \subsection{Dificultades y pivotaciones}
 

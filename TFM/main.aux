@@ -39,10 +39,10 @@
 \citation{lowe2017maddpg}
 \citation{lowe2017maddpg}
 \citation{yu2022mappo}
+\citation{schulman2017ppo}
 \@writefile{toc}{\contentsline {section}{\numberline {2.3}Aprendizaje por refuerzo multiagente}{18}{section.2.3}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {2.3.1}Cooperación y coordinación entre agentes}{18}{subsection.2.3.1}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {2.3.2}Entrenamiento centralizado y ejecución descentralizada}{18}{subsection.2.3.2}\protected@file@percent }
-\citation{schulman2017ppo}
 \citation{yu2022mappo}
 \citation{markowitz1952portfolio}
 \citation{liu2021finrl}
@@ -55,11 +55,11 @@
 \@writefile{toc}{\contentsline {section}{\numberline {2.5}Aplicaciones relacionadas}{20}{section.2.5}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {2.6}Tecnologías utilizadas}{20}{section.2.6}\protected@file@percent }
 \@writefile{lof}{\contentsline {figure}{\numberline {2.1}{\ignorespaces Resumen visual de la pila tecnológica utilizada en el proyecto.}}{20}{figure.2.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.6.1}Herramientas de desarrollo}{21}{subsection.2.6.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.6.1}Herramientas de desarrollo}{20}{subsection.2.6.1}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {2.6.2}Adquisición y tratamiento de datos}{21}{subsection.2.6.2}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {2.6.3}Persistencia y modelo de datos}{21}{subsection.2.6.3}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {2.6.4}Predicción, simulación y entrenamiento multiagente}{21}{subsection.2.6.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.6.5}Interfaz y operación local}{22}{subsection.2.6.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.6.5}Interfaz y operación local}{21}{subsection.2.6.5}\protected@file@percent }
 \citation{sutton2018reinforcement}
 \citation{liu2021finrl}
 \@writefile{toc}{\contentsline {chapter}{\numberline {3}Arquitectura multiagente propuesta}{23}{chapter.3}\protected@file@percent }
@@ -135,28 +135,36 @@
 \@writefile{toc}{\contentsline {subsection}{\numberline {5.4.1}Migración de reglas económicas}{35}{subsection.5.4.1}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {5.4.2}Resultados del modelo supervisado}{36}{subsection.5.4.2}\protected@file@percent }
 \@writefile{lot}{\contentsline {table}{\numberline {5.3}{\ignorespaces Resultados supervisados preliminares sobre el dataset reciente.}}{36}{table.5.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.4.3}Dataset de trading real}{36}{subsection.5.4.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.4.4}Dificultades y pivotaciones}{37}{subsection.5.4.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.4.5}Resultados de la arquitectura multiagente}{37}{subsection.5.4.5}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {5.5}Experimentos finales pendientes}{37}{section.5.5}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {5.6}Discusión}{38}{section.5.6}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.6.1}Casos favorables}{38}{subsection.5.6.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.6.2}Limitaciones observadas}{38}{subsection.5.6.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.6.3}Lectura de los resultados}{38}{subsection.5.6.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.4.3}Protocolo temporal reproducible}{36}{subsection.5.4.3}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {5.4}{\ignorespaces Resultados del corte temporal de marzo.}}{37}{table.5.4}\protected@file@percent }
+\newlabel{tab:resultados-marzo}{{5.4}{37}{Resultados del corte temporal de marzo}{table.5.4}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {5.1}{\ignorespaces Comparación de modelos y ablación temporal en marzo. Un Brier menor indica mejor calibración.}}{37}{figure.5.1}\protected@file@percent }
+\newlabel{fig:modelos-marzo}{{5.1}{37}{Comparación de modelos y ablación temporal en marzo. Un Brier menor indica mejor calibración}{figure.5.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.4.4}Evidencia de pruebas automatizadas}{38}{subsection.5.4.4}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {5.5}{\ignorespaces Ejecución de pruebas automatizadas recuperada.}}{38}{table.5.5}\protected@file@percent }
+\newlabel{tab:pruebas-recuperadas}{{5.5}{38}{Ejecución de pruebas automatizadas recuperada}{table.5.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.4.5}Dataset de trading operativo}{38}{subsection.5.4.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.4.6}Dificultades y pivotaciones}{38}{subsection.5.4.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.4.7}Resultados de la arquitectura multiagente}{39}{subsection.5.4.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {5.5}Experimentos finales pendientes}{39}{section.5.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {5.6}Discusión}{39}{section.5.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.6.1}Casos favorables}{39}{subsection.5.6.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.6.2}Limitaciones observadas}{40}{subsection.5.6.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.6.3}Lectura de los resultados}{40}{subsection.5.6.3}\protected@file@percent }
 \citation{liu2021finrl}
-\@writefile{toc}{\contentsline {chapter}{\numberline {6}Conclusiones}{39}{chapter.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {chapter}{\numberline {6}Conclusiones}{41}{chapter.6}\protected@file@percent }
 \@writefile{lof}{\addvspace {10\p@ }}
 \@writefile{lot}{\addvspace {10\p@ }}
-\@writefile{toc}{\contentsline {section}{\numberline {6.1}Conclusiones principales}{39}{section.6.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {6.2}Cumplimiento de objetivos}{39}{section.6.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {6.1}Conclusiones principales}{41}{section.6.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {6.2}Cumplimiento de objetivos}{41}{section.6.2}\protected@file@percent }
 \citation{lowe2017maddpg}
 \citation{yu2022mappo}
 \citation{sutton2018reinforcement}
 \citation{schulman2017ppo}
 \citation{terry2021pettingzoo}
 \citation{ray2018rllib}
-\@writefile{toc}{\contentsline {section}{\numberline {6.3}Limitaciones}{40}{section.6.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {6.4}Trabajo futuro}{40}{section.6.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {6.3}Limitaciones}{42}{section.6.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {6.4}Trabajo futuro}{42}{section.6.4}\protected@file@percent }
 \bibstyle{unsrt}
 \bibdata{bibliografia}
 \bibcite{lehdonvirta2009virtual}{1}
@@ -172,15 +180,15 @@
 \bibcite{niculescu2005predicting}{11}
 \bibcite{terry2021pettingzoo}{12}
 \bibcite{ray2018rllib}{13}
-\@writefile{toc}{\contentsline {chapter}{Bibliografía}{41}{section.6.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {chapter}{\numberline {A}Anexos}{43}{appendix.Alph1}\protected@file@percent }
+\@writefile{toc}{\contentsline {chapter}{Bibliografía}{43}{section.6.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {chapter}{\numberline {A}Anexos}{45}{appendix.Alph1}\protected@file@percent }
 \@writefile{lof}{\addvspace {10\p@ }}
 \@writefile{lot}{\addvspace {10\p@ }}
-\@writefile{toc}{\contentsline {section}{\numberline {A.1}Estructura del repositorio}{43}{section.Alph1.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {A.2}Configuración del entorno}{43}{section.Alph1.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {A.3}Comandos de datasets y modelos}{44}{section.Alph1.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {A.4}Parámetros de entrenamiento}{44}{section.Alph1.4}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {A.1}{\ignorespaces Parámetros a versionar en los experimentos.}}{44}{table.Alph1.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {A.5}Modelo de datos}{44}{section.Alph1.5}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {A.6}Resultados adicionales}{45}{section.Alph1.6}\protected@file@percent }
-\gdef \@abspage@last{45}
+\@writefile{toc}{\contentsline {section}{\numberline {A.1}Estructura del repositorio}{45}{section.Alph1.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {A.2}Configuración del entorno}{45}{section.Alph1.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {A.3}Comandos de datasets y modelos}{46}{section.Alph1.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {A.4}Parámetros de entrenamiento}{46}{section.Alph1.4}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {A.1}{\ignorespaces Parámetros a versionar en los experimentos.}}{46}{table.Alph1.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {A.5}Modelo de datos}{46}{section.Alph1.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {A.6}Resultados adicionales}{47}{section.Alph1.6}\protected@file@percent }
+\gdef \@abspage@last{47}
