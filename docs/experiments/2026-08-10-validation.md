@@ -10,9 +10,9 @@ Comando ejecutado con la configuración local de base de datos:
 python -m pytest -q
 ```
 
-Resultado: **276 passed in 26.85s**.
+Resultado actualizado el 11 de agosto de 2026: **278 passed in 35.20s**.
 
-- 273 pruebas unitarias cubren economía, OCR, adquisición, scraping, datasets, simulador, MARL y servidor web.
+- 275 pruebas unitarias cubren economía, OCR, adquisición, scraping, datasets, simulador, MARL y servidor web.
 - 3 integraciones comprueban el esquema de mercado vigente en PostgreSQL.
 - Las integraciones se ejecutan dentro de una transacción externa que se revierte al terminar.
 

@@ -185,7 +185,7 @@ La lectura debe mantenerse prudente. Los 19 artículos disponibles en el corte a
 
 \subsection{Evidencia de pruebas automatizadas}
 
-La evidencia técnica se volvió a ejecutar sobre el repositorio restaurado el 10 de agosto de 2026. La comprobación inicial registró 276 pruebas superadas en 26,85 segundos. Tras añadir las pruebas de aumentación temporal, la ejecución actual sin integración obtiene 275 pruebas superadas en 19,04 segundos. Las tres pruebas de integración requieren un \texttt{DATABASE\_URL} PostgreSQL válido. No se ejecutan con una URL web de proyecto de Supabase. Las integraciones registran un snapshot de mercado, comprueban la actualización de una cotización y guardan una señal de oportunidad vinculada a un artículo. Cada una abre una transacción externa y la revierte al terminar, por lo que la comprobación no añade datos de prueba al histórico utilizado por los experimentos.
+La suite completa se ejecutó el 11 de agosto de 2026 sobre el repositorio restaurado y obtuvo 278 pruebas superadas en 35,20 segundos. Las tres pruebas de integración utilizaron el \texttt{DATABASE\_URL} PostgreSQL configurado en Supabase. Registran un snapshot de mercado, comprueban la actualización de una cotización y guardan una señal de oportunidad vinculada a un artículo. Cada una abre una transacción externa y la revierte al terminar, por lo que la comprobación no añade datos de prueba al histórico utilizado por los experimentos.
 
 \begin{table}[htbp]
 \centering
@@ -194,11 +194,11 @@ La evidencia técnica se volvió a ejecutar sobre el repositorio restaurado el 1
 Bloque & Pruebas & Alcance \\
 \midrule
 Unitarias actuales & 275 & Economía, OCR, conectores, scraping, datasets, simulador, MARL y panel web. \\
-Integración & 3 & Persistencia de snapshots, actualización de precios y señales con un DSN PostgreSQL válido. \\
-Total definido & 278 & La integración se repite al restaurar la conexión de base de datos. \\
+Integración & 3 & Persistencia de snapshots, actualización de precios y señales en PostgreSQL. \\
+Suite completa & 278 & Todas superadas en 35,20 segundos. \\
 \bottomrule
 \end{tabularx}
-\caption{Cobertura automatizada y condición de integración.}
+\caption{Pruebas automatizadas ejecutadas.}
 \label{tab:pruebas-recuperadas}
 \end{table}
 
