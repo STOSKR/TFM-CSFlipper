@@ -91,7 +91,7 @@ def main() -> None:
     parser.add_argument(
         "--trade-direction",
         choices=("buff_to_steam_sell", "steam_to_buff_buy_order"),
-        default="steam_to_buff_buy_order",
+        default="buff_to_steam_sell",
     )
     parser.add_argument("--horizon-days", type=int, default=8)
     parser.add_argument("--future-tolerance-days", type=int, default=7)

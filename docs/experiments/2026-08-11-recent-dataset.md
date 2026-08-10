@@ -2,8 +2,9 @@
 
 ## Propósito
 
-Comprobar si la base de datos conectada contiene suficiente variedad temporal para
-repetir el entrenamiento supervisado y la evaluación de políticas MARL.
+Comprobar si la base de datos conectada contiene suficiente variedad temporal en
+la ruta BUFF a Steam para repetir el entrenamiento supervisado y la evaluación
+de políticas MARL.
 
 ## Configuración común
 
@@ -14,17 +15,17 @@ repetir el entrenamiento supervisado y la evaluación de políticas MARL.
 - Validación: desde 1 de junio de 2026.
 - Prueba: del 1 de julio al 1 de agosto de 2026.
 - Margen mínimo: 10 %.
+- Ruta: BUFF listing → Steam listing.
 
 ## Resultado
 
-| Ruta | Entrenamiento | Validación | Prueba | Conclusión |
-| --- | ---: | ---: | ---: | --- |
-| BUFF listing → Steam listing | 551, 95,6 % positivos | 76, 100 % positivos | 84, 98,8 % positivos | No existe una clase negativa suficiente. |
-| Steam listing → BUFF buy order | 551, 0 % positivos | 76, 0 % positivos | 84, 0 % positivos | No existe una clase positiva. |
+| Entrenamiento | Validación | Prueba | Conclusión |
+| ---: | ---: | ---: | --- |
+| 551, 95,6 % positivos | 76, 100 % positivos | 84, 98,8 % positivos | No existe una clase negativa suficiente. |
 
-Ambas direcciones usan 19 artículos. No se entrena un clasificador ni una política
-MARL comparativa con este corte. Una métrica de clasificación calculada sobre una
-sola clase sería engañosa.
+La ruta usa 19 artículos. No se entrena un clasificador ni una política MARL
+comparativa con este corte. Una métrica de clasificación calculada sobre una sola
+clase sería engañosa.
 
 ## Comandos
 
@@ -37,16 +38,6 @@ python -m apps.cli.build_trading_dataset `
   --start-date 2025-12-01 --validation-start 2026-06-01 `
   --test-start 2026-07-01 --test-end 2026-08-01 `
   --query-start 2025-12-01
-
-python -m apps.cli.build_trading_dataset `
-  --output data/experiments/recent_probe_20260811/steam_to_buff `
-  --trade-direction steam_to_buff_buy_order `
-  --horizon-days 8 --future-tolerance-days 7 --purge-gap-days 8 `
-  --min-profit-eur 0 --min-return 0.1 `
-  --start-date 2025-12-01 --validation-start 2026-06-01 `
-  --test-start 2026-07-01 --test-end 2026-08-01 `
-  --query-start 2025-12-01
-```
 
 ## Siguiente evidencia necesaria
 

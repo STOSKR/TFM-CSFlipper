@@ -185,23 +185,22 @@ La lectura debe mantenerse prudente. Los 19 artículos disponibles en el corte a
 
 \subsection{Comprobación del corte reciente}
 
-Con la base de datos conectada se repitió la construcción del dataset el 11 de agosto de 2026. Se empleó la ventana desde diciembre de 2025, un horizonte de ocho días, una purga de ocho días y una prueba acotada a julio de 2026. La comprobación usa las dos direcciones de intercambio disponibles y conserva los mismos 19 artículos. El resultado no habilita otro entrenamiento. Sirve para comprobar si la nueva captura ha aportado variedad suficiente de etiquetas.
+Con la base de datos conectada se repitió la construcción del dataset de BUFF a Steam el 11 de agosto de 2026. Se empleó la ventana desde diciembre de 2025, un horizonte de ocho días, una purga de ocho días y una prueba acotada a julio de 2026. La comprobación conserva los mismos 19 artículos. El resultado no habilita otro entrenamiento. Sirve para comprobar si la nueva captura ha aportado variedad suficiente de etiquetas.
 
 \begin{table}[htbp]
 \centering
-\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}X r r r >{\raggedright\arraybackslash}X}
+\begin{tabularx}{\textwidth}{r r r >{\raggedright\arraybackslash}X}
 \toprule
-Ruta & Entrenamiento & Validación & Prueba & Lectura \\
+Entrenamiento & Validación & Prueba & Lectura \\
 \midrule
-BUFF $\rightarrow$ Steam & 551 / 95,6\% + & 76 / 100\% + & 84 / 98,8\% + & Predominan los márgenes positivos. \\
-Steam $\rightarrow$ BUFF & 551 / 0\% + & 76 / 0\% + & 84 / 0\% + & Predominan los márgenes negativos. \\
+551 / 95,6\% + & 76 / 100\% + & 84 / 98,8\% + & Predominan los márgenes positivos. \\
 \bottomrule
 \end{tabularx}
-\caption{Distribución del corte reciente.}
+\caption{Corte reciente de BUFF a Steam.}
 \label{tab:corte-reciente}
 \end{table}
 
-El contraste es deliberadamente incómodo, pero es importante. En ambas rutas falta una clase en validación y prueba, por lo que ROC-AUC, calibración y una comparación de políticas no son interpretables. Entrenar con esta muestra produciría una clasificación trivial y no aportaría evidencia sobre el sistema. La prioridad experimental pasa a ser mantener capturas recurrentes de más artículos, incluir oportunidades descartadas y conservar decisiones cerradas para que la recompensa MARL pueda distinguir compras acertadas, compras fallidas y decisiones de espera.
+El resultado es deliberadamente incómodo, pero es importante. En validación y prueba falta una clase negativa, por lo que ROC-AUC, calibración y una comparación de políticas no son interpretables. Entrenar con esta muestra produciría una clasificación trivial y no aportaría evidencia sobre el sistema. La prioridad experimental pasa a ser mantener capturas recurrentes de más artículos, incluir oportunidades descartadas y conservar decisiones cerradas para que la recompensa MARL pueda distinguir compras acertadas, compras fallidas y decisiones de espera.
 
 \subsection{Evidencia de pruebas automatizadas}
 
