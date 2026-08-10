@@ -2,16 +2,13 @@
 
 \bibitem{lehdonvirta2009virtual}
 Vili Lehdonvirta.
-\newblock Virtual item sales as a revenue model: Identifying attributes that
-  drive purchase decisions.
+\newblock Virtual item sales as a revenue model: Identifying attributes that drive purchase decisions.
 \newblock {\em Electronic Commerce Research}, 9(1):97--113, 2009.
 
 \bibitem{liu2021finrl}
 Xiao-Yang Liu, Hongyang Yang, Jiechao Gao, and Christina~Dan Wang.
-\newblock {FinRL}: Deep reinforcement learning framework to automate trading in
-  quantitative finance.
-\newblock In {\em Proceedings of the Second ACM International Conference on AI
-  in Finance}, 2021.
+\newblock {FinRL}: Deep reinforcement learning framework to automate trading in quantitative finance.
+\newblock In {\em Proceedings of the Second ACM International Conference on AI in Finance}, 2021.
 
 \bibitem{markowitz1952portfolio}
 Harry Markowitz.
@@ -25,27 +22,18 @@ Richard~S. Sutton and Andrew~G. Barto.
 
 \bibitem{lowe2017maddpg}
 Ryan Lowe, Yi~Wu, Aviv Tamar, Jean Harb, Pieter Abbeel, and Igor Mordatch.
-\newblock Multi-agent actor-critic for mixed cooperative-competitive
-  environments.
+\newblock Multi-agent actor-critic for mixed cooperative-competitive environments.
 \newblock In {\em Advances in Neural Information Processing Systems}, 2017.
 
 \bibitem{yu2022mappo}
-Chao Yu, Akash Velu, Eugene Vinitsky, Jiaxuan Gao, Yu~Wang, Alexandre Bayen,
-  and Yi~Wu.
-\newblock The surprising effectiveness of {PPO} in cooperative, multi-agent
-  games.
+Chao Yu, Akash Velu, Eugene Vinitsky, Jiaxuan Gao, Yu~Wang, Alexandre Bayen, and Yi~Wu.
+\newblock The surprising effectiveness of {PPO} in cooperative, multi-agent games.
 \newblock In {\em Advances in Neural Information Processing Systems}, 2022.
 
 \bibitem{schulman2017ppo}
 John Schulman, Filip Wolski, Prafulla Dhariwal, Alec Radford, and Oleg Klimov.
 \newblock Proximal policy optimization algorithms.
 \newblock \url{https://arxiv.org/abs/1707.06347}, 2017.
-
-\bibitem{du2020ppocr}
-Yuning Du, Chenxia Li, Ruoyu Guo, Xiaoting Yin, Weiwei Liu, Jun Zhou, Yifan
-  Bai, Zilin Yu, Yehua Yang, Qingqing Dang, and Haoshuang Wang.
-\newblock {PP-OCR}: A practical ultra lightweight {OCR} system.
-\newblock \url{https://arxiv.org/abs/2009.09941}, 2020.
 
 \bibitem{breiman2001random}
 Leo Breiman.
@@ -60,22 +48,16 @@ Jerome~H. Friedman.
 \bibitem{niculescu2005predicting}
 Alexandru Niculescu-Mizil and Rich Caruana.
 \newblock Predicting good probabilities with supervised learning.
-\newblock In {\em Proceedings of the 22nd International Conference on Machine
-  Learning}, pages 625--632, 2005.
+\newblock In {\em Proceedings of the 22nd International Conference on Machine Learning}, pages 625--632, 2005.
 
 \bibitem{terry2021pettingzoo}
-Justin~K. Terry, Benjamin Black, Nathaniel Grammel, Mario Jayakumar, Ananth
-  Hari, Ryan Sullivan, Luis Santos, Rodrigo Perez, Caroline Horsch, Clemens
-  Dieffendahl, Niall~L. Williams, Yashas Lokesh, Praveen~Ravi Hines, and Niall
-  Ravi.
+Justin~K. Terry, Benjamin Black, Nathaniel Grammel, Mario Jayakumar, Ananth Hari, Ryan Sullivan, Luis Santos, Rodrigo Perez, Caroline Horsch, Clemens Dieffendahl, Niall~L. Williams, Yashas Lokesh, Praveen~Ravi Hines, and Niall Ravi.
 \newblock Pettingzoo: Gym for multi-agent reinforcement learning.
 \newblock In {\em Advances in Neural Information Processing Systems}, 2021.
 
 \bibitem{ray2018rllib}
-Eric Liang, Richard Liaw, Robert Nishihara, Philipp Moritz, Roy Fox, Ken
-  Goldberg, Joseph~E. Gonzalez, Michael~I. Jordan, and Ion Stoica.
+Eric Liang, Richard Liaw, Robert Nishihara, Philipp Moritz, Roy Fox, Ken Goldberg, Joseph~E. Gonzalez, Michael~I. Jordan, and Ion Stoica.
 \newblock Rllib: Abstractions for distributed reinforcement learning.
-\newblock In {\em Proceedings of the 35th International Conference on Machine
-  Learning}, 2018.
+\newblock In {\em Proceedings of the 35th International Conference on Machine Learning}, 2018.
 
 \end{thebibliography}

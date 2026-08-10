@@ -129,18 +129,57 @@ Random forest con histórico & 0,742 & 0,074 & 0,942 & 86 \\
 HGB con histórico & 0,649 & 0,082 & 0,915 & 82 \\
 \bottomrule
 \end{tabularx}
-\caption{Resultados del corte temporal de marzo.}
+\caption{Exploración inicial de familias en el corte temporal de marzo.}
 \label{tab:resultados-marzo}
 \end{table}
 
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\textwidth]{figures/experimentacion/01_modelos_marzo.png}
-\caption{Comparación de modelos y ablación temporal en marzo. Un Brier menor indica mejor calibración.}
+\caption{Exploración inicial de modelos y variables temporales en marzo. Un Brier menor indica mejor calibración.}
 \label{fig:modelos-marzo}
 \end{figure}
 
-El mejor resultado del corte es la regresión logística sin características históricas. Su ROC-AUC alcanza 0,760 y su Brier es 0,072. Por tanto, en este periodo concreto los retardos y medias móviles no aportan una mejora medible. Random forest se acerca con ROC-AUC de 0,742. El resultado no permite concluir que las características temporales sean inútiles en cualquier periodo, pero sí descarta asumir su beneficio sin contrastarlo.
+La exploración inicial señala que la regresión logística sin características históricas puede separar mejor las dos clases que las alternativas probadas. También muestra que los retardos y medias móviles no deben darse por útiles sin contrastarlos. La siguiente ablación vuelve a medir esa decisión junto con la aumentación, usando particiones por fecha para que una fecha completa no se divida entre lados de un pliegue.
+
+\subsection{Ablación de histórico y aumentación}
+
+La segunda exploración usa una matriz $2 \times 2$ con regresión logística. Se mantienen los mismos cortes temporales de marzo, el umbral de selección 0,85, tres pliegues temporales y calibración sigmoide. Se comparan dos decisiones de diseño: conservar o retirar retardos y medias móviles, y entrenar con o sin aumentación numérica.
+
+La aumentación se aplica únicamente al entrenamiento. Para cada variable numérica se genera una copia perturbada mediante
+
+\[
+x'_k=x_k+\varepsilon_k,
+\qquad
+\varepsilon_k \sim \mathcal{N}(0, 0{,}01 \cdot IQR(x_k)).
+\]
+
+Las etiquetas, las variables categóricas y las fechas no cambian. Además, todas las filas de una misma fecha se mantienen dentro del mismo lado de cada pliegue temporal. De este modo la copia perturbada no puede aparecer en entrenamiento mientras su original está en validación. La validación y la prueba permanecen sin modificar.
+
+\begin{table}[htbp]
+\centering
+\begin{tabularx}{\textwidth}{l l r r r r}
+\toprule
+Histórico & Aumentación & ROC-AUC & Brier & Precisión @0,85 & Señales \\
+\midrule
+Sí & No & 0,631 & 0,076 & 0,931 & 87 \\
+No & No & \textbf{0,716} & \textbf{0,076} & \textbf{0,952} & 62 \\
+Sí & Jitter & 0,575 & 0,085 & 0,924 & 92 \\
+No & Jitter & 0,613 & 0,084 & 0,919 & 86 \\
+\bottomrule
+\end{tabularx}
+\caption{Ablación logística en el corte temporal de marzo.}
+\label{tab:ablacion-marzo}
+\end{table}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/experimentacion/02_ablacion_marzo.png}
+\caption{Efecto del histórico y de la aumentación numérica sobre la prueba de marzo.}
+\label{fig:ablacion-marzo}
+\end{figure}
+
+La combinación sin histórico ni aumentación obtiene el mejor equilibrio entre separación y calibración. El jitter duplica el tamaño de entrenamiento de 171 a 342 filas, pero empeora ROC-AUC y Brier en ambas configuraciones. Por ello no se incorpora al modelo de referencia. Este resultado no prueba que la aumentación sea perjudicial en cualquier muestra. Indica que, con una colección corta y muy concentrada en operaciones positivas, introducir pequeñas variaciones de precio añade más ruido que información.
 
 La lectura debe mantenerse prudente. Los 19 artículos disponibles en el corte aparecen tanto en entrenamiento como en prueba y la etiqueta positiva representa el 89,5\% de la prueba. Una estrategia que marca muchos casos como favorables puede alcanzar precisión elevada por la propia distribución de la muestra. El corte de mayo confirma este problema: de 361 ejemplos de entrenamiento, 76 de validación y 95 de prueba, las dos últimas particiones contienen exclusivamente etiquetas positivas. En esas condiciones ROC-AUC no es una métrica definida y no se entrena un modelo para presentarlo como comparación válida. Este resultado establece una condición de continuación clara: ampliar la cobertura cruzada BUFF--Steam y equilibrar los eventos antes de convertir el modelo en recomendación operativa.
 
@@ -181,9 +220,37 @@ La tercera pivotación aparece en la parte multiagente. Antes de ampliar entrena
 
 \subsection{Resultados de la arquitectura multiagente}
 
-El entorno multiagente ya existe como smoke funcional. Se ha implementado un entorno PettingZoo con tres políticas, un wrapper para \acroref{RLlib}{RLlib} y un comando de entrenamiento corto con \acroref{PPO}{PPO} multiagente. El smoke ejecuta entrenamiento, guarda checkpoint y devuelve métricas operativas como recompensa media, número de operaciones, efectivo, beneficio realizado, drawdown, capital bloqueado y posiciones abiertas.
+El entorno multiagente se ha comprobado con el mismo dataset de marzo. Scout marca una oportunidad, Trader propone la compra de una unidad y Portfolio acepta o rechaza según saldo, exposición, liquidez y capital bloqueado. Una compra requiere el acuerdo de los tres roles. La recompensa compartida combina margen, inactividad, penalización por restricciones, drawdown y capital inmovilizado:
 
-Sin embargo, el entrenamiento actual no debe presentarse como validación final de \acroref{MAPPO}{MAPPO} con \acroref{CTDE}{CTDE} completo. El estado central está definido y expuesto, pero queda pendiente conectar el crítico centralizado de forma completa y comparar contra baselines. Esta distinción es importante para no confundir un flujo ejecutable con una evidencia experimental cerrada.
+\[
+r_t = w_m\rho_t\mathbb{I}_{\mathrm{compra}}
+-\lambda_i\mathbb{I}_{\mathrm{oportunidad\ ignorada}}
+-\lambda_r v_t
+-\lambda_d DD_t
+-\lambda_b B_t .
+\]
+
+En la ecuación, $\rho_t$ es el retorno estimado de la oportunidad, $v_t$ el número de restricciones incumplidas, $DD_t$ el drawdown y $B_t$ la proporción de capital bloqueado. La misma recompensa se entrega a los tres agentes para favorecer coordinación en lugar de optimización aislada.
+
+\begin{table}[htbp]
+\centering
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}X r r >{\raggedright\arraybackslash}X}
+\toprule
+Configuración sobre prueba & Compras & Efectivo final & Lectura \\
+\midrule
+Política manual de margen positivo & 13 & 309,64 EUR & Abre posiciones mientras el límite de riesgo lo permite. \\
+Política de mantener & 0 & 1.000,00 EUR & Baseline sin exposición. \\
+Margen positivo sin probabilidad supervisada & 13 & 309,64 EUR & Misma decisión, porque este dataset aún no incluye probabilidades por fila. \\
+PPO multiagente, una iteración sobre entrenamiento & 0 & 100,00 EUR & Smoke de integración, sin política aprendida utilizable. \\
+\bottomrule
+\end{tabularx}
+\caption{Pruebas iniciales de las políticas MARL.}
+\label{tab:marl-inicial}
+\end{table}
+
+La primera política es una regla escrita a mano que compra si el margen actual es positivo. No representa una política entrenada, pero comprueba la coordinación entre los tres roles y las restricciones de Portfolio. La política de mantener confirma el comportamiento contrario. En ambas pruebas se partió de 1.000 EUR y se recorrieron las 95 observaciones del bloque de prueba. Las posiciones quedan abiertas por el bloqueo temporal, por lo que la tabla no debe interpretarse como beneficio final.
+
+El comando PPO con \acroref{RLlib}{RLlib} completó una iteración y 64 pasos de entorno con el conjunto de entrenamiento. El estado central se expone al adaptador y hay una política por rol, pero el crítico centralizado queda pendiente. La evaluación del checkpoint corto no ejecutó compras. Este resultado es informativo: la compatibilidad técnica está validada, pero una única iteración no produce una política que pueda compararse económicamente con una regla de margen.
 
 \section{Experimentos finales pendientes}
 

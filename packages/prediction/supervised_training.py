@@ -41,6 +41,9 @@ class SupervisedTrainingConfig:
     selection_metric: str = "precision_at_threshold"
     selection_threshold: float = 0.8
     min_selection_signals: int = 50
+    augmentation: str = "none"
+    augmentation_ratio: float = 1.0
+    augmentation_noise_fraction: float = 0.01
 
 
 def train_supervised_models(config: SupervisedTrainingConfig) -> dict[str, Any]:
@@ -102,6 +105,15 @@ def train_supervised_models(config: SupervisedTrainingConfig) -> dict[str, Any]:
         "test": test,
     }
     _validate_training_frames(datasets, target_column=target_column)
+    fit_train = _augment_training_frame(
+        train,
+        numeric_features=numeric_features,
+        date_column=date_column,
+        augmentation=config.augmentation,
+        ratio=config.augmentation_ratio,
+        noise_fraction=config.augmentation_noise_fraction,
+        random_state=config.random_state,
+    )
 
     candidates = _candidate_pipelines(
         model_names=config.models,
@@ -118,12 +130,15 @@ def train_supervised_models(config: SupervisedTrainingConfig) -> dict[str, Any]:
             feature_columns=feature_columns,
             target_column=target_column,
             group_column=group_column,
-            date_column=None,
+            date_column=date_column,
             include_time_windows=False,
             cv_splits=config.cv_splits,
         )
         fitted = sklearn["clone"](pipeline)
-        fitted.fit(train.loc[:, feature_columns], train[target_column].astype(int))
+        fitted.fit(
+            fit_train.loc[:, feature_columns],
+            fit_train[target_column].astype(int),
+        )
         validation_metrics = _evaluate_classifier(
             sklearn,
             fitted,
@@ -152,9 +167,17 @@ def train_supervised_models(config: SupervisedTrainingConfig) -> dict[str, Any]:
     calibrated = sklearn["CalibratedClassifierCV"](
         estimator=best_pipeline,
         method=config.calibration_method,
-        cv=sklearn["TimeSeriesSplit"](n_splits=config.cv_splits),
+        cv=_date_aware_time_series_splits(
+            sklearn,
+            fit_train,
+            date_column=date_column,
+            cv_splits=config.cv_splits,
+        ),
     )
-    calibrated.fit(train.loc[:, feature_columns], train[target_column].astype(int))
+    calibrated.fit(
+        fit_train.loc[:, feature_columns],
+        fit_train[target_column].astype(int),
+    )
     calibrated_validation = _evaluate_classifier(
         sklearn,
         calibrated,
@@ -200,6 +223,14 @@ def train_supervised_models(config: SupervisedTrainingConfig) -> dict[str, Any]:
             set(str(column) for column in metadata["feature_columns"]) - set(feature_columns)
         ),
         "row_counts": {split: int(len(frame)) for split, frame in datasets.items()},
+        "fit_train_rows": int(len(fit_train)),
+        "augmentation": {
+            "method": config.augmentation,
+            "ratio": config.augmentation_ratio,
+            "noise_fraction": config.augmentation_noise_fraction,
+            "applied_to": "train_only",
+            "validation_and_test_untouched": True,
+        },
         "target_rates": {
             split: float(frame[target_column].astype(float).mean())
             for split, frame in datasets.items()
@@ -454,11 +485,16 @@ def _cross_validate_candidate(
 ) -> dict[str, Any]:
     if cv_splits < 2:
         return {"splits": 0}
-    splitter = sklearn["TimeSeriesSplit"](n_splits=cv_splits)
     fold_metrics = []
     features = train.loc[:, feature_columns]
     target = train[target_column].astype(int)
-    for fold_index, (train_index, validation_index) in enumerate(splitter.split(features), start=1):
+    splits = _date_aware_time_series_splits(
+        sklearn,
+        train,
+        date_column=date_column,
+        cv_splits=cv_splits,
+    )
+    for fold_index, (train_index, validation_index) in enumerate(splits, start=1):
         fold_model = sklearn["clone"](pipeline)
         fold_model.fit(features.iloc[train_index], target.iloc[train_index])
         fold_frame = train.iloc[validation_index]
@@ -481,6 +517,78 @@ def _cross_validate_candidate(
         "mean_average_precision": _mean_metric(fold_metrics, "average_precision"),
         "mean_brier_score": _mean_metric(fold_metrics, "brier_score"),
     }
+
+
+def _augment_training_frame(
+    train: pd.DataFrame,
+    *,
+    numeric_features: tuple[str, ...],
+    date_column: str,
+    augmentation: str,
+    ratio: float,
+    noise_fraction: float,
+    random_state: int,
+) -> pd.DataFrame:
+    """Create train-only numerical jitter without altering labels or dates.
+
+    The generated rows retain the source timestamp. Date-aware folds keep all
+    observations from a given date on the same side of every temporal split.
+    Validation and test never pass through this function.
+    """
+    if augmentation == "none":
+        return train
+    if augmentation != "gaussian_jitter":
+        raise ValueError(f"unknown augmentation method: {augmentation}")
+    if ratio <= 0:
+        raise ValueError("augmentation_ratio must be greater than zero")
+    if noise_fraction <= 0:
+        raise ValueError("augmentation_noise_fraction must be greater than zero")
+
+    rng = np.random.default_rng(random_state)
+    copies = max(1, int(round(ratio)))
+    augmented = pd.concat([train.copy() for _ in range(copies)], ignore_index=True)
+    for feature in numeric_features:
+        values = pd.to_numeric(augmented[feature], errors="coerce")
+        finite = values[np.isfinite(values)]
+        if finite.empty:
+            continue
+        spread = float(finite.quantile(0.75) - finite.quantile(0.25))
+        if not math.isfinite(spread) or spread == 0:
+            continue
+        jitter = rng.normal(loc=0.0, scale=spread * noise_fraction, size=len(augmented))
+        perturbed = values.to_numpy(dtype=float, copy=True)
+        valid = np.isfinite(perturbed)
+        perturbed[valid] += jitter[valid]
+        if _is_nonnegative_feature(feature):
+            perturbed[valid] = np.maximum(perturbed[valid], 0.0)
+        augmented[feature] = perturbed
+    return _sort_by_time(pd.concat([train, augmented], ignore_index=True), sort_column=date_column)
+
+
+def _is_nonnegative_feature(feature: str) -> bool:
+    return any(token in feature for token in ("price", "count", "quantity", "spread"))
+
+
+def _date_aware_time_series_splits(
+    sklearn: dict[str, Any],
+    frame: pd.DataFrame,
+    *,
+    date_column: str | None,
+    cv_splits: int,
+) -> list[tuple[np.ndarray[Any, Any], np.ndarray[Any, Any]]]:
+    if date_column is not None and date_column in frame:
+        date_values = pd.to_datetime(frame[date_column]).dt.normalize()
+        unique_dates = np.asarray(sorted(date_values.dropna().unique()))
+        if len(unique_dates) > cv_splits:
+            splitter = sklearn["TimeSeriesSplit"](n_splits=cv_splits)
+            output = []
+            for train_dates, validation_dates in splitter.split(unique_dates):
+                train_mask = date_values.isin(unique_dates[train_dates]).to_numpy()
+                validation_mask = date_values.isin(unique_dates[validation_dates]).to_numpy()
+                output.append((np.flatnonzero(train_mask), np.flatnonzero(validation_mask)))
+            return output
+    splitter = sklearn["TimeSeriesSplit"](n_splits=cv_splits)
+    return list(splitter.split(frame))
 
 
 def _evaluate_classifier(

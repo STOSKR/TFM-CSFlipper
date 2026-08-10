@@ -52,48 +52,55 @@
 \contentsline {subsection}{\numberline {4.1.2}BUFF y mercados externos}{28}{subsection.4.1.2}%
 \contentsline {subsection}{\numberline {4.1.3}OCR e importación manual}{29}{subsection.4.1.3}%
 \contentsline {section}{\numberline {4.2}Adquisición y persistencia}{29}{section.4.2}%
-\contentsline {subsection}{\numberline {4.2.1}Pipeline de adquisición}{29}{subsection.4.2.1}%
+\contentsline {subsection}{\numberline {4.2.1}Pipeline de adquisición}{30}{subsection.4.2.1}%
 \contentsline {subsection}{\numberline {4.2.2}Modelo de persistencia}{30}{subsection.4.2.2}%
 \contentsline {section}{\numberline {4.3}Preparación de características}{30}{section.4.3}%
 \contentsline {subsection}{\numberline {4.3.1}Variables de mercado}{30}{subsection.4.3.1}%
 \contentsline {subsection}{\numberline {4.3.2}Dataset temporal de trading}{31}{subsection.4.3.2}%
-\contentsline {subsection}{\numberline {4.3.3}Variables de cartera}{31}{subsection.4.3.3}%
-\contentsline {section}{\numberline {4.4}Reglas económicas migradas}{31}{section.4.4}%
-\contentsline {section}{\numberline {4.5}Simulador de cartera}{31}{section.4.5}%
+\contentsline {subsection}{\numberline {4.3.3}Variables de cartera}{32}{subsection.4.3.3}%
+\contentsline {section}{\numberline {4.4}Reglas económicas migradas}{32}{section.4.4}%
+\contentsline {section}{\numberline {4.5}Simulador de cartera}{32}{section.4.5}%
 \contentsline {subsection}{\numberline {4.5.1}Operaciones permitidas}{32}{subsection.4.5.1}%
 \contentsline {subsection}{\numberline {4.5.2}Comisiones y valoración}{32}{subsection.4.5.2}%
-\contentsline {section}{\numberline {4.6}Interfaz de consulta}{32}{section.4.6}%
-\contentsline {chapter}{\numberline {5}Experimentación y análisis}{33}{chapter.5}%
-\contentsline {section}{\numberline {5.1}Diseño experimental}{33}{section.5.1}%
-\contentsline {subsection}{\numberline {5.1.1}Escenarios de evaluación}{33}{subsection.5.1.1}%
-\contentsline {subsection}{\numberline {5.1.2}Estrategias de comparación}{34}{subsection.5.1.2}%
-\contentsline {section}{\numberline {5.2}Validación técnica y pruebas}{34}{section.5.2}%
-\contentsline {section}{\numberline {5.3}Métricas}{34}{section.5.3}%
-\contentsline {subsection}{\numberline {5.3.1}Métricas de rentabilidad}{35}{subsection.5.3.1}%
-\contentsline {subsection}{\numberline {5.3.2}Métricas de riesgo}{35}{subsection.5.3.2}%
-\contentsline {section}{\numberline {5.4}Resultados}{35}{section.5.4}%
-\contentsline {subsection}{\numberline {5.4.1}Migración de reglas económicas}{35}{subsection.5.4.1}%
-\contentsline {subsection}{\numberline {5.4.2}Resultados del modelo supervisado}{36}{subsection.5.4.2}%
-\contentsline {subsection}{\numberline {5.4.3}Protocolo temporal reproducible}{36}{subsection.5.4.3}%
-\contentsline {subsection}{\numberline {5.4.4}Evidencia de pruebas automatizadas}{38}{subsection.5.4.4}%
-\contentsline {subsection}{\numberline {5.4.5}Dataset de trading operativo}{38}{subsection.5.4.5}%
-\contentsline {subsection}{\numberline {5.4.6}Dificultades y pivotaciones}{38}{subsection.5.4.6}%
-\contentsline {subsection}{\numberline {5.4.7}Resultados de la arquitectura multiagente}{39}{subsection.5.4.7}%
-\contentsline {section}{\numberline {5.5}Experimentos finales pendientes}{39}{section.5.5}%
-\contentsline {section}{\numberline {5.6}Discusión}{39}{section.5.6}%
-\contentsline {subsection}{\numberline {5.6.1}Casos favorables}{39}{subsection.5.6.1}%
-\contentsline {subsection}{\numberline {5.6.2}Limitaciones observadas}{40}{subsection.5.6.2}%
-\contentsline {subsection}{\numberline {5.6.3}Lectura de los resultados}{40}{subsection.5.6.3}%
-\contentsline {chapter}{\numberline {6}Conclusiones}{41}{chapter.6}%
-\contentsline {section}{\numberline {6.1}Conclusiones principales}{41}{section.6.1}%
-\contentsline {section}{\numberline {6.2}Cumplimiento de objetivos}{41}{section.6.2}%
-\contentsline {section}{\numberline {6.3}Limitaciones}{42}{section.6.3}%
-\contentsline {section}{\numberline {6.4}Trabajo futuro}{42}{section.6.4}%
-\contentsline {chapter}{Bibliografía}{43}{section.6.4}%
-\contentsline {chapter}{\numberline {A}Anexos}{45}{appendix.Alph1}%
-\contentsline {section}{\numberline {A.1}Estructura del repositorio}{45}{section.Alph1.1}%
-\contentsline {section}{\numberline {A.2}Configuración del entorno}{45}{section.Alph1.2}%
-\contentsline {section}{\numberline {A.3}Comandos de datasets y modelos}{46}{section.Alph1.3}%
-\contentsline {section}{\numberline {A.4}Parámetros de entrenamiento}{46}{section.Alph1.4}%
-\contentsline {section}{\numberline {A.5}Modelo de datos}{46}{section.Alph1.5}%
-\contentsline {section}{\numberline {A.6}Resultados adicionales}{47}{section.Alph1.6}%
+\contentsline {chapter}{\numberline {5}Implementación y operación}{34}{chapter.5}%
+\contentsline {section}{\numberline {5.1}Organización del sistema}{34}{section.5.1}%
+\contentsline {section}{\numberline {5.2}Flujo operativo de adquisición}{34}{section.5.2}%
+\contentsline {subsection}{\numberline {5.2.1}Sesiones, scraping y trazabilidad}{34}{subsection.5.2.1}%
+\contentsline {subsection}{\numberline {5.2.2}Persistencia incremental}{35}{subsection.5.2.2}%
+\contentsline {section}{\numberline {5.3}Consola de consulta}{35}{section.5.3}%
+\contentsline {section}{\numberline {5.4}Reproducibilidad y configuración}{36}{section.5.4}%
+\contentsline {chapter}{\numberline {6}Experimentación y análisis}{37}{chapter.6}%
+\contentsline {section}{\numberline {6.1}Diseño experimental}{37}{section.6.1}%
+\contentsline {subsection}{\numberline {6.1.1}Escenarios de evaluación}{37}{subsection.6.1.1}%
+\contentsline {subsection}{\numberline {6.1.2}Estrategias de comparación}{38}{subsection.6.1.2}%
+\contentsline {section}{\numberline {6.2}Validación técnica y pruebas}{38}{section.6.2}%
+\contentsline {section}{\numberline {6.3}Métricas}{38}{section.6.3}%
+\contentsline {subsection}{\numberline {6.3.1}Métricas de rentabilidad}{39}{subsection.6.3.1}%
+\contentsline {subsection}{\numberline {6.3.2}Métricas de riesgo}{39}{subsection.6.3.2}%
+\contentsline {section}{\numberline {6.4}Resultados}{39}{section.6.4}%
+\contentsline {subsection}{\numberline {6.4.1}Migración de reglas económicas}{39}{subsection.6.4.1}%
+\contentsline {subsection}{\numberline {6.4.2}Resultados del modelo supervisado}{40}{subsection.6.4.2}%
+\contentsline {subsection}{\numberline {6.4.3}Protocolo temporal reproducible}{40}{subsection.6.4.3}%
+\contentsline {subsection}{\numberline {6.4.4}Ablación de histórico y aumentación}{41}{subsection.6.4.4}%
+\contentsline {subsection}{\numberline {6.4.5}Evidencia de pruebas automatizadas}{43}{subsection.6.4.5}%
+\contentsline {subsection}{\numberline {6.4.6}Dataset de trading operativo}{43}{subsection.6.4.6}%
+\contentsline {subsection}{\numberline {6.4.7}Dificultades y pivotaciones}{43}{subsection.6.4.7}%
+\contentsline {subsection}{\numberline {6.4.8}Resultados de la arquitectura multiagente}{44}{subsection.6.4.8}%
+\contentsline {section}{\numberline {6.5}Experimentos finales pendientes}{45}{section.6.5}%
+\contentsline {section}{\numberline {6.6}Discusión}{45}{section.6.6}%
+\contentsline {subsection}{\numberline {6.6.1}Casos favorables}{45}{subsection.6.6.1}%
+\contentsline {subsection}{\numberline {6.6.2}Limitaciones observadas}{45}{subsection.6.6.2}%
+\contentsline {subsection}{\numberline {6.6.3}Lectura de los resultados}{45}{subsection.6.6.3}%
+\contentsline {chapter}{\numberline {7}Conclusiones}{46}{chapter.7}%
+\contentsline {section}{\numberline {7.1}Conclusiones principales}{46}{section.7.1}%
+\contentsline {section}{\numberline {7.2}Cumplimiento de objetivos}{46}{section.7.2}%
+\contentsline {section}{\numberline {7.3}Limitaciones}{47}{section.7.3}%
+\contentsline {section}{\numberline {7.4}Trabajo futuro}{47}{section.7.4}%
+\contentsline {chapter}{Bibliografía}{48}{section.7.4}%
+\contentsline {chapter}{\numberline {A}Anexos}{49}{appendix.Alph1}%
+\contentsline {section}{\numberline {A.1}Estructura del repositorio}{49}{section.Alph1.1}%
+\contentsline {section}{\numberline {A.2}Configuración del entorno}{49}{section.Alph1.2}%
+\contentsline {section}{\numberline {A.3}Comandos de datasets y modelos}{50}{section.Alph1.3}%
+\contentsline {section}{\numberline {A.4}Parámetros de entrenamiento}{50}{section.Alph1.4}%
+\contentsline {section}{\numberline {A.5}Modelo de datos}{50}{section.Alph1.5}%
+\contentsline {section}{\numberline {A.6}Resultados adicionales}{51}{section.Alph1.6}%

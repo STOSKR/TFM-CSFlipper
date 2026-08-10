@@ -1,0 +1,105 @@
+\chapter{Implementación y operación}
+
+\section{Organización del sistema}
+
+La implementación se ha organizado como un monorepo para separar el código de dominio, los conectores de adquisición y las herramientas de operación. La separación no responde solo a una preferencia de estructura. Permite ejecutar un scraper, repetir un entrenamiento o consultar el panel sin mezclar esa lógica con las reglas económicas y con los contratos de datos.
+
+\begin{table}[h]
+\centering
+\begin{tabularx}{\textwidth}{l X}
+\toprule
+Módulo & Responsabilidad \\
+\midrule
+\texttt{packages/domain} y \texttt{contracts} & Identificadores canónicos, tipos de datos y validaciones compartidas. \\
+\texttt{packages/persistence} & Conexión a PostgreSQL y repositorios de artículos, histórico y señales. \\
+\texttt{packages/simulation} & Comisiones, posiciones, bloqueos, riesgo y métricas de cartera. \\
+\texttt{packages/prediction} & Construcción de variables, entrenamiento, calibración e inferencia supervisada. \\
+\texttt{packages/marl} & Entorno paralelo, recompensas, adaptador PettingZoo y entrenamiento PPO. \\
+\texttt{packages/vision} & Preprocesado de imágenes, OCR y parsing de observaciones. \\
+\texttt{apps/cli} y \texttt{apps/web} & Comandos reproducibles y consola local de consulta. \\
+\bottomrule
+\end{tabularx}
+\caption{Distribución funcional del repositorio.}
+\label{tab:modulos-repositorio}
+\end{table}
+
+Las capas se comunican mediante contratos explícitos. Por ejemplo, un extractor no entrega directamente una recomendación. Entrega una observación con artículo, plataforma, fecha, precio, moneda, volumen, origen y calidad. La persistencia conserva esta información y los módulos de datos construyen después las variables necesarias para cada experimento. Esta secuencia facilita localizar un error sin tener que rehacer todo el flujo.
+
+\section{Flujo operativo de adquisición}
+
+\subsection{Sesiones, scraping y trazabilidad}
+
+Las fuentes que necesitan navegación se ejecutan con Playwright en un navegador visible cuando es necesario iniciar sesión. La sesión no se guarda en el repositorio ni en el archivo de configuración. Se almacena localmente como estado de navegador y se renueva desde la pantalla de sesiones. Esto evita que las credenciales formen parte de los experimentos o de los commits.
+
+Cada trabajo de scraping registra inicio, conectores utilizados, reintentos, progreso, fichero de log y resultado final. Los límites de concurrencia, el tamaño de lote y el tiempo de espera son configurables. El objetivo no es ejecutar el mayor número de peticiones posible, sino mantener un proceso que pueda detenerse, reanudarse y auditarse si una fuente cambia su interfaz.
+
+\begin{algorithm}[H]
+\caption{Trabajo de scraping trazable}
+\label{alg:scraping-trazable}
+\begin{algorithmic}[1]
+\Require Lista de candidatos, conectores activos y configuración de trabajo
+\Ensure Observaciones persistidas y estado de ejecución
+\State Crear identificador de trabajo y registrar el inicio
+\ForAll{lotes de candidatos}
+  \ForAll{conectores habilitados}
+    \State Consultar la fuente con sesión, límite y espera configurados
+    \State Normalizar precio, moneda, disponibilidad y fecha de observación
+    \State Validar el resultado y registrar anomalías o reintentos
+  \EndFor
+  \State Persistir observaciones válidas y actualizar el progreso
+\EndFor
+\State Registrar resultado, cobertura y referencia del log
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Persistencia incremental}
+
+El modelo operativo almacena el estado actual en \texttt{market\_items} y las series en \texttt{market\_history\_points}. Guardar el histórico en formato largo permite incorporar nuevas métricas sin alterar el esquema de una tabla ancha. Una observación incluye el origen y la fecha, por lo que una variación de precio puede relacionarse con la fuente y con la ejecución que la recogió.
+
+La deduplicación se realiza antes de persistir y las actualizaciones de estado se comprueban con pruebas de integración. En la validación ejecutada se insertó un snapshot, se actualizó una cotización y se guardó una señal vinculada a un artículo. Cada prueba revierte su transacción al terminar, de modo que las comprobaciones no contaminan el histórico de experimentación.
+
+\section{Consola de consulta}
+
+La consola local convierte el estado técnico en una interfaz de revisión. Su pantalla principal separa la bandeja de oportunidades del detalle de la oportunidad seleccionada. La bandeja concentra el nombre del artículo, la ruta, el margen y los precios Steam y BUFF. El detalle explica qué señal la ha producido, qué datos faltan y qué restricciones de cartera intervienen.
+
+El panel no ejecuta compras. Las acciones de abrir Steam o BUFF sirven para que la persona usuaria revise la oportunidad en su fuente. Los estados \emph{revisar}, \emph{observar} y \emph{bloqueado} representan una decisión explicable, no una orden automática. Esta restricción es importante mientras la validación estadística y multiagente sigue en fase exploratoria.
+
+\begin{table}[h]
+\centering
+\begin{tabularx}{\textwidth}{l X}
+\toprule
+Vista & Información que hace visible \\
+\midrule
+Oportunidades & Ruta de compra y venta, precios en EUR y CNY, margen estimado y estado de la señal. \\
+Scraper & Trabajo activo, porcentaje, conectores, logs y resultado de la ejecución. \\
+Sesiones & Vigencia de Steam y BUFF y acción para volver a capturar el estado local. \\
+Modelo & Versión, conjunto usado, métricas y carácter experimental de la salida. \\
+Agentes y riesgo & Roles Scout, Trader y Portfolio, capital bloqueado, límites y justificación de rechazos. \\
+\bottomrule
+\end{tabularx}
+\caption{Vistas principales de la consola local.}
+\label{tab:vistas-consola}
+\end{table}
+
+\section{Reproducibilidad y configuración}
+
+La configuración se versiona mediante un fichero de ejemplo sin secretos. Para ejecutar la persistencia basta con definir \texttt{DATABASE\_URL}. El resto de opciones habilita funciones concretas: ruta de Tesseract, token local del servidor de scraping, límites de concurrencia o parámetros de sesiones. Las claves de una base de datos y los estados de navegador quedan excluidos del control de versiones.
+
+Los comandos de construcción de datasets y entrenamiento guardan el rango temporal, las columnas, los tamaños de cada partición, las tasas de clase, los hiperparámetros y las métricas obtenidas. Esta información permite distinguir dos situaciones que visualmente podrían parecer iguales: ejecutar un modelo con más datos y repetir exactamente una configuración anterior.
+
+\begin{algorithm}[H]
+\caption{Ejecución reproducible de un experimento}
+\label{alg:experimento-reproducible}
+\begin{algorithmic}[1]
+\Require Dataset versionado, fechas de corte, configuración y semilla
+\Ensure Informe, figura y modelo asociados a una ejecución
+\State Construir entrenamiento, validación y prueba respetando el orden temporal
+\State Guardar el esquema de variables y las tasas de clase
+\State Entrenar los candidatos con la configuración declarada
+\State Elegir parámetros usando solo validación
+\State Evaluar una vez sobre prueba y guardar métricas
+\State Generar tabla o figura desde el informe guardado
+\end{algorithmic}
+\end{algorithm}
+
+Este procedimiento se aplica también a las pruebas automatizadas. La suite se ejecuta antes de incorporar una modificación a la memoria, de forma que las tablas y gráficas se apoyen en componentes que han pasado las comprobaciones de dominio, persistencia, OCR, scraping, simulación, MARL y panel web.

@@ -22,34 +22,50 @@ Tras las primeras pruebas, \acroref{BUFF}{BUFF} se separa del entrenamiento prin
 
 El \acroref{OCR}{OCR} se incorpora como vía secundaria de adquisición. Su objetivo es convertir capturas, tablas o interfaces no estructuradas en observaciones equivalentes a las obtenidas por scraping o \acroref{API}{API}. El flujo incluye preprocesado de imagen, reconocimiento de texto, parsing estructurado, validación y persistencia. Aunque es más frágil que una fuente estructurada, resulta útil cuando una plataforma no expone datos cómodamente o cuando se quiere incorporar material histórico procedente de capturas.
 
-Para reconstruir una serie desde una captura de gráfico, el proceso localiza la zona de dibujo y los ejes, extrae anclas de fecha y precio mediante OCR, segmenta la línea de precio por color y convierte sus píxeles en valores. Cuando hay anclas suficientes, usa los ajustes lineales:
+La implementación actual se centra en tablas y mensajes de mercado, que son las capturas con una estructura suficientemente regular para poder validarse. OpenCV amplía la imagen por un factor dos, la convierte a escala de grises, mejora el contraste local con CLAHE, reduce ruido y aplica una binarización adaptativa. Tesseract devuelve las palabras y una confianza por palabra. La confianza agregada utilizada por el pipeline es la media de las $n$ palabras reconocidas con confianza válida:
 
 \[
-\widehat{d}(x)=a_xx+b_x,
-\qquad
-\widehat{p}(y)=a_yy+b_y,
+c_{\mathrm{OCR}}=\frac{1}{100n}\sum_{j=1}^{n} c_j.
 \]
 
-donde $x$ e $y$ son coordenadas de píxel, $\widehat{d}$ es la fecha estimada y $\widehat{p}$ es el precio estimado. Para los mensajes P2P, el pipeline aplica PaddleOCR y extrae artículo, precio, moneda y cantidad. PaddleOCR combina detector y reconocedor de texto \cite{du2020ppocr}.
+El parser normaliza espacios y separadores decimales, identifica precio, moneda, calidad, plataforma y volumen cuando aparecen en la línea. Solo se convierten en observaciones las extracciones con $c_{\mathrm{OCR}}\geq 0{,}5$ y con un precio positivo menor de un millón de unidades monetarias. Esta regla evita que una captura dudosa entre silenciosamente al histórico.
 
 \begin{algorithm}[H]
-\caption{Reconstrucción OCR}
-\label{alg:ocr-reconstruccion}
+\caption{Extracción OCR validada}
+\label{alg:ocr-validado}
 \begin{algorithmic}[1]
-\Require Captura $I$ de un gráfico y anclas de fecha y precio
-\Ensure Serie $(\widehat{d},\widehat{p})$ con evidencia de depuración
-\State Localizar área de dibujo y ejes de $I$
-\State Mejorar el recorte y extraer anclas con OCR
-\If{hay al menos dos anclas por eje}
-  \State Ajustar $\widehat{d}(x)$ y $\widehat{p}(y)$ por regresión lineal
-  \State Segmentar la línea de precio por color y muestrear sus píxeles
-  \State Convertir cada píxel $(x,y)$ en $(\widehat{d}(x),\widehat{p}(y))$
-  \State Guardar serie, anclas, máscara y superposición de comprobación
+\Require Captura $I$, confianza mínima $\tau$ y contexto de fuente
+\Ensure Observaciones normalizadas o rechazo trazable
+\State Cargar $I$ y aplicar escala, contraste, reducción de ruido y binarización
+\State Ejecutar Tesseract y calcular $c_{\mathrm{OCR}}$
+\If{$c_{\mathrm{OCR}} < \tau$}
+  \State Rechazar la captura y conservar su referencia para revisión
 \Else
-  \State Marcar la captura para anclaje o revisión manual
+  \ForAll{líneas reconocidas}
+    \State Extraer artículo, calidad, plataforma, precio, moneda y volumen
+    \If{precio y moneda son válidos}
+      \State Construir identificador canónico y observación con la confianza obtenida
+    \EndIf
+  \EndFor
 \EndIf
 \end{algorithmic}
 \end{algorithm}
+
+\begin{table}[h]
+\centering
+\begin{tabularx}{\textwidth}{l X X}
+\toprule
+Etapa & Salida & Control aplicado \\
+\midrule
+Preprocesado & Imagen binaria ampliada & CLAHE, reducción de ruido y umbral adaptativo. \\
+Reconocimiento & Texto y confianza por palabra & Media de confidencias válidas de Tesseract. \\
+Parsing & Campos de mercado normalizados & Precio, moneda, calidad, plataforma y volumen. \\
+Validación & Observación o rechazo & Confianza mínima, precio positivo y rango máximo. \\
+\bottomrule
+\end{tabularx}
+\caption{Controles del pipeline OCR.}
+\label{tab:ocr-controles}
+\end{table}
 
 Las importaciones manuales y \acroref{CSV}{CSV} cumplen una función complementaria. Permiten introducir muestras controladas, fixtures o históricos parciales sin depender de una sesión de navegador. Esta vía ha sido útil para validar parsers, modelos de persistencia y reglas económicas antes de automatizar el flujo completo.
 
@@ -157,9 +173,3 @@ Las operaciones básicas son comprar, vender y mantener. Una compra abre una pos
 El Excel operativo utiliza reglas de referencia que se han convertido en hipótesis de simulación. \acroref{BUFF}{BUFF} se modela con un factor neto de venta de 0,975. Steam usa una comisión de mercado del 0,87 y, en escenarios conservadores de salida a banco, puede aplicarse una pérdida adicional del 20\%. La conversión inicial simplificada usa 1 \acroref{EUR}{EUR} = 8 \acroref{CNY}{CNY}, aunque queda pendiente versionar tipos de cambio por fecha si se incorporan fuentes externas.
 
 El \textit{trade hold} se modela de forma conservadora como ocho días desde la compra, equivalente a siete días más una ventana de desbloqueo. Esta simplificación evita declarar vendible una posición demasiado pronto.
-
-\section{Interfaz de consulta}
-
-El proyecto incluye una interfaz web como apoyo operativo. Su objetivo no es vender el sistema como producto final, sino hacer visible el estado de adquisición, modelos, simulador, restricciones y recomendaciones. La interfaz debe permitir responder rápidamente qué datos existen, qué modelo está activo, qué señales se están generando y por qué una oportunidad se recomienda, se observa o se descarta.
-
-La interfaz también ayuda a revisar la trazabilidad. En un sistema de decisión automatizada, no basta con mostrar una recomendación final: es necesario saber de dónde viene el dato, qué modelo lo ha procesado, qué restricciones se han aplicado y qué parte de la cartera queda afectada por la decisión.

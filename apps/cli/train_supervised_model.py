@@ -32,6 +32,9 @@ def run(args: argparse.Namespace) -> int:
             selection_metric=args.selection_metric,
             selection_threshold=args.selection_threshold,
             min_selection_signals=args.min_selection_signals,
+            augmentation=args.augmentation,
+            augmentation_ratio=args.augmentation_ratio,
+            augmentation_noise_fraction=args.augmentation_noise_fraction,
         )
     )
     print(f"output_dir={report['output_dir']}")
@@ -89,6 +92,24 @@ def main() -> None:
     )
     parser.add_argument("--selection-threshold", type=float, default=0.8)
     parser.add_argument("--min-selection-signals", type=int, default=50)
+    parser.add_argument(
+        "--augmentation",
+        choices=("none", "gaussian_jitter"),
+        default="none",
+        help="Train-only numerical augmentation. Validation and test stay unchanged.",
+    )
+    parser.add_argument(
+        "--augmentation-ratio",
+        type=float,
+        default=1.0,
+        help="Additional jittered copies per training set when augmentation is enabled.",
+    )
+    parser.add_argument(
+        "--augmentation-noise-fraction",
+        type=float,
+        default=0.01,
+        help="Gaussian jitter as a fraction of the feature interquartile range.",
+    )
     parser.add_argument(
         "--include-group-identity-features",
         action="store_true",

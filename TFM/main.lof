@@ -6,6 +6,8 @@
 \contentsline {figure}{\numberline {3.1}{\ignorespaces Capas principales de la arquitectura propuesta.}}{24}{figure.3.1}%
 \addvspace {10\p@ }
 \addvspace {10\p@ }
-\contentsline {figure}{\numberline {5.1}{\ignorespaces Comparación de modelos y ablación temporal en marzo. Un Brier menor indica mejor calibración.}}{37}{figure.5.1}%
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {6.1}{\ignorespaces Exploración inicial de modelos y variables temporales en marzo. Un Brier menor indica mejor calibración.}}{41}{figure.6.1}%
+\contentsline {figure}{\numberline {6.2}{\ignorespaces Efecto del histórico y de la aumentación numérica sobre la prueba de marzo.}}{42}{figure.6.2}%
 \addvspace {10\p@ }
 \addvspace {10\p@ }

@@ -93,7 +93,10 @@ def main() -> None:
         help="Simple hand-written policy used only for smoke testing.",
     )
     args = parser.parse_args()
-    print(json.dumps(run(args), indent=2, ensure_ascii=False))
+    # El terminal predeterminado de Windows puede usar cp1252. Escapar los
+    # nombres de artículos mantiene el JSON portable aunque incluyan símbolos
+    # como una estrella de objeto excepcional.
+    print(json.dumps(run(args), indent=2, ensure_ascii=True))
 
 
 def _policy_actions(observations: dict[str, dict[str, float]], policy: str) -> dict[str, int]:
