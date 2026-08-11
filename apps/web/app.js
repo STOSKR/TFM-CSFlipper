@@ -50,7 +50,7 @@ const fallbackDashboard = {
       profit: "Sin datos",
       scrapedAt: "Sin fecha",
       model: "No usar metricas como precision final",
-      agents: "Portfolio: bloquea decision real",
+      agents: "Portfolio: bloquea la ejecución",
       steamUrl: "https://steamcommunity.com/market/",
       buffUrl: "https://buff.163.com/market/csgo",
     },
@@ -102,6 +102,14 @@ const statusLabels = {
   blocked: "Bloqueado",
 };
 
+const decisionLabels = {
+  review: "Validar",
+  observe: "Observar",
+  blocked: "No abrir",
+};
+
+const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+
 async function loadDashboard() {
   const dataFile = new URLSearchParams(window.location.search).get("data");
   if (!dataFile) {
@@ -150,7 +158,7 @@ function renderPipeline() {
     .join("");
 }
 
-function renderRecommendations() {
+function renderRecommendations({ animate = false } = {}) {
   const status = document.querySelector("#status-filter").value;
   const search = document.querySelector("#search-filter").value.trim().toLowerCase();
   const sort = document.querySelector("#sort-select").value;
@@ -181,14 +189,23 @@ function renderRecommendations() {
               <small>${escapeHtml(formatRouteDetail(item))}</small>
             </span>
           </span>
+          <span class="deal-price">
+            <span class="market-price">
+              <b>Steam</b>
+              <span>${escapeHtml(formatMarketPrice(item.steamEur, item.steam))}</span>
+            </span>
+            <span class="market-price">
+              <b>BUFF</b>
+              <span>${escapeHtml(formatMarketPrice(item.buffEur, item.buff))}</span>
+            </span>
+          </span>
           <span class="deal-profit">
             <strong>${escapeHtml(item.profit)}</strong>
-            <small><b>Steam</b> ${escapeHtml(formatMarketPrice(item.steamEur, item.steam))}</small>
-            <small><b>BUFF</b> ${escapeHtml(formatMarketPrice(item.buffEur, item.buff))}</small>
+            <small>Margen estimado</small>
           </span>
           <span class="deal-signal">
-            <span class="badge ${escapeHtml(item.status)}">${escapeHtml(statusLabels[item.status] || item.status)}</span>
-            <small>${escapeHtml(item.model)}</small>
+            <span class="badge ${escapeHtml(item.status)}">${escapeHtml(decisionLabels[item.status] || item.status)}</span>
+            <small>${escapeHtml(statusLabels[item.status] || item.status)}</small>
           </span>
         </button>
       `,
@@ -197,6 +214,9 @@ function renderRecommendations() {
     : `<div class="empty-list"><strong>Sin oportunidades</strong><span>Cambia filtros o lanza scraper.</span></div>`;
 
   renderDealDetail(visibleRecommendations[selectedDealIndex]);
+  if (animate) {
+    requestAnimationFrame(animateRecommendationSelection);
+  }
 }
 
 function renderDealDetail(item) {
@@ -693,7 +713,7 @@ document.querySelector("#recommendation-rows").addEventListener("click", (event)
     return;
   }
   selectedDealIndex = Number(card.dataset.dealIndex || 0);
-  renderRecommendations();
+  renderRecommendations({ animate: true });
 });
 document.querySelector("#scrape-start-button").addEventListener("click", startScrape);
 document.querySelectorAll("[data-scrape-buff]").forEach((button) => {
@@ -756,6 +776,7 @@ function setupNavigation() {
     }
     window.scrollTo({ top: 0, left: 0 });
     document.querySelector("#view-title").textContent = titles[selected] || "Mesa local";
+    requestAnimationFrame(() => animateViewActivation(document.querySelector(`#${selected}`)));
   }
 
   openers.forEach((button) => {
@@ -807,6 +828,43 @@ function formatDate(value) {
     dateStyle: "short",
     timeStyle: "short",
   }).format(new Date(timestamp));
+}
+
+function canUseMotion() {
+  return !reducedMotion.matches && Boolean(window.gsap);
+}
+
+function animateRecommendationSelection() {
+  if (!canUseMotion()) {
+    return;
+  }
+  const selectedCard = document.querySelector(".deal-card.selected");
+  const detail = document.querySelector("#deal-detail");
+  if (selectedCard) {
+    window.gsap.fromTo(
+      selectedCard,
+      { opacity: 0.55, x: -7 },
+      { opacity: 1, x: 0, duration: 0.26, ease: "power2.out", overwrite: "auto" },
+    );
+  }
+  if (detail) {
+    window.gsap.fromTo(
+      detail,
+      { opacity: 0, y: 9 },
+      { opacity: 1, y: 0, duration: 0.3, ease: "power2.out", overwrite: "auto" },
+    );
+  }
+}
+
+function animateViewActivation(view) {
+  if (!view || !canUseMotion()) {
+    return;
+  }
+  window.gsap.fromTo(
+    view,
+    { opacity: 0, y: 7 },
+    { opacity: 1, y: 0, duration: 0.28, ease: "power2.out", clearProps: "opacity,transform" },
+  );
 }
 
 function formatMarketPrice(eurValue, sourceValue) {

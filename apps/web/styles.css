@@ -18,6 +18,8 @@
   --rose: oklch(70% 0.105 22);
   --rose-tint: oklch(24% 0.043 21);
   --radius: 8px;
+  --radius-tight: 6px;
+  --shadow-panel: 0 14px 34px rgb(0 0 0 / 0.16);
   --text-caption: 0.6875rem;
   --text-small: 0.8125rem;
   --text-body: 1rem;
@@ -71,7 +73,7 @@ input:focus-visible {
 .app-shell {
   display: grid;
   min-height: 100dvh;
-  grid-template-columns: 168px minmax(0, 1fr);
+  grid-template-columns: 156px minmax(0, 1fr);
 }
 
 .sidebar {
@@ -83,6 +85,7 @@ input:focus-visible {
   border-right: 1px solid var(--line);
   background: var(--sidebar);
   padding: 18px 10px 14px;
+  box-shadow: 14px 0 34px rgb(0 0 0 / 0.11);
 }
 
 .brand {
@@ -90,7 +93,7 @@ input:focus-visible {
   align-items: center;
   gap: 9px;
   min-height: 48px;
-  margin: 0 3px 24px;
+  margin: 0 3px 30px;
   color: var(--ink);
   text-decoration: none;
 }
@@ -118,7 +121,7 @@ input:focus-visible {
 
 .nav-list {
   display: grid;
-  gap: 3px;
+  gap: 4px;
 }
 
 .nav-list a {
@@ -126,7 +129,8 @@ input:focus-visible {
   align-items: center;
   gap: 8px;
   min-height: 36px;
-  border-radius: 6px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-tight);
   color: var(--muted);
   font-size: var(--text-small);
   font-weight: 650;
@@ -149,6 +153,7 @@ input:focus-visible {
 }
 
 .nav-list a.active {
+  border-color: color-mix(in oklch, var(--teal) 26%, var(--line));
   background: var(--teal-tint);
   color: var(--ink);
 }
@@ -173,7 +178,7 @@ input:focus-visible {
 
 .workspace {
   min-width: 0;
-  padding: 0 clamp(18px, 2.2vw, 34px) 32px;
+  padding: 0 clamp(18px, 2.2vw, 36px) 32px;
 }
 
 .topbar {
@@ -181,13 +186,31 @@ input:focus-visible {
   top: 0;
   z-index: 10;
   display: flex;
-  min-height: 76px;
+  min-height: 72px;
   align-items: center;
   justify-content: space-between;
-  margin: 0 calc(clamp(18px, 2.2vw, 34px) * -1) 20px;
+  margin: 0 calc(clamp(18px, 2.2vw, 36px) * -1) 18px;
   border-bottom: 1px solid var(--line);
   background: color-mix(in oklch, var(--canvas) 94%, transparent);
-  padding: 12px clamp(18px, 2.2vw, 34px);
+  padding: 12px clamp(18px, 2.2vw, 36px);
+}
+
+.skip-link {
+  position: fixed;
+  z-index: 100;
+  top: 10px;
+  left: 10px;
+  transform: translateY(-160%);
+  border-radius: var(--radius-tight);
+  background: var(--teal);
+  color: var(--canvas);
+  font-weight: 750;
+  padding: 8px 10px;
+  text-decoration: none;
+}
+
+.skip-link:focus {
+  transform: translateY(0);
 }
 
 .topbar-status,
@@ -278,7 +301,6 @@ h3 {
 
 .view {
   min-width: 0;
-  animation: view-enter 180ms var(--ease-out);
 }
 
 @keyframes view-enter {
@@ -351,7 +373,7 @@ input[type="search"] {
 
 .deal-command-grid {
   display: grid;
-  grid-template-columns: minmax(530px, 1.08fr) minmax(370px, 0.92fr);
+  grid-template-columns: minmax(0, 2.25fr) minmax(310px, 0.95fr);
   grid-template-areas:
     "summary summary"
     "inbox detail";
@@ -362,10 +384,11 @@ input[type="search"] {
 .deal-left-panel {
   grid-area: summary;
   display: grid;
-  grid-template-columns: minmax(390px, 1fr) minmax(250px, 0.62fr);
-  gap: 8px 14px;
-  min-height: auto;
-  padding: 10px;
+  grid-template-columns: minmax(420px, 1fr) minmax(285px, 0.58fr);
+  gap: 8px 12px;
+  border: 0;
+  background: transparent;
+  padding: 0;
 }
 
 .summary-strip {
@@ -374,12 +397,12 @@ input[type="search"] {
   gap: 1px;
   overflow: hidden;
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: var(--radius);
   background: var(--line);
 }
 
 .summary-pill {
-  min-height: 58px;
+  min-height: 60px;
   background: var(--panel-raised);
   padding: 8px 10px;
 }
@@ -403,7 +426,7 @@ input[type="search"] {
   display: grid;
   align-content: center;
   border: 1px solid color-mix(in oklch, var(--amber) 35%, var(--line));
-  border-radius: 6px;
+  border-radius: var(--radius);
   background: var(--amber-tint);
   color: color-mix(in oklch, var(--amber) 82%, var(--ink));
   font-size: var(--text-small);
@@ -419,13 +442,20 @@ input[type="search"] {
   display: grid;
   grid-column: 1 / -1;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
+  gap: 12px;
+  border-top: 1px solid var(--line);
+  padding: 9px 2px 0;
 }
 
 .status-item {
   min-width: 0;
-  border-top: 1px solid var(--line);
-  padding: 8px 1px 0;
+  border-left: 1px solid var(--line);
+  padding: 0 0 0 10px;
+}
+
+.status-item:first-child {
+  border-left: 0;
+  padding-left: 0;
 }
 
 .status-item strong,
@@ -448,8 +478,9 @@ input[type="search"] {
 
 .deal-inbox {
   grid-area: inbox;
-  min-height: calc(100dvh - 231px);
+  min-height: calc(100dvh - 248px);
   overflow: hidden;
+  box-shadow: var(--shadow-panel);
 }
 
 .deal-list-head,
@@ -457,8 +488,8 @@ input[type="search"] {
   display: grid;
   /* La tabla concentra el espacio en el artículo. Precios y acción son
      columnas estables para poder escanear filas sin huecos innecesarios. */
-  grid-template-columns: minmax(0, 1fr) 210px 78px;
-  gap: 9px;
+  grid-template-columns: minmax(220px, 1.55fr) minmax(185px, 0.8fr) minmax(84px, 0.38fr) 86px;
+  gap: 12px;
 }
 
 .deal-list-head {
@@ -468,13 +499,14 @@ input[type="search"] {
   font-size: var(--text-caption);
   font-weight: 750;
   letter-spacing: 0.055em;
-  padding: 10px 12px;
+  padding: 10px 14px;
   text-transform: uppercase;
 }
 
 .deal-list {
-  max-height: calc(100dvh - 274px);
+  max-height: calc(100dvh - 290px);
   overflow: auto;
+  scrollbar-color: var(--line-strong) transparent;
 }
 
 .deal-card {
@@ -484,13 +516,14 @@ input[type="search"] {
   border-radius: 0;
   background: transparent;
   color: var(--ink);
-  padding: 12px;
+  padding: 12px 14px;
   text-align: left;
-  transition: background-color 160ms var(--ease-out), box-shadow 160ms var(--ease-out);
+  transition: background-color 160ms var(--ease-out), box-shadow 160ms var(--ease-out), transform 160ms var(--ease-out);
 }
 
 .deal-card:hover {
   background: var(--panel-hover);
+  transform: translateX(2px);
 }
 
 .deal-card.selected {
@@ -500,6 +533,7 @@ input[type="search"] {
 
 .deal-main,
 .deal-profit,
+.deal-price,
 .deal-signal,
 .item-name,
 .route-cell {
@@ -545,13 +579,42 @@ input[type="search"] {
   font-weight: 780;
 }
 
+.deal-price {
+  display: grid;
+  min-width: 0;
+  align-content: start;
+  gap: 5px;
+}
+
+.market-price {
+  display: grid;
+  min-width: 0;
+  gap: 1px;
+}
+
+.market-price b {
+  color: var(--ink);
+  font-size: var(--text-caption);
+  font-weight: 700;
+}
+
+.market-price span {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: var(--text-caption);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .deal-profit b {
   color: color-mix(in oklch, var(--ink) 80%, var(--muted));
   font-weight: 700;
 }
 
 .deal-signal {
+  align-content: start;
   justify-items: start;
+  gap: 5px;
 }
 
 .badge.review {
@@ -584,10 +647,11 @@ input[type="search"] {
   top: 96px;
   grid-area: detail;
   display: grid;
-  min-height: calc(100dvh - 231px);
+  min-height: 0;
   align-content: start;
   gap: 10px;
   padding: 15px;
+  box-shadow: var(--shadow-panel);
 }
 
 .detail-header {
@@ -1107,12 +1171,12 @@ input[type="search"] {
 
 @media (max-width: 1120px) {
   .deal-command-grid {
-    grid-template-columns: minmax(460px, 1fr) minmax(320px, 0.85fr);
+    grid-template-columns: minmax(0, 1.7fr) minmax(300px, 0.9fr);
   }
 
   .deal-list-head,
   .deal-card {
-    grid-template-columns: minmax(0, 1fr) 176px 78px;
+    grid-template-columns: minmax(195px, 1.35fr) minmax(160px, 0.82fr) minmax(76px, 0.38fr) 80px;
     gap: 9px;
   }
 
@@ -1234,6 +1298,10 @@ input[type="search"] {
 
   .deal-profit {
     grid-template-columns: auto 1fr;
+  }
+
+  .deal-price {
+    grid-template-columns: 1fr 1fr;
   }
 
   .deal-profit strong {

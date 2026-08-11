@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
+    <a class="skip-link" href="#main-content">Saltar al contenido</a>
     <div class="app-shell">
       <aside class="sidebar" aria-label="Navegacion principal">
         <a class="brand" href="#overview" aria-label="CSFlipper Console">
@@ -31,7 +32,7 @@
         </div>
       </aside>
 
-      <main class="workspace">
+      <main class="workspace" id="main-content">
         <header class="topbar">
           <div>
             <p class="eyebrow">CSFlipper Console</p>
@@ -90,14 +91,15 @@
 
             <section class="deal-inbox" aria-label="Bandeja de oportunidades">
               <div class="deal-list-head">
-                <span>Item</span>
-                <span>Margen y precios</span>
-                <span>Acción</span>
+                <span>Artículo</span>
+                <span>Precios</span>
+                <span>Margen</span>
+                <span>Decisión</span>
               </div>
               <div class="deal-list" id="recommendation-rows"></div>
             </section>
 
-            <aside class="deal-detail" id="deal-detail" aria-label="Detalle de oportunidad">
+            <aside class="deal-detail" id="deal-detail" aria-label="Detalle de oportunidad" aria-live="polite">
               <div class="empty-detail">
                 <p class="eyebrow">Detalle</p>
                 <strong>Selecciona una oportunidad</strong>
@@ -292,6 +294,7 @@
       </main>
     </div>
 
-    <script src="./app.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+    <script defer src="./app.js"></script>
   </body>
 </html>
