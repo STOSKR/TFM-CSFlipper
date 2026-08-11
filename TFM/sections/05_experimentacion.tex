@@ -274,7 +274,7 @@ Durante el desarrollo se han producido varias decisiones de pivotaje. La primera
 
 La segunda pivotación afecta a las fuentes de datos. El planteamiento inicial intentaba alinear históricos de Steam y \acroref{BUFF}{BUFF} para entrenar directamente sobre oportunidades de arbitraje entre plataformas. Las primeras pruebas mostraron dos problemas: falta de histórico alineado suficiente y riesgo operativo al consultar \acroref{BUFF}{BUFF} de forma reiterada. Por ello, el enfoque se ajusta: Steam se mantiene como fuente principal de aprendizaje temporal y \acroref{BUFF}{BUFF} se usa de forma puntual como precio vivo de entrada para evaluar flips concretos.
 
-La tercera pivotación aparece en la parte multiagente. Antes de ampliar entrenamiento y episodios, se prioriza que el entorno, las recompensas, restricciones y métricas sean comprobables. Por eso el estado actual se presenta como smoke funcional y no como validación definitiva de \acroref{MAPPO}{MAPPO}. Esta decisión evita basar conclusiones en un entrenamiento que todavía depende de más datos, más episodios y comparaciones contra baselines.
+La tercera pivotación aparece en la parte multiagente. Antes de ampliar entrenamiento y episodios, se prioriza que el entorno, las recompensas, las restricciones y las métricas sean comprobables. Esta secuencia permite construir el entrenamiento sobre reglas económicas trazables, datos consistentes y comparaciones con baselines.
 
 \subsection{Resultados de la arquitectura multiagente}
 
@@ -343,4 +343,4 @@ La principal limitación actual es la disponibilidad de histórico alineado entr
 
 \subsection{Lectura de los resultados}
 
-La lectura correcta de los resultados actuales es prudente. El proyecto ya demuestra viabilidad técnica de integración y simulación, pero todavía no demuestra superioridad económica de una política multiagente. Esta diferencia es importante para que la memoria sea defendible: una arquitectura ejecutable es una contribución técnica, mientras que la mejora de rendimiento requiere evidencia experimental adicional.
+Los resultados confirman la viabilidad técnica de la integración y la simulación. La comparación del rendimiento económico entre políticas multiagente requiere una fase experimental adicional con más episodios, datos y baselines homogéneos.
