@@ -2,13 +2,16 @@
 
 \bibitem{lehdonvirta2009virtual}
 Vili Lehdonvirta.
-\newblock Virtual item sales as a revenue model: Identifying attributes that drive purchase decisions.
+\newblock Virtual item sales as a revenue model: Identifying attributes that
+  drive purchase decisions.
 \newblock {\em Electronic Commerce Research}, 9(1):97--113, 2009.
 
 \bibitem{liu2021finrl}
 Xiao-Yang Liu, Hongyang Yang, Jiechao Gao, and Christina~Dan Wang.
-\newblock {FinRL}: Deep reinforcement learning framework to automate trading in quantitative finance.
-\newblock In {\em Proceedings of the Second ACM International Conference on AI in Finance}, 2021.
+\newblock {FinRL}: Deep reinforcement learning framework to automate trading in
+  quantitative finance.
+\newblock In {\em Proceedings of the Second ACM International Conference on AI
+  in Finance}, 2021.
 
 \bibitem{markowitz1952portfolio}
 Harry Markowitz.
@@ -22,12 +25,15 @@ Richard~S. Sutton and Andrew~G. Barto.
 
 \bibitem{lowe2017maddpg}
 Ryan Lowe, Yi~Wu, Aviv Tamar, Jean Harb, Pieter Abbeel, and Igor Mordatch.
-\newblock Multi-agent actor-critic for mixed cooperative-competitive environments.
+\newblock Multi-agent actor-critic for mixed cooperative-competitive
+  environments.
 \newblock In {\em Advances in Neural Information Processing Systems}, 2017.
 
 \bibitem{yu2022mappo}
-Chao Yu, Akash Velu, Eugene Vinitsky, Jiaxuan Gao, Yu~Wang, Alexandre Bayen, and Yi~Wu.
-\newblock The surprising effectiveness of {PPO} in cooperative, multi-agent games.
+Chao Yu, Akash Velu, Eugene Vinitsky, Jiaxuan Gao, Yu~Wang, Alexandre Bayen,
+  and Yi~Wu.
+\newblock The surprising effectiveness of {PPO} in cooperative, multi-agent
+  games.
 \newblock In {\em Advances in Neural Information Processing Systems}, 2022.
 
 \bibitem{schulman2017ppo}
@@ -48,16 +54,65 @@ Jerome~H. Friedman.
 \bibitem{niculescu2005predicting}
 Alexandru Niculescu-Mizil and Rich Caruana.
 \newblock Predicting good probabilities with supervised learning.
-\newblock In {\em Proceedings of the 22nd International Conference on Machine Learning}, pages 625--632, 2005.
+\newblock In {\em Proceedings of the 22nd International Conference on Machine
+  Learning}, pages 625--632, 2005.
+
+\bibitem{guo2017calibration}
+Chuan Guo, Geoff Pleiss, Yu~Sun, and Kilian~Q. Weinberger.
+\newblock On calibration of modern neural networks.
+\newblock In {\em Proceedings of the 34th International Conference on Machine
+  Learning}, volume~70, pages 1321--1330. PMLR, 2017.
+
+\bibitem{bergmeir2018cv}
+Christoph Bergmeir, Rob~J. Hyndman, and Bonsoo Koo.
+\newblock A note on the validity of cross-validation for evaluating
+  autoregressive time series prediction.
+\newblock {\em Computational Statistics \& Data Analysis}, 120:70--83, 2018.
+
+\bibitem{saito2015pr}
+Takaya Saito and Marc Rehmsmeier.
+\newblock The precision-recall plot is more informative than the {ROC} plot
+  when evaluating binary classifiers on imbalanced datasets.
+\newblock {\em PLOS ONE}, 10(3):e0118432, 2015.
+
+\bibitem{iwana2021augmentation}
+Brian~Kenji Iwana and Seiichi Uchida.
+\newblock An empirical survey of data augmentation for time series
+  classification with neural networks.
+\newblock {\em PLOS ONE}, 16(7):e0254841, 2021.
+
+\bibitem{pineau2021reproducibility}
+Joelle Pineau, Philippe Vincent-Lamarre, Koustuv Sinha, Vincent Larivi{\`e}re,
+  Alina Beygelzimer, Florence d'Alch{\'e} Buc, Emily Fox, and Hugo Larochelle.
+\newblock Improving reproducibility in machine learning research.
+\newblock {\em Journal of Machine Learning Research}, 22(164):1--20, 2021.
+
+\bibitem{smith2007tesseract}
+Ray Smith.
+\newblock An overview of the {Tesseract} {OCR} engine.
+\newblock In {\em Ninth International Conference on Document Analysis and
+  Recognition}, volume~2, pages 629--633, 2007.
+
+\bibitem{agarwal2021deep}
+Rishabh Agarwal, Max Schwarzer, Pablo~Samuel Castro, Aaron~C. Courville, and
+  Marc~G. Bellemare.
+\newblock Deep reinforcement learning at the edge of the statistical precipice.
+\newblock In {\em Advances in Neural Information Processing Systems},
+  volume~34, pages 29304--29320, 2021.
 
 \bibitem{terry2021pettingzoo}
-Justin~K. Terry, Benjamin Black, Nathaniel Grammel, Mario Jayakumar, Ananth Hari, Ryan Sullivan, Luis Santos, Rodrigo Perez, Caroline Horsch, Clemens Dieffendahl, Niall~L. Williams, Yashas Lokesh, Praveen~Ravi Hines, and Niall Ravi.
+Justin~K. Terry, Benjamin Black, Nathaniel Grammel, Mario Jayakumar, Ananth
+  Hari, Ryan Sullivan, Luis Santos, Rodrigo Perez, Caroline Horsch, Clemens
+  Dieffendahl, Niall~L. Williams, Yashas Lokesh, Praveen~Ravi Hines, and Niall
+  Ravi.
 \newblock Pettingzoo: Gym for multi-agent reinforcement learning.
 \newblock In {\em Advances in Neural Information Processing Systems}, 2021.
 
 \bibitem{ray2018rllib}
-Eric Liang, Richard Liaw, Robert Nishihara, Philipp Moritz, Roy Fox, Ken Goldberg, Joseph~E. Gonzalez, Michael~I. Jordan, and Ion Stoica.
+Eric Liang, Richard Liaw, Robert Nishihara, Philipp Moritz, Roy Fox, Ken
+  Goldberg, Joseph~E. Gonzalez, Michael~I. Jordan, and Ion Stoica.
 \newblock Rllib: Abstractions for distributed reinforcement learning.
-\newblock In {\em Proceedings of the 35th International Conference on Machine Learning}, 2018.
+\newblock In {\em Proceedings of the 35th International Conference on Machine
+  Learning}, 2018.
 
 \end{thebibliography}

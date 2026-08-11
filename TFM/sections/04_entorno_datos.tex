@@ -6,7 +6,7 @@ El sistema trabaja con varias fuentes porque el mercado de \acroref{CS2}{CS2} es
 
 \subsection{Mercado de Steam}
 
-Steam actúa como una de las fuentes principales de precio e histórico. En el proyecto se capturan variantes reales de artículos, precios actuales, moneda, buy orders y puntos históricos cuando están disponibles. La información se normaliza para que pueda combinarse con otras plataformas y para evitar que las decisiones dependan de nombres o formatos propios de una fuente.
+Steam actúa como una de las fuentes principales de precio e histórico. En el proyecto se capturan variantes de artículos, precios actuales, moneda, buy orders y puntos históricos cuando están disponibles. La información se normaliza para que pueda combinarse con otras plataformas y para evitar que las decisiones dependan de nombres o formatos propios de una fuente.
 
 En la práctica, Steam no se usa solo como una tabla de precios. También aporta señales de liquidez y de comportamiento temporal. El histórico permite construir retornos, medias móviles, volatilidad y desviaciones frente a ventas recientes. Estas variables son necesarias para que el modelo no mire únicamente una fotografía puntual del mercado.
 
@@ -31,7 +31,7 @@ c_{\mathrm{OCR}}=\frac{1}{100n}\sum_{j=1}^{n} c_j.
 El parser normaliza espacios y separadores decimales, identifica precio, moneda, calidad, plataforma y volumen cuando aparecen en la línea. Solo se convierten en observaciones las extracciones con $c_{\mathrm{OCR}}\geq 0{,}5$ y con un precio positivo menor de un millón de unidades monetarias. Esta regla evita que una captura dudosa entre silenciosamente al histórico.
 
 \begin{algorithm}[H]
-\caption{Extracción OCR validada}
+\caption{Extracción OCR.}
 \label{alg:ocr-validado}
 \begin{algorithmic}[1]
 \Require Captura $I$, confianza mínima $\tau$ y contexto de fuente
@@ -119,7 +119,7 @@ y_t = 1 \Longleftrightarrow \pi_{t+h} \geq \pi_{\min}
 Los conjuntos se separan por fecha y se elimina una franja de purga antes de cada frontera para que una salida futura no coincida con el entrenamiento de un periodo anterior.
 
 \begin{algorithm}[H]
-\caption{Dataset temporal}
+\caption{Dataset temporal.}
 \label{alg:dataset-temporal}
 \begin{algorithmic}[1]
 \Require Históricos Steam/BUFF, horizonte $h$, fechas de corte y purga $g$

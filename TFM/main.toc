@@ -72,7 +72,7 @@
 \contentsline {chapter}{\numberline {6}Experimentación y análisis}{37}{chapter.6}%
 \contentsline {section}{\numberline {6.1}Diseño experimental}{37}{section.6.1}%
 \contentsline {subsection}{\numberline {6.1.1}Escenarios de evaluación}{37}{subsection.6.1.1}%
-\contentsline {subsection}{\numberline {6.1.2}Estrategias de comparación}{37}{subsection.6.1.2}%
+\contentsline {subsection}{\numberline {6.1.2}Estrategias de comparación}{38}{subsection.6.1.2}%
 \contentsline {section}{\numberline {6.2}Validación técnica y pruebas}{38}{section.6.2}%
 \contentsline {section}{\numberline {6.3}Métricas}{39}{section.6.3}%
 \contentsline {subsection}{\numberline {6.3.1}Métricas de rentabilidad}{39}{subsection.6.3.1}%
@@ -81,13 +81,13 @@
 \contentsline {subsection}{\numberline {6.4.1}Migración de reglas económicas}{39}{subsection.6.4.1}%
 \contentsline {subsection}{\numberline {6.4.2}Resultados del modelo supervisado}{39}{subsection.6.4.2}%
 \contentsline {subsection}{\numberline {6.4.3}Protocolo temporal reproducible}{40}{subsection.6.4.3}%
-\contentsline {subsection}{\numberline {6.4.4}Ablación de histórico y aumentación}{42}{subsection.6.4.4}%
+\contentsline {subsection}{\numberline {6.4.4}Ablación de histórico y aumentación}{41}{subsection.6.4.4}%
 \contentsline {subsection}{\numberline {6.4.5}Comprobación del corte reciente}{43}{subsection.6.4.5}%
 \contentsline {subsection}{\numberline {6.4.6}Evidencia de pruebas automatizadas}{44}{subsection.6.4.6}%
 \contentsline {subsection}{\numberline {6.4.7}Validación funcional de OCR}{44}{subsection.6.4.7}%
-\contentsline {subsection}{\numberline {6.4.8}Dataset de trading operativo}{44}{subsection.6.4.8}%
+\contentsline {subsection}{\numberline {6.4.8}Dataset de trading operativo}{45}{subsection.6.4.8}%
 \contentsline {subsection}{\numberline {6.4.9}Dificultades y pivotaciones}{45}{subsection.6.4.9}%
-\contentsline {subsection}{\numberline {6.4.10}Resultados de la arquitectura multiagente}{46}{subsection.6.4.10}%
+\contentsline {subsection}{\numberline {6.4.10}Resultados MARL}{46}{subsection.6.4.10}%
 \contentsline {section}{\numberline {6.5}Experimentos finales pendientes}{47}{section.6.5}%
 \contentsline {section}{\numberline {6.6}Discusión}{47}{section.6.6}%
 \contentsline {subsection}{\numberline {6.6.1}Amenazas a la validez}{47}{subsection.6.6.1}%
@@ -100,10 +100,10 @@
 \contentsline {section}{\numberline {7.3}Limitaciones}{50}{section.7.3}%
 \contentsline {section}{\numberline {7.4}Trabajo futuro}{50}{section.7.4}%
 \contentsline {chapter}{Bibliografía}{51}{section.7.4}%
-\contentsline {chapter}{\numberline {A}Anexos}{52}{appendix.Alph1}%
-\contentsline {section}{\numberline {A.1}Estructura del repositorio}{52}{section.Alph1.1}%
-\contentsline {section}{\numberline {A.2}Configuración del entorno}{52}{section.Alph1.2}%
-\contentsline {section}{\numberline {A.3}Comandos de datasets y modelos}{53}{section.Alph1.3}%
-\contentsline {section}{\numberline {A.4}Parámetros de entrenamiento}{53}{section.Alph1.4}%
-\contentsline {section}{\numberline {A.5}Modelo de datos}{53}{section.Alph1.5}%
-\contentsline {section}{\numberline {A.6}Resultados adicionales}{54}{section.Alph1.6}%
+\contentsline {chapter}{\numberline {A}Anexos}{53}{appendix.Alph1}%
+\contentsline {section}{\numberline {A.1}Estructura del repositorio}{53}{section.Alph1.1}%
+\contentsline {section}{\numberline {A.2}Configuración del entorno}{53}{section.Alph1.2}%
+\contentsline {section}{\numberline {A.3}Comandos de datasets y modelos}{54}{section.Alph1.3}%
+\contentsline {section}{\numberline {A.4}Parámetros de entrenamiento}{54}{section.Alph1.4}%
+\contentsline {section}{\numberline {A.5}Modelo de datos}{54}{section.Alph1.5}%
+\contentsline {section}{\numberline {A.6}Resultados adicionales}{55}{section.Alph1.6}%

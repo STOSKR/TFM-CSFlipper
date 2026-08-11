@@ -34,7 +34,7 @@ Las fuentes que necesitan navegación se ejecutan con Playwright en un navegador
 Cada trabajo de scraping registra inicio, conectores utilizados, reintentos, progreso, fichero de log y resultado final. Los límites de concurrencia, el tamaño de lote y el tiempo de espera son configurables. El objetivo no es ejecutar el mayor número de peticiones posible, sino mantener un proceso que pueda detenerse, reanudarse y auditarse si una fuente cambia su interfaz.
 
 \begin{algorithm}[H]
-\caption{Trabajo de scraping trazable}
+\caption{Flujo de scraping.}
 \label{alg:scraping-trazable}
 \begin{algorithmic}[1]
 \Require Lista de candidatos, conectores activos y configuración de trabajo
@@ -88,7 +88,7 @@ La configuración se versiona mediante un fichero de ejemplo sin secretos. Para 
 Los comandos de construcción de datasets y entrenamiento guardan el rango temporal, las columnas, los tamaños de cada partición, las tasas de clase, los hiperparámetros y las métricas obtenidas. Esta información permite distinguir dos situaciones que visualmente podrían parecer iguales: ejecutar un modelo con más datos y repetir exactamente una configuración anterior.
 
 \begin{algorithm}[H]
-\caption{Ejecución reproducible de un experimento}
+\caption{Ejecución de experimento.}
 \label{alg:experimento-reproducible}
 \begin{algorithmic}[1]
 \Require Dataset versionado, fechas de corte, configuración y semilla

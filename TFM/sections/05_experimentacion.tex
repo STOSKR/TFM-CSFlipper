@@ -2,33 +2,34 @@
 
 \section{Diseño experimental}
 
-La experimentación se ha desarrollado por fases. Primero, se han migrado reglas económicas y estructuras de datos. Después, se han construido datasets supervisados para estudiar señales de mercado. Más adelante, se ha creado un dataset de trading basado en precios Steam/\acroref{BUFF}{BUFF} y se ha implementado el entorno multiagente. Esta secuencia evita entrenar agentes \acroref{MARL}{MARL} sobre un entorno que todavía no representa bien el problema económico.
+La experimentación se ha desarrollado por fases. Primero, se han migrado reglas económicas y estructuras de datos. Después, se han construido datasets supervisados para estudiar señales de mercado. Más adelante, se ha creado un dataset de trading basado en precios Steam/\acroref{BUFF}{BUFF} y se ha implementado el entorno multiagente. Esta secuencia evita entrenar agentes \acroref{MARL}{MARL} sobre un entorno que todavía no representa bien el problema económico. La Tabla~\ref{tab:matriz-experimental} reúne los flujos ejecutados, de modo que se distingue lo que se ha medido de lo que queda preparado para una siguiente fase.
 
 \begin{table}[h]
 \centering
-\begin{tabularx}{\textwidth}{l X X}
+\begin{tabularx}{\textwidth}{p{0.18\textwidth} X X}
 \toprule
-Fase & Trabajo & Estado \\
+Flujo & Pregunta & Evidencia disponible \\
 \midrule
-1 & Reglas económicas & Comprobadas. \\
-2 & Dataset supervisado & Resultados preliminares. \\
-3 & Modelos y umbrales & Exploración completada. \\
-4 & Trading BUFF--Steam & Datos insuficientes. \\
-5 & \acroref{MARL}{MARL} & Integración técnica. \\
+Reglas económicas & ¿Se mantienen comisiones, conversión y bloqueo? & Funciones reutilizables y pruebas unitarias. \\
+Dirección Steam & ¿Qué umbral produce señales más precisas? & Entrenamiento, calibración y perfil de umbrales. \\
+Trading BUFF--Steam & ¿Aportan histórico y aumentación? & Corte temporal, cuatro ablaciones y diagnóstico de cobertura. \\
+OCR & ¿La captura llega como observación estructurada? & Parser, confianza mínima y recorrido de imagen. \\
+\acroref{MARL}{MARL} & ¿Se coordinan roles y restricciones? & Dos baselines y smoke de PPO con tres políticas. \\
 \bottomrule
 \end{tabularx}
-\caption{Fases de experimentación.}
+\caption{Matriz experimental.}
+\label{tab:matriz-experimental}
 \end{table}
 
 \subsection{Escenarios de evaluación}
 
-Se han usado dos tipos de datasets. El primero predice dirección de mercado sobre histórico disponible y permite estudiar señales temporales de forma amplia. El segundo intenta modelar oportunidades reales de trading Steam/\acroref{BUFF}{BUFF} con precios normalizados, fees y horizonte temporal. Este segundo dataset es más cercano al objetivo del \acroref{TFM}{TFM}, pero también es más exigente porque necesita histórico alineado entre plataformas.
+Se han usado dos tipos de datasets. El primero predice dirección de mercado sobre histórico disponible y permite estudiar señales temporales de forma amplia. El segundo intenta modelar oportunidades de compraventa Steam/\acroref{BUFF}{BUFF} con precios normalizados, comisiones y horizonte temporal. Este segundo dataset es más cercano al objetivo del \acroref{TFM}{TFM}, pero también es más exigente porque necesita histórico alineado entre plataformas.
 
 El criterio de evaluación no es solo predictivo. Una señal puede tener buena precisión y aun así no ser operativa si aparece pocas veces, si depende de artículos concretos o si no supera costes de transacción. Por eso las métricas del modelo supervisado se interpretan como apoyo a la decisión, no como resultado económico final.
 
 \subsection{Estrategias de comparación}
 
-La comparación experimental se plantea en tres niveles. El primero es un baseline simple o dummy para comprobar que los modelos aprenden algo más que la tasa base. El segundo compara modelos supervisados tabulares como regresión logística, random forest e histogram gradient boosting, familias ampliamente usadas para clasificación tabular \cite{breiman2001random,friedman2001greedy}. El tercero, todavía pendiente de evaluación completa, comparará la arquitectura \acroref{MARL}{MARL} frente a baselines de agente único y ablations con y sin probabilidad supervisada.
+La comparación experimental se plantea en tres niveles. El primero es un baseline simple o dummy para comprobar que los modelos aprenden algo más que la tasa base. El segundo compara modelos supervisados tabulares como regresión logística, random forest e histogram gradient boosting, familias ampliamente usadas para clasificación tabular \cite{breiman2001random,friedman2001greedy}. El tercero comprueba la arquitectura \acroref{MARL}{MARL} frente a reglas de margen y de espera. Esta última parte valida coordinación, restricciones y trazabilidad, no rentabilidad de una política entrenada.
 
 \begin{algorithm}[H]
 \caption{Entrenamiento PPO}
@@ -79,7 +80,7 @@ Las métricas de rentabilidad principales son beneficio neto, retorno porcentual
 
 \subsection{Métricas de riesgo}
 
-Las métricas de riesgo incluyen drawdown, capital bloqueado medio, posiciones abiertas, exposición por activo o plataforma, operaciones rechazadas por riesgo e impacto del \textit{trade hold}. Estas métricas son necesarias para evaluar si una estrategia es realmente utilizable y no solo rentable en una métrica aislada.
+Las métricas de riesgo incluyen drawdown, capital bloqueado medio, posiciones abiertas, exposición por activo o plataforma, operaciones rechazadas por riesgo e impacto del \textit{trade hold}. Estas métricas son necesarias para evaluar si una estrategia es operativamente utilizable y no solo rentable en una métrica aislada.
 
 \section{Resultados}
 
@@ -91,40 +92,59 @@ El resultado principal de esta fase es metodológico: las reglas económicas pas
 
 \subsection{Resultados del modelo supervisado}
 
-La fase supervisada ha producido varios experimentos preliminares. En el dataset reciente de un año, los modelos random forest han obtenido señales útiles en umbrales altos, aunque con un número limitado de casos. La selección por precisión a umbral 0,8 ha resultado más alineada con el objetivo operativo que seleccionar solo por \acroref{ROC-AUC}{ROC-AUC}.
+La fase supervisada conserva una exploración de dirección Steam con 47.467 filas de entrenamiento, 19.252 de validación y 18.412 de prueba. Su etiqueta indica dirección de precio, no beneficio neto entre plataformas. Se mantiene como evidencia de que el pipeline de variables, calibración y selección funciona con una muestra de mayor tamaño, pero no se utiliza para aprobar compras. El protocolo principal de este capítulo es el corte BUFF--Steam que empieza en diciembre de 2025.
 
 \begin{table}[h]
 \centering
-\begin{tabularx}{\textwidth}{l l c r}
+\begin{tabularx}{\textwidth}{c r r r}
 \toprule
-Experimento & Modelo & Umbral & Precisión / señales \\
+Umbral & Precisión & Recall & Señales \\
 \midrule
-Smoke & Random forest d18 & 0,8 & 0,946 / 92 \\
-Selección & Random forest d10 & 0,8 & 0,961 / 77 \\
-Operativo & Random forest d18 & 0,85 & 0,962 / 53 \\
+0,50 & 0,716 & 0,116 & 1.293 \\
+0,70 & 0,856 & 0,019 & 180 \\
+0,80 & 0,947 & 0,011 & 95 \\
+0,85 & 0,962 & 0,006 & 53 \\
+0,90 & 1,000 & 0,003 & 22 \\
 \bottomrule
 \end{tabularx}
-\caption{Resultados supervisados.}
+\caption{Umbrales de dirección.}
 \end{table}
 
-Estos resultados no se consideran definitivos. El número de señales en umbrales altos es reducido y no permite afirmar que el sistema generalice por artículo o por periodo. Sí indican que el pipeline de entrenamiento, calibración, selección por umbral y evaluación temporal funciona.
+El umbral 0,85 deja 53 señales de las 18.412 filas de prueba. Esto ilustra el intercambio entre precisión y cobertura: elevar el umbral selecciona menos casos y no convierte la probabilidad en una orden. La calibración se revisa porque una probabilidad solo es útil si representa de forma razonable la frecuencia observada \cite{niculescu2005predicting,guo2017calibration}. Estos resultados no se consideran definitivos. Sí indican que el pipeline de entrenamiento, calibración, selección por umbral y evaluación temporal funciona.
 
 \subsection{Protocolo temporal reproducible}
 
 La validación se ha repetido el 10 de agosto de 2026 con los datos disponibles desde el 1 de diciembre de 2025. Cada ejemplo representa la posibilidad de comprar un artículo en BUFF y venderlo en Steam tras un horizonte de ocho días. La etiqueta vale uno cuando, después de aplicar las comisiones configuradas, el retorno supera el 10\%. El precio de entrada se toma de BUFF y la salida de Steam se valora con el factor de venta de 0,87 empleado por el simulador.
 
-El orden temporal se conserva en todas las fases. Para el corte de marzo se usaron 171 ejemplos de entrenamiento, 76 de validación y 95 de prueba. El entrenamiento termina el 20 de enero, la validación ocupa del 2 al 20 de febrero y la prueba comprende del 4 al 28 de marzo. Se eliminan ocho días antes de cada frontera para que el horizonte futuro de una observación no alcance el bloque siguiente. Ningún parámetro se modifica al consultar la prueba.
+El orden temporal se conserva en todas las fases. Para el corte de marzo se usaron 171 ejemplos de entrenamiento, 76 de validación y 95 de prueba. El entrenamiento termina el 20 de enero, la validación ocupa del 2 al 20 de febrero y la prueba comprende del 4 al 28 de marzo. Se eliminan ocho días antes de cada frontera para que el horizonte futuro de una observación no alcance el bloque siguiente. Ningún parámetro se modifica al consultar la prueba. Esta separación evita mezclar pasado y futuro, una precaución esencial cuando las observaciones tienen dependencia temporal \cite{bergmeir2018cv}.
 
 La Figura~\ref{fig:cobertura-marzo} hace visible una limitación que no se aprecia al mirar solo el número de filas. Los tres bloques contienen las mismas 19 representaciones de artículo y están dominados por la clase rentable. La separación temporal evita que se use información futura, pero no demuestra por sí sola que el modelo generalice a artículos que no ha visto durante el entrenamiento.
 
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\textwidth]{figures/experimentacion/03_cobertura_temporal.png}
-\caption{Separación temporal y distribución de etiquetas del corte de marzo. La purga evita que el horizonte de ocho días invada el bloque posterior, pero la alta proporción de ejemplos rentables limita la interpretación de las métricas.}
+\caption{Corte temporal de marzo.}
 \label{fig:cobertura-marzo}
 \end{figure}
 
-La selección compara las familias dummy, regresión logística, random forest e histogram gradient boosting. La configuración se elige en validación mediante precisión al umbral 0,85 con al menos tres señales. Después se calibra con sigmoide y se mide sobre el bloque de prueba. Además, se ejecuta una ablación de la regresión logística sin retardos, cambios, retornos ni medias móviles de uno, tres y siete días. Esta comparación responde a una pregunta concreta: si el histórico añade información o solamente complejidad.
+La selección compara las familias dummy, regresión logística, random forest e histogram gradient boosting. La configuración se elige en validación mediante precisión al umbral 0,85 con al menos tres señales. Después se calibra con sigmoide y se mide sobre el bloque de prueba. Además, se ejecuta una ablación de la regresión logística sin retardos, cambios, retornos ni medias móviles de uno, tres y siete días. Esta comparación responde a una pregunta concreta: si el histórico añade información o solamente complejidad. La precisión se presenta junto a la cobertura porque una clase mayoritaria puede hacer que el \acroref{ROC-AUC}{ROC-AUC} parezca más concluyente de lo que permite la muestra \cite{saito2015pr}.
+
+La exploración no se limitó a escoger una familia. La Tabla~\ref{tab:configuraciones-marzo} recoge el espacio de búsqueda empleado. El conjunto de prueba se dejó fuera de esta selección: sus valores se consultaron una vez después de fijar la configuración de validación.
+
+\begin{table}[htbp]
+\centering
+\begin{tabularx}{\textwidth}{l X}
+\toprule
+Familia & Configuraciones exploradas \\
+\midrule
+Regresión logística & Regularización L2 con $C \in \{0{,}3, 1, 3\}$. \\
+Random forest & Profundidad 10 o 18, 160 árboles y cinco muestras por hoja. \\
+HGB & Tasa de aprendizaje 0,05 o 0,10, 160 iteraciones y 31 hojas. \\
+\bottomrule
+\end{tabularx}
+\caption{Configuraciones de marzo.}
+\label{tab:configuraciones-marzo}
+\end{table}
 
 \begin{table}[htbp]
 \centering
@@ -138,14 +158,14 @@ Random forest con histórico & 0,742 & 0,074 & 0,942 & 86 \\
 HGB con histórico & 0,649 & 0,082 & 0,915 & 82 \\
 \bottomrule
 \end{tabularx}
-\caption{Modelos en marzo.}
+\caption{Comparativa de marzo.}
 \label{tab:resultados-marzo}
 \end{table}
 
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\textwidth]{figures/experimentacion/01_modelos_marzo.png}
-\caption{Exploración inicial de modelos y variables temporales en marzo. Un Brier menor indica mejor calibración.}
+\caption{Modelos en marzo.}
 \label{fig:modelos-marzo}
 \end{figure}
 
@@ -153,7 +173,7 @@ La exploración inicial señala que la regresión logística sin característica
 
 \subsection{Ablación de histórico y aumentación}
 
-La segunda exploración usa una matriz $2 \times 2$ con regresión logística. Se mantienen los mismos cortes temporales de marzo, el umbral de selección 0,85, tres pliegues temporales y calibración sigmoide. Se comparan dos decisiones de diseño: conservar o retirar retardos y medias móviles, y entrenar con o sin aumentación numérica.
+La segunda exploración usa una matriz $2 \times 2$ con regresión logística. Se mantienen los mismos cortes temporales de marzo, el umbral de selección 0,85, tres pliegues temporales y calibración sigmoide. Se comparan dos decisiones de diseño: conservar o retirar retardos y medias móviles, y entrenar con o sin aumentación numérica. La aumentación se contrasta como hipótesis y no se presupone beneficiosa, ya que su efecto depende del dominio y del volumen de datos \cite{iwana2021augmentation}.
 
 La aumentación se aplica únicamente al entrenamiento. Para cada variable numérica se genera una copia perturbada mediante
 
@@ -184,7 +204,7 @@ No & Jitter & 0,613 & 0,084 & 0,919 & 86 \\
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\textwidth]{figures/experimentacion/02_ablacion_marzo.png}
-\caption{Efecto del histórico y de la aumentación numérica sobre la prueba de marzo.}
+\caption{Histórico y aumentación.}
 \label{fig:ablacion-marzo}
 \end{figure}
 
@@ -197,7 +217,7 @@ La Figura~\ref{fig:umbral-marzo} complementa esta lectura. La precisión se mant
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\textwidth]{figures/experimentacion/04_umbral_marzo.png}
-\caption{Precisión, recall y número de señales según el umbral en la prueba de marzo. La línea discontinua representa la tasa positiva de la muestra.}
+\caption{Métricas por umbral.}
 \label{fig:umbral-marzo}
 \end{figure}
 
@@ -222,7 +242,7 @@ El resultado es deliberadamente incómodo, pero es importante. En validación y 
 
 \subsection{Evidencia de pruebas automatizadas}
 
-La suite completa se ejecutó el 11 de agosto de 2026 sobre el repositorio restaurado y obtuvo 278 pruebas superadas en 35,20 segundos. Las tres pruebas de integración utilizaron el \texttt{DATABASE\_URL} PostgreSQL configurado en Supabase. Registran un snapshot de mercado, comprueban la actualización de una cotización y guardan una señal de oportunidad vinculada a un artículo. Cada una abre una transacción externa y la revierte al terminar, por lo que la comprobación no añade datos de prueba al histórico utilizado por los experimentos.
+La suite completa se ejecutó el 11 de agosto de 2026 sobre el repositorio restaurado y obtuvo 278 pruebas superadas en 35,20 segundos. Las tres pruebas de integración utilizaron el \texttt{DATABASE\_URL} PostgreSQL configurado en Supabase. Registran un snapshot de mercado, comprueban la actualización de una cotización y guardan una señal de oportunidad vinculada a un artículo. Cada una abre una transacción externa y la revierte al terminar, por lo que la comprobación no añade datos de prueba al histórico utilizado por los experimentos. Este registro de datos, configuración y resultados permite repetir las comprobaciones, práctica recomendada para hacer evaluables los resultados de aprendizaje automático \cite{pineau2021reproducibility}.
 
 \begin{table}[htbp]
 \centering
@@ -241,7 +261,7 @@ Suite completa & 278 & Todas superadas en 35,20 segundos. \\
 
 \subsection{Validación funcional de OCR}
 
-La evaluación de OCR disponible es funcional, no una medida de exactitud sobre un corpus etiquetado de capturas. Por ello no se comunica una tasa de reconocimiento que no se ha medido. Las pruebas comprueban que el parser convierte una observación de mercado en un contrato con artículo, calidad, plataforma, precio, moneda y volumen, que rechaza una confianza inferior a 0,5 y que el recorrido de imagen llama a carga, preprocesado y reconocimiento antes de persistir el resultado. La Tabla~\ref{tab:ocr-funcional} delimita qué evidencia existe y qué queda pendiente.
+La evaluación de OCR disponible es funcional, no una medida de exactitud sobre un corpus etiquetado de capturas. Por ello no se comunica una tasa de reconocimiento que no se ha medido. Las pruebas comprueban que el parser convierte una observación de mercado en un contrato con artículo, calidad, plataforma, precio, moneda y volumen, que rechaza una confianza inferior a 0,5 y que el recorrido de imagen llama a carga, preprocesado y reconocimiento antes de persistir el resultado. El uso del motor se apoya en la arquitectura de Tesseract descrita por Smith \cite{smith2007tesseract}. La Tabla~\ref{tab:ocr-funcional} delimita qué evidencia existe y qué queda pendiente.
 
 \begin{table}[htbp]
 \centering
@@ -276,7 +296,7 @@ La segunda pivotación afecta a las fuentes de datos. El planteamiento inicial i
 
 La tercera pivotación aparece en la parte multiagente. Antes de ampliar entrenamiento y episodios, se prioriza que el entorno, las recompensas, las restricciones y las métricas sean comprobables. Esta secuencia permite construir el entrenamiento sobre reglas económicas trazables, datos consistentes y comparaciones con baselines.
 
-\subsection{Resultados de la arquitectura multiagente}
+\subsection{Resultados MARL}
 
 El entorno multiagente se ha comprobado con el mismo dataset de marzo. Scout marca una oportunidad, Trader propone la compra de una unidad y Portfolio acepta o rechaza según saldo, exposición, liquidez y capital bloqueado. Una compra requiere el acuerdo de los tres roles. La recompensa compartida combina margen, inactividad, penalización por restricciones, drawdown y capital inmovilizado:
 
@@ -292,32 +312,33 @@ En la ecuación, $\rho_t$ es el retorno estimado de la oportunidad, $v_t$ el nú
 
 \begin{table}[htbp]
 \centering
-\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}X r r >{\raggedright\arraybackslash}X}
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{0.24\textwidth} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
 \toprule
-Política & Compras & Efectivo & Resultado \\
+Escenario & Qué comprueba & Resultado observado \\
 \midrule
-Margen positivo & 13 & 309,64 EUR & Abre posiciones hasta el límite. \\
-Mantener & 0 & 1.000,00 EUR & Sin posiciones. \\
-Margen sin señal & 13 & 309,64 EUR & Mismo resultado sin probabilidad supervisada. \\
-PPO, una iteración & 0 & 100,00 EUR & Integración técnica, sin compras. \\
+Margen positivo & Coordinación y límites de cartera. & Abre 13 posiciones en 95 pasos. \\
+Mantener & Baseline sin acción. & No abre posiciones. \\
+Margen sin señal & Efecto de la señal supervisada. & Repite 13 posiciones porque el dataset no tiene una probabilidad por fila. \\
+PPO, una iteración & Integración PettingZoo--RLlib. & Completa 64 pasos y guarda un checkpoint, sin compras. \\
 \bottomrule
 \end{tabularx}
-\caption{Pruebas MARL.}
+\caption{Escenarios MARL.}
 \label{tab:marl-inicial}
 \end{table}
 
-La primera política es una regla escrita a mano que compra si el margen actual es positivo. No representa una política entrenada, pero comprueba la coordinación entre los tres roles y las restricciones de Portfolio. La política de mantener confirma el comportamiento contrario. En ambas pruebas se partió de 1.000 EUR y se recorrieron las 95 observaciones del bloque de prueba. Las posiciones quedan abiertas por el bloqueo temporal, por lo que la tabla no debe interpretarse como beneficio final.
+La primera política es una regla escrita a mano que compra si el margen actual es positivo. No representa una política entrenada, pero comprueba la coordinación entre los tres roles y las restricciones de Portfolio. La política de mantener confirma el comportamiento contrario. En los tres escenarios con reglas se partió de 1.000 EUR y se recorrieron las 95 observaciones del bloque de prueba. Las posiciones quedan abiertas por el bloqueo temporal, por lo que los escenarios muestran transiciones del entorno y no beneficio final.
 
 La Figura~\ref{fig:traza-marl-marzo} muestra la traza completa de ambos baselines. La regla de margen positivo abre trece posiciones y reduce el efectivo disponible hasta 309,64 EUR. El capital queda bloqueado durante el periodo de espera y deja de contabilizarse como bloqueado al vencer dicho periodo. Las posiciones siguen abiertas porque el baseline no incorpora una política de venta. Esta figura valida la dinámica de efectivo, bloqueo y restricciones del simulador, pero no mide el rendimiento de una política aprendida.
 
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\textwidth]{figures/experimentacion/05_traza_marl_marzo.png}
-\caption{Trazas de los baselines MARL sobre la prueba de marzo. La política de margen positivo es una regla manual y la política de mantener no abre posiciones.}
+\caption{Trazas MARL.}
 \label{fig:traza-marl-marzo}
 \end{figure}
 
-El comando PPO con \acroref{RLlib}{RLlib} completó una iteración y 64 pasos de entorno con el conjunto de entrenamiento. El estado central se expone al adaptador y hay una política por rol, pero el crítico centralizado queda pendiente. La evaluación del checkpoint corto no ejecutó compras. Este resultado es informativo: la compatibilidad técnica está validada, pero una única iteración no produce una política que pueda compararse económicamente con una regla de margen.
+\Needspace{8\baselineskip}
+El comando PPO con \acroref{RLlib}{RLlib} completó una iteración y 64 pasos de entorno con el conjunto de entrenamiento. El estado central se expone al adaptador y hay una política por rol. La evaluación del checkpoint corto no ejecutó compras. Esta prueba valida la compatibilidad técnica, pero una única iteración no permite comparar una política aprendida con una regla de margen. Las comparaciones futuras deberán repetir semillas, episodios y cortes temporales para comunicar la variabilidad del aprendizaje \cite{agarwal2021deep}.
 
 \section{Experimentos finales pendientes}
 
@@ -339,7 +360,7 @@ El trabajo realizado muestra que el sistema ya puede integrar fuentes, construir
 
 \subsection{Limitaciones observadas}
 
-La principal limitación actual es la disponibilidad de histórico alineado entre Steam y \acroref{BUFF}{BUFF}. Sin suficientes ejemplos positivos en validación y test, cualquier métrica de trading puede ser engañosa. También existe riesgo de sobreajuste en variables categóricas de alta cardinalidad y en señales de precisión alta con pocos casos. Por último, el entorno \acroref{MARL}{MARL} necesita una validación experimental más amplia antes de poder concluir si la arquitectura multiagente mejora realmente a una estrategia simple.
+La principal limitación actual es la disponibilidad de histórico alineado entre Steam y \acroref{BUFF}{BUFF}. Sin suficientes ejemplos positivos en validación y test, cualquier métrica de trading puede ser engañosa. También existe riesgo de sobreajuste en variables categóricas de alta cardinalidad y en señales de precisión alta con pocos casos. Por último, el entorno \acroref{MARL}{MARL} necesita una validación experimental más amplia antes de poder concluir si la arquitectura multiagente mejora a una estrategia simple.
 
 \subsection{Lectura de los resultados}
 

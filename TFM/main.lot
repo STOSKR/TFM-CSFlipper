@@ -11,15 +11,16 @@
 \contentsline {table}{\numberline {5.1}{\ignorespaces Módulos del sistema.}}{34}{table.5.1}%
 \contentsline {table}{\numberline {5.2}{\ignorespaces Vistas de consola.}}{36}{table.5.2}%
 \addvspace {10\p@ }
-\contentsline {table}{\numberline {6.1}{\ignorespaces Fases de experimentación.}}{37}{table.6.1}%
+\contentsline {table}{\numberline {6.1}{\ignorespaces Matriz experimental.}}{37}{table.6.1}%
 \contentsline {table}{\numberline {6.2}{\ignorespaces Cobertura de pruebas.}}{38}{table.6.2}%
-\contentsline {table}{\numberline {6.3}{\ignorespaces Resultados supervisados.}}{39}{table.6.3}%
-\contentsline {table}{\numberline {6.4}{\ignorespaces Modelos en marzo.}}{41}{table.6.4}%
-\contentsline {table}{\numberline {6.5}{\ignorespaces Ablación logística.}}{42}{table.6.5}%
-\contentsline {table}{\numberline {6.6}{\ignorespaces Corte BUFF--Steam.}}{44}{table.6.6}%
-\contentsline {table}{\numberline {6.7}{\ignorespaces Pruebas automatizadas.}}{44}{table.6.7}%
-\contentsline {table}{\numberline {6.8}{\ignorespaces Validación funcional de OCR.}}{45}{table.6.8}%
-\contentsline {table}{\numberline {6.9}{\ignorespaces Pruebas MARL.}}{46}{table.6.9}%
+\contentsline {table}{\numberline {6.3}{\ignorespaces Umbrales de dirección.}}{40}{table.6.3}%
+\contentsline {table}{\numberline {6.4}{\ignorespaces Configuraciones de marzo.}}{41}{table.6.4}%
+\contentsline {table}{\numberline {6.5}{\ignorespaces Comparativa de marzo.}}{41}{table.6.5}%
+\contentsline {table}{\numberline {6.6}{\ignorespaces Ablación logística.}}{42}{table.6.6}%
+\contentsline {table}{\numberline {6.7}{\ignorespaces Corte BUFF--Steam.}}{44}{table.6.7}%
+\contentsline {table}{\numberline {6.8}{\ignorespaces Pruebas automatizadas.}}{44}{table.6.8}%
+\contentsline {table}{\numberline {6.9}{\ignorespaces Validación funcional de OCR.}}{45}{table.6.9}%
+\contentsline {table}{\numberline {6.10}{\ignorespaces Escenarios MARL.}}{46}{table.6.10}%
 \addvspace {10\p@ }
 \addvspace {10\p@ }
-\contentsline {table}{\numberline {A.1}{\ignorespaces Configuración experimental.}}{53}{table.Alph1.1}%
+\contentsline {table}{\numberline {A.1}{\ignorespaces Configuración experimental.}}{54}{table.Alph1.1}%

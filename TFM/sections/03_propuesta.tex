@@ -26,7 +26,7 @@ La arquitectura se organiza en cinco capas: adquisición, persistencia, predicci
 \end{tabularx}
 \end{minipage}
 }
-\caption{Capas principales de la arquitectura propuesta.}
+\caption{Capas del sistema.}
 \end{figure}
 
 La decisión final siempre queda registrada como simulada. Esto permite evaluar el sistema con métricas de cartera sin exponer capital durante la investigación. La arquitectura puede generar recomendaciones, episodios y métricas, pero no envía órdenes a Steam, \acroref{BUFF}{BUFF} ni ninguna otra plataforma.
@@ -38,7 +38,7 @@ El flujo operativo comienza con una lista de candidatos o una búsqueda de merca
 Sobre ese histórico se construyen características de mercado. El modelo supervisado produce una probabilidad calibrada de oportunidad rentable en un horizonte determinado. Esa probabilidad no se interpreta como una orden de compra, sino como una característica adicional que los agentes \acroref{MARL}{MARL} pueden utilizar. Finalmente, el entorno multiagente genera una observación para cada política, recoge sus acciones y aplica las reglas del simulador.
 
 \begin{algorithm}
-\caption{Ciclo general de toma de decisiones}
+\caption{Ciclo de decisión}
 \begin{algorithmic}[1]
 \State Recoger observaciones recientes del mercado.
 \State Normalizar precios, moneda, liquidez y metadatos de plataforma.
