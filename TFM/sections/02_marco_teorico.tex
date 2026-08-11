@@ -67,7 +67,8 @@ Para $N$ agentes, cada paso combina observaciones y acciones locales. La impleme
 \qquad
 \mathbf{a}_t=(a_t^1,\ldots,a_t^N),
 \qquad
-r_t^1=\cdots=r_t^N=R_{\mathrm{cartera},t}.
+r_t^i=R_{\mathrm{cartera},t}
+\quad \forall i\in\{1,\ldots,N\}.
 \]
 
 Esta elección mantiene a los agentes alineados con el mismo objetivo de cartera, aunque dificulta atribuir qué agente ha contribuido a una mejora o a una penalización. Las recompensas específicas por rol quedan como una extensión futura. Cada política recibe solo su observación $o_t^i$. El estado global se registra para diagnóstico, pero no alimenta todavía un crítico centralizado, por lo que la implementación actual no se presenta como \acroref{MAPPO}{MAPPO} completo.
