@@ -8,16 +8,16 @@ La experimentación se ha desarrollado por fases. Primero, se han migrado reglas
 \centering
 \begin{tabularx}{\textwidth}{l X X}
 \toprule
-Fase & Objetivo & Estado \\
+Fase & Trabajo & Estado \\
 \midrule
-1 & Migrar reglas económicas del Excel a simulador comprobable. & Implementada y cubierta por pruebas. \\
-2 & Construir datasets supervisados y explorar características temporales. & Implementada con resultados preliminares. \\
-3 & Comparar modelos supervisados tabulares y umbrales operativos. & Implementada como smoke experimental. \\
-4 & Crear dataset operativo de trading Steam/\acroref{BUFF}{BUFF} con fees y horizonte. & Implementada, pero limitada por desbalance. \\
-5 & Ejecutar smoke \acroref{MARL}{MARL} con PettingZoo, \acroref{RLlib}{RLlib}/\acroref{PPO}{PPO} y tres políticas. & Funcional, no validación final. \\
+1 & Reglas económicas & Comprobadas. \\
+2 & Dataset supervisado & Resultados preliminares. \\
+3 & Modelos y umbrales & Exploración completada. \\
+4 & Trading BUFF--Steam & Datos insuficientes. \\
+5 & \acroref{MARL}{MARL} & Integración técnica. \\
 \bottomrule
 \end{tabularx}
-\caption{Fases experimentales desarrolladas hasta el momento.}
+\caption{Fases de experimentación.}
 \end{table}
 
 \subsection{Escenarios de evaluación}
@@ -55,18 +55,18 @@ La suite automatizada se organiza principalmente con Pytest y se complementa con
 
 \begin{table}[h]
 \centering
-\begin{tabularx}{\textwidth}{l X X}
+\begin{tabularx}{\textwidth}{l X}
 \toprule
-Bloque & Cobertura principal & Evidencia que aporta \\
+Bloque & Qué verifica \\
 \midrule
-Reglas económicas y cartera & Excel, simulador, riesgo y capital bloqueado. & Verifica fees, conversión, beneficio neto, \textit{trade hold}, posiciones y rechazos por riesgo. \\
-Datos y scraping & Parsing, SteamDT, Steam, \acroref{BUFF}{BUFF}, \acroref{OCR}{OCR} y pipeline streaming. & Comprueba que las fuentes se normalizan antes de construir señales o históricos. \\
-Modelos supervisados & Dataset, entrenamiento, inferencia y scoring de oportunidades. & Valida generación de características, carga de modelos e inferencia operativa. \\
-Simulación \acroref{MARL}{MARL} & Entorno, episodios, recompensas, PettingZoo y adaptador \acroref{RLlib}{RLlib}. & Comprueba acciones, observaciones y compatibilidad con entrenamiento multiagente. \\
-Interfaz y operación & Panel web, servidor de scraping y payload operativo. & Verifica que la interfaz expone estado, recomendaciones y ejecución de tareas. \\
+Reglas y cartera & Fees, conversión, \textit{trade hold}, posiciones y límites. \\
+Datos y scraping & Parsing, normalización y construcción de históricos. \\
+Modelo supervisado & Variables, carga de modelo e inferencia. \\
+Simulación \acroref{MARL}{MARL} & Acciones, observaciones, recompensas y adaptación a \acroref{RLlib}{RLlib}. \\
+Interfaz y operación & Estado, recomendaciones y ejecución de tareas. \\
 \bottomrule
 \end{tabularx}
-\caption{Bloques de pruebas incorporados a la validación del proyecto.}
+\caption{Cobertura de pruebas.}
 \end{table}
 
 Las pruebas de rendimiento se integran en la evaluación del capítulo porque condicionan la utilidad del sistema. En este proyecto el rendimiento no se mide solo por tiempo de ejecución, sino también por cobertura de datos, número de señales generadas, coste de entrenamiento, capital bloqueado, drawdown y operaciones rechazadas. Los smoke tests de entrenamiento y los episodios \acroref{MARL}{MARL} registran estas métricas para comprobar que el sistema no solo ejecuta, sino que produce salidas interpretables y comparables entre configuraciones.
@@ -95,16 +95,16 @@ La fase supervisada ha producido varios experimentos preliminares. En el dataset
 
 \begin{table}[h]
 \centering
-\begin{tabularx}{\textwidth}{l l l X}
+\begin{tabularx}{\textwidth}{l l c r}
 \toprule
-Experimento & Modelo & Umbral & Resultado en test \\
+Experimento & Modelo & Umbral & Precisión / señales \\
 \midrule
-Smoke reciente & Random forest d18 & 0,8 & Precisión 0,946 con 92 señales \\
-Selección por precisión & Random forest d10 & 0,8 & Precisión 0,961 con 77 señales \\
-Default operativo & Random forest d18 & 0,85 & Precisión 0,962 con 53 señales \\
+Smoke & Random forest d18 & 0,8 & 0,946 / 92 \\
+Selección & Random forest d10 & 0,8 & 0,961 / 77 \\
+Operativo & Random forest d18 & 0,85 & 0,962 / 53 \\
 \bottomrule
 \end{tabularx}
-\caption{Resultados supervisados preliminares sobre el dataset reciente.}
+\caption{Resultados supervisados.}
 \end{table}
 
 Estos resultados no se consideran definitivos. El número de señales en umbrales altos es reducido y no permite afirmar que el sistema generalice por artículo o por periodo. Sí indican que el pipeline de entrenamiento, calibración, selección por umbral y evaluación temporal funciona.
@@ -138,7 +138,7 @@ Random forest con histórico & 0,742 & 0,074 & 0,942 & 86 \\
 HGB con histórico & 0,649 & 0,082 & 0,915 & 82 \\
 \bottomrule
 \end{tabularx}
-\caption{Exploración inicial de familias en el corte temporal de marzo.}
+\caption{Modelos en marzo.}
 \label{tab:resultados-marzo}
 \end{table}
 
@@ -177,7 +177,7 @@ Sí & Jitter & 0,575 & 0,085 & 0,924 & 92 \\
 No & Jitter & 0,613 & 0,084 & 0,919 & 86 \\
 \bottomrule
 \end{tabularx}
-\caption{Ablación logística en el corte temporal de marzo.}
+\caption{Ablación logística.}
 \label{tab:ablacion-marzo}
 \end{table}
 
@@ -214,7 +214,7 @@ Entrenamiento & Validación & Prueba & Lectura \\
 551 / 95,6\% + & 76 / 100\% + & 84 / 98,8\% + & Predominan los márgenes positivos. \\
 \bottomrule
 \end{tabularx}
-\caption{Corte reciente de BUFF a Steam.}
+\caption{Corte BUFF--Steam.}
 \label{tab:corte-reciente}
 \end{table}
 
@@ -235,7 +235,7 @@ Integración & 3 & Persistencia de snapshots, actualización de precios y señal
 Suite completa & 278 & Todas superadas en 35,20 segundos. \\
 \bottomrule
 \end{tabularx}
-\caption{Pruebas automatizadas ejecutadas.}
+\caption{Pruebas automatizadas.}
 \label{tab:pruebas-recuperadas}
 \end{table}
 
@@ -249,12 +249,12 @@ La evaluación de OCR disponible es funcional, no una medida de exactitud sobre 
 \toprule
 Prueba & Resultado comprobado & Límite de interpretación \\
 \midrule
-Fixture de texto & Dos líneas se convierten en observaciones Steam y BUFF con precio y volumen normalizados. & No representa una captura de interfaz. \\
-Umbral de confianza & Una extracción con confianza 0,2 se rechaza al exigir 0,5. & No estima falsos positivos ni falsos negativos. \\
-Recorrido de imagen & La prueba inyectada verifica carga, preprocesado y resultado con confianza 0,91. & La confianza procede de un runner controlado. \\
+Fixture de texto & Convierte texto en observaciones Steam y BUFF. & No usa una captura de interfaz. \\
+Umbral de confianza & Rechaza una confianza de 0,2 al exigir 0,5. & No estima errores de reconocimiento. \\
+Recorrido de imagen & Comprueba carga, preprocesado y confianza de 0,91. & Usa un runner controlado. \\
 \bottomrule
 \end{tabularx}
-\caption{Evidencia funcional del pipeline OCR.}
+\caption{Validación funcional de OCR.}
 \label{tab:ocr-funcional}
 \end{table}
 
@@ -294,15 +294,15 @@ En la ecuación, $\rho_t$ es el retorno estimado de la oportunidad, $v_t$ el nú
 \centering
 \begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}X r r >{\raggedright\arraybackslash}X}
 \toprule
-Configuración sobre prueba & Compras & Efectivo final & Lectura \\
+Política & Compras & Efectivo & Resultado \\
 \midrule
-Política manual de margen positivo & 13 & 309,64 EUR & Abre posiciones mientras el límite de riesgo lo permite. \\
-Política de mantener & 0 & 1.000,00 EUR & Baseline sin exposición. \\
-Margen positivo sin probabilidad supervisada & 13 & 309,64 EUR & Misma decisión, porque este dataset aún no incluye probabilidades por fila. \\
-PPO multiagente, una iteración sobre entrenamiento & 0 & 100,00 EUR & Smoke de integración, sin política aprendida utilizable. \\
+Margen positivo & 13 & 309,64 EUR & Abre posiciones hasta el límite. \\
+Mantener & 0 & 1.000,00 EUR & Sin posiciones. \\
+Margen sin señal & 13 & 309,64 EUR & Mismo resultado sin probabilidad supervisada. \\
+PPO, una iteración & 0 & 100,00 EUR & Integración técnica, sin compras. \\
 \bottomrule
 \end{tabularx}
-\caption{Pruebas iniciales de las políticas MARL.}
+\caption{Pruebas MARL.}
 \label{tab:marl-inicial}
 \end{table}
 

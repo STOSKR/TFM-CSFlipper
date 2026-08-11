@@ -8,18 +8,18 @@ La implementación se ha organizado como un monorepo para separar el código de 
 \centering
 \begin{tabularx}{\textwidth}{l X}
 \toprule
-Módulo & Responsabilidad \\
+Módulo & Función \\
 \midrule
-\texttt{packages/domain} y \texttt{contracts} & Identificadores canónicos, tipos de datos y validaciones compartidas. \\
-\texttt{packages/persistence} & Conexión a PostgreSQL y repositorios de artículos, histórico y señales. \\
-\texttt{packages/simulation} & Comisiones, posiciones, bloqueos, riesgo y métricas de cartera. \\
-\texttt{packages/prediction} & Construcción de variables, entrenamiento, calibración e inferencia supervisada. \\
-\texttt{packages/marl} & Entorno paralelo, recompensas, adaptador PettingZoo y entrenamiento PPO. \\
-\texttt{packages/vision} & Preprocesado de imágenes, OCR y parsing de observaciones. \\
-\texttt{apps/cli} y \texttt{apps/web} & Comandos reproducibles y consola local de consulta. \\
+Dominio y contratos & Tipos, identificadores y validaciones comunes. \\
+Persistencia & Artículos, históricos y señales en PostgreSQL. \\
+Simulación & Cartera, comisiones, bloqueos y riesgo. \\
+Predicción & Variables, entrenamiento e inferencia supervisada. \\
+MARL & Entorno, recompensas y políticas. \\
+Visión & Preprocesado de imagen y OCR. \\
+Aplicaciones & Comandos y consola local. \\
 \bottomrule
 \end{tabularx}
-\caption{Distribución funcional del repositorio.}
+\caption{Módulos del sistema.}
 \label{tab:modulos-repositorio}
 \end{table}
 
@@ -70,14 +70,14 @@ El panel no ejecuta compras. Las acciones de abrir Steam o BUFF sirven para que 
 \toprule
 Vista & Información que hace visible \\
 \midrule
-Oportunidades & Ruta de compra y venta, precios en EUR y CNY, margen estimado y estado de la señal. \\
-Scraper & Trabajo activo, porcentaje, conectores, logs y resultado de la ejecución. \\
-Sesiones & Vigencia de Steam y BUFF y acción para volver a capturar el estado local. \\
-Modelo & Versión, conjunto usado, métricas y carácter experimental de la salida. \\
-Agentes y riesgo & Roles Scout, Trader y Portfolio, capital bloqueado, límites y justificación de rechazos. \\
+Oportunidades & Ruta, precios, margen y estado de la señal. \\
+Scraper & Progreso, conectores, logs y resultado. \\
+Sesiones & Vigencia de Steam y BUFF. \\
+Modelo & Versión, conjunto, métricas y carácter experimental. \\
+Agentes y riesgo & Roles, capital bloqueado, límites y rechazos. \\
 \bottomrule
 \end{tabularx}
-\caption{Vistas principales de la consola local.}
+\caption{Vistas de consola.}
 \label{tab:vistas-consola}
 \end{table}
 
