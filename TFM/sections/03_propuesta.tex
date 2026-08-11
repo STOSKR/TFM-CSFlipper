@@ -86,6 +86,7 @@ En la versión implementada, Scout puede ignorar o marcar una oportunidad, Trade
 \end{algorithmic}
 \end{algorithm}
 
+\newpage
 \subsection{Transición del entorno}
 
 Cuando se ejecuta una compra simulada, el saldo disponible disminuye y se abre una posición. Esa posición queda bloqueada durante el periodo de \textit{trade hold}. Mientras está bloqueada no puede venderse, pero sí afecta a la exposición y al capital inmovilizado. Cuando se ejecuta una venta simulada, el simulador calcula el ingreso neto aplicando comisiones, conversión de moneda y reglas de valoración. El estado de cartera se actualiza después de cada paso.
