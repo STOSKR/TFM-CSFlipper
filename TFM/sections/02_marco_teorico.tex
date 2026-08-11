@@ -52,25 +52,25 @@ La exploración permite probar acciones que todavía no se conocen bien. En un m
 
 El aprendizaje por refuerzo multiagente extiende la formulación anterior a varios agentes que interactúan dentro de un mismo entorno. Esta ampliación introduce dificultades nuevas: cada agente aprende mientras los demás también cambian, por lo que el entorno puede volverse no estacionario desde el punto de vista individual. Lowe et al. señalan este problema y proponen entrenar agentes con información adicional durante el entrenamiento para mejorar la coordinación mediante \acroref{MADDPG}{MADDPG} \cite{lowe2017maddpg}.
 
-En este \acroref{TFM}{TFM}, la motivación para usar varios agentes no es decorativa. La decisión de cartera mezcla tareas de naturaleza distinta: detectar oportunidades, ejecutar acciones concretas y controlar exposición global. Separar estas responsabilidades permite que cada agente trabaje con un punto de vista más acotado, siempre que la recompensa cooperativa mantenga alineado el objetivo común.
+La decisión de cartera mezcla tareas de naturaleza distinta: detectar oportunidades, ejecutar acciones concretas y controlar exposición global. Separar estas responsabilidades permite que cada agente trabaje con un punto de vista más acotado, siempre que la recompensa cooperativa mantenga alineado el objetivo común.
 
 \subsection{Cooperación y coordinación entre agentes}
 
 La cooperación aparece cuando los agentes comparten un objetivo global. Scout puede detectar oportunidades prometedoras, Trader puede decidir la acción operativa y Portfolio puede limitar decisiones que deterioren la cartera. Ninguno de estos roles tiene sentido de forma aislada si el resultado final no mejora el valor neto ajustado por riesgo.
 
-La coordinación es necesaria porque una decisión localmente buena puede ser globalmente mala. Por ejemplo, comprar un activo con spread atractivo puede ser razonable para Trader, pero no para Portfolio si ya existe demasiada exposición a ese tipo de objeto o si el capital bloqueado supera un límite aceptable. Esta tensión justifica usar recompensas individuales auxiliares y una recompensa cooperativa vinculada a la cartera.
+La coordinación es necesaria porque una decisión localmente buena puede ser globalmente mala. Por ejemplo, comprar un activo con spread atractivo puede ser razonable para Trader, pero no para Portfolio si ya existe demasiada exposición a ese tipo de objeto o si el capital bloqueado supera un límite aceptable. Esta tensión puede abordarse con recompensas específicas por rol o con una recompensa cooperativa vinculada a la cartera.
 
-Para $N$ agentes, cada paso combina observaciones y acciones locales. En una tarea cooperativa con recompensa compartida se puede expresar como:
+Para $N$ agentes, cada paso combina observaciones y acciones locales. La implementación actual utiliza una recompensa cooperativa común, calculada a partir del resultado de cartera y asignada por igual a todos los agentes:
 
 \[
 \mathbf{o}_t=(o_t^1,\ldots,o_t^N),
 \qquad
 \mathbf{a}_t=(a_t^1,\ldots,a_t^N),
 \qquad
-r_t^1=\cdots=r_t^N=R_t.
+r_t^1=\cdots=r_t^N=R_{\mathrm{cartera},t}.
 \]
 
-Cada política recibe solo su observación $o_t^i$. El estado global se registra para diagnóstico, pero no alimenta todavía un crítico centralizado, por lo que la implementación actual no se presenta como \acroref{MAPPO}{MAPPO} completo.
+Esta elección mantiene a los agentes alineados con el mismo objetivo de cartera, aunque dificulta atribuir qué agente ha contribuido a una mejora o a una penalización. Las recompensas específicas por rol quedan como una extensión futura. Cada política recibe solo su observación $o_t^i$. El estado global se registra para diagnóstico, pero no alimenta todavía un crítico centralizado, por lo que la implementación actual no se presenta como \acroref{MAPPO}{MAPPO} completo.
 
 \subsection{Entrenamiento centralizado y ejecución descentralizada}
 
