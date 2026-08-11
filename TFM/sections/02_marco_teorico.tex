@@ -71,7 +71,9 @@ r_t^i=R_{\mathrm{cartera},t}
 \quad \forall i\in\{1,\ldots,N\}.
 \]
 
-Esta elección mantiene a los agentes alineados con el mismo objetivo de cartera, aunque dificulta atribuir qué agente ha contribuido a una mejora o a una penalización. Las recompensas específicas por rol quedan como una extensión futura. Cada política recibe solo su observación $o_t^i$. El estado global se registra para diagnóstico, pero no alimenta todavía un crítico centralizado, por lo que la implementación actual no se presenta como \acroref{MAPPO}{MAPPO} completo.
+En esta expresión, $N$ es el número de agentes, que en el prototipo es tres. El vector $\mathbf{o}_t$ reúne las observaciones de Scout, Trader y Portfolio en el instante $t$, mientras que $\mathbf{a}_t$ reúne las acciones que han propuesto. El valor $r_t^i$ es la recompensa que recibe el agente $i$. Como todos los valores $r_t^i$ se igualan a $R_{\mathrm{cartera},t}$, los tres agentes reciben el mismo resultado en cada paso.
+
+$R_{\mathrm{cartera},t}$ es un valor único calculado con el beneficio realizado, el retorno de una operación ejecutada y penalizaciones por inactividad, límites de riesgo incumplidos, \textit{drawdown}, capital bloqueado y volatilidad. Un resultado favorable aumenta la recompensa, mientras que una compra que eleva el riesgo o inmoviliza demasiado capital la reduce. Esta elección mantiene a los agentes alineados con el mismo objetivo de cartera, aunque dificulta atribuir qué agente ha contribuido a una mejora o a una penalización. Las recompensas específicas por rol quedan como una extensión futura. Cada política recibe solo su observación $o_t^i$. El estado global se registra para diagnóstico, pero no alimenta todavía un crítico centralizado, por lo que la implementación actual no se presenta como \acroref{MAPPO}{MAPPO} completo.
 
 \subsection{Entrenamiento centralizado y ejecución descentralizada}
 

@@ -21,13 +21,13 @@
 \contentsline {subsection}{\numberline {2.3.1}Cooperación y coordinación entre agentes}{18}{subsection.2.3.1}%
 \contentsline {subsection}{\numberline {2.3.2}Entrenamiento centralizado y ejecución descentralizada}{19}{subsection.2.3.2}%
 \contentsline {section}{\numberline {2.4}Toma de decisiones en carteras}{19}{section.2.4}%
-\contentsline {subsection}{\numberline {2.4.1}Rentabilidad y riesgo}{19}{subsection.2.4.1}%
+\contentsline {subsection}{\numberline {2.4.1}Rentabilidad y riesgo}{20}{subsection.2.4.1}%
 \contentsline {subsection}{\numberline {2.4.2}Liquidez y costes de transacción}{20}{subsection.2.4.2}%
 \contentsline {section}{\numberline {2.5}Aplicaciones relacionadas}{20}{section.2.5}%
-\contentsline {section}{\numberline {2.6}Tecnologías utilizadas}{20}{section.2.6}%
+\contentsline {section}{\numberline {2.6}Tecnologías utilizadas}{21}{section.2.6}%
 \contentsline {subsection}{\numberline {2.6.1}Herramientas de desarrollo}{21}{subsection.2.6.1}%
 \contentsline {subsection}{\numberline {2.6.2}Adquisición y tratamiento de datos}{21}{subsection.2.6.2}%
-\contentsline {subsection}{\numberline {2.6.3}Persistencia y modelo de datos}{21}{subsection.2.6.3}%
+\contentsline {subsection}{\numberline {2.6.3}Persistencia y modelo de datos}{22}{subsection.2.6.3}%
 \contentsline {subsection}{\numberline {2.6.4}Predicción, simulación y entrenamiento multiagente}{22}{subsection.2.6.4}%
 \contentsline {subsection}{\numberline {2.6.5}Interfaz y operación local}{22}{subsection.2.6.5}%
 \contentsline {chapter}{\numberline {3}Arquitectura multiagente propuesta}{23}{chapter.3}%
