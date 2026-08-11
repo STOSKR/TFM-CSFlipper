@@ -73,9 +73,9 @@ En la versión implementada, Scout puede ignorar o marcar una oportunidad, Trade
 \begin{algorithmic}[1]
 \Require Candidato $c_t$, estado de cartera $s_t$ y observaciones locales
 \Ensure Transición de cartera y recompensa compartida $R_t$
-\State $a_t^{S} \gets \pi_S(o_t^{S})$ \Comment{Scout marca o ignora}
-\State $a_t^{T} \gets \pi_T(o_t^{T},m_t^{T})$ \Comment{Trader mantiene o compra}
-\State $a_t^{P} \gets \pi_P(o_t^{P},m_t^{P})$ \Comment{Portfolio rechaza o aprueba}
+\State $a_t^{S} \gets \pi_S(o_t^{S})$
+\State $a_t^{T} \gets \pi_T(o_t^{T},m_t^{T})$
+\State $a_t^{P} \gets \pi_P(o_t^{P},m_t^{P})$
 \If{$a_t^{S}=\textit{marcar}$ \textbf{and} $a_t^{T}=\textit{comprar}$ \textbf{and} $a_t^{P}=\textit{aprobar}$ \textbf{and} $c_t$ cumple los límites}
   \State Abrir una posición simulada y bloquear su capital
 \Else
@@ -85,6 +85,8 @@ En la versión implementada, Scout puede ignorar o marcar una oportunidad, Trade
 \State Calcular $R_t$ y devolver la misma recompensa a los tres agentes
 \end{algorithmic}
 \end{algorithm}
+
+Las tres primeras líneas recogen la acción propuesta por cada política: Scout marca o ignora, Trader mantiene o solicita la compra y Portfolio aprueba o rechaza el riesgo. Las variables $m_t^T$ y $m_t^P$ incorporan las métricas de mercado y cartera que necesita cada rol para decidir.
 
 \newpage
 \subsection{Transición del entorno}
