@@ -28,14 +28,20 @@ Un proceso de decisión de Markov, o \acroref{MDP}{MDP}, se define mediante el e
 
 \[
 \mathcal{M}=(\mathcal{S},\mathcal{A},P,R,\gamma),
-\qquad
+\qquad 0 \leq \gamma < 1.
+\]
+
+En esta expresión, $P(s'\mid s,a)$ representa la probabilidad de pasar del estado $s$ al estado $s'$ después de ejecutar la acción $a$, mientras que $R(s,a,s')$ representa la recompensa asociada a esa transición. El retorno acumulado desde el instante $t$ se calcula por separado como:
+
+\[
 G_t=\sum_{k=0}^{\infty}\gamma^k r_{t+k+1}.
 \]
 
-$G_t$ resume la recompensa futura descontada desde el instante $t$. El estado resume la información disponible, la acción representa lo que el agente decide, la transición describe cómo cambia el entorno y la recompensa mide si la decisión ha sido favorable. En el contexto del \acroref{TFM}{TFM}, el estado incluye variables de mercado y cartera, las acciones son comprar, vender, observar o mantener, y la recompensa se asocia al valor neto de la cartera simulada.
+El estado resume la información disponible y la acción representa lo que el agente decide. En el contexto del \acroref{TFM}{TFM}, el estado incluye variables de mercado y cartera, las acciones son comprar, vender, observar o mantener, y la recompensa se asocia al valor neto de la cartera simulada.
 
 La hipótesis de Markov no implica que el sistema conozca todo el futuro, sino que el estado utilizado contiene la información necesaria para tomar la mejor decisión disponible en ese momento. Por eso es importante construir observaciones ricas: precio, spread, liquidez, probabilidad supervisada, capital disponible, posiciones abiertas y capital bloqueado.
 
+\Needspace{10\baselineskip}
 \subsection{Política, retorno y exploración}
 
 La política es la regla que transforma observaciones en acciones. El retorno mide la recompensa acumulada a lo largo del episodio. En un mercado con fricciones, maximizar la recompensa inmediata puede ser mala estrategia: una compra aparentemente rentable puede bloquear capital, aumentar exposición o no encontrar salida. Por ello, la recompensa debe mirar más allá del margen instantáneo y considerar el resultado de cartera.
