@@ -41,7 +41,7 @@
 \contentsline {section}{\numberline {3.5}Agentes del sistema}{26}{section.3.5}%
 \contentsline {subsection}{\numberline {3.5.1}Scout}{26}{subsection.3.5.1}%
 \contentsline {subsection}{\numberline {3.5.2}Trader}{26}{subsection.3.5.2}%
-\contentsline {subsection}{\numberline {3.5.3}Portfolio}{27}{subsection.3.5.3}%
+\contentsline {subsection}{\numberline {3.5.3}Portfolio}{26}{subsection.3.5.3}%
 \contentsline {section}{\numberline {3.6}Función de recompensa}{27}{section.3.6}%
 \contentsline {subsection}{\numberline {3.6.1}Recompensa individual}{27}{subsection.3.6.1}%
 \contentsline {subsection}{\numberline {3.6.2}Recompensa cooperativa}{27}{subsection.3.6.2}%

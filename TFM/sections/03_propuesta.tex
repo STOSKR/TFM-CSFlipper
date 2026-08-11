@@ -99,19 +99,22 @@ La arquitectura distingue entre agentes extractores y agentes \acroref{MARL}{MAR
 
 \begin{table}[h]
 \centering
-\begin{tabularx}{\textwidth}{l l X}
+\begin{tabularx}{\textwidth}{l X}
 \toprule
-Tipo & Agente & Responsabilidad \\
+Agente & Función \\
 \midrule
-Extractor & Steam/\acroref{BUFF}{BUFF} & Captura precios, históricos, buy orders, volumen y errores de plataforma. \\
-Extractor & SteamDT & Descubre candidatos y ayuda a priorizar artículos que merecen scraping profundo. \\
-Extractor & \acroref{OCR}{OCR}/\acroref{CSV}{CSV} & Convierte capturas o ficheros manuales en observaciones estructuradas. \\
-\acroref{MARL}{MARL} & Scout & Detecta oportunidades a partir de spread, liquidez y probabilidad supervisada. \\
-\acroref{MARL}{MARL} & Trader & Decide comprar, vender, mantener u observar una oportunidad concreta. \\
-\acroref{MARL}{MARL} & Portfolio & Controla capital, exposición, \textit{trade hold}, drawdown y restricciones globales. \\
+\multicolumn{2}{l}{\textit{Adquisición de datos}} \\
+Steam y \acroref{BUFF}{BUFF} & Recogen precios, histórico, buy orders y volumen. \\
+SteamDT & Descubre candidatos para priorizar la captura. \\
+\acroref{OCR}{OCR} y \acroref{CSV}{CSV} & Convierten capturas y archivos en observaciones. \\
+\addlinespace
+\multicolumn{2}{l}{\textit{Decisión multiagente}} \\
+Scout & Filtra oportunidades por margen, liquidez y señal. \\
+Trader & Propone comprar, vender, mantener u observar. \\
+Portfolio & Valida exposición, capital bloqueado y riesgo. \\
 \bottomrule
 \end{tabularx}
-\caption{Responsabilidades de los agentes del sistema.}
+\caption{Roles del sistema.}
 \end{table}
 
 \subsection{Scout}
