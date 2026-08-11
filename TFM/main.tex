@@ -62,6 +62,10 @@
 \pretocmd{\section}{\Needspace{9\baselineskip}}{}{}
 \setlength{\parskip}{0.35em}
 \setlength{\parindent}{1.2em}
+% Evita líneas huérfanas y viudas al dividir párrafos entre páginas.
+\clubpenalty=10000
+\widowpenalty=10000
+\displaywidowpenalty=10000
 \setlength{\cftbeforetoctitleskip}{0pt}
 \setlength{\cftaftertoctitleskip}{1em}
 \setlength{\cftbeforeloftitleskip}{0pt}

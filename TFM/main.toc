@@ -25,7 +25,7 @@
 \contentsline {subsection}{\numberline {2.4.2}Liquidez y costes de transacción}{20}{subsection.2.4.2}%
 \contentsline {section}{\numberline {2.5}Aplicaciones relacionadas}{20}{section.2.5}%
 \contentsline {section}{\numberline {2.6}Tecnologías utilizadas}{20}{section.2.6}%
-\contentsline {subsection}{\numberline {2.6.1}Herramientas de desarrollo}{20}{subsection.2.6.1}%
+\contentsline {subsection}{\numberline {2.6.1}Herramientas de desarrollo}{21}{subsection.2.6.1}%
 \contentsline {subsection}{\numberline {2.6.2}Adquisición y tratamiento de datos}{21}{subsection.2.6.2}%
 \contentsline {subsection}{\numberline {2.6.3}Persistencia y modelo de datos}{21}{subsection.2.6.3}%
 \contentsline {subsection}{\numberline {2.6.4}Predicción, simulación y entrenamiento multiagente}{22}{subsection.2.6.4}%
