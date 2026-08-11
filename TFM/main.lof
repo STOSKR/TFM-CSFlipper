@@ -7,7 +7,10 @@
 \addvspace {10\p@ }
 \addvspace {10\p@ }
 \addvspace {10\p@ }
-\contentsline {figure}{\numberline {6.1}{\ignorespaces Exploración inicial de modelos y variables temporales en marzo. Un Brier menor indica mejor calibración.}}{41}{figure.6.1}%
-\contentsline {figure}{\numberline {6.2}{\ignorespaces Efecto del histórico y de la aumentación numérica sobre la prueba de marzo.}}{42}{figure.6.2}%
+\contentsline {figure}{\numberline {6.1}{\ignorespaces Separación temporal y distribución de etiquetas del corte de marzo. La purga evita que el horizonte de ocho días invada el bloque posterior, pero la alta proporción de ejemplos rentables limita la interpretación de las métricas.}}{41}{figure.6.1}%
+\contentsline {figure}{\numberline {6.2}{\ignorespaces Exploración inicial de modelos y variables temporales en marzo. Un Brier menor indica mejor calibración.}}{42}{figure.6.2}%
+\contentsline {figure}{\numberline {6.3}{\ignorespaces Efecto del histórico y de la aumentación numérica sobre la prueba de marzo.}}{43}{figure.6.3}%
+\contentsline {figure}{\numberline {6.4}{\ignorespaces Precisión, recall y número de señales según el umbral en la prueba de marzo. La línea discontinua representa la tasa positiva de la muestra.}}{43}{figure.6.4}%
+\contentsline {figure}{\numberline {6.5}{\ignorespaces Trazas de los baselines MARL sobre la prueba de marzo. La política de margen positivo es una regla manual y la política de mantener no abre posiciones.}}{47}{figure.6.5}%
 \addvspace {10\p@ }
 \addvspace {10\p@ }

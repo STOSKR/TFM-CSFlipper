@@ -115,6 +115,15 @@ La validación se ha repetido el 10 de agosto de 2026 con los datos disponibles 
 
 El orden temporal se conserva en todas las fases. Para el corte de marzo se usaron 171 ejemplos de entrenamiento, 76 de validación y 95 de prueba. El entrenamiento termina el 20 de enero, la validación ocupa del 2 al 20 de febrero y la prueba comprende del 4 al 28 de marzo. Se eliminan ocho días antes de cada frontera para que el horizonte futuro de una observación no alcance el bloque siguiente. Ningún parámetro se modifica al consultar la prueba.
 
+La Figura~\ref{fig:cobertura-marzo} hace visible una limitación que no se aprecia al mirar solo el número de filas. Los tres bloques contienen las mismas 19 representaciones de artículo y están dominados por la clase rentable. La separación temporal evita que se use información futura, pero no demuestra por sí sola que el modelo generalice a artículos que no ha visto durante el entrenamiento.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/experimentacion/03_cobertura_temporal.png}
+\caption{Separación temporal y distribución de etiquetas del corte de marzo. La purga evita que el horizonte de ocho días invada el bloque posterior, pero la alta proporción de ejemplos rentables limita la interpretación de las métricas.}
+\label{fig:cobertura-marzo}
+\end{figure}
+
 La selección compara las familias dummy, regresión logística, random forest e histogram gradient boosting. La configuración se elige en validación mediante precisión al umbral 0,85 con al menos tres señales. Después se calibra con sigmoide y se mide sobre el bloque de prueba. Además, se ejecuta una ablación de la regresión logística sin retardos, cambios, retornos ni medias móviles de uno, tres y siete días. Esta comparación responde a una pregunta concreta: si el histórico añade información o solamente complejidad.
 
 \begin{table}[htbp]
@@ -183,6 +192,15 @@ La combinación sin histórico ni aumentación obtiene el mejor equilibrio entre
 
 La lectura debe mantenerse prudente. Los 19 artículos disponibles en el corte aparecen tanto en entrenamiento como en prueba y la etiqueta positiva representa el 89,5\% de la prueba. Una estrategia que marca muchos casos como favorables puede alcanzar precisión elevada por la propia distribución de la muestra. El corte de mayo confirma este problema: de 361 ejemplos de entrenamiento, 76 de validación y 95 de prueba, las dos últimas particiones contienen exclusivamente etiquetas positivas. En esas condiciones ROC-AUC no es una métrica definida y no se entrena un modelo para presentarlo como comparación válida. Este resultado establece una condición de continuación clara: ampliar la cobertura cruzada BUFF--Steam y equilibrar los eventos antes de convertir el modelo en recomendación operativa.
 
+La Figura~\ref{fig:umbral-marzo} complementa esta lectura. La precisión se mantiene cerca de la tasa positiva de la prueba mientras el umbral aumenta, pero el número de señales solo cae de forma apreciable a partir de 0,90. Por tanto, un umbral alto no convierte por sí mismo la señal en evidencia de selección robusta. La calibración y la precisión deben volver a evaluarse cuando haya una proporción relevante de operaciones no rentables.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/experimentacion/04_umbral_marzo.png}
+\caption{Precisión, recall y número de señales según el umbral en la prueba de marzo. La línea discontinua representa la tasa positiva de la muestra.}
+\label{fig:umbral-marzo}
+\end{figure}
+
 \subsection{Comprobación del corte reciente}
 
 Con la base de datos conectada se repitió la construcción del dataset de BUFF a Steam el 11 de agosto de 2026. Se empleó la ventana desde diciembre de 2025, un horizonte de ocho días, una purga de ocho días y una prueba acotada a julio de 2026. La comprobación conserva los mismos 19 artículos. El resultado no habilita otro entrenamiento. Sirve para comprobar si la nueva captura ha aportado variedad suficiente de etiquetas.
@@ -220,6 +238,27 @@ Suite completa & 278 & Todas superadas en 35,20 segundos. \\
 \caption{Pruebas automatizadas ejecutadas.}
 \label{tab:pruebas-recuperadas}
 \end{table}
+
+\subsection{Validación funcional de OCR}
+
+La evaluación de OCR disponible es funcional, no una medida de exactitud sobre un corpus etiquetado de capturas. Por ello no se comunica una tasa de reconocimiento que no se ha medido. Las pruebas comprueban que el parser convierte una observación de mercado en un contrato con artículo, calidad, plataforma, precio, moneda y volumen, que rechaza una confianza inferior a 0,5 y que el recorrido de imagen llama a carga, preprocesado y reconocimiento antes de persistir el resultado. La Tabla~\ref{tab:ocr-funcional} delimita qué evidencia existe y qué queda pendiente.
+
+\begin{table}[htbp]
+\centering
+\begin{tabularx}{\textwidth}{l X X}
+\toprule
+Prueba & Resultado comprobado & Límite de interpretación \\
+\midrule
+Fixture de texto & Dos líneas se convierten en observaciones Steam y BUFF con precio y volumen normalizados. & No representa una captura de interfaz. \\
+Umbral de confianza & Una extracción con confianza 0,2 se rechaza al exigir 0,5. & No estima falsos positivos ni falsos negativos. \\
+Recorrido de imagen & La prueba inyectada verifica carga, preprocesado y resultado con confianza 0,91. & La confianza procede de un runner controlado. \\
+\bottomrule
+\end{tabularx}
+\caption{Evidencia funcional del pipeline OCR.}
+\label{tab:ocr-funcional}
+\end{table}
+
+El siguiente experimento OCR debe usar un conjunto etiquetado de capturas y medir, por separado, la exactitud de artículo, calidad, plataforma, precio y moneda. Hasta disponer de ese conjunto, el OCR se presenta como un conector validado y no como un sistema de reconocimiento cuantificado.
 
 \subsection{Dataset de trading operativo}
 
@@ -269,6 +308,15 @@ PPO multiagente, una iteración sobre entrenamiento & 0 & 100,00 EUR & Smoke de 
 
 La primera política es una regla escrita a mano que compra si el margen actual es positivo. No representa una política entrenada, pero comprueba la coordinación entre los tres roles y las restricciones de Portfolio. La política de mantener confirma el comportamiento contrario. En ambas pruebas se partió de 1.000 EUR y se recorrieron las 95 observaciones del bloque de prueba. Las posiciones quedan abiertas por el bloqueo temporal, por lo que la tabla no debe interpretarse como beneficio final.
 
+La Figura~\ref{fig:traza-marl-marzo} muestra la traza completa de ambos baselines. La regla de margen positivo abre trece posiciones y reduce el efectivo disponible hasta 309,64 EUR. El capital queda bloqueado durante el periodo de espera y deja de contabilizarse como bloqueado al vencer dicho periodo. Las posiciones siguen abiertas porque el baseline no incorpora una política de venta. Esta figura valida la dinámica de efectivo, bloqueo y restricciones del simulador, pero no mide el rendimiento de una política aprendida.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/experimentacion/05_traza_marl_marzo.png}
+\caption{Trazas de los baselines MARL sobre la prueba de marzo. La política de margen positivo es una regla manual y la política de mantener no abre posiciones.}
+\label{fig:traza-marl-marzo}
+\end{figure}
+
 El comando PPO con \acroref{RLlib}{RLlib} completó una iteración y 64 pasos de entorno con el conjunto de entrenamiento. El estado central se expone al adaptador y hay una política por rol, pero el crítico centralizado queda pendiente. La evaluación del checkpoint corto no ejecutó compras. Este resultado es informativo: la compatibilidad técnica está validada, pero una única iteración no produce una política que pueda compararse económicamente con una regla de margen.
 
 \section{Experimentos finales pendientes}
@@ -278,6 +326,12 @@ Para cerrar la validación del \acroref{TFM}{TFM} será necesario ejecutar una f
 La evaluación \acroref{MARL}{MARL} deberá incluir ablations. Las más relevantes son: sin probabilidad supervisada, sin agente Portfolio, sin penalización por capital bloqueado y sin restricciones de liquidez. Estas comparaciones permitirán distinguir si la mejora viene de la arquitectura multiagente, del modelo supervisado, de una regla de riesgo o simplemente de la estructura del simulador.
 
 \section{Discusión}
+
+\subsection{Amenazas a la validez}
+
+La principal amenaza interna es el desbalance de etiquetas: la prueba de marzo contiene 85 casos rentables de 95 y los bloques posteriores llegan a tener una sola clase. La segunda es el solapamiento de artículos entre entrenamiento y prueba. La división por fecha protege frente al uso de futuro, pero no responde a la pregunta más exigente de generalizar a variantes nuevas. La tercera amenaza es operativa: el precio BUFF se usa como entrada puntual y la salida Steam se estima con histórico y comisiones, por lo que la sincronización exacta de ambos mercados requiere más capturas.
+
+También hay límites de medición. El OCR está validado a nivel funcional, pero aún no dispone de un corpus de imágenes etiquetado. Los baselines del entorno MARL verifican transiciones y restricciones, aunque no incluyen una regla de venta completa ni una política entrenada durante suficientes episodios. Estas limitaciones no invalidan la arquitectura, pero acotan las conclusiones a viabilidad técnica y experimental preliminar.
 
 \subsection{Casos favorables}
 
