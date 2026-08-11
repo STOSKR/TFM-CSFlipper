@@ -18,7 +18,12 @@ Abordamos el problema de transformar observaciones dispersas del mercado en deci
 
 La dificultad principal está en convertir señales parciales en una decisión trazable. El sistema no debe limitarse a decir si un precio parece subir o bajar, sino justificar por qué una oportunidad pasa a revisión, queda en observación o se descarta. Esa justificación debe apoyarse en datos de entrada, hipótesis económicas y estado de cartera, de forma que cada recomendación pueda auditarse después.
 
-Esta formulación obliga a separar dos niveles. El primero es el nivel de observación y predicción: recopilar datos, limpiarlos, construir características y estimar señales útiles. El segundo es el nivel de decisión: usar esas señales dentro de un simulador de cartera que permita comparar acciones sin arriesgar capital. La arquitectura multiagente se introduce en este segundo nivel como hipótesis de trabajo para repartir responsabilidades entre detección de oportunidades, decisión operativa y control de riesgo.
+Esta formulación obliga a separar dos niveles:
+
+\begin{enumerate}
+    \item \textbf{Observación y predicción.} Recopila y limpia los datos, construye características y estima señales útiles.
+    \item \textbf{Decisión.} Usa esas señales en un simulador de cartera para comparar acciones sin arriesgar capital. La arquitectura multiagente se plantea en este nivel para repartir la detección de oportunidades, la decisión operativa y el control de riesgo.
+\end{enumerate}
 
 \section{Objetivos}
 
