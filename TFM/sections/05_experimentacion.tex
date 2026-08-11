@@ -2,19 +2,19 @@
 
 \section{Diseño experimental}
 
-La experimentación se ha desarrollado por fases. Primero, se han migrado reglas económicas y estructuras de datos. Después, se han construido datasets supervisados para estudiar señales de mercado. Más adelante, se ha creado un dataset de trading basado en precios Steam/\acroref{BUFF}{BUFF} y se ha implementado el entorno multiagente. Esta secuencia evita entrenar agentes \acroref{MARL}{MARL} sobre un entorno que todavía no representa bien el problema económico. La Tabla~\ref{tab:matriz-experimental} reúne los flujos ejecutados, de modo que se distingue lo que se ha medido de lo que queda preparado para una siguiente fase.
+La experimentación se ha desarrollado por fases. Primero, se han migrado reglas económicas y estructuras de datos. Después, se han construido datasets supervisados para estudiar señales de mercado. Más adelante, se ha creado un dataset de trading basado en precios Steam/\acroref{BUFF}{BUFF} y se ha implementado el entorno multiagente. Esta secuencia evita entrenar agentes \acroref{MARL}{MARL} sobre un entorno que todavía no representa bien el problema económico. La Tabla~\ref{tab:matriz-experimental} resume las ejecuciones que se desarrollan con detalle en las secciones siguientes.
 
 \begin{table}[h]
 \centering
-\begin{tabularx}{\textwidth}{p{0.18\textwidth} X X}
+\begin{tabularx}{\textwidth}{p{0.28\textwidth} X}
 \toprule
-Flujo & Pregunta & Evidencia disponible \\
+Flujo & Evidencia disponible \\
 \midrule
-Reglas económicas & ¿Se mantienen comisiones, conversión y bloqueo? & Funciones reutilizables y pruebas unitarias. \\
-Dirección Steam & ¿Qué umbral produce señales más precisas? & Entrenamiento, calibración y perfil de umbrales. \\
-Trading BUFF--Steam & ¿Aportan histórico y aumentación? & Corte temporal, cuatro ablaciones y diagnóstico de cobertura. \\
-OCR & ¿La captura llega como observación estructurada? & Parser, confianza mínima y recorrido de imagen. \\
-\acroref{MARL}{MARL} & ¿Se coordinan roles y restricciones? & Dos baselines y smoke de PPO con tres políticas. \\
+Reglas económicas & Conversión, comisiones, bloqueo temporal y límites comprobados mediante pruebas. \\
+Modelo de dirección & Entrenamiento, calibración y perfil de umbrales sobre histórico Steam. \\
+Trading BUFF--Steam & Cortes temporales, cuatro ablaciones y diagnóstico de cobertura. \\
+OCR & Parser, umbral de confianza y recorrido de imagen. \\
+\acroref{MARL}{MARL} & Dos baselines coordinados y smoke de PPO con tres políticas. \\
 \bottomrule
 \end{tabularx}
 \caption{Matriz experimental.}
@@ -111,6 +111,39 @@ Umbral & Precisión & Recall & Señales \\
 \end{table}
 
 El umbral 0,85 deja 53 señales de las 18.412 filas de prueba. Esto ilustra el intercambio entre precisión y cobertura: elevar el umbral selecciona menos casos y no convierte la probabilidad en una orden. La calibración se revisa porque una probabilidad solo es útil si representa de forma razonable la frecuencia observada \cite{niculescu2005predicting,guo2017calibration}. Estos resultados no se consideran definitivos. Sí indican que el pipeline de entrenamiento, calibración, selección por umbral y evaluación temporal funciona.
+
+\subsection{Evolución de los datasets de trading}
+
+El dataset de compraventa no apareció en una única ejecución. Se han construido varios cortes porque cada uno reveló una limitación diferente del histórico disponible. El primer \texttt{trading\_profit\_v1} reunió 2.331 filas y 50 artículos. Sirvió para comprobar el constructor de etiquetas, las comisiones y la persistencia de características, pero la dirección analizada solo conservaba un caso positivo en validación y otro en prueba. Por ese motivo sus métricas no se comunican como resultado de un modelo.
+
+Después se corrigieron el parser de \acroref{BUFF}{BUFF}, la normalización de moneda y el backfill de puntos históricos. Con estas correcciones se ejecutaron tres cortes BUFF--Steam desde diciembre de 2025. La Tabla~\ref{tab:cortes-datos} deja visibles tanto las muestras que permiten una exploración como las que se descartan. Esta distinción es importante: un dataset grande no es suficiente si sus bloques de validación solo contienen una clase.
+
+\begin{table}[htbp]
+\centering
+\begin{tabularx}{\textwidth}{p{0.23\textwidth} r r r X}
+\toprule
+Corte & Entrenamiento & Validación & Prueba & Resultado \\
+\midrule
+Inicial & 2.331 & --- & --- & 50 artículos. Solo un positivo en validación y prueba. \\
+Marzo & 171 & 76 & 95 & 19 artículos. Tasa positiva: 93,0\%, 98,7\% y 89,5\%. \\
+Mayo & 361 & 76 & 95 & Validación y prueba con 100\% de positivos. \\
+Reciente & 551 & 76 & 84 & Tasa positiva: 95,6\%, 100\% y 98,8\%. \\
+\bottomrule
+\end{tabularx}
+\caption{Cortes de datos.}
+\label{tab:cortes-datos}
+\end{table}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/experimentacion/06_cortes_datasets.png}
+\caption{Evolución de cortes.}
+\label{fig:evolucion-cortes}
+\end{figure}
+
+La secuencia muestra una mejora de cobertura temporal, pero no un equilibrio de etiquetas. El corte de marzo es el único que contiene las dos clases en entrenamiento, validación y prueba, aunque está fuertemente concentrado en oportunidades positivas. Los cortes de mayo y reciente amplían el número de filas, pero no habilitan ROC-AUC ni calibración sobre sus bloques finales. Por tanto, se conservan como diagnósticos de calidad de datos y no como experimentos de rendimiento.
+
+El flujo reproducible queda definido así: capturar observaciones, normalizar artículo y moneda, construir la etiqueta a ocho días, eliminar la zona de purga, separar por fecha y revisar la distribución antes de entrenar. Solo cuando cada bloque incluye resultados favorables y desfavorables se entrena un clasificador. Esta comprobación previa evitó presentar un entrenamiento trivial como una mejora del sistema.
 
 \subsection{Protocolo temporal reproducible}
 
@@ -296,6 +329,31 @@ La segunda pivotación afecta a las fuentes de datos. El planteamiento inicial i
 
 La tercera pivotación aparece en la parte multiagente. Antes de ampliar entrenamiento y episodios, se prioriza que el entorno, las recompensas, las restricciones y las métricas sean comprobables. Esta secuencia permite construir el entrenamiento sobre reglas económicas trazables, datos consistentes y comparaciones con baselines.
 
+\subsection{Protocolo de episodios MARL}
+
+La evaluación multiagente no utiliza una lista abstracta de acciones. Cada episodio recorre las observaciones del bloque de prueba de marzo en orden temporal. Scout indica si una oportunidad merece atención, Trader propone comprar una unidad o mantener y Portfolio aplica las restricciones de cartera. Solo se abre una posición si los tres roles son compatibles. De este modo, el episodio permite comprobar el intercambio entre una oportunidad local y el capital disponible para el conjunto de la cartera.
+
+\begin{table}[htbp]
+\centering
+\begin{tabularx}{\textwidth}{p{0.29\textwidth} X}
+\toprule
+Elemento & Configuración comprobada \\
+\midrule
+Observaciones & 95 filas del bloque de prueba de marzo, en orden temporal. \\
+Roles & Scout, Trader y Portfolio con observaciones locales. \\
+Capital inicial & 1.000 EUR en los baselines de margen y mantener. \\
+Acción de compra & Requiere acuerdo de los tres roles y límites de cartera. \\
+Estado de cartera & Efectivo, posiciones, exposición, bloqueo y drawdown. \\
+Recompensa & Margen estimado menos inactividad, restricciones, drawdown y capital bloqueado. \\
+Smoke PPO & Una iteración y 64 pasos mediante el adaptador PettingZoo--RLlib. \\
+\bottomrule
+\end{tabularx}
+\caption{Episodio MARL.}
+\label{tab:protocolo-marl}
+\end{table}
+
+La diferencia entre los baselines y PPO debe mantenerse clara. Las reglas de margen y de mantener se usan para verificar que el entorno reacciona de la forma esperada. El smoke de PPO comprueba que el mismo entorno puede entregar observaciones, recompensas y máscaras de acción a RLlib. Ninguno de estos dos pasos constituye todavía una comparación de políticas entrenadas.
+
 \subsection{Resultados MARL}
 
 El entorno multiagente se ha comprobado con el mismo dataset de marzo. Scout marca una oportunidad, Trader propone la compra de una unidad y Portfolio acepta o rechaza según saldo, exposición, liquidez y capital bloqueado. Una compra requiere el acuerdo de los tres roles. La recompensa compartida combina margen, inactividad, penalización por restricciones, drawdown y capital inmovilizado:
@@ -310,7 +368,7 @@ r_t = w_m\rho_t\mathbb{I}_{\mathrm{compra}}
 
 En la ecuación, $\rho_t$ es el retorno estimado de la oportunidad, $v_t$ el número de restricciones incumplidas, $DD_t$ el drawdown y $B_t$ la proporción de capital bloqueado. La misma recompensa se entrega a los tres agentes para favorecer coordinación en lugar de optimización aislada.
 
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
 \begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{0.24\textwidth} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
 \toprule
