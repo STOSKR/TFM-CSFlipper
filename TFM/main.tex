@@ -13,6 +13,8 @@
 \usepackage{xcolor}
 \usepackage[margin=2.7cm]{geometry}
 \usepackage{titlesec}
+\usepackage{needspace}
+\usepackage{etoolbox}
 \usepackage{algorithm}
 \usepackage{algpseudocode}
 \usepackage{tocloft}
@@ -55,6 +57,9 @@
   {\textcolor{tfmAccent}{\thesubsection}}
   {0.75em}
   {}
+% Evita títulos de sección aislados al final de página. Los subapartados se
+% mantienen flexibles para no crear saltos artificiales en bloques cortos.
+\pretocmd{\section}{\Needspace{9\baselineskip}}{}{}
 \setlength{\parskip}{0.35em}
 \setlength{\parindent}{1.2em}
 \setlength{\cftbeforetoctitleskip}{0pt}
