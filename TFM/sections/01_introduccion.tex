@@ -12,14 +12,13 @@ En este contexto, una \emph{oportunidad} es una posible operación que parece de
 
 El caso de estudio es el mercado de objetos de \textit{Counter-Strike 2}, un videojuego con una economía persistente. Se ha elegido porque ofrece activos con distintas calidades, plataformas con precios observables y restricciones prácticas que permiten evaluar el marco propuesto. Entre ellas se encuentran las comisiones, el cambio de moneda, la liquidez y el \textit{trade hold}, un bloqueo temporal que impide intercambiar un artículo recién adquirido. Estas fricciones hacen que un margen aparente pueda desaparecer al calcular el ingreso neto, igual que en otros entornos de trading donde deben modelarse costes de transacción y restricciones de liquidez \cite{liu2021finrl}.
 
-\Needspace{8\baselineskip}
-El trabajo nace de un procedimiento manual para comparar precios entre plataformas y calcular el margen de cada posible operación. Para cada artículo se anotaban el precio de compra, el precio de venta, la conversión de moneda, las comisiones, la fecha en que podía intercambiarse y el capital que quedaría bloqueado. Este proceso permitía estudiar casos concretos, pero exigía repetir los mismos cálculos y comprobar datos repartidos entre varias fuentes.
-
-La propuesta transforma esas comprobaciones en un flujo reproducible. El sistema adquiere los datos, aplica las reglas económicas, genera señales y simula el efecto de cada decisión sobre una cartera. Así, el resultado no se limita a indicar un margen, sino que conserva los datos de partida, los costes aplicados y las condiciones con las que se ha evaluado.
-
 \section{Planteamiento del problema}
 
 El problema consiste en transformar datos dispersos del mercado en recomendaciones comprensibles. Las fuentes disponibles aportan anuncios de venta, precios, volumen de intercambios y datos del activo, pero no siempre con la misma moneda, el mismo nombre o la misma fecha. El sistema debe unificar esa información y responder a una pregunta sencilla: con los datos disponibles y los costes previstos, ¿merece la pena estudiar esta posible operación?
+
+La necesidad parte de un procedimiento manual de comparación de precios. Entre varias personas se anotaban, para cada artículo, el precio de compra, el de venta, la conversión de moneda, las comisiones, la fecha de desbloqueo y el capital bloqueado. Permitía estudiar casos concretos, pero obligaba a repetir cálculos y a comprobar datos repartidos entre varias fuentes. Esta dificultad motivó la construcción de un único flujo que reúna esas comprobaciones de forma reproducible.
+
+El sistema propuesto adquiere los datos, aplica las reglas económicas, genera señales y simula el efecto de cada decisión sobre una cartera. Con ello, una posible operación puede analizarse con los mismos criterios aunque proceda de fuentes distintas o se revise en momentos diferentes.
 
 Para evitar ambigüedad, el término \emph{candidato} se refiere a un artículo concreto que se ha localizado en una o varias fuentes. Tras recopilar sus precios y condiciones, el sistema puede clasificarlo en tres estados. \emph{Revisar} indica que el margen y los datos merecen comprobación manual. \emph{Observar} indica que faltan datos o que conviene esperar una nueva captura. \emph{Bloquear} indica que los costes, el riesgo o las restricciones de cartera impiden continuar. Una señal, por tanto, no es una orden: es una evidencia que contribuye a esa clasificación.
 
