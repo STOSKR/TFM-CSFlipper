@@ -2,7 +2,7 @@
 \contentsline {chapter}{Índice de figuras}{7}{section*.4}%
 \contentsline {chapter}{Índice de tablas}{8}{section*.5}%
 \contentsline {chapter}{Lista de algoritmos}{9}{section*.6}%
-\contentsline {chapter}{Lista de acrónimos}{10}{chapter*.8}%
+\contentsline {chapter}{Siglas y abreviaturas}{10}{chapter*.8}%
 \contentsline {chapter}{\numberline {1}Introducción}{12}{chapter.1}%
 \contentsline {section}{\numberline {1.1}Motivación}{12}{section.1.1}%
 \contentsline {section}{\numberline {1.2}Planteamiento del problema}{13}{section.1.2}%
