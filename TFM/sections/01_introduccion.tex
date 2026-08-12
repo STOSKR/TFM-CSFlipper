@@ -12,10 +12,10 @@ En este contexto, una \emph{oportunidad} es una posible operación que parece de
 
 El caso de estudio es el mercado de objetos de \textit{Counter-Strike 2}, un videojuego con una economía persistente. Se ha elegido porque ofrece activos con distintas calidades, plataformas con precios observables y restricciones prácticas que permiten evaluar el marco propuesto. Entre ellas se encuentran las comisiones, el cambio de moneda, la liquidez y el \textit{trade hold}, un bloqueo temporal que impide intercambiar un artículo recién adquirido. Estas fricciones hacen que un margen aparente pueda desaparecer al calcular el ingreso neto, igual que en otros entornos de trading donde deben modelarse costes de transacción y restricciones de liquidez \cite{liu2021finrl}.
 
-\Needspace{9\baselineskip}
-El punto de partida del proyecto fue un procedimiento manual de seguimiento de precios y cálculo de márgenes. Ese procedimiento reunía conversiones de moneda, comisiones, retorno estimado, fechas de desbloqueo y capital inmovilizado. No se presenta como una práctica general de todos los mercados, sino como el conocimiento operativo inicial del caso de estudio. Su análisis permitió identificar qué reglas debían convertirse en funciones comprobables y reutilizables.
+\Needspace{8\baselineskip}
+El trabajo nace de un procedimiento manual para comparar precios entre plataformas y calcular el margen de cada posible operación. Para cada artículo se anotaban el precio de compra, el precio de venta, la conversión de moneda, las comisiones, la fecha en que podía intercambiarse y el capital que quedaría bloqueado. Este proceso permitía estudiar casos concretos, pero exigía repetir los mismos cálculos y comprobar datos repartidos entre varias fuentes.
 
-La motivación técnica es construir una base reproducible para adquirir datos, estimar señales y simular decisiones de cartera. De este modo, cada resultado conserva los datos que lo originan, las reglas aplicadas y el estado de la cartera con el que se evaluó.
+La propuesta transforma esas comprobaciones en un flujo reproducible. El sistema adquiere los datos, aplica las reglas económicas, genera señales y simula el efecto de cada decisión sobre una cartera. Así, el resultado no se limita a indicar un margen, sino que conserva los datos de partida, los costes aplicados y las condiciones con las que se ha evaluado.
 
 \section{Planteamiento del problema}
 
