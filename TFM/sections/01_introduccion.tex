@@ -20,7 +20,7 @@ Las diferentes plataformas muestran artículos puestos a la venta, su precio, el
 
 El sistema propuesto convierte ese proceso en un flujo reproducible. Adquiere los datos, normaliza sus diferencias, aplica las reglas económicas, genera señales y simula el efecto de cada decisión sobre una cartera. De este modo, una posible operación se evalúa con los mismos criterios aunque proceda de fuentes distintas o se revise en momentos diferentes.
 
-Cuando el sistema localiza un artículo en una o varias fuentes, lo incorpora como \emph{candidato}. Tras recopilar sus precios y condiciones, puede clasificarlo en tres estados. \emph{Revisar} indica que el margen y los datos merecen comprobación manual. \emph{Observar} indica que faltan datos o que conviene esperar una nueva captura. \emph{Bloquear} indica que los costes, el riesgo o las restricciones de cartera impiden continuar. Una señal no es una orden, sino una evidencia que contribuye a esa clasificación.
+Cuando el sistema localiza un artículo en una o varias fuentes, lo incorpora como \emph{candidato}. Tras recopilar sus precios y condiciones, puede clasificarlo en tres estados. \emph{Revisar} indica que el margen son buenos y merece una comprobación manual. \emph{Observar} indica que faltan datos o que conviene esperar una nueva captura (La captura se realiza periódicamente). \emph{Bloquear} indica que los costes, el riesgo o las restricciones de cartera impiden continuar.
 
 La dificultad principal está en justificar cada clasificación. No basta con indicar que un precio puede subir o bajar. La recomendación debe poder relacionarse con sus precios de entrada y salida, las comisiones, la liquidez, las reglas utilizadas y el estado de la cartera. Esta formulación conecta la estimación de señales con la gestión de cartera, donde retorno y riesgo deben analizarse conjuntamente \cite{markowitz1952portfolio}.
 
@@ -29,6 +29,7 @@ Esta formulación organiza el proceso en tres fases. La separación permite eval
 \begin{enumerate}
     \item \textbf{Observación y limpieza.} Reúne precios, anuncios, volumen y metadatos desde las fuentes disponibles. Después normaliza monedas, nombres y fechas, elimina duplicados y registra la calidad de cada captura. El resultado es un historial comparable, con la fuente y el instante de adquisición asociados a cada dato.
     \item \textbf{Predicción.} Transforma ese historial en variables como el margen neto entre plataformas, la evolución del precio, la liquidez y la antigüedad de la captura. Con ellas, el modelo estima una probabilidad o puntuación que ayuda a priorizar cada artículo.
+    \clearpage
     \item \textbf{Decisión.} Combina las señales con las reglas económicas y el estado de cartera dentro de un simulador. La arquitectura multiagente reparte la detección de oportunidades, la propuesta de acción y el control de riesgo. Su salida clasifica el artículo para revisión, observación o bloqueo.
 \end{enumerate}
 
@@ -57,9 +58,9 @@ La metodología distingue entre el aprendizaje de patrones temporales y la evalu
 
 \section{Metodología de desarrollo}
 
-El desarrollo se ha organizado siguiendo el propio avance del proyecto. Primero, se ha estudiado el procedimiento manual y se han extraído sus reglas económicas. Después, se ha construido una base de adquisición y persistencia para recoger datos de mercado. A continuación, se han preparado conjuntos de datos supervisados y se han evaluado modelos tabulares para obtener señales probabilísticas. Finalmente, se ha implementado un simulador de cartera y un entorno multiagente compatible con PettingZoo y \acroref{RLlib}{RLlib} para realizar pruebas funcionales.
+El desarrollo se ha abordado de forma incremental. El primer paso fue convertir el procedimiento manual en reglas económicas explícitas. A continuación, se construyó la base para adquirir, normalizar y conservar los datos de mercado. Con esos datos se prepararon conjuntos supervisados y se evaluaron modelos tabulares capaces de generar señales probabilísticas.
 
-Esta metodología incremental evita entrenar agentes sobre un entorno poco fiable. En lugar de empezar directamente por \acroref{MARL}{MARL}, el proyecto construye primero las piezas que hacen verificable la decisión: datos, reglas económicas, simulación, métricas y trazabilidad. La arquitectura multiagente se apoya en estas capas, no las sustituye.
+La última fase incorpora esas señales en un simulador de cartera y en un entorno multiagente compatible con PettingZoo y \acroref{RLlib}{RLlib}. Este orden permite comprobar primero los datos, las reglas y las métricas que intervienen en una decisión antes de estudiar la coordinación entre agentes mediante \acroref{MARL}{MARL}. Así, cada capa aporta una evidencia verificable para la siguiente.
 
 \section{Estructura del documento}
 
