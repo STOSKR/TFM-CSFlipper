@@ -1,5 +1,7 @@
 \chapter{Conclusiones}
 
+\noindent Este capítulo resume las aportaciones del trabajo, revisa el grado de cumplimiento de los objetivos y delimita los pasos necesarios para ampliar la validación experimental y el entrenamiento multiagente.
+
 \section{Conclusiones principales}
 
 El desarrollo realizado hasta el momento permite concluir que el problema no puede reducirse a una predicción aislada de subida o bajada de precio. En mercados como el de \textit{Counter-Strike 2}, la decisión depende de fricciones muy concretas: comisiones, conversión de moneda, liquidez, \textit{trade hold}, capital bloqueado y riesgo de cartera. Por ello, la arquitectura propuesta necesita combinar adquisición de datos, simulación económica y decisión multiagente, siguiendo la disciplina de backtesting y control de fricciones propia de los entornos de trading con aprendizaje automático \cite{liu2021finrl}.
@@ -12,7 +14,7 @@ Una conclusión metodológica relevante es que el proyecto ha evolucionado a par
 
 \section{Cumplimiento de objetivos}
 
-Se ha avanzado en la mayoría de objetivos técnicos: existe un monorepo modular, un modelo de datos operativo, pipelines de adquisición, análisis del Excel original, construcción de datasets, entrenamiento supervisado, simulador de cartera y un entorno \acroref{MARL}{MARL} funcional para pruebas cortas. También se han definido agentes Scout, Trader y Portfolio, junto con restricciones de riesgo y métricas de evaluación.
+Se ha avanzado en la mayoría de objetivos técnicos: existe un monorepo modular, un modelo de datos operativo, pipelines de adquisición, análisis del procedimiento manual inicial, construcción de datasets, entrenamiento supervisado, simulador de cartera y un entorno \acroref{MARL}{MARL} funcional para pruebas cortas. También se han definido agentes Scout, Trader y Portfolio, junto con restricciones de riesgo y métricas de evaluación.
 
 El cumplimiento experimental todavía es parcial. Los resultados supervisados muestran que el pipeline funciona y que algunos modelos producen señales de alta precisión en umbrales exigentes, pero el número de señales es limitado. El dataset operativo de trading Steam/\acroref{BUFF}{BUFF} está construido, aunque su primera versión presenta desbalance extremo en validación y test. El entorno \acroref{MARL}{MARL} ejecuta, pero no constituye todavía una evaluación comparativa completa. Las pruebas automatizadas y los smoke tests de rendimiento forman parte del capítulo experimental porque verifican que las métricas obtenidas proceden de componentes comprobados.
 

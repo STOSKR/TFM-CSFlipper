@@ -1,5 +1,7 @@
 \chapter{Configuración del entorno y datos}
 
+\noindent Este capítulo explica qué datos utiliza el sistema, cómo se obtienen y cómo se preparan antes de emplearlos en la simulación o en los modelos. También presenta las reglas económicas y las variables que describen el estado de una cartera.
+
 \section{Fuentes de datos}
 
 El sistema trabaja con varias fuentes porque el mercado de \acroref{CS2}{CS2} está fragmentado. Ninguna fuente aislada contiene toda la información necesaria para decidir. Steam aporta precio, histórico y señales del mercado principal. \acroref{BUFF}{BUFF} permite comparar oportunidades y buy orders. SteamDT ayuda a descubrir candidatos. El \acroref{OCR}{OCR} permite capturar datos cuando no existe una \acroref{API}{API} cómoda. Los \acroref{CSV}{CSV} o importaciones manuales sirven para integrar muestras controladas o material histórico.
@@ -71,6 +73,8 @@ Las importaciones manuales y \acroref{CSV}{CSV} cumplen una función complementa
 
 \section{Adquisición y persistencia}
 
+Esta sección describe el recorrido de un dato desde su captura hasta su almacenamiento. El objetivo es conservar observaciones comparables y trazables, de modo que puedan utilizarse más adelante en la preparación de variables y en los experimentos.
+
 \subsection{Pipeline de adquisición}
 
 La adquisición se organiza como una capa de agentes extractores. Estos procesos pueden ejecutarse como comandos \acroref{CLI}{CLI}, jobs o servicios programados. Su función es capturar datos, normalizarlos, validar errores y guardarlos con trazabilidad. El flujo incluye scraping, refresco de históricos, \acroref{OCR}{OCR}, importación manual y un bucle operativo local que puede ejecutar scraping y actualización periódica.
@@ -100,6 +104,8 @@ Entidad & Uso dentro del \acroref{TFM}{TFM} \\
 \end{table}
 
 \section{Preparación de características}
+
+Antes de entrenar un modelo o simular una cartera, las observaciones se transforman en variables que resumen precios, liquidez, evolución temporal y estado de la cartera. A continuación se explican las variables empleadas y la construcción temporal de las etiquetas.
 
 \subsection{Variables de mercado}
 
@@ -143,7 +149,7 @@ Las variables de cartera proceden del simulador. Incluyen saldo disponible, valo
 
 \section{Reglas económicas migradas}
 
-El simulador reproduce las reglas económicas que antes estaban dispersas en el Excel operativo. No intenta copiar la hoja de cálculo, sino migrar sus reglas útiles a código comprobable: conversión \acroref{EUR}{EUR}/\acroref{CNY}{CNY}, comisiones, beneficio neto, rentabilidad porcentual, fecha de desbloqueo y capital bloqueado.
+El simulador formaliza las reglas económicas identificadas en el procedimiento manual de seguimiento. Incluye conversión \acroref{EUR}{EUR}/\acroref{CNY}{CNY}, comisiones, beneficio neto, rentabilidad porcentual, fecha de desbloqueo y capital bloqueado.
 
 \begin{table}[h]
 \centering
@@ -164,12 +170,14 @@ Beneficio neto & Calcula diferencia entre ingreso neto de venta y coste de entra
 
 \section{Simulador de cartera}
 
+El simulador representa las consecuencias de una decisión sobre el efectivo disponible, las posiciones abiertas y el riesgo. Sus reglas permiten comparar alternativas con las mismas comisiones, bloqueos y límites de exposición.
+
 \subsection{Operaciones permitidas}
 
 Las operaciones básicas son comprar, vender y mantener. Una compra abre una posición con precio de entrada, cantidad, plataforma y fecha de bloqueo. Una venta cierra una posición si está disponible y calcula el beneficio realizado. Mantener no modifica la posición, pero puede afectar al rendimiento si el mercado se mueve o si el capital sigue inmovilizado.
 
 \subsection{Comisiones y valoración}
 
-El Excel operativo utiliza reglas de referencia que se han convertido en hipótesis de simulación. \acroref{BUFF}{BUFF} se modela con un factor neto de venta de 0,975. Steam usa una comisión de mercado del 0,87 y, en escenarios conservadores de salida a banco, puede aplicarse una pérdida adicional del 20\%. La conversión inicial simplificada usa 1 \acroref{EUR}{EUR} = 8 \acroref{CNY}{CNY}, aunque queda pendiente versionar tipos de cambio por fecha si se incorporan fuentes externas.
+El procedimiento manual aportó reglas de referencia que se han convertido en hipótesis de simulación. \acroref{BUFF}{BUFF} se modela con un factor neto de venta de 0,975. Steam usa una comisión de mercado del 0,87 y, en escenarios conservadores de salida a banco, puede aplicarse una pérdida adicional del 20\%. La conversión inicial simplificada usa 1 \acroref{EUR}{EUR} = 8 \acroref{CNY}{CNY}, aunque queda pendiente versionar tipos de cambio por fecha si se incorporan fuentes externas.
 
 El \textit{trade hold} se modela de forma conservadora como ocho días desde la compra, equivalente a siete días más una ventana de desbloqueo. Esta simplificación evita declarar vendible una posición demasiado pronto.

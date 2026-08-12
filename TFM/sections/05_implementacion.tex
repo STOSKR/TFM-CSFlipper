@@ -1,5 +1,7 @@
 \chapter{Implementación y operación}
 
+\noindent Este capítulo traslada la propuesta a componentes de software. Describe cómo se organiza el repositorio, cómo se ejecutan los flujos de adquisición y persistencia y cómo la consola local presenta las oportunidades y su trazabilidad.
+
 \section{Organización del sistema}
 
 La implementación se ha organizado como un monorepo para separar el código de dominio, los conectores de adquisición y las herramientas de operación. La separación no responde solo a una preferencia de estructura. Permite ejecutar un scraper, repetir un entrenamiento o consultar el panel sin mezclar esa lógica con las reglas económicas y con los contratos de datos.
@@ -27,6 +29,8 @@ Las capas se comunican mediante contratos explícitos. Por ejemplo, un extractor
 
 \section{Flujo operativo de adquisición}
 
+Esta sección explica cómo se ejecuta la recogida de datos y cómo se mantiene su trazabilidad. Se describen las sesiones necesarias para acceder a las fuentes, el proceso de scraping y el almacenamiento incremental de las observaciones.
+
 \subsection{Sesiones, scraping y trazabilidad}
 
 Las fuentes que necesitan navegación se ejecutan con Playwright en un navegador visible cuando es necesario iniciar sesión. La sesión no se guarda en el repositorio ni en el archivo de configuración. Se almacena localmente como estado de navegador y se renueva desde la pantalla de sesiones. Esto evita que las credenciales formen parte de los experimentos o de los commits.
@@ -37,7 +41,7 @@ Cada trabajo de scraping registra inicio, conectores utilizados, reintentos, pro
 \caption{Flujo de scraping.}
 \label{alg:scraping-trazable}
 \begin{algorithmic}[1]
-\Require Lista de candidatos, conectores activos y configuración de trabajo
+\Require Artículos localizados, conectores activos y configuración de trabajo
 \Ensure Observaciones persistidas y estado de ejecución
 \State Crear identificador de trabajo y registrar el inicio
 \ForAll{lotes de candidatos}

@@ -1,5 +1,7 @@
 \chapter{Experimentación y análisis}
 
+\noindent Este capítulo describe las pruebas realizadas sobre reglas económicas, datos, modelos supervisados, OCR y arquitectura multiagente. Cada resultado se interpreta según la evidencia disponible y se distinguen las comprobaciones funcionales de las comparaciones que requieren más datos.
+
 \section{Diseño experimental}
 
 La experimentación se ha desarrollado por fases. Primero, se han migrado reglas económicas y estructuras de datos. Después, se han construido datasets supervisados para estudiar señales de mercado. Más adelante, se ha creado un dataset de trading basado en precios Steam/\acroref{BUFF}{BUFF} y se ha implementado el entorno multiagente. Esta secuencia evita entrenar agentes \acroref{MARL}{MARL} sobre un entorno que todavía no representa bien el problema económico. La Tabla~\ref{tab:matriz-experimental} resume las ejecuciones que se desarrollan con detalle en las secciones siguientes.
@@ -52,7 +54,7 @@ La comparación experimental se plantea en tres niveles. El primero es un baseli
 
 Las pruebas no se tratan como material auxiliar, sino como parte de la evidencia experimental del proyecto. Antes de interpretar resultados de modelos o agentes, se comprueba que las piezas que producen esos resultados funcionan de forma aislada: reglas económicas, parsing de mercado, persistencia, construcción de datasets, inferencia supervisada, simulador de cartera, restricciones de riesgo, entorno PettingZoo, adaptador \acroref{RLlib}{RLlib}, comandos de episodios y panel web.
 
-La suite automatizada se organiza principalmente con Pytest y se complementa con Ruff y Mypy. Las pruebas unitarias cubren el comportamiento determinista del simulador, los cálculos heredados del Excel, el \acroref{OCR}{OCR}, SteamDT, Steam, \acroref{BUFF}{BUFF}, los datasets supervisados, el dataset de trading, el servicio de scoring y los componentes \acroref{MARL}{MARL}. También existe una prueba de integración para repositorios de persistencia, separada porque depende de una base de datos disponible.
+La suite automatizada se organiza principalmente con Pytest y se complementa con Ruff y Mypy. Las pruebas unitarias cubren el comportamiento determinista del simulador, las reglas económicas del procedimiento manual, el \acroref{OCR}{OCR}, SteamDT, Steam, \acroref{BUFF}{BUFF}, los datasets supervisados, el dataset de trading, el servicio de scoring y los componentes \acroref{MARL}{MARL}. También existe una prueba de integración para repositorios de persistencia, separada porque depende de una base de datos disponible.
 
 \begin{table}[h]
 \centering
@@ -74,6 +76,8 @@ Las pruebas de rendimiento se integran en la evaluación del capítulo porque co
 
 \section{Métricas}
 
+Las métricas permiten interpretar una estrategia más allá de si produce una señal. Se separan indicadores de retorno y de riesgo para comprobar tanto el posible margen como el uso de capital y las restricciones que condicionan una decisión.
+
 \subsection{Métricas de rentabilidad}
 
 Las métricas de rentabilidad principales son beneficio neto, retorno porcentual, saldo final y número de señales operativas. En los modelos supervisados se usan además precisión, recall, \acroref{F1}{F1}, \acroref{ROC-AUC}{ROC-AUC}, \acroref{PR-AUC}{PR-AUC} y Brier score. Para el uso operativo se da especial importancia a la precisión en umbrales altos, porque una señal menos frecuente pero más fiable puede ser más útil que muchas señales ruidosas. La calibración de probabilidades es relevante porque la salida del modelo se usa como señal de decisión, no solo como etiqueta binaria \cite{niculescu2005predicting}.
@@ -84,9 +88,11 @@ Las métricas de riesgo incluyen drawdown, capital bloqueado medio, posiciones a
 
 \section{Resultados}
 
+Esta sección reúne los resultados obtenidos durante la construcción del sistema. Se presentan primero las comprobaciones sobre reglas y modelos y después las pruebas con datos de trading, OCR y agentes cooperativos.
+
 \subsection{Migración de reglas económicas}
 
-La primera fase ha consistido en convertir reglas del Excel operativo en funciones comprobables. Se han migrado conversiones \acroref{EUR}{EUR}/\acroref{CNY}{CNY}, factores de comisión, cálculo de beneficio neto, rentabilidad porcentual, fecha de desbloqueo y capital bloqueado. Esta fase no produce un resultado de rentabilidad por sí misma, pero es necesaria para que los experimentos posteriores midan el mismo dominio que se utilizaba manualmente.
+La primera fase ha consistido en convertir reglas del procedimiento manual en funciones comprobables. Se han migrado conversiones \acroref{EUR}{EUR}/\acroref{CNY}{CNY}, factores de comisión, cálculo de beneficio neto, rentabilidad porcentual, fecha de desbloqueo y capital bloqueado. Esta fase no produce un resultado de rentabilidad por sí misma, pero es necesaria para que los experimentos posteriores midan el mismo dominio que se utilizaba manualmente.
 
 El resultado principal de esta fase es metodológico: las reglas económicas pasan de estar dispersas en fórmulas de hoja de cálculo a estar encapsuladas en módulos de simulación, con pruebas unitarias y parámetros explícitos. Esto reduce errores silenciosos y permite repetir un experimento con la misma configuración.
 
@@ -327,7 +333,7 @@ A partir de esta limitación, la validación distingue entre aprendizaje tempora
 
 \subsection{Dificultades y pivotaciones}
 
-Durante el desarrollo se han producido varias decisiones de pivotaje. La primera aparece al migrar el Excel operativo: el valor principal no estaba en copiar una hoja de cálculo, sino en extraer reglas económicas verificables y convertirlas en simulación reproducible. Esta decisión desplaza el trabajo desde una herramienta manual hacia un sistema auditable.
+Durante el desarrollo se han producido varias decisiones de pivotaje. La primera aparece al formalizar el procedimiento manual: el valor principal estaba en extraer reglas económicas verificables y convertirlas en simulación reproducible. Esta decisión desplaza el trabajo desde una herramienta manual hacia un sistema auditable.
 
 La segunda pivotación afecta a las fuentes de datos. El planteamiento inicial intentaba alinear históricos de Steam y \acroref{BUFF}{BUFF} para entrenar directamente sobre oportunidades de arbitraje entre plataformas. Las primeras pruebas mostraron dos problemas: falta de histórico alineado suficiente y riesgo operativo al consultar \acroref{BUFF}{BUFF} de forma reiterada. Por ello, el enfoque se ajusta: Steam se mantiene como fuente principal de aprendizaje temporal y \acroref{BUFF}{BUFF} se usa de forma puntual como precio vivo de entrada para evaluar flips concretos.
 
@@ -411,6 +417,8 @@ Para cerrar la validación del \acroref{TFM}{TFM} será necesario ejecutar una f
 La evaluación \acroref{MARL}{MARL} deberá incluir ablations. Las más relevantes son: sin probabilidad supervisada, sin agente Portfolio, sin penalización por capital bloqueado y sin restricciones de liquidez. Estas comparaciones permitirán distinguir si la mejora viene de la arquitectura multiagente, del modelo supervisado, de una regla de riesgo o simplemente de la estructura del simulador.
 
 \section{Discusión}
+
+La discusión relaciona los resultados con el alcance del trabajo. Se identifican las condiciones que limitan su interpretación, las partes que ya funcionan de forma integrada y los datos que faltan para una evaluación más sólida.
 
 \subsection{Amenazas a la validez}
 

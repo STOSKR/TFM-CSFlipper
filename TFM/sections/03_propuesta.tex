@@ -1,5 +1,7 @@
 \chapter{Arquitectura multiagente propuesta}
 
+\noindent En este capítulo se describe la arquitectura planteada para convertir datos de mercado en decisiones simuladas. Se presentan sus capas, el flujo de información, el entorno de cartera y la distribución de responsabilidades entre los agentes Scout, Trader y Portfolio.
+
 \section{Formulación técnica del sistema}
 
 A partir del planteamiento descrito en el Capítulo 1, la propuesta traduce el caso de uso a una tarea de decisión secuencial sobre una cartera simulada de activos digitales, siguiendo la formulación general de los problemas de aprendizaje por refuerzo \cite{sutton2018reinforcement}. En cada instante, el sistema recibe observaciones de mercado, estado de cartera y señales derivadas. A partir de esa información decide si conviene comprar, vender, mantener en observación o rechazar una oportunidad.
@@ -33,7 +35,7 @@ La decisión final siempre queda registrada como simulada. Esto permite evaluar 
 
 \section{Flujo operativo}
 
-El flujo operativo comienza con una lista de candidatos o una búsqueda de mercado. Los agentes extractores consultan las fuentes disponibles, capturan precios, buy orders, volumen y metadatos, y construyen observaciones normalizadas. Después, la persistencia conserva el histórico en formato auditable para que el dataset pueda reconstruirse sin depender de una sesión concreta de scraping.
+El flujo operativo comienza con artículos localizados mediante una búsqueda de mercado o una fuente de descubrimiento. Los agentes extractores consultan las fuentes disponibles, capturan precios, buy orders, volumen y metadatos, y construyen observaciones normalizadas. Después, la persistencia conserva el histórico en formato auditable para que el dataset pueda reconstruirse sin depender de una sesión concreta de scraping.
 
 Sobre ese histórico se construyen características de mercado. El modelo supervisado produce una probabilidad calibrada de oportunidad rentable en un horizonte determinado. Esa probabilidad no se interpreta como una orden de compra, sino como una característica adicional que los agentes \acroref{MARL}{MARL} pueden utilizar. Finalmente, el entorno multiagente genera una observación para cada política, recoge sus acciones y aplica las reglas del simulador.
 
