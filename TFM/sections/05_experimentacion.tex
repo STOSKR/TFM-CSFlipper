@@ -120,16 +120,16 @@ Después se corrigieron el parser de \acroref{BUFF}{BUFF}, la normalización de 
 
 \begin{table}[htbp]
 \centering
-\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{0.19\textwidth} r r r >{\raggedright\arraybackslash}X}
+\begin{tabular}{l r r r}
 \toprule
-Corte & Entrenamiento & Validación & Prueba & Tasa positiva \\
+Corte & Entrenamiento & Validación & Prueba \\
 \midrule
-Inicial & 2.331 & --- & --- & Un positivo en validación y prueba. \\
-Marzo & 171 & 76 & 95 & 93,0\% / 98,7\% / 89,5\%. \\
-Mayo & 361 & 76 & 95 & --- / 100\% / 100\%. \\
-Reciente & 551 & 76 & 84 & 95,6\% / 100\% / 98,8\%. \\
+Inicial & 2.331 & --- & --- \\
+Marzo & 171 & 76 & 95 \\
+Mayo & 361 & 76 & 95 \\
+Reciente & 551 & 76 & 84 \\
 \bottomrule
-\end{tabularx}
+\end{tabular}
 \caption{Cortes de datos.}
 \label{tab:cortes-datos}
 \end{table}
@@ -141,7 +141,9 @@ Reciente & 551 & 76 & 84 & 95,6\% / 100\% / 98,8\%. \\
 \label{fig:evolucion-cortes}
 \end{figure}
 
-La secuencia muestra una mejora de cobertura temporal, pero no un equilibrio de etiquetas. El corte de marzo es el único que contiene las dos clases en entrenamiento, validación y prueba, aunque está fuertemente concentrado en oportunidades positivas. Los cortes de mayo y reciente amplían el número de filas, pero no habilitan ROC-AUC ni calibración sobre sus bloques finales. Por tanto, se conservan como diagnósticos de calidad de datos y no como experimentos de rendimiento.
+La secuencia mejora la cobertura temporal, pero no el equilibrio de etiquetas. El conjunto inicial contiene 50 artículos, pero solo conserva un caso positivo en validación y otro en prueba. En marzo, la proporción de casos positivos es 93,0\% en entrenamiento, 98,7\% en validación y 89,5\% en prueba. Es el único corte que contiene ambas clases en los tres bloques, aunque sigue muy concentrado en oportunidades positivas.
+
+Los cortes de mayo y reciente amplían el número de filas. En mayo, validación y prueba contienen únicamente casos positivos. En el corte reciente las proporciones son 95,6\%, 100\% y 98,8\%, respectivamente. Estas muestras no habilitan ROC-AUC ni calibración sobre los bloques finales, por lo que se conservan como diagnósticos de calidad de datos y no como experimentos de rendimiento.
 
 El flujo reproducible queda definido así: capturar observaciones, normalizar artículo y moneda, construir la etiqueta a ocho días, eliminar la zona de purga, separar por fecha y revisar la distribución antes de entrenar. Solo cuando cada bloque incluye resultados favorables y desfavorables se entrena un clasificador. Esta comprobación previa evitó presentar un entrenamiento trivial como una mejora del sistema.
 
