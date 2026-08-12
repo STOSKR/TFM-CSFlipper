@@ -8,11 +8,11 @@ La experimentación se ha desarrollado por fases. Primero, se han migrado reglas
 \centering
 \begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{0.28\textwidth} >{\raggedright\arraybackslash}X}
 \toprule
-Flujo & Evidencia disponible \\
+Flujo & Comprobación ejecutada \\
 \midrule
-Reglas económicas & Conversión, comisiones, bloqueo temporal y límites comprobados mediante pruebas. \\
+Reglas económicas & Pruebas de conversión, comisiones, bloqueo temporal y límites. \\
 Modelo de dirección & Entrenamiento, calibración y perfil de umbrales sobre histórico Steam. \\
-Trading BUFF--Steam & Cortes temporales, cuatro ablaciones y diagnóstico de cobertura. \\
+Trading BUFF--Steam & Cortes temporales, ablaciones y comprobación de cobertura. \\
 OCR & Parser, umbral de confianza y recorrido de imagen. \\
 \acroref{MARL}{MARL} & Dos baselines coordinados y smoke de PPO con tres políticas. \\
 \bottomrule
@@ -298,20 +298,22 @@ La evaluación de OCR disponible es funcional, no una medida de exactitud sobre 
 
 \begin{table}[htbp]
 \centering
-\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{0.24\textwidth} >{\raggedright\arraybackslash}p{0.39\textwidth} >{\raggedright\arraybackslash}X}
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{0.28\textwidth} >{\raggedright\arraybackslash}X}
 \toprule
-Prueba & Resultado comprobado & Límite de interpretación \\
+Prueba & Caso ejecutado \\
 \midrule
-Fixture de texto & Convierte texto en observaciones Steam y BUFF. & Sin captura de interfaz. \\
-Umbral de confianza & Rechaza 0,2 cuando el mínimo es 0,5. & No mide errores de reconocimiento. \\
-Recorrido de imagen & Ejecuta carga, preprocesado y confianza de 0,91. & Runner controlado. \\
+Fixture de texto & Texto Steam y BUFF convertido a observaciones. \\
+Umbral de confianza & Confianza 0,2 con mínimo configurado en 0,5. \\
+Recorrido de imagen & Carga, preprocesado y reconocimiento con un runner controlado. \\
 \bottomrule
 \end{tabularx}
 \caption{Validación funcional de OCR.}
 \label{tab:ocr-funcional}
 \end{table}
 
-El siguiente experimento OCR debe usar un conjunto etiquetado de capturas y medir, por separado, la exactitud de artículo, calidad, plataforma, precio y moneda. Hasta disponer de ese conjunto, el OCR se presenta como un conector validado y no como un sistema de reconocimiento cuantificado.
+La fixture confirma que el parser construye observaciones con los campos esperados a partir de texto de mercado. La prueba de confianza rechaza el valor 0,2 al exigir un mínimo de 0,5. El recorrido de imagen completa la secuencia de carga, preprocesado y reconocimiento y devuelve una confianza de 0,91 en el caso preparado.
+
+Estas comprobaciones validan la integración, no la exactitud del OCR sobre capturas de interfaz. Por eso el siguiente experimento debe usar un conjunto etiquetado y comunicar por separado la exactitud de artículo, calidad, plataforma, precio y moneda. Hasta disponer de ese conjunto, el OCR se presenta como un conector validado y no como un sistema de reconocimiento cuantificado.
 
 \subsection{Dataset de trading operativo}
 
@@ -370,21 +372,23 @@ En la ecuación, $\rho_t$ es el retorno estimado de la oportunidad, $v_t$ el nú
 
 \begin{table}[H]
 \centering
-\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{0.24\textwidth} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{0.31\textwidth} >{\raggedright\arraybackslash}X r}
 \toprule
-Escenario & Qué comprueba & Resultado observado \\
+Escenario & Política evaluada & Pasos \\
 \midrule
-Margen positivo & Coordinación y límites de cartera. & Abre 13 posiciones en 95 pasos. \\
-Mantener & Baseline sin acción. & No abre posiciones. \\
-Margen sin señal & Efecto de la señal supervisada. & Repite 13 posiciones porque el dataset no tiene una probabilidad por fila. \\
-PPO, una iteración & Integración PettingZoo--RLlib. & Completa 64 pasos y guarda un checkpoint, sin compras. \\
+Margen positivo & Regla de compra por margen con límites de cartera. & 95 \\
+Mantener & Regla sin apertura de posiciones. & 95 \\
+Margen sin señal & Regla de margen sin probabilidad supervisada por fila. & 95 \\
+PPO, una iteración & PPO multiagente mediante PettingZoo--RLlib. & 64 \\
 \bottomrule
 \end{tabularx}
 \caption{Escenarios MARL.}
 \label{tab:marl-inicial}
 \end{table}
 
-La primera política es una regla escrita a mano que compra si el margen actual es positivo. No representa una política entrenada, pero comprueba la coordinación entre los tres roles y las restricciones de Portfolio. La política de mantener confirma el comportamiento contrario. En los tres escenarios con reglas se partió de 1.000 EUR y se recorrieron las 95 observaciones del bloque de prueba. Las posiciones quedan abiertas por el bloqueo temporal, por lo que los escenarios muestran transiciones del entorno y no beneficio final.
+La regla de margen positivo abre 13 posiciones en los 95 pasos y reduce el efectivo disponible hasta 309,64 EUR. La política de mantener no abre posiciones. En la variante sin señal se repiten las 13 aperturas porque el dataset todavía no aporta una probabilidad supervisada por fila. Estos resultados muestran coordinación entre los tres roles y aplicación de las restricciones de Portfolio, no una política aprendida.
+
+El smoke de PPO completa 64 pasos y guarda un \textit{checkpoint}, pero no abre compras en esa única iteración. En los tres escenarios con reglas se partió de 1.000 EUR y se recorrieron las 95 observaciones del bloque de prueba. Las posiciones quedan abiertas por el bloqueo temporal, por lo que los escenarios muestran transiciones del entorno y no beneficio final.
 
 La Figura~\ref{fig:traza-marl-marzo} muestra la traza completa de ambos baselines. La regla de margen positivo abre trece posiciones y reduce el efectivo disponible hasta 309,64 EUR. El capital queda bloqueado durante el periodo de espera y deja de contabilizarse como bloqueado al vencer dicho periodo. Las posiciones siguen abiertas porque el baseline no incorpora una política de venta. Esta figura valida la dinámica de efectivo, bloqueo y restricciones del simulador, pero no mide el rendimiento de una política aprendida.
 
