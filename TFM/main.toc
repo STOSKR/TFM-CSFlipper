@@ -82,8 +82,8 @@
 \contentsline {subsection}{\numberline {6.4.2}Resultados del modelo supervisado}{39}{subsection.6.4.2}%
 \contentsline {subsection}{\numberline {6.4.3}Evolución de los datasets de trading}{40}{subsection.6.4.3}%
 \contentsline {subsection}{\numberline {6.4.4}Protocolo temporal reproducible}{41}{subsection.6.4.4}%
-\contentsline {subsection}{\numberline {6.4.5}Ablación de histórico y aumentación}{43}{subsection.6.4.5}%
-\contentsline {subsection}{\numberline {6.4.6}Comprobación del corte reciente}{45}{subsection.6.4.6}%
+\contentsline {subsection}{\numberline {6.4.5}Ablación de histórico y aumentación}{42}{subsection.6.4.5}%
+\contentsline {subsection}{\numberline {6.4.6}Comprobación del corte reciente}{44}{subsection.6.4.6}%
 \contentsline {subsection}{\numberline {6.4.7}Evidencia de pruebas automatizadas}{45}{subsection.6.4.7}%
 \contentsline {subsection}{\numberline {6.4.8}Validación funcional de OCR}{45}{subsection.6.4.8}%
 \contentsline {subsection}{\numberline {6.4.9}Dataset de trading operativo}{46}{subsection.6.4.9}%

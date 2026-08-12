@@ -6,7 +6,7 @@ La experimentación se ha desarrollado por fases. Primero, se han migrado reglas
 
 \begin{table}[h]
 \centering
-\begin{tabularx}{\textwidth}{p{0.28\textwidth} X}
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{0.28\textwidth} >{\raggedright\arraybackslash}X}
 \toprule
 Flujo & Evidencia disponible \\
 \midrule
@@ -56,7 +56,7 @@ La suite automatizada se organiza principalmente con Pytest y se complementa con
 
 \begin{table}[h]
 \centering
-\begin{tabularx}{\textwidth}{l X}
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{0.27\textwidth} >{\raggedright\arraybackslash}X}
 \toprule
 Bloque & Qué verifica \\
 \midrule
@@ -120,14 +120,14 @@ Después se corrigieron el parser de \acroref{BUFF}{BUFF}, la normalización de 
 
 \begin{table}[htbp]
 \centering
-\begin{tabularx}{\textwidth}{p{0.23\textwidth} r r r X}
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{0.19\textwidth} r r r >{\raggedright\arraybackslash}X}
 \toprule
-Corte & Entrenamiento & Validación & Prueba & Resultado \\
+Corte & Entrenamiento & Validación & Prueba & Tasa positiva \\
 \midrule
-Inicial & 2.331 & --- & --- & 50 artículos. Solo un positivo en validación y prueba. \\
-Marzo & 171 & 76 & 95 & 19 artículos. Tasa positiva: 93,0\%, 98,7\% y 89,5\%. \\
-Mayo & 361 & 76 & 95 & Validación y prueba con 100\% de positivos. \\
-Reciente & 551 & 76 & 84 & Tasa positiva: 95,6\%, 100\% y 98,8\%. \\
+Inicial & 2.331 & --- & --- & Un positivo en validación y prueba. \\
+Marzo & 171 & 76 & 95 & 93,0\% / 98,7\% / 89,5\%. \\
+Mayo & 361 & 76 & 95 & --- / 100\% / 100\%. \\
+Reciente & 551 & 76 & 84 & 95,6\% / 100\% / 98,8\%. \\
 \bottomrule
 \end{tabularx}
 \caption{Cortes de datos.}
@@ -166,7 +166,7 @@ La exploración no se limitó a escoger una familia. La Tabla~\ref{tab:configura
 
 \begin{table}[htbp]
 \centering
-\begin{tabularx}{\textwidth}{l X}
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{0.25\textwidth} >{\raggedright\arraybackslash}X}
 \toprule
 Familia & Configuraciones exploradas \\
 \midrule
@@ -181,7 +181,7 @@ HGB & Tasa de aprendizaje 0,05 o 0,10, 160 iteraciones y 31 hojas. \\
 
 \begin{table}[htbp]
 \centering
-\begin{tabularx}{\textwidth}{l r r r r}
+\begin{tabular}{l r r r r}
 \toprule
 Configuración & ROC-AUC & Brier & Precisión @0,85 & Señales \\
 \midrule
@@ -190,7 +190,7 @@ Logística sin histórico & 0,760 & 0,072 & 0,970 & 67 \\
 Random forest con histórico & 0,742 & 0,074 & 0,942 & 86 \\
 HGB con histórico & 0,649 & 0,082 & 0,915 & 82 \\
 \bottomrule
-\end{tabularx}
+\end{tabular}
 \caption{Comparativa de marzo.}
 \label{tab:resultados-marzo}
 \end{table}
@@ -220,7 +220,7 @@ Las etiquetas, las variables categóricas y las fechas no cambian. Además, toda
 
 \begin{table}[htbp]
 \centering
-\begin{tabularx}{\textwidth}{l l r r r r}
+\begin{tabular}{l l r r r r}
 \toprule
 Histórico & Aumentación & ROC-AUC & Brier & Precisión @0,85 & Señales \\
 \midrule
@@ -229,7 +229,7 @@ No & No & \textbf{0,716} & \textbf{0,076} & \textbf{0,952} & 62 \\
 Sí & Jitter & 0,575 & 0,085 & 0,924 & 92 \\
 No & Jitter & 0,613 & 0,084 & 0,919 & 86 \\
 \bottomrule
-\end{tabularx}
+\end{tabular}
 \caption{Ablación logística.}
 \label{tab:ablacion-marzo}
 \end{table}
@@ -260,13 +260,13 @@ Con la base de datos conectada se repitió la construcción del dataset de BUFF 
 
 \begin{table}[htbp]
 \centering
-\begin{tabularx}{\textwidth}{r r r >{\raggedright\arraybackslash}X}
+\begin{tabular}{r r r}
 \toprule
-Entrenamiento & Validación & Prueba & Lectura \\
+Entrenamiento & Validación & Prueba \\
 \midrule
-551 / 95,6\% + & 76 / 100\% + & 84 / 98,8\% + & Predominan los márgenes positivos. \\
+551 (95,6\%) & 76 (100\%) & 84 (98,8\%) \\
 \bottomrule
-\end{tabularx}
+\end{tabular}
 \caption{Corte BUFF--Steam.}
 \label{tab:corte-reciente}
 \end{table}
@@ -279,7 +279,7 @@ La suite completa se ejecutó el 11 de agosto de 2026 sobre el repositorio resta
 
 \begin{table}[htbp]
 \centering
-\begin{tabularx}{\textwidth}{l r X}
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{0.25\textwidth} r >{\raggedright\arraybackslash}X}
 \toprule
 Bloque & Pruebas & Alcance \\
 \midrule
@@ -298,13 +298,13 @@ La evaluación de OCR disponible es funcional, no una medida de exactitud sobre 
 
 \begin{table}[htbp]
 \centering
-\begin{tabularx}{\textwidth}{l X X}
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{0.24\textwidth} >{\raggedright\arraybackslash}p{0.39\textwidth} >{\raggedright\arraybackslash}X}
 \toprule
 Prueba & Resultado comprobado & Límite de interpretación \\
 \midrule
-Fixture de texto & Convierte texto en observaciones Steam y BUFF. & No usa una captura de interfaz. \\
-Umbral de confianza & Rechaza una confianza de 0,2 al exigir 0,5. & No estima errores de reconocimiento. \\
-Recorrido de imagen & Comprueba carga, preprocesado y confianza de 0,91. & Usa un runner controlado. \\
+Fixture de texto & Convierte texto en observaciones Steam y BUFF. & Sin captura de interfaz. \\
+Umbral de confianza & Rechaza 0,2 cuando el mínimo es 0,5. & No mide errores de reconocimiento. \\
+Recorrido de imagen & Ejecuta carga, preprocesado y confianza de 0,91. & Runner controlado. \\
 \bottomrule
 \end{tabularx}
 \caption{Validación funcional de OCR.}
@@ -335,7 +335,7 @@ La evaluación multiagente no utiliza una lista abstracta de acciones. Cada epis
 
 \begin{table}[htbp]
 \centering
-\begin{tabularx}{\textwidth}{p{0.29\textwidth} X}
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{0.29\textwidth} >{\raggedright\arraybackslash}X}
 \toprule
 Elemento & Configuración comprobada \\
 \midrule
