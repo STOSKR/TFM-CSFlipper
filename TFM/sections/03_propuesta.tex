@@ -67,7 +67,7 @@ La salida del modelo supervisado se incorpora como una probabilidad calibrada de
 
 El espacio de acciones se mantiene deliberadamente simple. Las acciones principales son comprar, vender, mantener y observar. En la parte de compra o venta puede añadirse un tamaño de posición discreto para limitar el número de combinaciones. Esta simplificación permite entrenar y depurar el entorno antes de introducir acciones continuas o reglas de asignación más complejas.
 
-En la versión implementada, Scout puede ignorar o marcar una oportunidad, Trader puede mantener o solicitar la compra de una unidad y Portfolio puede rechazar o aprobar el riesgo. La compra solo se ejecuta cuando los tres agentes eligen la acción favorable y el candidato cumple los límites.
+En la versión implementada, Scout puede ignorar o marcar una oportunidad. Trader puede mantener, solicitar la compra de una unidad o solicitar la venta de una posición desbloqueada del artículo observado. Portfolio rechaza o aprueba la operación según las restricciones de cartera. Una compra requiere el acuerdo de los tres roles. Una venta requiere la solicitud de Trader, la aprobación de Portfolio, una posición abierta del mismo artículo y el fin del \textit{trade hold}.
 
 \begin{algorithm}[H]
 \caption{Decisión cooperativa}
@@ -80,6 +80,8 @@ En la versión implementada, Scout puede ignorar o marcar una oportunidad, Trade
 \State $a_t^{P} \gets \pi_P(o_t^{P},m_t^{P})$
 \If{$a_t^{S}=\textit{marcar}$ \textbf{and} $a_t^{T}=\textit{comprar}$ \textbf{and} $a_t^{P}=\textit{aprobar}$ \textbf{and} $c_t$ cumple los límites}
   \State Abrir una posición simulada y bloquear su capital
+\ElsIf{$a_t^{T}=\textit{vender}$ \textbf{and} $a_t^{P}=\textit{aprobar}$ \textbf{and} existe una posición desbloqueada de $c_t$}
+  \State Cerrar una posición simulada y abonar su importe neto
 \Else
   \State Mantener el saldo y registrar el motivo de no ejecución
 \EndIf
@@ -88,9 +90,7 @@ En la versión implementada, Scout puede ignorar o marcar una oportunidad, Trade
 \end{algorithmic}
 \end{algorithm}
 
-Las tres primeras líneas recogen la acción propuesta por cada política: Scout marca o ignora, Trader mantiene o solicita la compra y Portfolio aprueba o rechaza el riesgo. Las variables $m_t^T$ y $m_t^P$ incorporan las métricas de mercado y cartera que necesita cada rol para decidir.
-
-\newpage
+Las tres primeras líneas recogen la acción propuesta por cada política: Scout marca o ignora, Trader mantiene, compra o solicita una venta y Portfolio aprueba o rechaza el riesgo. Las variables $m_t^T$ y $m_t^P$ incorporan las métricas de mercado y cartera que necesita cada rol para decidir. En una venta, Scout no necesita emitir una marca nueva porque la posición ya forma parte de la cartera.
 \subsection{Transición del entorno}
 
 Cuando se ejecuta una compra simulada, el saldo disponible disminuye y se abre una posición. Esa posición queda bloqueada durante el periodo de \textit{trade hold}. Mientras está bloqueada no puede venderse, pero sí afecta a la exposición y al capital inmovilizado. Cuando se ejecuta una venta simulada, el simulador calcula el ingreso neto aplicando comisiones, conversión de moneda y reglas de valoración. El estado de cartera se actualiza después de cada paso.
@@ -141,7 +141,19 @@ Las señales individuales pueden ayudar a entrenar comportamientos especializado
 
 \subsection{Recompensa cooperativa}
 
-La recompensa cooperativa se vincula al valor total de la cartera simulada. Debe considerar beneficio realizado, valoración de posiciones abiertas, capital bloqueado, drawdown, operaciones rechazadas por riesgo y costes de transacción, en línea con el tratamiento conjunto de rentabilidad y riesgo de la teoría de carteras \cite{markowitz1952portfolio}. En la implementación actual, el entorno \acroref{MARL}{MARL} ya expone métricas como recompensa media, operaciones, efectivo, beneficio realizado, drawdown, capital bloqueado y posiciones abiertas.
+La recompensa cooperativa se vincula al valor total de la cartera simulada. Considera beneficio realizado, retorno de la operación ejecutada, inactividad ante una oportunidad permitida, restricciones de riesgo, \textit{drawdown}, capital bloqueado y volatilidad. La expresión implementada es:
+
+\[
+r_t = \frac{\Delta \Pi_t}{100}
++ \rho_t\mathbb{I}_{\mathrm{operacion}}
+- 0{,}01\mathbb{I}_{\mathrm{oportunidad\ ignorada}}
+- 0{,}05v_t
+- 0{,}50DD_t
+- 0{,}05B_t
+- 0{,}10\sigma_t\mathbb{I}_{\mathrm{compra}}.
+\]
+
+Aquí, $\Delta \Pi_t$ es el cambio en beneficio realizado en euros, $\rho_t$ es el retorno de la compra o venta ejecutada, $v_t$ cuenta las restricciones incumplidas, $DD_t$ es el \textit{drawdown} relativo, $B_t$ es la fracción de cartera bloqueada y $\sigma_t$ representa la volatilidad disponible para el candidato. El divisor 100 evita que una ganancia expresada en euros domine al resto de términos. La misma recompensa se asigna a Scout, Trader y Portfolio, es decir, $r_t^S=r_t^T=r_t^P=r_t$, para que los tres roles persigan el estado global de la cartera.
 
 \section{Restricciones de riesgo}
 
