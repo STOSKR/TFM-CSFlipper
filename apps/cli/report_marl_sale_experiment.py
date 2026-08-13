@@ -11,38 +11,45 @@ from apps.cli.run_marl_episode import run
 
 
 def build_report(args: argparse.Namespace) -> dict[str, Any]:
-    policies = ("hold", "buy-positive", "buy-and-sell")
-    runs = {
-        policy: run(
-            argparse.Namespace(
-                dataset_dir=args.dataset_dir,
-                split=args.split,
-                limit=args.limit,
-                cash=args.cash,
-                policy=policy,
-                supervised_probability=args.supervised_probability,
-            )
+    result = run(
+        argparse.Namespace(
+            dataset_dir=None,
+            split="test",
+            limit=2,
+            cash=args.cash,
+            policy="buy-and-sell",
+            supervised_probability=args.supervised_probability,
         )
-        for policy in policies
-    }
+    )
+    position = result["positions"][0]
     return {
-        "experiment": "marl_buy_hold_sell_functional",
-        "dataset_dir": None if args.dataset_dir is None else str(args.dataset_dir),
-        "split": args.split,
-        "limit": args.limit,
+        "experiment": "marl_buy_hold_sell_controlled_cycle",
+        "purpose": (
+            "Functional evidence of a simulated purchase, eight-day trade hold and sale. "
+            "It is not a comparison of investment strategies."
+        ),
         "initial_cash_eur": args.cash,
         "supervised_probability": args.supervised_probability,
-        "policies": {policy: _summary(result) for policy, result in runs.items()},
+        "cycle": {
+            "item_name": position["item_name"],
+            "buy_date": position["purchased_at"],
+            "unlock_date": position["unlock_at"],
+            "sell_date": position["sold_at"],
+            "buy_price_eur": position["buy_price_eur"],
+            "net_sale_value_eur": position["net_sale_value_eur"],
+            "realized_profit_eur": position["realized_profit_eur"],
+            "purchases": _summary(result)["purchases"],
+            "sales": _summary(result)["sales"],
+            "cash_available_eur": result["cash_available_eur"],
+            **result["portfolio"],
+        },
     }
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Compare hold, buy-only and buy-hold-sell MARL baseline policies."
+        description="Generate a controlled MARL buy-hold-sell functional report."
     )
-    parser.add_argument("--dataset-dir", type=Path)
-    parser.add_argument("--split", default="test")
-    parser.add_argument("--limit", type=int, default=95)
     parser.add_argument("--cash", type=float, default=1000.0)
     parser.add_argument(
         "--supervised-probability",
@@ -65,15 +72,13 @@ def main() -> None:
     print(rendered)
 
 
-def _summary(result: dict[str, Any]) -> dict[str, Any]:
+def _summary(result: dict[str, Any]) -> dict[str, int]:
     trace = result["trace"][1:]
     purchases = sum(step["infos"]["trader"]["executed_buy"] for step in trace)
     sales = sum(step["infos"]["trader"]["executed_sale"] for step in trace)
     return {
         "purchases": purchases,
         "sales": sales,
-        "cash_available_eur": result["cash_available_eur"],
-        **result["portfolio"],
     }
 
 

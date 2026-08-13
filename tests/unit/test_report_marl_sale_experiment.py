@@ -3,19 +3,16 @@ import argparse
 from apps.cli.report_marl_sale_experiment import build_report
 
 
-def test_marl_sale_report_compares_all_baselines() -> None:
+def test_marl_sale_report_describes_one_controlled_cycle() -> None:
     report = build_report(
         argparse.Namespace(
-            dataset_dir=None,
-            split="test",
-            limit=95,
             cash=100.0,
             supervised_probability=True,
         )
     )
 
-    assert report["experiment"] == "marl_buy_hold_sell_functional"
-    assert report["policies"]["hold"]["purchases"] == 0
-    assert report["policies"]["buy-positive"]["purchases"] == 2
-    assert report["policies"]["buy-and-sell"]["sales"] == 1
-    assert report["policies"]["buy-and-sell"]["realized_profit_eur"] == 2.18
+    assert report["experiment"] == "marl_buy_hold_sell_controlled_cycle"
+    assert report["cycle"]["purchases"] == 1
+    assert report["cycle"]["sales"] == 1
+    assert report["cycle"]["unlock_date"] == "2026-01-09"
+    assert report["cycle"]["realized_profit_eur"] == 2.18

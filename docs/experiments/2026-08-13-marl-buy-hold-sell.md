@@ -46,24 +46,23 @@ valor neto de salida es 12,18 EUR.
 La prueba automatizada comprueba el bloqueo, la habilitación de la venta, el
 beneficio, el efectivo final y el identificador de la posición cerrada.
 
-## Comparación funcional en el corte de marzo
+## Resultado funcional
 
-Se ejecutaron tres reglas deterministas sobre las 95 observaciones de prueba
-del corte temporal de marzo. El capital inicial fue 1.000 EUR. La finalidad es
-verificar el ciclo de cartera completo, no comparar estrategias entrenadas ni
-estimar rendimiento fuera de esta muestra.
+El informe no compara reglas de inversión. Una regla que vende puede reutilizar
+el efectivo y abrir más posiciones que otra que lo mantiene bloqueado, por lo
+que sus compras no parten de las mismas condiciones. Esa comparación sería
+engañosa.
 
-| Regla | Compras | Ventas | Posiciones cerradas | Efectivo final | Beneficio realizado |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| Mantener | 0 | 0 | 0 | 1.000,00 EUR | 0,00 EUR |
-| Comprar si el margen es positivo | 13 | 0 | 0 | 309,64 EUR | 0,00 EUR |
-| Comprar, esperar y vender | 24 | 19 | 19 | 888,99 EUR | 195,59 EUR |
+En su lugar, el resultado reproducible describe un único ciclo controlado:
 
-La segunda regla deja posiciones abiertas y, por ello, no materializa
-beneficio. La tercera cierra 19 posiciones que ya han superado el bloqueo. Al
-final conserva cinco posiciones abiertas con 306,60 EUR de capital bloqueado.
-La cifra de beneficio solo describe este recorrido histórico y esta regla
-determinista. No se presenta como resultado de aprendizaje por refuerzo.
+| Capital inicial | Compra | Desbloqueo | Venta neta | Beneficio | Capital final |
+| ---: | ---: | --- | ---: | ---: | ---: |
+| 100,00 EUR | 10,00 EUR | 09-01-2026 | 12,18 EUR | 2,18 EUR | 102,18 EUR |
+
+La tabla demuestra que la posición no se puede cerrar antes de la fecha de
+desbloqueo y que, al vender, se aplican la comisión de Steam y el abono del
+importe neto a la cartera. No mide la calidad de una estrategia ni la
+rentabilidad de PPO.
 
 ## Reproducción
 
@@ -75,8 +74,7 @@ python -m pytest tests/unit/test_market_marl_env.py `
   tests/unit/test_report_marl_sale_experiment.py -q
 
 python -m apps.cli.report_marl_sale_experiment `
-  --dataset-dir data/experiments/walkforward_20260810/march `
-  --split test --limit 95 --cash 1000 `
+  --cash 100 `
   --output data/experiments/marl_sale_20260813/report.json
 ```
 
