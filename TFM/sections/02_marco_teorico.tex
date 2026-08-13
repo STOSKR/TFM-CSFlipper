@@ -51,9 +51,17 @@ La política es la regla que transforma observaciones en acciones. El retorno mi
 
 La exploración permite probar acciones que todavía no se conocen bien. En un mercado de activos digitales con costes y restricciones, esta idea debe aplicarse con cuidado. En el \acroref{TFM}{TFM}, la exploración se realiza en simulación, no con capital. Esta separación permite probar políticas y recompensas sin trasladar errores del entrenamiento al mercado.
 
+\subsection{Agentes y sistemas multiagente}
+
+En inteligencia artificial, un agente es un componente que observa una parte de su entorno, elige una acción y persigue un objetivo. No tiene por qué ser una persona ni un robot. En aprendizaje por refuerzo, el agente recibe una observación $o_t$, aplica una política y elige una acción $a_t$. Después recibe una recompensa que le permite ajustar su comportamiento en episodios posteriores \cite{sutton2018reinforcement}.
+
+Un sistema multiagente reúne dos o más agentes que actúan sobre un mismo entorno. Pueden colaborar, competir o tomar decisiones independientes. En un sistema cooperativo comparten un objetivo global, aunque cada uno disponga de información y responsabilidades distintas \cite{wooldridge2009multiagent,busoniu2008comprehensive}. Esta división no equivale solo a separar el código en módulos. Para considerarlo multiagente, cada rol debe tener observaciones, acciones y una política de decisión propias.
+
+En esta memoria se adopta un sistema cooperativo de tres roles. Scout observa las oportunidades de mercado y decide si merecen atención. Trader propone mantener, comprar o vender. Portfolio observa el estado de la cartera y aprueba o rechaza operaciones según saldo, exposición y restricciones. Los tres roles se coordinan mediante una recompensa compartida y el simulador conserva el resultado conjunto de sus decisiones.
+
 \section{Aprendizaje por refuerzo multiagente}
 
-El aprendizaje por refuerzo multiagente extiende la formulación anterior a varios agentes que interactúan dentro de un mismo entorno. Esta ampliación introduce dificultades nuevas: cada agente aprende mientras los demás también cambian, por lo que el entorno puede volverse no estacionario desde el punto de vista individual. Lowe et al. señalan este problema y proponen entrenar agentes con información adicional durante el entrenamiento para mejorar la coordinación mediante \acroref{MADDPG}{MADDPG} \cite{lowe2017maddpg}.
+El aprendizaje por refuerzo multiagente extiende la formulación anterior a los sistemas formados por varios agentes. Esta ampliación introduce dificultades nuevas: cada agente aprende mientras los demás también cambian, por lo que el entorno puede volverse no estacionario desde el punto de vista individual. Lowe et al. señalan este problema y proponen entrenar agentes con información adicional durante el entrenamiento para mejorar la coordinación mediante \acroref{MADDPG}{MADDPG} \cite{lowe2017maddpg}.
 
 La decisión de cartera mezcla tareas de naturaleza distinta: detectar oportunidades, ejecutar acciones concretas y controlar exposición global. Separar estas responsabilidades permite que cada agente trabaje con un punto de vista más acotado, siempre que la recompensa cooperativa mantenga alineado el objetivo común.
 
