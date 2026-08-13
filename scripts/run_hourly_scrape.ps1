@@ -1,5 +1,6 @@
 param(
-    [switch]$ShowBrowser
+    [switch]$ShowBrowser,
+    [switch]$EnableBuff
 )
 
 $ErrorActionPreference = "Stop"
@@ -7,11 +8,7 @@ $projectRoot = Split-Path -Parent $PSScriptRoot
 $logDirectory = Join-Path $projectRoot "data\logs"
 $buffSessionPath = Join-Path $projectRoot "data\browser-state\buff_storage_state.json"
 New-Item -ItemType Directory -Force -Path $logDirectory | Out-Null
-
-if (-not (Test-Path $buffSessionPath)) {
-    Write-Output "scrape_schedule=skipped reason=buff_session_missing"
-    exit 0
-}
+$buffAvailable = $EnableBuff -and (Test-Path $buffSessionPath)
 
 $mutex = New-Object System.Threading.Mutex($false, "Local\CSFlipperHourlyScrape")
 if (-not $mutex.WaitOne(0)) {
@@ -35,15 +32,19 @@ try {
         "--refresh-limit",
         "25",
         "--persist",
-        "--steam",
-        "--buff",
-        "--refresh-buff"
+        "--steam"
     )
+    if ($buffAvailable) {
+        $arguments += "--buff", "--refresh-buff"
+    }
+    else {
+        $arguments += "--no-buff", "--no-refresh-buff"
+    }
     if ($ShowBrowser) {
         $arguments += "--show-browser"
     }
 
-    "scrape_schedule=started at=$(Get-Date -Format o)" | Tee-Object -FilePath $logPath
+    "scrape_schedule=started at=$(Get-Date -Format o) buff_enabled=$buffAvailable" | Tee-Object -FilePath $logPath
     & python @arguments 2>&1 | Tee-Object -FilePath $logPath -Append
     exit $LASTEXITCODE
 }
