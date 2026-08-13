@@ -1,25 +1,18 @@
-% Datos de portada: sustituir únicamente el texto entre corchetes.
-\newcommand{\UniversidadTFM}{[NOMBRE DE LA UNIVERSIDAD]}
-\newcommand{\CentroTFM}{[ESCUELA O FACULTAD]}
-\newcommand{\DepartamentoTFM}{[DEPARTAMENTO O ÁREA]}
-\newcommand{\MasterTFM}{Máster Universitario en [NOMBRE DEL MÁSTER]}
-\newcommand{\AutorTFM}{[NOMBRE Y APELLIDOS]}
-\newcommand{\TutorTFM}{[NOMBRE Y APELLIDOS DEL TUTOR/A]}
+\newcommand{\UniversidadTFM}{UNIVERSIDAD POLITÉCNICA DE VALENCIA}
+\newcommand{\CentroTFM}{Escuela Técnica Superior de Ingeniería Informática}
+\newcommand{\DepartamentoTFM}{Departamento de Sistemas Informáticos y Computación}
+\newcommand{\MasterTFM}{Máster Universitario en Inteligencia Artificial, Reconocimiento de Formas e Imagen Digital}
+\newcommand{\AutorTFM}{Shiyi Cheng}
+\newcommand{\TutorTFM}{Eva Onaindia de la Rivaherrera}
 \newcommand{\CursoTFM}{Curso 2025--2026}
-\newcommand{\LogoInstitucionTFM}{assets/logo_universidad.png}
+\newcommand{\LogoInstitucionTFM}{figures/escudo_UPV_vertical.png}
 
 \begin{titlepage}
 \thispagestyle{empty}
-\centering
 
-\vspace*{1.25cm}
-\IfFileExists{\LogoInstitucionTFM}{%
-  \includegraphics[height=2.25cm]{\LogoInstitucionTFM}%
-}{%
-  \fcolorbox{tfmAccent}{tfmSoft}{%
-    \parbox[c][2.25cm][c]{5.2cm}{\centering\color{tfmAccent}\bfseries LOGOTIPO\\\footnotesize Universidad}%
-  }%
-}
+
+\centering
+\includegraphics[height=4.5cm]{\LogoInstitucionTFM}
 
 \vspace{0.7cm}
 {\Large\bfseries \UniversidadTFM\par}
@@ -45,14 +38,14 @@
 
 \begin{minipage}[t]{0.42\textwidth}
 \raggedright
-\textcolor{tfmMuted}{\small Autor/a}\par
+\textcolor{tfmMuted}{\small Autor}\par
 \vspace{0.15cm}
 \textbf{\AutorTFM}
 \end{minipage}
 \hfill
 \begin{minipage}[t]{0.42\textwidth}
 \raggedleft
-\textcolor{tfmMuted}{\small Tutor/a}\par
+\textcolor{tfmMuted}{\small Tutora}\par
 \vspace{0.15cm}
 \textbf{\TutorTFM}
 \end{minipage}
