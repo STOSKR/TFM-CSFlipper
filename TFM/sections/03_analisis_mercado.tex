@@ -1,0 +1,51 @@
+\chapter{Análisis del mercado de activos digitales en videojuegos}
+
+\noindent Este capítulo define los conceptos de dominio que utiliza el sistema. El objetivo es que la propuesta pueda entenderse sin conocer previamente videojuegos, Steam o el mercado de \textit{Counter-Strike 2}. Tras presentar los tipos de activo, las plataformas y los indicadores de mercado, se concreta el caso de estudio empleado en el resto de la memoria.
+
+\section{Activos virtuales y clasificación}
+
+Un \emph{activo virtual} es un elemento digital asociado a una cuenta o a un videojuego. Puede aportar una función dentro de la partida, modificar la apariencia de un elemento o tener interés por su disponibilidad limitada. Un mismo objeto puede pertenecer a varias categorías, por lo que la clasificación se utiliza para describirlo y no para asignarle un valor fijo.
+
+\begin{table}[h]
+\centering
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{0.27\textwidth} >{\raggedright\arraybackslash}X}
+\toprule
+Tipo & Característica principal \\
+\midrule
+Funcional & Modifica una capacidad, acceso o progreso dentro del juego. \\
+Cosmético & Cambia la apariencia sin alterar las reglas de juego. \\
+Coleccionable & Su interés depende de la serie, la escasez o la demanda de la comunidad. \\
+Consumible & Se utiliza o transforma durante el juego y puede desaparecer. \\
+\bottomrule
+\end{tabularx}
+\caption{Tipos de activos virtuales.}
+\label{tab:tipos-activos}
+\end{table}
+
+La identificación de un activo requiere algo más que su nombre. En los mercados de videojuegos son habituales atributos como categoría, colección, rareza, condición y variante. Estos atributos permiten distinguir objetos que parecen similares, pero que se intercambian como referencias diferentes. El sistema conserva esos campos para evitar comparar precios de variantes no equivalentes.
+
+\section{Mercado digital y plataformas}
+
+Un \emph{mercado digital} es el entorno donde se publican, consultan y aceptan intercambios de activos. Una \emph{plataforma de distribución digital} ofrece además acceso al juego, a la cuenta y, en algunos casos, al inventario de la persona usuaria. No todas las plataformas cumplen el mismo papel. Algunas gestionan el inventario y el intercambio oficial, mientras otras muestran precios, facilitan la comparación o permiten publicar ofertas con reglas propias.
+
+El \emph{inventario Steam} es el conjunto de activos vinculados a una cuenta de Steam. Cuando un artículo puede intercambiarse, el inventario actúa como punto de partida para publicarlo o transferirlo según las reglas de la plataforma. Esto diferencia un activo disponible para intercambiar de otro que existe dentro del juego, pero no puede salir de él.
+
+Las plataformas emplean dos mecanismos básicos para organizar el intercambio. Un \emph{anuncio de venta} indica que alguien ofrece un artículo a un precio determinado. Una \emph{orden de compra} o \textit{buy order} indica el precio máximo que otra persona está dispuesta a pagar. Steam describe las órdenes de compra como una referencia que permite decidir entre vender de inmediato a un precio menor o esperar una venta a un precio superior \cite{steamMarketFAQ}. Esta diferencia resulta relevante porque el precio visible no siempre coincide con el precio al que puede ejecutarse una operación.
+
+\section{Precio, liquidez y fricciones}
+
+El \emph{precio de mercado} es el valor observado para una variante de activo en una plataforma y en un momento concreto. Por sí solo no representa el resultado de una operación. El sistema debe considerar las comisiones, la moneda, el precio de entrada, el precio neto de salida y las restricciones temporales. La diferencia entre el mejor precio de venta y la mejor orden de compra se denomina \emph{spread}. Un spread amplio puede reflejar una oportunidad, pero también falta de liquidez o incertidumbre sobre el precio ejecutable.
+
+La \emph{liquidez} expresa la facilidad con la que un activo puede comprarse o venderse sin esperar demasiado ni modificar de forma apreciable el precio esperado. En este trabajo se aproxima mediante volumen, número de anuncios y órdenes de compra disponibles. Cuando la liquidez es baja, el capital puede permanecer inmovilizado y el margen calculado pierde utilidad.
+
+También existen fricciones específicas de cada plataforma. Las comisiones reducen el ingreso neto, la conversión de divisa puede variar y algunas operaciones aplican un \textit{trade hold}. Este último es un periodo durante el cual un artículo adquirido no puede transferirse o venderse. Por tanto, la decisión no consiste solo en comparar dos precios. Debe estimar si el margen puede mantenerse durante el tiempo necesario para cerrar la posición.
+
+\section{Caso de estudio: Counter-Strike 2}
+
+\textit{Counter-Strike 2} se utiliza como caso de estudio porque reúne activos cosméticos con múltiples variantes, un inventario integrado en Steam y fuentes de precio con formatos distintos. Estas condiciones permiten evaluar la propuesta sobre un mercado donde la normalización del artículo, las comisiones, la liquidez y el bloqueo temporal afectan de forma directa a una decisión.
+
+Los objetos más relevantes son \emph{skins}, guantes, cuchillos, pegatinas y cajas. Una \emph{skin} modifica el aspecto visual de un arma. Su valor puede depender de la categoría, la colección, la rareza y la condición. El \emph{float} es el valor numérico que representa el desgaste de una skin. StatTrak identifica una variante que incorpora un contador de víctimas obtenidas con el arma. Estos campos permiten diferenciar variantes que comparten nombre, pero no precio ni demanda.
+
+Steam aporta inventario, anuncios, órdenes de compra e histórico cuando está disponible. \acroref{BUFF}{BUFF} se utiliza como fuente externa de comparación de precios y profundidad de mercado. SteamDT sirve para localizar artículos que conviene analizar con más detalle. Ninguna de estas fuentes se toma como verdad única. El sistema conserva su origen, fecha, moneda y calidad para que una comparación posterior pueda reconstruirse y revisarse.
+
+La ruta de interés del proyecto es comprar en \acroref{BUFF}{BUFF} y estimar una salida posterior en Steam. Por esta razón, la comparación incorpora conversión de moneda, comisión de venta de Steam, liquidez, órdenes de compra y bloqueo temporal. El resto de capítulos describe cómo estas condiciones se convierten en datos, señales y decisiones simuladas.
