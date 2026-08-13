@@ -76,7 +76,14 @@ r_t^i=R_{\mathrm{cartera},t}
 
 En esta expresión, $N$ es el número de agentes, que en el prototipo es tres. El vector $\mathbf{o}_t$ reúne las observaciones de Scout, Trader y Portfolio en el instante $t$, mientras que $\mathbf{a}_t$ reúne las acciones que han propuesto. El valor $r_t^i$ es la recompensa que recibe el agente $i$. Como todos los valores $r_t^i$ se igualan a $R_{\mathrm{cartera},t}$, los tres agentes reciben el mismo resultado en cada paso.
 
-$R_{\mathrm{cartera},t}$ es un valor único calculado con el beneficio realizado, el retorno de una operación ejecutada y penalizaciones por inactividad, límites de riesgo incumplidos, \textit{drawdown}, capital bloqueado y volatilidad. Un resultado favorable aumenta la recompensa, mientras que una compra que eleva el riesgo o inmoviliza demasiado capital la reduce. Esta elección mantiene a los agentes alineados con el mismo objetivo de cartera. Cada política recibe solo su observación $o_t^i$, mientras que el estado global se conserva para diagnóstico y para ampliar el entrenamiento con un crítico centralizado cuando sea necesario.
+\Needspace{13\baselineskip}
+$R_{\mathrm{cartera},t}$ es un valor único calculado con el beneficio realizado, el retorno de una operación ejecutada y penalizaciones por inactividad, límites de riesgo incumplidos, \textit{drawdown}, capital bloqueado y volatilidad. El \textit{drawdown}, también llamado caída máxima, mide cuánto ha bajado el valor de la cartera desde su máximo anterior. Si $V_t$ es el valor de la cartera en el instante $t$ y $M_t=\max_{\tau\leq t}V_\tau$ es el mayor valor alcanzado hasta ese momento, se calcula como:
+
+\[
+DD_t = \frac{M_t - V_t}{M_t}.
+\]
+
+Por ejemplo, si la cartera alcanza 1.000 EUR y después baja a 900 EUR, su \textit{drawdown} es del 10\%. Un resultado favorable aumenta la recompensa, mientras que una compra que eleva el riesgo o inmoviliza demasiado capital la reduce. Esta elección mantiene a los agentes alineados con el mismo objetivo de cartera. Cada política recibe solo su observación $o_t^i$, mientras que el estado global se conserva para diagnóstico y para ampliar el entrenamiento con un crítico centralizado cuando sea necesario.
 
 \subsection{Entrenamiento centralizado y ejecución descentralizada}
 
@@ -102,16 +109,7 @@ La gestión de una cartera no consiste solo en elegir activos con rentabilidad e
 
 \subsection{Rentabilidad y riesgo}
 
-En este \acroref{TFM}{TFM}, la rentabilidad se mide mediante beneficio neto, retorno porcentual, saldo final y evolución del valor de cartera. El riesgo se observa mediante \textit{drawdown} o caída máxima, capital bloqueado, exposición por activo o plataforma y operaciones rechazadas por restricciones. Estas métricas son más informativas que una simple precisión de predicción, porque conectan el modelo con el resultado económico simulado.
-
-\Needspace{10\baselineskip}
-El \textit{drawdown} mide cuánto ha caído el valor de la cartera desde su máximo anterior. Si $V_t$ es el valor de la cartera en el instante $t$ y $M_t=\max_{\tau\leq t}V_\tau$ es el mayor valor alcanzado hasta ese momento, se calcula como:
-
-\[
-DD_t = \frac{M_t - V_t}{M_t}.
-\]
-
-Por ejemplo, si una cartera alcanza 1.000 EUR y después baja a 900 EUR, su \textit{drawdown} es del 10\%. A diferencia de una pérdida de una operación aislada, esta medida refleja el retroceso acumulado de toda la cartera. Un valor cercano a cero indica que la cartera permanece próxima a su máximo reciente.
+En este \acroref{TFM}{TFM}, la rentabilidad se mide mediante beneficio neto, retorno porcentual, saldo final y evolución del valor de cartera. El riesgo se observa mediante \textit{drawdown}, capital bloqueado, exposición por activo o plataforma y operaciones rechazadas por restricciones. Estas métricas son más informativas que una simple precisión de predicción, porque conectan el modelo con el resultado económico simulado.
 
 El aprendizaje supervisado puede estimar una probabilidad útil, pero esa probabilidad no es una decisión. Una señal de subida o de spread rentable debe pasar por el simulador, por las comisiones, por la liquidez y por el estado de cartera. Esta separación evita que el sistema confunda predecir con invertir.
 
