@@ -1,0 +1,63 @@
+% Datos de portada: sustituir únicamente el texto entre corchetes.
+\newcommand{\UniversidadTFM}{[NOMBRE DE LA UNIVERSIDAD]}
+\newcommand{\CentroTFM}{[ESCUELA O FACULTAD]}
+\newcommand{\DepartamentoTFM}{[DEPARTAMENTO O ÁREA]}
+\newcommand{\MasterTFM}{Máster Universitario en [NOMBRE DEL MÁSTER]}
+\newcommand{\AutorTFM}{[NOMBRE Y APELLIDOS]}
+\newcommand{\TutorTFM}{[NOMBRE Y APELLIDOS DEL TUTOR/A]}
+\newcommand{\CursoTFM}{Curso 2025--2026}
+\newcommand{\LogoInstitucionTFM}{assets/logo_universidad.png}
+
+\begin{titlepage}
+\thispagestyle{empty}
+\centering
+
+\vspace*{1.25cm}
+\IfFileExists{\LogoInstitucionTFM}{%
+  \includegraphics[height=2.25cm]{\LogoInstitucionTFM}%
+}{%
+  \fcolorbox{tfmAccent}{tfmSoft}{%
+    \parbox[c][2.25cm][c]{5.2cm}{\centering\color{tfmAccent}\bfseries LOGOTIPO\\\footnotesize Universidad}%
+  }%
+}
+
+\vspace{0.7cm}
+{\Large\bfseries \UniversidadTFM\par}
+\vspace{0.15cm}
+{\large \CentroTFM\par}
+\vspace{0.1cm}
+{\normalsize \DepartamentoTFM\par}
+
+\vfill
+
+{\Large\bfseries Trabajo Fin de Máster\par}
+\vspace{0.65cm}
+{\color{tfmAccent}\rule{0.72\textwidth}{1.2pt}\par}
+\vspace{0.8cm}
+{\Huge\bfseries\parbox{0.86\textwidth}{\centering Arquitectura multiagente para la toma de decisiones en mercados de activos digitales}\par}
+\vspace{0.8cm}
+{\color{tfmAccent}\rule{0.72\textwidth}{1.2pt}\par}
+
+\vspace{1.4cm}
+{\large \MasterTFM\par}
+
+\vfill
+
+\begin{minipage}[t]{0.42\textwidth}
+\raggedright
+\textcolor{tfmMuted}{\small Autor/a}\par
+\vspace{0.15cm}
+\textbf{\AutorTFM}
+\end{minipage}
+\hfill
+\begin{minipage}[t]{0.42\textwidth}
+\raggedleft
+\textcolor{tfmMuted}{\small Tutor/a}\par
+\vspace{0.15cm}
+\textbf{\TutorTFM}
+\end{minipage}
+
+\vspace{1.15cm}
+{\large \CursoTFM\par}
+\vspace*{0.35cm}
+\end{titlepage}
