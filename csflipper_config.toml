@@ -55,8 +55,8 @@ batch_size = 10
 [delays]
 steam_min_seconds = 1.5
 steam_max_seconds = 4.0
-buff_min_seconds = 5.0
-buff_max_seconds = 10.0
+buff_min_seconds = 4.0
+buff_max_seconds = 7.0
 
 [risk]
 max_position_fraction = 0.20
