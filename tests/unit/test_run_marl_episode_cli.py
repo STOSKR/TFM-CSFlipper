@@ -16,24 +16,36 @@ def test_run_marl_episode_demo_buys_positive_route_only() -> None:
     )
 
     assert result["steps"] == 2
-    assert result["cash_available_eur"] == 90.0
-    assert result["positions"] == [
-        {
-            "position_id": "pos-1",
-            "item_id": "buff-to-steam",
-            "item_name": "AK-47 | Slate_FT_0",
-            "buy_platform": "BUFF",
-            "buy_price_eur": 10.0,
-            "purchased_at": "2026-01-01",
-            "unlock_at": "2026-01-09",
-        }
-    ]
+    assert result["cash_available_eur"] == 79.0
+    assert result["positions"][0]["item_id"] == "buff-to-steam"
+    assert result["positions"][0]["buy_platform"] == "BUFF"
+    assert result["positions"][0]["sold_at"] is None
     first_step = result["trace"][1]
     assert first_step["actions"] == {"scout": 1, "trader": 1, "portfolio": 1}
     assert first_step["infos"]["trader"]["buy_platform"] == "BUFF"
     assert first_step["infos"]["trader"]["buy_price_type"] == "listing"
     assert first_step["infos"]["trader"]["sell_platform"] == "STEAM"
     assert first_step["infos"]["trader"]["supervised_probability_enabled"] is True
+
+
+def test_run_marl_episode_demo_can_buy_then_sell_after_unlock() -> None:
+    result = run(
+        argparse.Namespace(
+            dataset_dir=None,
+            split="train",
+            limit=5,
+            cash=100.0,
+            policy="buy-and-sell",
+            supervised_probability=True,
+        )
+    )
+
+    assert result["cash_available_eur"] == 102.18
+    assert result["portfolio"]["realized_profit_eur"] == 2.18
+    assert result["portfolio"]["closed_positions"] == 1
+    assert result["positions"][0]["sold_at"] == "2026-01-09"
+    assert result["trace"][2]["actions"] == {"scout": 0, "trader": 2, "portfolio": 1}
+    assert result["trace"][2]["infos"]["trader"]["executed_sale"] is True
 
 
 def test_run_marl_episode_hold_policy_does_not_buy() -> None:

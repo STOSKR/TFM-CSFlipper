@@ -68,7 +68,8 @@ class RLLibMarketEnv(MultiAgentEnv):
             for agent_id in AGENT_IDS
         }
         self._action_spaces_by_agent: dict[str, spaces.Discrete[Any]] = {
-            agent_id: spaces.Discrete(2) for agent_id in AGENT_IDS
+            agent_id: spaces.Discrete(len(AGENT_SPECS[agent_id].action_space))
+            for agent_id in AGENT_IDS
         }
         self._central_state_space = spaces.Box(
             low=-np.inf,

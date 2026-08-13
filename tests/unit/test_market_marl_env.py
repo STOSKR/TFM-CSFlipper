@@ -38,6 +38,8 @@ def test_market_marl_agent_specs_define_local_contracts() -> None:
         "cash_destination_is_reinvest",
         "cash_destination_is_cashout",
         "cash_available_ratio",
+        "matching_sellable_positions",
+        "matching_locked_positions",
     )
 
 
@@ -85,7 +87,7 @@ def test_market_marl_env_reset_returns_agent_observations() -> None:
     assert infos["trader"]["central_state"]["current_return"] == 0.2
     assert env.central_state()["cash_available_ratio"] == 1.0
     assert env.central_state()["candidate_position_ratio"] == 0.01
-    assert infos["trader"]["action_mask"] == (1, 1)
+    assert infos["trader"]["action_mask"] == (1, 1, 0)
 
 
 def test_market_marl_env_executes_buy_when_all_agents_accept() -> None:
@@ -228,7 +230,7 @@ def test_market_marl_env_masks_buy_when_risk_rejects_candidate() -> None:
 
     assert env.action_masks() == {
         "scout": (1, 1),
-        "trader": (1, 0),
+        "trader": (1, 0, 0),
         "portfolio": (1, 0),
     }
     assert infos["portfolio"]["action_mask"] == (1, 0)
@@ -355,6 +357,49 @@ def test_market_marl_env_can_disable_supervised_probability_feature() -> None:
         assert infos[agent_id]["supervised_probability_available"] is False
 
 
+def test_market_marl_env_blocks_sale_until_trade_hold_ends() -> None:
+    env = MarketMARLEnvironment(_sale_episode(), initial_cash_eur=Decimal("100"))
+    _observations, _infos = env.reset()
+
+    observations, _rewards, _terminations, _truncations, _infos = env.step(
+        {"scout": 1, "trader": 1, "portfolio": 1}
+    )
+
+    assert observations["trader"]["matching_sellable_positions"] == 0.0
+    assert env.simulator.positions[0].unlock_at == date(2026, 1, 9)
+    assert env.action_masks()["trader"] == (1, 1, 0)
+
+
+def test_market_marl_env_sells_matching_position_after_trade_hold() -> None:
+    env = MarketMARLEnvironment(_sale_episode(), initial_cash_eur=Decimal("100"))
+    _observations, _infos = env.reset()
+    observations, _rewards, _terminations, _truncations, _infos = env.step(
+        {"scout": 1, "trader": 1, "portfolio": 1}
+    )
+
+    observations, _rewards, _terminations, _truncations, _infos = env.step(
+        {"scout": 0, "trader": 0, "portfolio": 0}
+    )
+
+    assert observations["trader"]["matching_sellable_positions"] == 1.0
+    assert env.action_masks()["trader"] == (1, 1, 1)
+
+    _observations, rewards, terminations, _truncations, infos = env.step(
+        {"scout": 0, "trader": 2, "portfolio": 1}
+    )
+
+    position = env.simulator.positions[0]
+    assert position.sold_at == date(2026, 1, 9)
+    assert position.net_sale_value_eur == Decimal("12.18")
+    assert position.realized_profit_eur == Decimal("2.18")
+    assert env.simulator.cash_available_eur == Decimal("102.18")
+    assert infos["trader"]["executed_buy"] is False
+    assert infos["trader"]["executed_sale"] is True
+    assert infos["trader"]["sold_position_id"] == "pos-1"
+    assert rewards["trader"] == pytest.approx(0.2398)
+    assert terminations["trader"] is True
+
+
 def test_market_marl_env_keeps_supervised_observation_shape_when_prediction_is_missing() -> None:
     env = MarketMARLEnvironment(
         (
@@ -401,5 +446,43 @@ def _episode() -> tuple[MarketEpisodeStep, ...]:
             current_return=Decimal("-0.05"),
             available_quantity=2,
             supervised_probability=Decimal("0.3"),
+        ),
+    )
+
+
+def _sale_episode() -> tuple[MarketEpisodeStep, ...]:
+    return (
+        MarketEpisodeStep(
+            item_id="item-1",
+            representation_name="AK-47 | Slate_FT_0",
+            observed_day=date(2026, 1, 1),
+            buy_platform=BUFF,
+            buy_price_eur=Decimal("10"),
+            current_exit_net_eur=Decimal("12"),
+            current_return=Decimal("0.2"),
+            steam_sell_price_eur=Decimal("12"),
+            available_quantity=3,
+        ),
+        MarketEpisodeStep(
+            item_id="item-1",
+            representation_name="AK-47 | Slate_FT_0",
+            observed_day=date(2026, 1, 2),
+            buy_platform=BUFF,
+            buy_price_eur=Decimal("10"),
+            current_exit_net_eur=Decimal("10.44"),
+            current_return=Decimal("0.044"),
+            current_exit_gross_price_eur=Decimal("12"),
+            available_quantity=3,
+        ),
+        MarketEpisodeStep(
+            item_id="item-1",
+            representation_name="AK-47 | Slate_FT_0",
+            observed_day=date(2026, 1, 9),
+            buy_platform=BUFF,
+            buy_price_eur=Decimal("11"),
+            current_exit_net_eur=Decimal("12.18"),
+            current_return=Decimal("0.1073"),
+            current_exit_gross_price_eur=Decimal("14"),
+            available_quantity=3,
         ),
     )

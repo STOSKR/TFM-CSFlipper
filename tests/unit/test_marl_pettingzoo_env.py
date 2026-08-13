@@ -36,7 +36,7 @@ def test_pettingzoo_market_env_runs_parallel_cycle() -> None:
     )
     assert env.state_space().shape == (len(MarketMARLEnvironment.central_state_fields),)
     assert env.state().shape == env.state_space().shape
-    assert env.action_space("trader").n == 2
+    assert env.action_space("trader").n == 3
     assert infos["scout"]["supervised_probability_available"] is True
 
     next_observations, rewards, terminations, truncations, step_infos = env.step(

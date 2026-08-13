@@ -88,7 +88,10 @@ AGENT_SPECS = {
     ),
     "trader": AgentSpec(
         agent_id="trader",
-        role="Decide mantener o comprar una unidad cuando Scout y Portfolio lo permiten.",
+        role=(
+            "Decide mantener, comprar una unidad o vender una posicion desbloqueada "
+            "del activo observado."
+        ),
         observation_fields=(
             "buy_platform_is_steam",
             "buy_platform_is_buff",
@@ -108,8 +111,10 @@ AGENT_SPECS = {
             "cash_destination_is_reinvest",
             "cash_destination_is_cashout",
             "cash_available_ratio",
+            "matching_sellable_positions",
+            "matching_locked_positions",
         ),
-        action_space={0: "hold", 1: "buy_one"},
+        action_space={0: "hold", 1: "buy_one", 2: "sell_matching"},
         executes_trades=True,
     ),
     "portfolio": AgentSpec(
@@ -124,6 +129,7 @@ AGENT_SPECS = {
             "supervised_probability_available",
             "violation_count",
             "warning_count",
+            "matching_sellable_positions",
         ),
         action_space={0: "reject", 1: "approve"},
         executes_trades=False,
@@ -155,6 +161,8 @@ CENTRAL_STATE_FIELDS = (
     "candidate_position_ratio",
     "violation_count",
     "warning_count",
+    "matching_sellable_positions",
+    "matching_locked_positions",
 )
 
 
@@ -174,6 +182,7 @@ class MarketEpisodeStep:
     cash_destination: str = CASH_DESTINATION_REINVEST
     current_cash_value_eur: Decimal | None = None
     current_cash_return: Decimal | None = None
+    current_exit_gross_price_eur: Decimal | None = None
     steam_sell_price_eur: Decimal | None = None
     buff_buy_order_price_eur: Decimal | None = None
     available_quantity: int | None = None
@@ -211,6 +220,9 @@ class MarketEpisodeStep:
                 if current_cash_value_eur is not None
                 else None
             ),
+            current_exit_gross_price_eur=_optional_decimal(
+                row.get("current_exit_gross_price_eur")
+            ),
             steam_sell_price_eur=_optional_decimal(row.get("steam_sell_price_eur")),
             buff_buy_order_price_eur=_optional_decimal(row.get("buff_buy_order_price_eur")),
             available_quantity=_optional_int(row.get("available_quantity")),
@@ -229,6 +241,17 @@ class MarketEpisodeStep:
     @property
     def exit_balance_platform(self) -> str:
         return self.sell_platform
+
+    def exit_gross_price_eur(self) -> Decimal | None:
+        """Observed gross exit price used when the policy closes a position."""
+
+        if self.current_exit_gross_price_eur is not None:
+            return self.current_exit_gross_price_eur
+        if self.sell_platform == STEAM:
+            return self.steam_sell_price_eur
+        if self.sell_platform == BUFF:
+            return self.buff_buy_order_price_eur
+        return None
 
 
 class MarketMARLEnvironment:
@@ -289,11 +312,21 @@ class MarketMARLEnvironment:
             config=self._risk_config,
             candidate=candidate,
         )
-        action_masks = _action_masks_from_allowed(risk.candidate_allowed)
+        sellable_positions = self._matching_sellable_positions(current)
+        sale_price_eur = current.exit_gross_price_eur()
+        sale_allowed = bool(sellable_positions and sale_price_eur is not None)
+        action_masks = _action_masks(
+            buy_allowed=risk.candidate_allowed,
+            sale_allowed=sale_allowed,
+        )
         wanted_buy = _wants_buy(normalized_actions)
-        executed_trade = wanted_buy and risk.candidate_allowed
+        wanted_sale = _wants_sale(normalized_actions)
+        executed_buy = wanted_buy and risk.candidate_allowed
+        executed_sale = False
+        sold_position_id: str | None = None
         before_metrics = self._simulator.metrics(as_of=current.observed_day)
-        if executed_trade:
+        execution_return: Decimal | None = None
+        if executed_buy:
             self._simulator.buy(
                 item_id=current.item_id,
                 item_name=current.representation_name,
@@ -309,6 +342,20 @@ class MarketMARLEnvironment:
                     "cash_destination": current.cash_destination,
                 },
             )
+            execution_return = current.current_return
+        elif wanted_sale and sale_allowed and sale_price_eur is not None:
+            closed_position = self._simulator.sell(
+                sellable_positions[0].position_id,
+                sold_at=current.observed_day,
+                sell_platform=current.sell_platform,
+                sell_price=sale_price_eur,
+                sell_currency="EUR",
+                available_quantity=current.available_quantity,
+            )
+            executed_sale = True
+            sold_position_id = closed_position.position_id
+            execution_return = closed_position.realized_return
+        executed_trade = executed_buy or executed_sale
         after_metrics = self._simulator.metrics(as_of=current.observed_day)
         reward_breakdown = calculate_cooperative_reward(
             before_metrics=before_metrics,
@@ -316,8 +363,8 @@ class MarketMARLEnvironment:
             executed_trade=executed_trade,
             opportunity_available=current.current_return > 0 and risk.candidate_allowed,
             risk_violations=risk.violations if wanted_buy else (),
-            opportunity_return=current.current_return,
-            candidate_volatility=current.volatility if executed_trade else None,
+            opportunity_return=execution_return,
+            candidate_volatility=current.volatility if executed_buy else None,
             config=self._reward_config,
         )
 
@@ -331,6 +378,10 @@ class MarketMARLEnvironment:
             step=current,
             action_masks=action_masks,
             executed_trade=executed_trade,
+            executed_buy=executed_buy,
+            executed_sale=executed_sale,
+            sold_position_id=sold_position_id,
+            matching_sellable_positions=len(sellable_positions),
             reward=reward_breakdown.total,
             reward_breakdown=reward_breakdown,
             risk_violations=risk.violations,
@@ -350,8 +401,11 @@ class MarketMARLEnvironment:
             config=self._risk_config,
             candidate=_risk_candidate(current),
         )
-        candidate_allowed = int(risk.candidate_allowed)
-        return _action_masks_from_allowed(bool(candidate_allowed))
+        sellable_positions = self._matching_sellable_positions(current)
+        return _action_masks(
+            buy_allowed=risk.candidate_allowed,
+            sale_allowed=bool(sellable_positions and current.exit_gross_price_eur() is not None),
+        )
 
     def central_state(self) -> CentralStateMap:
         if self._terminated:
@@ -361,11 +415,13 @@ class MarketMARLEnvironment:
     def _observations(self) -> ObservationMap:
         current = self._current_step()
         risk = self._risk_snapshot(current)
+        position_state = self._position_state_for(current)
         features = _state_features(
             current,
             risk_observation=risk.observation,
             config=self._simulator.config,
             include_supervised_probability=self._include_supervised_probability,
+            position_state=position_state,
         )
         return {
             "scout": {
@@ -388,6 +444,10 @@ class MarketMARLEnvironment:
         step: MarketEpisodeStep | None = None,
         action_masks: ActionMaskMap | None = None,
         executed_trade: bool,
+        executed_buy: bool = False,
+        executed_sale: bool = False,
+        sold_position_id: str | None = None,
+        matching_sellable_positions: int = 0,
         reward: Decimal = Decimal("0"),
         reward_breakdown: CooperativeRewardBreakdown | None = None,
         risk_violations: tuple[str, ...] = (),
@@ -418,6 +478,10 @@ class MarketMARLEnvironment:
             ),
             "supervised_model_version": resolved_step.supervised_model_version,
             "executed_trade": executed_trade,
+            "executed_buy": executed_buy,
+            "executed_sale": executed_sale,
+            "sold_position_id": sold_position_id,
+            "matching_sellable_positions": matching_sellable_positions,
             "reward": float(reward),
             "reward_breakdown": reward_info(reward_breakdown or EMPTY_REWARD_BREAKDOWN),
             "risk_violations": risk_violations,
@@ -441,13 +505,38 @@ class MarketMARLEnvironment:
             candidate=_risk_candidate(step),
         )
 
+    def _matching_sellable_positions(self, step: MarketEpisodeStep) -> tuple[Any, ...]:
+        return tuple(
+            position
+            for position in self._simulator.positions
+            if (
+                position.item_id == step.item_id
+                and not position.is_closed
+                and position.unlock_at <= step.observed_day
+            )
+        )
+
+    def _position_state_for(self, step: MarketEpisodeStep) -> dict[str, float]:
+        matching_positions = tuple(
+            position
+            for position in self._simulator.positions
+            if position.item_id == step.item_id and not position.is_closed
+        )
+        sellable = sum(position.unlock_at <= step.observed_day for position in matching_positions)
+        return {
+            "matching_sellable_positions": float(sellable),
+            "matching_locked_positions": float(len(matching_positions) - sellable),
+        }
+
     def _central_state_for(self, step: MarketEpisodeStep) -> CentralStateMap:
         risk = self._risk_snapshot(step)
+        position_state = self._position_state_for(step)
         features = _state_features(
             step,
             risk_observation=risk.observation,
             config=self._simulator.config,
             include_supervised_probability=self._include_supervised_probability,
+            position_state=position_state,
         )
         return {
             key: features[key]
@@ -463,12 +552,17 @@ def _wants_buy(actions: ActionMap) -> bool:
     )
 
 
-def _action_masks_from_allowed(candidate_allowed: bool) -> ActionMaskMap:
-    buy_allowed = int(candidate_allowed)
+def _wants_sale(actions: ActionMap) -> bool:
+    return actions.get("trader", 0) == 2 and actions.get("portfolio", 0) == 1
+
+
+def _action_masks(*, buy_allowed: bool, sale_allowed: bool) -> ActionMaskMap:
+    buy = int(buy_allowed)
+    sale = int(sale_allowed)
     return {
         "scout": (1, 1),
-        "trader": (1, buy_allowed),
-        "portfolio": (1, buy_allowed),
+        "trader": (1, buy, sale),
+        "portfolio": (1, int(buy_allowed or sale_allowed)),
     }
 
 
@@ -504,6 +598,7 @@ def _state_features(
     risk_observation: Mapping[str, Decimal],
     config: MarketEconomicsConfig,
     include_supervised_probability: bool,
+    position_state: Mapping[str, float],
 ) -> dict[str, float]:
     features = {
         "buy_price_eur": _float(step.buy_price_eur),
@@ -549,6 +644,8 @@ def _state_features(
             step,
             include_supervised_probability,
         ),
+        "matching_sellable_positions": position_state["matching_sellable_positions"],
+        "matching_locked_positions": position_state["matching_locked_positions"],
     }
     features.update({key: _float(value) for key, value in risk_observation.items()})
     return features
