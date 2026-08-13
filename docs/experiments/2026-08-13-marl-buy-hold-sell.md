@@ -64,6 +64,29 @@ desbloqueo y que, al vender, se aplican la comisión de Steam y el abono del
 importe neto a la cartera. No mide la calidad de una estrategia ni la
 rentabilidad de PPO.
 
+## Recorrido de cartera con 1.000 EUR
+
+Además de la prueba mínima, se ha recorrido el corte de marzo con 1.000 EUR y
+una regla determinista: comprar si el margen neto observado es positivo y las
+restricciones lo permiten, o vender la posición del mismo artículo cuando ya
+está desbloqueada. Es un único recorrido para comprobar que el entorno maneja
+varias posiciones y reutiliza efectivo. No es una comparación de estrategias.
+
+| Capital inicial | Observaciones | Compras | Ventas | Máximo simultáneo | Posiciones abiertas al final |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 1.000,00 EUR | 95 | 24 | 19 | 11 | 5 |
+
+El número de compras no se fija de antemano. Portfolio limita cada posición al
+20 % del valor de cartera, mantiene al menos un 10 % de efectivo y evita que
+el capital bloqueado supere el 60 %. Cuando una posición se cierra, su importe
+neto vuelve a estar disponible para las oportunidades posteriores. Por ello
+se producen varias compras aunque el capital inicial sea finito.
+
+El corte contiene oportunidades ya preseleccionadas y está muy sesgado hacia
+márgenes positivos. Los valores económicos de este recorrido solo validan la
+mecánica de inventario, bloqueo, venta y restricciones. No se interpretan como
+beneficio esperado ni como rendimiento de una política PPO.
+
 ## Reproducción
 
 ```powershell
@@ -76,6 +99,11 @@ python -m pytest tests/unit/test_market_marl_env.py `
 python -m apps.cli.report_marl_sale_experiment `
   --cash 100 `
   --output data/experiments/marl_sale_20260813/report.json
+
+python -m apps.cli.report_marl_sale_experiment `
+  --dataset-dir data/experiments/walkforward_20260810/march `
+  --split test --limit 95 --cash 1000 `
+  --output data/experiments/marl_sale_20260813/portfolio_report.json
 ```
 
 El segundo comando genera un resumen JSON compacto. Los datos derivados se

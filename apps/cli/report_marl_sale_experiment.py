@@ -11,7 +11,7 @@ from apps.cli.run_marl_episode import run
 
 
 def build_report(args: argparse.Namespace) -> dict[str, Any]:
-    result = run(
+    controlled_result = run(
         argparse.Namespace(
             dataset_dir=None,
             split="test",
@@ -21,8 +21,8 @@ def build_report(args: argparse.Namespace) -> dict[str, Any]:
             supervised_probability=args.supervised_probability,
         )
     )
-    position = result["positions"][0]
-    return {
+    position = controlled_result["positions"][0]
+    report = {
         "experiment": "marl_buy_hold_sell_controlled_cycle",
         "purpose": (
             "Functional evidence of a simulated purchase, eight-day trade hold and sale. "
@@ -38,18 +38,38 @@ def build_report(args: argparse.Namespace) -> dict[str, Any]:
             "buy_price_eur": position["buy_price_eur"],
             "net_sale_value_eur": position["net_sale_value_eur"],
             "realized_profit_eur": position["realized_profit_eur"],
-            "purchases": _summary(result)["purchases"],
-            "sales": _summary(result)["sales"],
-            "cash_available_eur": result["cash_available_eur"],
-            **result["portfolio"],
+            "purchases": _summary(controlled_result)["purchases"],
+            "sales": _summary(controlled_result)["sales"],
+            "cash_available_eur": controlled_result["cash_available_eur"],
+            **controlled_result["portfolio"],
         },
     }
+    dataset_dir = getattr(args, "dataset_dir", None)
+    if dataset_dir is not None:
+        portfolio_result = run(
+            argparse.Namespace(
+                dataset_dir=dataset_dir,
+                split=args.split,
+                limit=args.limit,
+                cash=args.cash,
+                policy="buy-and-sell",
+                supervised_probability=args.supervised_probability,
+            )
+        )
+        report["portfolio_run"] = _portfolio_run_summary(
+            portfolio_result,
+            initial_cash_eur=args.cash,
+        )
+    return report
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Generate a controlled MARL buy-hold-sell functional report."
     )
+    parser.add_argument("--dataset-dir", type=Path)
+    parser.add_argument("--split", default="test")
+    parser.add_argument("--limit", type=int, default=95)
     parser.add_argument("--cash", type=float, default=1000.0)
     parser.add_argument(
         "--supervised-probability",
@@ -79,6 +99,36 @@ def _summary(result: dict[str, Any]) -> dict[str, int]:
     return {
         "purchases": purchases,
         "sales": sales,
+    }
+
+
+def _portfolio_run_summary(
+    result: dict[str, Any],
+    *,
+    initial_cash_eur: float,
+) -> dict[str, Any]:
+    trace = result["trace"][1:]
+    summary = _summary(result)
+    concurrent_positions = 0
+    maximum_concurrent_positions = 0
+    for step in trace:
+        info = step["infos"]["trader"]
+        concurrent_positions += int(info["executed_buy"])
+        concurrent_positions -= int(info["executed_sale"])
+        maximum_concurrent_positions = max(maximum_concurrent_positions, concurrent_positions)
+    return {
+        "purpose": (
+            "Single deterministic multi-position run. It demonstrates inventory, risk "
+            "limits and capital reuse, not the performance of a learned policy."
+        ),
+        "policy": "buy positive margin, sell matching position after unlock",
+        "steps": result["steps"],
+        "initial_cash_eur": initial_cash_eur,
+        "purchases": summary["purchases"],
+        "sales": summary["sales"],
+        "maximum_concurrent_positions": maximum_concurrent_positions,
+        "cash_available_eur": result["cash_available_eur"],
+        **result["portfolio"],
     }
 
 
