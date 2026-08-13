@@ -30,3 +30,5 @@ TFM/*.loa
 
 # Material local pendiente de revisar; no versionar repos/datos brutos.
 material_a_integrar/
+
+tmp/*
