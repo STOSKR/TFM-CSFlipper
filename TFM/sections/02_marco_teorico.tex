@@ -1,14 +1,25 @@
 \chapter{Estado del arte}
 
-\noindent Este capítulo sitúa el trabajo dentro de la literatura sobre economías virtuales, plataformas de intercambio y sistemas de decisión. Primero resume cómo se estudian los mercados de activos digitales en videojuegos. Después presenta las técnicas de aprendizaje y simulación que se emplean para analizar decisiones secuenciales. Los conceptos operativos y el caso de estudio se desarrollan en el Capítulo 3.
+\noindent Este capítulo sitúa el trabajo dentro de la literatura sobre economías virtuales, plataformas de intercambio y sistemas de decisión. Primero resume cómo se estudian los mercados de activos digitales en videojuegos. Después presenta las técnicas de aprendizaje y simulación que se emplean para analizar decisiones secuenciales.
 
 \section{Mercados y plataformas de activos digitales}
 
-Los bienes virtuales pueden tener utilidad dentro de un videojuego y, cuando las reglas lo permiten, circular entre personas usuarias a través de mecanismos de intercambio. La investigación sobre consumo virtual muestra que la demanda no depende solo de una función dentro del juego. También intervienen la apariencia, la rareza, la identidad social y la percepción de valor del objeto \cite{lehdonvirta2009virtual,guo2009virtual}. Por ello, estos mercados comparten elementos con otros mercados de bienes diferenciados, como oferta, demanda, precios, costes de transacción y liquidez, aunque funcionan bajo reglas definidas por las plataformas y los desarrolladores.
+Los bienes virtuales pueden tener utilidad dentro de un videojuego y, cuando las reglas lo permiten, circular entre personas usuarias a través de mecanismos de intercambio. La investigación sobre consumo virtual muestra que la demanda no depende solo de una función dentro del juego. También intervienen la apariencia, la rareza, la identidad social y la percepción de valor del objeto \cite{lehdonvirta2009virtual,guo2009virtual}.
 
-Para este trabajo resulta útil distinguir tres configuraciones. Los mercados cerrados limitan la circulación del objeto al propio videojuego. Los mercados internos permiten intercambios entre usuarios con reglas y moneda controladas por la plataforma. Los mercados conectados a plataformas externas permiten comparar precios o intercambiar activos en más de un entorno. Esta clasificación no pretende abarcar todas las economías virtuales, sino identificar cuándo aparecen problemas de normalización, comisiones, liquidez y restricciones temporales.
+Estos mercados de activos digitales comparten elementos con otros mercados de bienes diferenciados, como la oferta, la demanda, los precios, los costes de transacción y la liquidez, aunque funcionan bajo reglas definidas por las plataformas.
 
-Una plataforma de intercambio cumple varias funciones: muestra el catálogo disponible, registra ofertas de venta y órdenes de compra, aplica reglas de transacción y mantiene información sobre precios o actividad. El mercado puede estar gestionado por una empresa, mediante contratos distribuidos o por una solución híbrida. En todos los casos, la plataforma determina qué datos pueden observarse, qué operaciones están permitidas y qué costes se aplican. Estas decisiones condicionan la calidad de los datos disponibles para cualquier sistema de análisis.
+Para este trabajo resulta útil distinguir tres configuraciones:
+\begin{itemize}
+    \item \textbf{Mercados cerrados:} limitan la circulación del objeto al propio videojuego.
+    \item \textbf{Mercados internos:} permiten intercambios entre usuarios con reglas y moneda controladas por la plataforma.
+    \item \textbf{Mercados conectados a plataformas externas:} permiten comparar precios o intercambiar activos en más de un entorno.
+\end{itemize}
+
+Una plataforma de intercambio cumple varias funciones: muestra el catálogo disponible, registra ofertas de venta y órdenes de compra, aplica reglas de transacción y mantiene información sobre precios o actividad.
+
+El mercado puede estar gestionado por una empresa, mediante contratos distribuidos o por una solución híbrida. En todos los casos, la plataforma determina qué datos pueden observarse, qué operaciones están permitidas y qué costes se aplican. Estas decisiones condicionan la calidad de los datos disponibles para cualquier sistema de análisis.
+
+El caso analizado en esta memoria pertenece a un mercado secundario de objetos virtuales intercambiables, mediado por plataformas. No se estudia un mercado cerrado ni una economía basada en activos blockchain. Se comparan anuncios y órdenes de compra de objetos cosméticos en una plataforma oficial, Steam, y en una plataforma externa, BUFF. Esta combinación introduce fragmentación de precios, comisiones, monedas y restricciones temporales, que son precisamente las condiciones que la propuesta técnica debe representar. El Capítulo 3 profundiza en las plataformas y en los objetos que forman este caso de estudio.
 
 \section{Aprendizaje por refuerzo}
 
