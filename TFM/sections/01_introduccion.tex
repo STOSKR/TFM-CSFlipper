@@ -18,18 +18,19 @@ La comparación de precios entre plataformas plantea un problema único: decidir
 
 Las diferentes plataformas muestran artículos puestos a la venta, su precio, el número de intercambios y sus características. Sin embargo, no siempre emplean la misma moneda, el mismo nombre o la misma fecha. Por ello, el problema no consiste solo en localizar una diferencia de precio. Hay que unificar la información, incorporar los costes y restricciones que afectan a la operación y responder con criterios consistentes a una pregunta sencilla: con los datos disponibles, ¿merece la pena estudiar este artículo?
 
-El sistema propuesto convierte ese proceso en un flujo reproducible. Adquiere los datos, normaliza sus diferencias, aplica las reglas económicas, genera señales y simula el efecto de cada decisión sobre una cartera. De este modo, una posible operación se evalúa con los mismos criterios aunque proceda de fuentes distintas o se revise en momentos diferentes.
+La dificultad principal está en justificar esa respuesta. No basta con indicar que un precio puede subir o bajar. La recomendación debe poder relacionarse con sus precios de entrada y salida, las comisiones, la liquidez, las reglas utilizadas y el estado de la cartera. Esta formulación conecta la estimación de señales con la gestión de cartera, donde retorno y riesgo deben analizarse conjuntamente \cite{markowitz1952portfolio}.
 
-Cuando el sistema localiza un artículo en una o varias fuentes, lo incorpora como \emph{candidato}. Tras recopilar sus precios y condiciones, puede clasificarlo en tres estados. \emph{Revisar} indica que el margen son buenos y merece una comprobación manual. \emph{Observar} indica que faltan datos o que conviene esperar una nueva captura (La captura se realiza periódicamente). \emph{Bloquear} indica que los costes, el riesgo o las restricciones de cartera impiden continuar.
+\section{Planteamiento de la solución}
 
-La dificultad principal está en justificar cada clasificación. No basta con indicar que un precio puede subir o bajar. La recomendación debe poder relacionarse con sus precios de entrada y salida, las comisiones, la liquidez, las reglas utilizadas y el estado de la cartera. Esta formulación conecta la estimación de señales con la gestión de cartera, donde retorno y riesgo deben analizarse conjuntamente \cite{markowitz1952portfolio}.
+Para responder a este problema, se ha diseñado un flujo reproducible que adquiere los datos, normaliza sus diferencias, aplica las reglas económicas, genera señales y simula el efecto de cada decisión sobre una cartera. Así, una posible operación se evalúa con los mismos criterios aunque proceda de fuentes distintas o se revise en momentos diferentes.
 
-Esta formulación organiza el proceso en tres fases. La separación permite evaluar cada parte por separado y conservar la trazabilidad desde una observación de mercado hasta la recomendación final:
+Cuando el sistema localiza un artículo en una o varias fuentes, lo incorpora como \emph{candidato}. Tras recopilar sus precios y condiciones, puede clasificarlo en tres estados. \emph{Revisar} indica que el margen estimado y la información disponible justifican una comprobación manual. \emph{Observar} indica que faltan datos o que conviene esperar una nueva captura. \emph{Bloquear} indica que los costes, el riesgo o las restricciones de cartera impiden continuar. Estas clasificaciones no sustituyen la decisión de la persona usuaria, sino que organizan qué artículos conviene atender antes.
+
+La solución se organiza en tres fases. Esta separación permite evaluar cada parte por separado y conservar la trazabilidad desde una observación de mercado hasta la recomendación final:
 
 \begin{enumerate}
     \item \textbf{Observación y limpieza.} Reúne precios, anuncios, volumen y metadatos desde las fuentes disponibles. Después normaliza monedas, nombres y fechas, elimina duplicados y registra la calidad de cada captura. El resultado es un historial comparable, con la fuente y el instante de adquisición asociados a cada dato.
     \item \textbf{Predicción.} Transforma ese historial en variables como el margen neto entre plataformas, la evolución del precio, la liquidez y la antigüedad de la captura. Con ellas, el modelo estima una probabilidad o puntuación que ayuda a priorizar cada artículo.
-    \clearpage
     \item \textbf{Decisión.} Combina las señales con las reglas económicas y el estado de cartera dentro de un simulador. La arquitectura multiagente reparte la detección de oportunidades, la propuesta de acción y el control de riesgo. Su salida clasifica el artículo para revisión, observación o bloqueo.
 \end{enumerate}
 
@@ -67,7 +68,7 @@ La última fase ha incorporado esas señales en un simulador de cartera y en un 
 La memoria se estructura de forma secuencial siguiendo las fases principales del proyecto. A continuación, se detalla el contenido de cada capítulo:
 
 \begin{itemize}
-  \item \textbf{Capítulo 1:} introduce el contexto del proyecto, motivación, planteamiento del problema, objetivos, alcance y metodología de desarrollo seguida.
+  \item \textbf{Capítulo 1:} introduce el contexto del proyecto, la motivación, el problema abordado, la solución propuesta, los objetivos, el alcance y la metodología de desarrollo seguida.
   \item \textbf{Capítulo 2:} presenta el marco teórico necesario para entender el trabajo. Se tratan mercados de activos digitales, fricciones de mercado, \acroref{RL}{RL}, \acroref{MARL}{MARL}, toma de decisiones en carteras, trabajos relacionados y tecnologías utilizadas.
   \item \textbf{Capítulo 3:} describe la arquitectura multiagente propuesta. Se presenta la formulación técnica del sistema, flujo general, entorno de decisión, agentes, función de recompensa y restricciones de riesgo.
   \item \textbf{Capítulo 4:} expone el entorno de datos y simulación. Se detallan fuentes de adquisición, persistencia, características utilizadas, simulador de cartera, \acroref{OCR}{OCR} e interfaz de consulta.
