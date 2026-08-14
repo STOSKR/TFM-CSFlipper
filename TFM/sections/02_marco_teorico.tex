@@ -1,6 +1,6 @@
 \chapter{Estado del arte}
 
-\noindent Este capítulo sitúa el trabajo dentro de la literatura sobre economías virtuales, plataformas de intercambio y sistemas de decisión. Primero resume cómo se estudian los mercados de activos digitales en videojuegos. Después presenta las técnicas de aprendizaje y simulación que se emplean para analizar decisiones secuenciales.
+\noindent Este capítulo sitúa el trabajo dentro de la literatura sobre economías virtuales, plataformas de intercambio y sistemas de decisión. Primero presenta los mercados de activos digitales y las expresiones necesarias para analizar una operación. Después introduce agentes, sistemas multiagente, aprendizaje por refuerzo y gestión de cartera. El Capítulo 3 aplica estos conceptos al caso de estudio.
 
 \section{Mercados y plataformas de activos digitales}
 
@@ -20,6 +20,40 @@ Una plataforma de intercambio cumple varias funciones: muestra el catálogo disp
 El mercado puede estar gestionado por una empresa, mediante contratos distribuidos o por una solución híbrida. En todos los casos, la plataforma determina qué datos pueden observarse, qué operaciones están permitidas y qué costes se aplican. Estas decisiones condicionan la calidad de los datos disponibles para cualquier sistema de análisis.
 
 El caso analizado en esta memoria pertenece a un mercado secundario de objetos virtuales intercambiables, mediado por plataformas. No se estudia un mercado cerrado ni una economía basada en activos blockchain. Se comparan anuncios y órdenes de compra de objetos cosméticos en una plataforma oficial, Steam, y en una plataforma externa, BUFF. Esta combinación introduce fragmentación de precios, comisiones, monedas y restricciones temporales, que son precisamente las condiciones que la propuesta técnica debe representar. El Capítulo 3 profundiza en las plataformas y en los objetos que forman este caso de estudio.
+
+\section{Operativa y expresiones económicas}
+
+Una operación entre plataformas no se evalúa comparando dos precios visibles. Debe identificar el precio de entrada, el precio de salida, las comisiones, el coste de conversión y el tiempo durante el que el capital queda inmovilizado. Un anuncio de venta representa un precio al que alguien ofrece un activo. Una orden de compra indica el precio máximo que otra persona está dispuesta a pagar. La diferencia entre ambos se denomina \textit{spread}, pero por sí sola no representa un beneficio.
+
+Si $P_e$ es el precio de entrada ya convertido a EUR, $P_s$ es el precio bruto de salida, $f_s$ es la comisión de venta y $c$ reúne los costes adicionales de conversión o retirada, el ingreso neto y el margen se expresan como:
+
+\[
+P_{\mathrm{neto}}=P_s(1-f_s),
+\qquad
+m=P_{\mathrm{neto}}-P_e-c.
+\]
+
+El retorno porcentual permite comparar operaciones de distinto importe:
+
+\[
+\rho=\frac{m}{P_e}.
+\]
+
+Una oportunidad solo se considera interesante cuando el margen neto es positivo y sus condiciones permiten cerrar la posición. La liquidez expresa la facilidad de comprar o vender sin esperar demasiado ni alterar de forma apreciable el precio esperado. En este trabajo se aproxima mediante volumen, número de anuncios y órdenes de compra disponibles. Cuando es baja, el capital puede permanecer inmovilizado y el margen calculado pierde utilidad.
+
+Los costes de transacción y la liquidez son restricciones habituales en los entornos de trading con aprendizaje por refuerzo \cite{liu2021finrl}. También pueden existir bloqueos temporales, como el \textit{trade hold}, durante los cuales un artículo adquirido no puede transferirse ni venderse. Por tanto, una comparación de precios debe incorporar tanto el margen neto como el tiempo y el riesgo necesarios para realizar la salida.
+
+\section{Agentes inteligentes}
+
+En inteligencia artificial, un agente es un componente que observa una parte de su entorno, elige una acción y persigue un objetivo. No tiene por qué ser una persona ni un robot. Recibe una observación $o_t$, aplica una política y elige una acción $a_t$. Después recibe una recompensa que le permite ajustar su comportamiento en episodios posteriores \cite{sutton2018reinforcement}.
+
+La política es la regla que transforma observaciones en acciones. Por ejemplo, un agente puede observar un precio, una comisión y el saldo disponible, y decidir mantener, comprar o vender. En el contexto de esta memoria, sus observaciones combinan información de mercado y de cartera para que la decisión no dependa de un único indicador.
+
+\section{Sistemas multiagente}
+
+Un sistema multiagente reúne dos o más agentes que actúan sobre un mismo entorno. Pueden colaborar, competir o tomar decisiones independientes. En un sistema cooperativo comparten un objetivo global, aunque cada uno disponga de información y responsabilidades distintas \cite{wooldridge2009multiagent,busoniu2008comprehensive}. Esta división no equivale solo a separar el código en módulos. Cada rol debe tener observaciones, acciones y una política de decisión propias.
+
+En esta memoria se adopta un sistema cooperativo de tres roles. Scout observa las oportunidades de mercado y decide si merecen atención. Trader propone mantener, comprar o vender. Portfolio observa el estado de la cartera y aprueba o rechaza operaciones según saldo, exposición y restricciones. La coordinación es necesaria porque una decisión localmente buena puede ser globalmente mala. Por ejemplo, una compra puede ser atractiva para Trader, pero no para Portfolio si ya existe demasiada exposición al mismo tipo de activo.
 
 \section{Aprendizaje por refuerzo}
 
@@ -47,31 +81,15 @@ La hipótesis de Markov no implica que el sistema conozca todo el futuro, sino q
 \Needspace{10\baselineskip}
 \subsection{Política, retorno y exploración}
 
-La política es la regla que transforma observaciones en acciones. El retorno mide la recompensa acumulada a lo largo del episodio. En un mercado con fricciones, maximizar la recompensa inmediata puede ser mala estrategia: una compra aparentemente rentable puede bloquear capital, aumentar exposición o no encontrar salida. Por ello, la recompensa debe mirar más allá del margen instantáneo y considerar el resultado de cartera.
+El retorno mide la recompensa acumulada a lo largo del episodio. En un mercado con fricciones, maximizar la recompensa inmediata puede ser mala estrategia: una compra aparentemente rentable puede bloquear capital, aumentar exposición o no encontrar salida. Por ello, la recompensa debe mirar más allá del margen instantáneo y considerar el resultado de cartera.
 
 La exploración permite probar acciones que todavía no se conocen bien. En un mercado de activos digitales con costes y restricciones, esta idea debe aplicarse con cuidado. En el \acroref{TFM}{TFM}, la exploración se realiza en simulación, no con capital. Esta separación permite probar políticas y recompensas sin trasladar errores del entrenamiento al mercado.
-
-\subsection{Agentes y sistemas multiagente}
-
-En inteligencia artificial, un agente es un componente que observa una parte de su entorno, elige una acción y persigue un objetivo. No tiene por qué ser una persona ni un robot. En aprendizaje por refuerzo, el agente recibe una observación $o_t$, aplica una política y elige una acción $a_t$. Después recibe una recompensa que le permite ajustar su comportamiento en episodios posteriores \cite{sutton2018reinforcement}.
-
-Un sistema multiagente reúne dos o más agentes que actúan sobre un mismo entorno. Pueden colaborar, competir o tomar decisiones independientes. En un sistema cooperativo comparten un objetivo global, aunque cada uno disponga de información y responsabilidades distintas \cite{wooldridge2009multiagent,busoniu2008comprehensive}. Esta división no equivale solo a separar el código en módulos. Para considerarlo multiagente, cada rol debe tener observaciones, acciones y una política de decisión propias.
-
-En esta memoria se adopta un sistema cooperativo de tres roles. Scout observa las oportunidades de mercado y decide si merecen atención. Trader propone mantener, comprar o vender. Portfolio observa el estado de la cartera y aprueba o rechaza operaciones según saldo, exposición y restricciones. Los tres roles se coordinan mediante una recompensa compartida y el simulador conserva el resultado conjunto de sus decisiones.
 
 \section{Aprendizaje por refuerzo multiagente}
 
 El aprendizaje por refuerzo multiagente extiende la formulación anterior a los sistemas formados por varios agentes. Esta ampliación introduce dificultades nuevas: cada agente aprende mientras los demás también cambian, por lo que el entorno puede volverse no estacionario desde el punto de vista individual. Lowe et al. señalan este problema y proponen entrenar agentes con información adicional durante el entrenamiento para mejorar la coordinación mediante \acroref{MADDPG}{MADDPG} \cite{lowe2017maddpg}.
 
-La decisión de cartera mezcla tareas de naturaleza distinta: detectar oportunidades, ejecutar acciones concretas y controlar exposición global. Separar estas responsabilidades permite que cada agente trabaje con un punto de vista más acotado, siempre que la recompensa cooperativa mantenga alineado el objetivo común.
-
-\subsection{Cooperación y coordinación entre agentes}
-
-La cooperación aparece cuando los agentes comparten un objetivo global. Scout puede detectar oportunidades prometedoras, Trader puede decidir la acción operativa y Portfolio puede limitar decisiones que deterioren la cartera. Ninguno de estos roles tiene sentido de forma aislada si el resultado final no mejora el valor neto ajustado por riesgo.
-
-La coordinación es necesaria porque una decisión localmente buena puede ser globalmente mala. Por ejemplo, comprar un activo con spread atractivo puede ser razonable para Trader, pero no para Portfolio si ya existe demasiada exposición a ese tipo de objeto o si el capital bloqueado supera un límite aceptable. Esta tensión puede abordarse con recompensas específicas por rol o con una recompensa cooperativa vinculada a la cartera.
-
-Para $N$ agentes, cada paso combina observaciones y acciones locales. La implementación actual utiliza una recompensa cooperativa común, calculada a partir del resultado de cartera y asignada por igual a todos los agentes:
+La implementación reparte la decisión de cartera entre Scout, Trader y Portfolio. Para $N$ agentes, cada paso combina observaciones y acciones locales. La recompensa cooperativa se calcula a partir del resultado de cartera y se asigna por igual a todos los agentes:
 
 \[
 \mathbf{o}_t=(o_t^1,\ldots,o_t^N),
@@ -85,13 +103,13 @@ r_t^i=R_{\mathrm{cartera},t}
 En esta expresión, $N$ es el número de agentes, que en el prototipo es tres. El vector $\mathbf{o}_t$ reúne las observaciones de Scout, Trader y Portfolio en el instante $t$, mientras que $\mathbf{a}_t$ reúne las acciones que han propuesto. El valor $r_t^i$ es la recompensa que recibe el agente $i$. Como todos los valores $r_t^i$ se igualan a $R_{\mathrm{cartera},t}$, los tres agentes reciben el mismo resultado en cada paso.
 
 \Needspace{13\baselineskip}
-$R_{\mathrm{cartera},t}$ es un valor único calculado con el beneficio realizado, el retorno de una operación ejecutada y penalizaciones por inactividad, límites de riesgo incumplidos, \textit{drawdown}, capital bloqueado y volatilidad. El \textit{drawdown}, también llamado caída máxima, mide cuánto ha bajado el valor de la cartera desde su máximo anterior. Si $V_t$ es el valor de la cartera en el instante $t$ y $M_t=\max_{\tau\leq t}V_\tau$ es el mayor valor alcanzado hasta ese momento, se calcula como:
+$R_{\mathrm{cartera},t}$ considera el beneficio realizado, el retorno de una operación ejecutada y penalizaciones por inactividad, límites de riesgo incumplidos, \textit{drawdown}, capital bloqueado y volatilidad. El \textit{drawdown}, o caída máxima, mide cuánto ha bajado la cartera desde su máximo anterior. Si $V_t$ es el valor de la cartera y $M_t=\max_{\tau\leq t}V_\tau$ es el mayor valor alcanzado hasta ese momento, se calcula como:
 
 \[
 DD_t = \frac{M_t - V_t}{M_t}.
 \]
 
-Por ejemplo, si la cartera alcanza 1.000 EUR y después baja a 900 EUR, su \textit{drawdown} es del 10\%. Un resultado favorable aumenta la recompensa, mientras que una compra que eleva el riesgo o inmoviliza demasiado capital la reduce. Esta elección mantiene a los agentes alineados con el mismo objetivo de cartera. Cada política recibe solo su observación $o_t^i$, mientras que el estado global se conserva para diagnóstico y para ampliar el entrenamiento con un crítico centralizado cuando sea necesario.
+Por ejemplo, si una cartera alcanza 1.000 EUR y después baja a 900 EUR, su \textit{drawdown} es del 10\%. Esta elección mantiene a los agentes alineados con el mismo objetivo de cartera. Cada política recibe solo su observación $o_t^i$, mientras que el estado global se conserva para diagnóstico y para ampliar el entrenamiento con un crítico centralizado cuando sea necesario.
 
 \subsection{Entrenamiento centralizado y ejecución descentralizada}
 
@@ -113,19 +131,13 @@ El recorte evita que una actualización cambie en exceso la probabilidad de una 
 
 \section{Toma de decisiones en carteras}
 
-La gestión de una cartera no consiste solo en elegir activos con rentabilidad esperada positiva. También debe controlar riesgo, concentración, liquidez, costes de transacción y horizonte temporal. La teoría moderna de carteras introdujo la idea de estudiar rentabilidad y riesgo conjuntamente, en lugar de analizar cada inversión de forma aislada \cite{markowitz1952portfolio}. Aunque el mercado de \acroref{CS2}{CS2} no sea un mercado bursátil regulado, la intuición sigue siendo útil: una cartera puede empeorar aunque una operación individual parezca atractiva.
+La gestión de una cartera no consiste solo en elegir activos con rentabilidad esperada positiva. También debe controlar riesgo, concentración, liquidez, costes de transacción y horizonte temporal. La teoría moderna de carteras introdujo la idea de estudiar rentabilidad y riesgo conjuntamente, en lugar de analizar cada inversión de forma aislada \cite{markowitz1952portfolio}. Aunque el mercado estudiado no sea un mercado bursátil regulado, la intuición sigue siendo útil: una cartera puede empeorar aunque una operación individual parezca atractiva.
 
 \subsection{Rentabilidad y riesgo}
 
 En este \acroref{TFM}{TFM}, la rentabilidad se mide mediante beneficio neto, retorno porcentual, saldo final y evolución del valor de cartera. El riesgo se observa mediante \textit{drawdown}, capital bloqueado, exposición por activo o plataforma y operaciones rechazadas por restricciones. Estas métricas son más informativas que una simple precisión de predicción, porque conectan el modelo con el resultado económico simulado.
 
 El aprendizaje supervisado puede estimar una probabilidad útil, pero esa probabilidad no es una decisión. Una señal de subida o de spread rentable debe pasar por el simulador, por las comisiones, por la liquidez y por el estado de cartera. Esta separación evita que el sistema confunda predecir con invertir.
-
-\subsection{Liquidez y costes de transacción}
-
-Los costes de transacción son centrales en cualquier sistema de trading. En un mercado de baja o media liquidez, pequeñas diferencias de precio pueden desaparecer al aplicar comisiones, conversión de moneda o retrasos de venta. FinRL incorpora explícitamente restricciones como costes de transacción, liquidez y aversión al riesgo en entornos de trading con aprendizaje por refuerzo \cite{liu2021finrl}. Esa orientación resulta útil para este \acroref{TFM}{TFM}, aunque el dominio sea distinto: el objetivo no es copiar un framework financiero, sino adoptar la disciplina de simular fricciones del mercado.
-
-En el caso \acroref{CS2}{CS2}, las fricciones se vuelven todavía más visibles por el \textit{trade hold}. Durante varios días, una posición comprada no puede venderse, aunque el precio cambie. Esta restricción convierte una oportunidad puntual en una decisión temporal: el sistema debe estimar no solo el margen de entrada, sino la probabilidad de que el margen siga siendo válido cuando la posición pueda cerrarse.
 
 \section{Aplicaciones relacionadas}
 
