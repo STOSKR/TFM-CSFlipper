@@ -1,10 +1,16 @@
 \chapter{Estado del arte}
 
-\noindent Este capítulo sitúa el trabajo dentro de la literatura sobre economías virtuales, plataformas de intercambio y sistemas de decisión. Primero presenta los mercados de activos digitales y las expresiones necesarias para analizar una operación. Después introduce agentes, sistemas multiagente, aprendizaje por refuerzo y gestión de cartera. El Capítulo 3 aplica estos conceptos al caso de estudio.
+\noindent Este capítulo sitúa el trabajo dentro de la literatura sobre economías virtuales, plataformas de intercambio y sistemas de decisión. Primero presenta los mercados de activos digitales y las expresiones necesarias para analizar una operación. Después introduce agentes, sistemas multiagente, aprendizaje por refuerzo y gestión de cartera.
+
+\textcolor{blue}{el código que has desarrollado debería ir a un repositorio Github y esta información la pones en un Anexo}
+
+\textcolor{red}{quita los comentarios que tengas aquí y que hagan referencia al capítulo 3. Lo que hay en el capítulo 3 podría verse como estado del arte, ya que vas a hablar de mercados de activos digitales y el videojuego, pero debes venderlo como el contexto en el que se va a desarrollar tu trabajo}
+
+\textcolor{blue}{igual mejor titular el capítulo 3 como 'Análisis y contextualización del dominio de trabajo' o 'Contextualización del mercado de activos digitales en videojuegos' o bien, si queremos ir ya particularizando para Counter-Strike 2 se puede titular 'Contextualización del mercado de activos digitales: el caso de los bienes virtuales en Counter-Strike 2'. En el capítulo 3, tienes que dejar muy claro al principio que el mercado de skins de Counter-Strike 2 es el ejemplo perfecto de una economía virtual porque funciona de forma muy parecida a una bolsa de valores real, con fluctuaciones de precios, oferta, demanda y plataformas de intercambio externas; de este modo, no queda claro que efectivamente estás usando CS2 como caso de estudio pero es que CS2 es un ejemplo perfecto para el estudio de mercados digitales de videojuegos}
 
 \section{Mercados y plataformas de activos digitales}
 
-Los bienes virtuales pueden tener utilidad dentro de un videojuego y, cuando las reglas lo permiten, circular entre personas usuarias a través de mecanismos de intercambio. La investigación sobre consumo virtual muestra que la demanda no depende solo de una función dentro del juego. También intervienen la apariencia, la rareza, la identidad social y la percepción de valor del objeto \cite{lehdonvirta2009virtual,guo2009virtual}.
+Los bienes virtuales pueden tener utilidad dentro de un videojuego y, cuando las reglas lo permiten, circular entre personas usuarias a través de mecanismos de intercambio. La investigación sobre consumo de bienes virtuales muestra que la demanda no depende solo de una función dentro del juego. También intervienen la apariencia, la rareza, la identidad social y la percepción de valor del objeto \cite{lehdonvirta2009virtual,guo2009virtual}. \textcolor{magenta}{puedes poner algún ejemplo de bienes virtuales y sus características?? para que el lector pueda entender bien lo que estás diciendo sino queda un poco abstracto y la gente que no está familiarizada con esto, que seguramente será todo el tribunal, no se va a enterar}
 
 Estos mercados de activos digitales comparten elementos con otros mercados de bienes diferenciados, como la oferta, la demanda, los precios, los costes de transacción y la liquidez, aunque funcionan bajo reglas definidas por las plataformas.
 
@@ -19,7 +25,12 @@ Una plataforma de intercambio cumple varias funciones: muestra el catálogo disp
 
 El mercado puede estar gestionado por una empresa, mediante contratos distribuidos o por una solución híbrida. En todos los casos, la plataforma determina qué datos pueden observarse, qué operaciones están permitidas y qué costes se aplican. Estas decisiones condicionan la calidad de los datos disponibles para cualquier sistema de análisis.
 
-El caso analizado en esta memoria pertenece a un mercado secundario de objetos virtuales intercambiables, mediado por plataformas. No se estudia un mercado cerrado ni una economía basada en activos blockchain. Se comparan anuncios y órdenes de compra de objetos cosméticos en una plataforma oficial, Steam, y en una plataforma externa, BUFF. Esta combinación introduce fragmentación de precios, comisiones, monedas y restricciones temporales, que son precisamente las condiciones que la propuesta técnica debe representar. El Capítulo 3 profundiza en las plataformas y en los objetos que forman este caso de estudio.
+El caso analizado en este trabajo pertenece a un mercado secundario de objetos virtuales intercambiables, mediado por plataformas. No se estudia un mercado cerrado ni una economía basada en activos blockchain \textcolor{magenta}{pero arriba has puesto mercados cerrados y dices que es útil para este trabajo ... esto hay que explicarlo bien, si hay diferentes tipos de mercados, puedes describirlos brevemente y luego decir que te centras en el tipo XXX que es el que se va a tratar en este trabajo}. Se comparan anuncios y órdenes de compra de objetos cosméticos en una plataforma oficial, Steam, y en una plataforma externa, BUFF \textcolor{magenta}{tienes que poner referencias a Steam y BUFF y dar una breve explicación de cada plataforma; ponlo como bullets}. Esta combinación introduce fragmentación de precios, comisiones, monedas y restricciones temporales, que son precisamente las condiciones que la propuesta técnica debe representar. \textcolor{magenta}{El Capítulo 3 profundiza en las plataformas y en los objetos que forman este caso de estudio. SOBRE ESTA FRASE: AQUÍ DEBERÍAS PONER UNA RELACIÓN DE MERCADOS DIGITALES Y PLATAFORMAS MÁS HABITUALES Y DEJAR EL CAPÍTULO 3 EXCLUSIVAMENTE PARA el caso de estudio de CS2}
+
+\textcolor{blue}{lo que quiero decir es que aquí ponas una relación de los mercados y plataformas más habituales ... te dejo unas capturas en el chat}
+
+
+
 
 \section{Operativa y expresiones económicas}
 
@@ -144,57 +155,3 @@ El aprendizaje supervisado puede estimar una probabilidad útil, pero esa probab
 Los trabajos de \acroref{RL}{RL} financiero muestran que entrenar agentes de trading exige reproducibilidad, backtesting y control de fricciones \cite{liu2021finrl}. Los trabajos de \acroref{MARL}{MARL} muestran que la coordinación entre agentes puede ser útil, pero también introduce inestabilidad y necesidad de evaluación cuidadosa \cite{lowe2017maddpg,yu2022mappo}. El proyecto se sitúa en la intersección de ambas ideas: usa un mercado de activos digitales como entorno de decisión, incorpora señales supervisadas y plantea una arquitectura multiagente cooperativa.
 
 La diferencia principal respecto a una aplicación financiera clásica es el dominio. Los activos de \acroref{CS2}{CS2} son bienes virtuales controlados por plataformas, con liquidez fragmentada y reglas propias. La diferencia respecto a una simple herramienta de scraping es el objetivo: no basta con mostrar precios, sino que se busca evaluar decisiones de cartera bajo restricciones. Por ello, el trabajo combina adquisición de datos, simulación económica, predicción supervisada y aprendizaje por refuerzo multiagente dentro de una misma metodología.
-
-\section{Tecnologías utilizadas}
-
-Las tecnologías se han seleccionado por su función dentro del sistema. Cada una cubre una necesidad concreta de adquisición, persistencia, predicción, simulación, entrenamiento o validación. El objetivo es mantener un flujo reproducible en el que los datos, los modelos y las decisiones simuladas puedan revisarse de forma independiente.
-
-\begin{figure}[h]
-\centering
-\fbox{%
-\begin{minipage}{0.92\textwidth}
-\centering
-\begin{tabularx}{0.96\textwidth}{>{\bfseries}l X}
-\toprule
-Bloque & Tecnologías principales \\
-\midrule
-Adquisición & Python, Playwright, HTTPX, Steam, SteamDT, \acroref{BUFF}{BUFF} y \acroref{OCR}{OCR}. \\
-Persistencia & Postgres/Supabase, SQLAlchemy, AsyncPG y PyArrow. \\
-Predicción & Pandas, NumPy, scikit-learn y Joblib. \\
-Simulación & Módulos propios de cartera, riesgo, comisiones y \textit{trade hold}. \\
-Multiagente & PettingZoo, Ray/\acroref{RLlib}{RLlib}, Gymnasium, PyTorch y \acroref{PPO}{PPO}. \\
-Validación & Pytest, pytest-asyncio, Ruff, Mypy y pruebas de integración. \\
-Interfaz & HTML, CSS, JavaScript y servidor web local en Python. \\
-\bottomrule
-\end{tabularx}
-\end{minipage}}
-\caption{Pila tecnológica.}
-\end{figure}
-
-\subsection{Herramientas de desarrollo}
-
-El proyecto se desarrolla como un monorepo en Python 3.11. Git se utiliza para versionar cambios y mantener trazabilidad de las decisiones técnicas. La estructura separa aplicaciones ejecutables, paquetes reutilizables, documentación, datos derivados y pruebas, lo que permite evolucionar el sistema sin mezclar adquisición, predicción, simulación y evaluación.
-
-Pytest y pytest-asyncio se emplean para automatizar pruebas unitarias y asíncronas. Ruff se usa como herramienta de análisis estático y estilo, mientras que Mypy permite detectar errores de tipado en módulos críticos. Estas herramientas no forman parte de la lógica de negocio, pero sí de la evidencia de calidad del desarrollo.
-
-\subsection{Adquisición y tratamiento de datos}
-
-La adquisición de datos se implementa principalmente en Python. HTTPX permite consultar fuentes HTTP cuando existe una interfaz estable, mientras que Playwright se reserva para escenarios en los que el dato solo está disponible mediante navegación o renderizado de página. En el caso del \acroref{OCR}{OCR}, OpenCV y Tesseract permiten extraer información visual cuando el dato no se recibe en formato estructurado.
-
-Pandas, NumPy y PyArrow se utilizan para preparar conjuntos de datos, generar características temporales y conservar datasets derivados en formatos reproducibles. Esta capa conecta las fuentes de mercado con los modelos supervisados y con los episodios del simulador.
-
-\subsection{Persistencia y modelo de datos}
-
-Postgres, a través de Supabase en el planteamiento operativo, actúa como base de persistencia para artículos, observaciones de mercado, históricos, predicciones y decisiones simuladas. AsyncPG y SQLAlchemy facilitan el acceso desde Python y permiten separar consultas, repositorios y lógica de dominio.
-
-La elección de una base relacional se ajusta al tipo de información del proyecto: series temporales, activos, plataformas, precios, señales y decisiones deben poder relacionarse y auditarse posteriormente. Esta trazabilidad es importante para explicar por qué una oportunidad ha sido recomendada, observada o descartada.
-
-\subsection{Predicción, simulación y entrenamiento multiagente}
-
-scikit-learn se utiliza para los modelos supervisados tabulares, especialmente regresión logística, random forest e histogram gradient boosting. Joblib permite persistir modelos entrenados para usarlos después en inferencia. Estas tecnologías cubren la parte predictiva, pero la decisión final se evalúa dentro del simulador de cartera.
-
-La simulación económica se implementa con módulos propios porque las reglas del dominio son específicas: comisiones, conversión de moneda, beneficio neto, \textit{trade hold}, capital bloqueado y restricciones de exposición. Sobre esta base se construye el entorno multiagente con PettingZoo y el adaptador de entrenamiento con Ray/\acroref{RLlib}{RLlib}. PyTorch y Gymnasium forman parte del ecosistema de entrenamiento usado por \acroref{RLlib}{RLlib}.
-
-\subsection{Interfaz y operación local}
-
-La interfaz web local se implementa con HTML, CSS y JavaScript, servida desde Python. Centraliza el estado de scraping, los datos disponibles, las recomendaciones, las métricas y las tareas operativas, facilitando la observabilidad del sistema durante el desarrollo y la evaluación.

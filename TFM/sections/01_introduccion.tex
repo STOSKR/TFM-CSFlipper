@@ -14,19 +14,19 @@ En este trabajo propone un marco genérico para reunir esas señales, valorar su
 
 \section{Planteamiento del problema}
 
-La comparación de precios entre plataformas plantea un problema único: decidir si un artículo merece estudiarse requiere reunir datos que llegan de fuentes distintas y aplicar sobre ellos las mismas reglas económicas. El punto de partida es un procedimiento manual en el que, para cada artículo, se anotaban el precio de compra, el de venta, la conversión de moneda, las comisiones, la fecha de desbloqueo y el capital bloqueado. Este procedimiento manual permite evaluar casos concretos, pero obligaba a repetir el proceso de cálculos y a comprobar datos por cada artículo.
+La comparación de precios entre plataformas plantea un problema único: decidir si un artículo merece estudiarse requiere reunir datos que llegan de fuentes distintas y aplicar sobre ellos las mismas reglas económicas. El punto de partida es un procedimiento manual en el que, para cada artículo, se anota el precio de compra, el de venta, la conversión de moneda, las comisiones, la fecha de desbloqueo y el capital bloqueado. Este procedimiento manual permite evaluar casos concretos, pero obliga a repetir el proceso de cálculos y a comprobar datos por cada artículo.
 
 Las diferentes plataformas muestran artículos puestos a la venta, su precio, el número de intercambios y sus características. Sin embargo, no siempre emplean la misma moneda, el mismo nombre o la misma fecha. Por ello, el problema no consiste solo en localizar una diferencia de precio. Hay que unificar la información, incorporar los costes y restricciones que afectan a la operación y responder con criterios consistentes a una pregunta sencilla: con los datos disponibles, ¿merece la pena estudiar este artículo?
 
-La dificultad principal está en justificar esa respuesta. No basta con indicar que un precio puede subir o bajar. La recomendación debe poder relacionarse con sus precios de entrada y salida, las comisiones, la liquidez, las reglas utilizadas y el estado de la cartera. Esta formulación conecta la estimación de señales con la gestión de cartera, donde retorno y riesgo deben analizarse conjuntamente \cite{markowitz1952portfolio}.
+La dificultad principal radica en justificar esa respuesta. No basta con indicar que un precio puede subir o bajar. La recomendación debe poder relacionarse con sus precios de entrada y salida, las comisiones, la liquidez, las reglas utilizadas y el estado de la cartera. Esta formulación conecta la estimación de señales con la gestión de cartera, donde retorno y riesgo deben analizarse conjuntamente \cite{markowitz1952portfolio}.
 
 \section{Planteamiento de la solución}
 
 Para responder a este problema, se ha diseñado un flujo reproducible que adquiere los datos, normaliza sus diferencias, aplica las reglas económicas, genera señales y simula el efecto de cada decisión sobre una cartera. Así, una posible operación se evalúa con los mismos criterios aunque proceda de fuentes distintas o se revise en momentos diferentes.
 
-Cuando el sistema localiza un artículo en una o varias fuentes, lo incorpora como \emph{candidato}. Tras recopilar sus precios y condiciones, puede clasificarlo en tres estados. \emph{Revisar} indica que el margen estimado y la información disponible justifican una comprobación manual. \emph{Observar} indica que faltan datos o que conviene esperar una nueva captura. \emph{Bloquear} indica que los costes, el riesgo o las restricciones de cartera impiden continuar. Estas clasificaciones no sustituyen la decisión de la persona usuaria, sino que organizan qué artículos conviene atender antes.
+Cuando el sistema localiza un artículo en una o varias fuentes, lo incorpora como \emph{candidato}. Tras recopilar sus precios y condiciones, puede clasificarlo en tres estados. \emph{Revisar} indica que el margen estimado y la información disponible justifican una comprobación manual. \emph{Observar} indica que faltan datos o que conviene esperar una nueva captura. \emph{Bloquear} indica que los costes, el riesgo o las restricciones de cartera impiden continuar. Estas clasificaciones no sustituyen la decisión de la persona usuaria, sino que organizan los artículos que conviene atender antes.
 
-La solución se organiza en tres fases. Esta separación permite evaluar cada parte por separado y conservar la trazabilidad desde una observación de mercado hasta la recomendación final:
+La solución propuesta se organiza en tres fases. Esta separación permite evaluar cada parte por separado y conservar la trazabilidad desde una observación de mercado hasta la recomendación final:
 
 \begin{enumerate}
     \item \textbf{Observación y limpieza.} Reúne precios, anuncios, volumen y metadatos desde las fuentes disponibles. Después normaliza monedas, nombres y fechas, elimina duplicados y registra la calidad de cada captura. El resultado es un historial comparable, con la fuente y el instante de adquisición asociados a cada dato.
@@ -42,7 +42,7 @@ Los objetivos específicos se agrupan en cuatro bloques:
 
 \begin{itemize}
   \item \textbf{Comprensión del dominio}: analizar el mercado de activos digitales de \textit{Counter-Strike 2}, sus plataformas, restricciones, comisiones, divisas, liquidez y efectos del \textit{trade hold}.
-  \item \textbf{Construcción de datos}: diseñar un flujo de adquisición y preparación de datos procedentes de Steam, \acroref{BUFF}{BUFF}, SteamDT, \acroref{OCR}{OCR} y fuentes manuales, manteniendo trazabilidad de fuente, fecha, moneda y calidad del dato.
+  \item \textbf{Construcción de datos}: diseñar un flujo de adquisición y preparación de datos procedentes de diferentes plataformas de mercado y fuentes manuales, manteniendo trazabilidad de fuente, fecha, moneda y calidad del dato.
   \item \textbf{Simulación y predicción}: migrar reglas económicas del proceso manual a código comprobable, construir datasets temporales, entrenar modelos supervisados y generar señales probabilísticas que puedan usarse dentro del entorno de decisión.
   \item \textbf{Aprendizaje por refuerzo y decisión multiagente}: formular un entorno de aprendizaje por refuerzo con estado de cartera, acciones y recompensas definidos. Sobre esa base, distribuir los roles de detección, decisión y control de riesgo entre agentes especializados y evaluar su funcionamiento con métricas de rentabilidad, riesgo, exposición y capital inmovilizado.
 \end{itemize}
@@ -51,24 +51,18 @@ Los objetivos específicos se agrupan en cuatro bloques:
 
 El alcance del proyecto se centra en la simulación y en la evaluación de estrategias. Las decisiones generadas se registran con sus datos, reglas y resultado simulado. Este enfoque permite comparar propuestas de forma reproducible y estudiar su efecto sobre la cartera.
 
-La arquitectura multiagente se plantea como una forma de separar responsabilidades dentro del proceso de decisión. La adquisición de datos, la predicción supervisada, el simulador económico, los agentes \acroref{MARL}{MARL} y la evaluación experimental se mantienen como capas diferenciadas para que cada parte pueda validarse, sustituirse o compararse sin comprometer el conjunto del sistema.
+La arquitectura multiagente se plantea como una forma de separar responsabilidades dentro del proceso de decisión. La adquisición de datos, la predicción supervisada, el simulador económico, los agentes del sistema y la evaluación experimental se mantienen como capas diferenciadas para que cada parte pueda validarse, sustituirse o compararse sin comprometer el conjunto del sistema.
 
-Otra restricción relevante es la disponibilidad de histórico alineado entre plataformas. El mercado de Steam y el de \acroref{BUFF}{BUFF} no siempre ofrecen datos con la misma granularidad, moneda, horizonte o estabilidad de acceso. Por ello, una parte del trabajo consiste en construir una base experimental, donde los resultados preliminares se distingan claramente de una validación definitiva.
+Otra restricción relevante es la disponibilidad de histórico alineado entre plataformas. Las plataformas de mercado no siempre ofrecen datos con la misma granularidad, moneda, horizonte o estabilidad de acceso. Por ello, una parte del trabajo consiste en construir una base experimental, donde los resultados preliminares se distingan claramente de una validación definitiva.
 
 La metodología distingue entre el aprendizaje de patrones temporales y la evaluación operativa de oportunidades concretas. Esta separación permite aprovechar históricos más estables para entrenar modelos y, al mismo tiempo, incorporar precios puntuales de mercado cuando se simulan decisiones de cartera.
-
-\section{Metodología de desarrollo}
-
-El desarrollo se ha abordado de forma incremental. El primer paso fue convertir el procedimiento manual en reglas económicas explícitas. A continuación, se ha construido la base para adquirir, normalizar y conservar los datos de mercado. Con esos datos se han preparado conjuntos supervisados y se han evaluado modelos tabulares capaces de generar señales probabilísticas.
-
-La última fase ha incorporado esas señales en un simulador de cartera y en un entorno multiagente compatible con PettingZoo y \acroref{RLlib}{RLlib}. Este orden permite comprobar primero los datos, las reglas y las métricas que intervienen en una decisión antes de estudiar la coordinación entre agentes mediante \acroref{MARL}{MARL}. Así, cada capa aporta una evidencia verificable para la siguiente.
 
 \section{Estructura del documento}
 
 La memoria se estructura de forma secuencial siguiendo las fases principales del proyecto. A continuación, se detalla el contenido de cada capítulo:
 
 \begin{itemize}
-  \item \textbf{Capítulo 1:} introduce el contexto del proyecto, la motivación, el problema abordado, la solución propuesta, los objetivos, el alcance y la metodología de desarrollo seguida.
+  \item \textbf{Capítulo 1:} introduce el contexto del proyecto, la motivación, el problema abordado, la solución propuesta, los objetivos, el alcance y la estructura.
   \item \textbf{Capítulo 2:} presenta el estado del arte sobre mercados de activos digitales, plataformas de intercambio, aprendizaje por refuerzo, coordinación multiagente y toma de decisiones en carteras.
   \item \textbf{Capítulo 3:} analiza los conceptos operativos del mercado de activos digitales en videojuegos y justifica el uso de \textit{Counter-Strike 2} como caso de estudio.
   \item \textbf{Capítulo 4:} describe la arquitectura multiagente propuesta. Se presenta la formulación técnica del sistema, flujo general, entorno de decisión, agentes, función de recompensa y restricciones de riesgo.

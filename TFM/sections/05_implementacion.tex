@@ -6,6 +6,8 @@
 
 La implementación se ha organizado como un monorepo para separar el código de dominio, los conectores de adquisición y las herramientas de operación. La separación no responde solo a una preferencia de estructura. Permite ejecutar un scraper, repetir un entrenamiento o consultar el panel sin mezclar esa lógica con las reglas económicas y con los contratos de datos.
 
+La predicción tabular se ejecuta con scikit-learn y los modelos entrenados se conservan con Joblib. El entorno multiagente se implementa con PettingZoo y se conecta con Ray/\acroref{RLlib}{RLlib}; Gymnasium y PyTorch forman parte de ese ecosistema de entrenamiento. Las pruebas unitarias y de integración se ejecutan con Pytest y pytest-asyncio, mientras que Ruff y Mypy se emplean para revisar estilo y tipos. Cada herramienta se utiliza en el componente que corresponde, de modo que el código no sustituye a la explicación metodológica de los capítulos anteriores.
+
 \begin{table}[h]
 \centering
 \begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{0.26\textwidth} >{\raggedright\arraybackslash}X}

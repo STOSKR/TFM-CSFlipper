@@ -6,6 +6,8 @@
 
 El sistema trabaja con varias fuentes porque el mercado de \acroref{CS2}{CS2} está fragmentado. Ninguna fuente aislada contiene toda la información necesaria para decidir. Steam aporta precio, histórico y señales del mercado principal. \acroref{BUFF}{BUFF} permite comparar oportunidades y buy orders. SteamDT ayuda a descubrir candidatos. El \acroref{OCR}{OCR} permite capturar datos cuando no existe una \acroref{API}{API} cómoda. Los \acroref{CSV}{CSV} o importaciones manuales sirven para integrar muestras controladas o material histórico.
 
+La capa de adquisición se ha desarrollado en Python 3.11. HTTPX se emplea cuando una fuente admite una consulta HTTP estable y Playwright cuando exige navegación o renderizado de página. Las observaciones se guardan en PostgreSQL, desplegado mediante Supabase, y el acceso se organiza con SQLAlchemy y AsyncPG. Así, cada dato conserva su fuente, instante de captura y formato original antes de incorporarse al análisis.
+
 \subsection{Mercado de Steam}
 
 Steam actúa como una de las fuentes principales de precio e histórico. En el proyecto se capturan variantes de artículos, precios actuales, moneda, buy orders y puntos históricos cuando están disponibles. La información se normaliza para que pueda combinarse con otras plataformas y para evitar que las decisiones dependan de nombres o formatos propios de una fuente.
@@ -105,6 +107,8 @@ Entidad & Uso dentro del \acroref{TFM}{TFM} \\
 
 \section{Preparación de características}
 
+Los datos normalizados se preparan con Pandas y NumPy. PyArrow permite conservar los datasets derivados en un formato reproducible. Estas herramientas se usan aquí para construir variables temporales y cortes de evaluación, no como parte del marco teórico.
+
 Antes de entrenar un modelo o simular una cartera, las observaciones se transforman en variables que resumen precios, liquidez, evolución temporal y estado de la cartera. A continuación se explican las variables empleadas y la construcción temporal de las etiquetas.
 
 \subsection{Variables de mercado}
@@ -169,6 +173,8 @@ Beneficio neto & Calcula diferencia entre ingreso neto de venta y coste de entra
 \end{table}
 
 \section{Simulador de cartera}
+
+El simulador se ha implementado con módulos propios, ya que debe representar reglas específicas del dominio, como comisiones, conversión de moneda, capital bloqueado y \textit{trade hold}. Esta capa recibe observaciones ya normalizadas y produce transiciones de cartera que pueden evaluarse de forma repetible.
 
 El simulador representa las consecuencias de una decisión sobre el efectivo disponible, las posiciones abiertas y el riesgo. Sus reglas permiten comparar alternativas con las mismas comisiones, bloqueos y límites de exposición.
 
