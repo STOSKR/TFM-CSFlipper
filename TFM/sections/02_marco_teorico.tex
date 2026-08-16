@@ -2,35 +2,64 @@
 
 \noindent Este capítulo sitúa el trabajo dentro de la literatura sobre economías virtuales, plataformas de intercambio y sistemas de decisión. Primero presenta los mercados de activos digitales y las expresiones necesarias para analizar una operación. Después introduce agentes, sistemas multiagente, aprendizaje por refuerzo y gestión de cartera.
 
-\textcolor{blue}{el código que has desarrollado debería ir a un repositorio Github y esta información la pones en un Anexo}
-
-\textcolor{red}{quita los comentarios que tengas aquí y que hagan referencia al capítulo 3. Lo que hay en el capítulo 3 podría verse como estado del arte, ya que vas a hablar de mercados de activos digitales y el videojuego, pero debes venderlo como el contexto en el que se va a desarrollar tu trabajo}
-
-\textcolor{blue}{igual mejor titular el capítulo 3 como 'Análisis y contextualización del dominio de trabajo' o 'Contextualización del mercado de activos digitales en videojuegos' o bien, si queremos ir ya particularizando para Counter-Strike 2 se puede titular 'Contextualización del mercado de activos digitales: el caso de los bienes virtuales en Counter-Strike 2'. En el capítulo 3, tienes que dejar muy claro al principio que el mercado de skins de Counter-Strike 2 es el ejemplo perfecto de una economía virtual porque funciona de forma muy parecida a una bolsa de valores real, con fluctuaciones de precios, oferta, demanda y plataformas de intercambio externas; de este modo, no queda claro que efectivamente estás usando CS2 como caso de estudio pero es que CS2 es un ejemplo perfecto para el estudio de mercados digitales de videojuegos}
-
 \section{Mercados y plataformas de activos digitales}
 
-Los bienes virtuales pueden tener utilidad dentro de un videojuego y, cuando las reglas lo permiten, circular entre personas usuarias a través de mecanismos de intercambio. La investigación sobre consumo de bienes virtuales muestra que la demanda no depende solo de una función dentro del juego. También intervienen la apariencia, la rareza, la identidad social y la percepción de valor del objeto \cite{lehdonvirta2009virtual,guo2009virtual}. \textcolor{magenta}{puedes poner algún ejemplo de bienes virtuales y sus características?? para que el lector pueda entender bien lo que estás diciendo sino queda un poco abstracto y la gente que no está familiarizada con esto, que seguramente será todo el tribunal, no se va a enterar}
+Los bienes virtuales pueden tener utilidad dentro de un videojuego y, cuando las reglas lo permiten, circular entre personas usuarias a través de mecanismos de intercambio. La investigación sobre consumo de bienes virtuales muestra que la demanda no depende solo de una función dentro del juego. También intervienen la apariencia, la rareza, la identidad social y la percepción de valor del objeto \cite{lehdonvirta2009virtual,guo2009virtual}.
+
+Por ejemplo, un atuendo para un avatar o una apariencia para un arma modifica su presentación visual sin cambiar las reglas de juego. Un objeto funcional puede dar acceso a una capacidad, una zona o un recurso dentro del juego. También existen objetos coleccionables cuyo interés depende de una serie limitada, su rareza o la demanda de la comunidad. Algunos bienes son consumibles, como cajas, sobres o mejoras, y desaparecen o se transforman al utilizarlos.
 
 Estos mercados de activos digitales comparten elementos con otros mercados de bienes diferenciados, como la oferta, la demanda, los precios, los costes de transacción y la liquidez, aunque funcionan bajo reglas definidas por las plataformas.
 
-Para este trabajo resulta útil distinguir tres configuraciones:
+Para situar el problema, resulta útil distinguir tres configuraciones generales:
 \begin{itemize}
-    \item \textbf{Mercados cerrados:} limitan la circulación del objeto al propio videojuego.
-    \item \textbf{Mercados internos:} permiten intercambios entre usuarios con reglas y moneda controladas por la plataforma.
-    \item \textbf{Mercados conectados a plataformas externas:} permiten comparar precios o intercambiar activos en más de un entorno.
+    \item \textbf{Mercados cerrados:} los objetos se utilizan dentro del videojuego, pero no se intercambian entre personas usuarias.
+    \item \textbf{Mercados secundarios oficiales:} la plataforma responsable del ecosistema regula los inventarios y las operaciones.
+    \item \textbf{Mercados secundarios de terceros:} una plataforma externa intermedia la compra y venta de activos vinculados a otro ecosistema.
 \end{itemize}
 
-Una plataforma de intercambio cumple varias funciones: muestra el catálogo disponible, registra ofertas de venta y órdenes de compra, aplica reglas de transacción y mantiene información sobre precios o actividad.
+\subsection{Configuración analizada}
 
-El mercado puede estar gestionado por una empresa, mediante contratos distribuidos o por una solución híbrida. En todos los casos, la plataforma determina qué datos pueden observarse, qué operaciones están permitidas y qué costes se aplican. Estas decisiones condicionan la calidad de los datos disponibles para cualquier sistema de análisis.
+Este trabajo se centra en mercados secundarios centralizados conectados entre plataformas. En esta configuración, un activo pertenece a un inventario administrado por una plataforma oficial, mientras que otra plataforma externa puede publicar precios u ofertas sobre ese mismo activo. El sistema compara ambas fuentes, identifica la misma variante del objeto y estima una posible operación considerando moneda, comisiones, liquidez y restricciones temporales.
 
-El caso analizado en este trabajo pertenece a un mercado secundario de objetos virtuales intercambiables, mediado por plataformas. No se estudia un mercado cerrado ni una economía basada en activos blockchain \textcolor{magenta}{pero arriba has puesto mercados cerrados y dices que es útil para este trabajo ... esto hay que explicarlo bien, si hay diferentes tipos de mercados, puedes describirlos brevemente y luego decir que te centras en el tipo XXX que es el que se va a tratar en este trabajo}. Se comparan anuncios y órdenes de compra de objetos cosméticos en una plataforma oficial, Steam, y en una plataforma externa, BUFF \textcolor{magenta}{tienes que poner referencias a Steam y BUFF y dar una breve explicación de cada plataforma; ponlo como bullets}. Esta combinación introduce fragmentación de precios, comisiones, monedas y restricciones temporales, que son precisamente las condiciones que la propuesta técnica debe representar. \textcolor{magenta}{El Capítulo 3 profundiza en las plataformas y en los objetos que forman este caso de estudio. SOBRE ESTA FRASE: AQUÍ DEBERÍAS PONER UNA RELACIÓN DE MERCADOS DIGITALES Y PLATAFORMAS MÁS HABITUALES Y DEJAR EL CAPÍTULO 3 EXCLUSIVAMENTE PARA el caso de estudio de CS2}
+Los mercados cerrados y las alternativas descentralizadas se describen para delimitar el alcance y contrastar reglas, disponibilidad de datos y mecanismos de intercambio. El análisis se limita a la configuración centralizada, donde los datos y las operaciones dependen de las normas de cada plataforma.
 
-\textcolor{blue}{lo que quiero decir es que aquí ponas una relación de los mercados y plataformas más habituales ... te dejo unas capturas en el chat}
+Los mercados secundarios oficiales muestran cómo un mismo ecosistema concentra inventario y operaciones. Entre ellos se encuentran Steam Community Market, Roblox Marketplace, Auction House y EVE Online Market \cite{steamMarketFAQ,robloxMarketplace,blizzardAuctionHouse,eveMarketOrders}.
 
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabularx}{\textwidth}{@{}p{0.30\textwidth}p{0.23\textwidth}X@{}}
+\toprule
+\textbf{Mercado} & \textbf{Ecosistema} & \textbf{Activos habituales} \\
+\midrule
+Steam Community Market & Steam & Objetos cosméticos, cajas y pegatinas \\
+Roblox Marketplace & Roblox & Ropa, accesorios y animaciones \\
+Auction House & World of Warcraft & Equipo, materiales y moneda \\
+EVE Online Market & EVE Online & Naves, módulos y recursos \\
+\bottomrule
+\end{tabularx}
+\caption{Ejemplos de mercados oficiales.}
+\label{tab:mercados-oficiales}
+\end{table}
 
+Las plataformas de terceros disponen de mecanismos propios para publicar y adquirir activos transferibles. BUFF, Skinport, BitSkins y DMarket son ejemplos de este tipo de mercado \cite{buffMarketplace,skinportItemsApi,bitskinsMarketplace,dmarketMarketplace}.
 
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabularx}{\textwidth}{@{}p{0.20\textwidth}p{0.40\textwidth}X@{}}
+\toprule
+\textbf{Plataforma} & \textbf{Especialización} & \textbf{Modalidad} \\
+\midrule
+BUFF & Objetos virtuales transferibles & Compra y venta entre usuarios \\
+Skinport & Objetos cosméticos de videojuegos & Mercado con precios publicados \\
+BitSkins & Objetos virtuales transferibles & Mercado de terceros \\
+DMarket & Activos digitales de videojuegos & Compra y venta entre usuarios \\
+\bottomrule
+\end{tabularx}
+\caption{Ejemplos de mercados de terceros.}
+\label{tab:mercados-terceros}
+\end{table}
 
 \section{Operativa y expresiones económicas}
 

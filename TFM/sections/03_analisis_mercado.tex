@@ -1,6 +1,14 @@
-\chapter{Análisis del mercado de activos digitales en videojuegos}
+\chapter{Contextualización del caso de estudio: activos digitales en Counter-Strike 2}
 
-\noindent Este capítulo define los conceptos de dominio que utiliza el sistema. El objetivo es que la propuesta pueda entenderse sin conocer previamente videojuegos, Steam o el mercado de \textit{Counter-Strike 2}. Tras presentar los tipos de activo, las plataformas y los indicadores de mercado, se concreta el caso de estudio empleado en el resto de la memoria.
+\noindent Este capítulo concreta el marco general del Capítulo 2 en el caso de estudio utilizado por el sistema. Se presentan los activos, las plataformas y las reglas de intercambio que permiten aplicar la propuesta a \textit{Counter-Strike 2}. El objetivo es que la terminología posterior pueda entenderse sin conocer previamente el videojuego ni sus mercados.
+
+\section{Justificación del caso de estudio}
+
+\textit{Counter-Strike 2} se utiliza como caso de estudio porque reúne objetos cosméticos con variantes diferenciables, un inventario integrado en una plataforma de distribución digital y varias fuentes de precio con formatos distintos. Estas condiciones permiten evaluar la propuesta sobre un mercado donde la normalización del artículo, las comisiones, la liquidez y los bloqueos temporales influyen directamente en una decisión de compraventa.
+
+Su mercado de objetos virtuales presenta precios variables, anuncios de venta, órdenes de compra y actividad de intercambio en distintas plataformas. Por ello, permite estudiar cómo una diferencia visible entre precios puede transformarse en una oportunidad que debe validarse con costes, disponibilidad de demanda y restricciones de cartera. No se utiliza como un ejemplo aislado, sino como un contexto con datos y reglas suficientes para poner a prueba el marco genérico de adquisición, predicción y simulación.
+
+Las secciones siguientes describen primero los artículos que se intercambian, después las plataformas que aportan la información y, por último, las variables económicas que condicionan una operación.
 
 \section{Activos virtuales del caso de estudio}
 
@@ -24,19 +32,18 @@ Consumible & Se utiliza o transforma durante el juego y puede desaparecer. \\
 
 La identificación de un activo requiere algo más que su nombre. En los mercados de videojuegos son habituales atributos como categoría, colección, rareza, condición y variante. Estos atributos permiten distinguir objetos que parecen similares, pero que se intercambian como referencias diferentes. El sistema conserva esos campos para evitar comparar precios de variantes no equivalentes.
 
+En el caso de estudio, los objetos más habituales son \emph{skins}, guantes, cuchillos, pegatinas y cajas. Una \emph{skin} modifica el aspecto visual de un arma. El \emph{float} es el valor numérico que representa su desgaste y StatTrak identifica una variante que incorpora un contador de víctimas obtenidas con el arma. Estos atributos permiten diferenciar variantes que comparten nombre, pero no precio ni demanda.
+
 \section{Plataformas del caso de estudio}
 
-El caso de estudio combina una plataforma oficial y fuentes externas con funciones complementarias. Steam gestiona el inventario y el intercambio oficial. BUFF aporta precios de entrada para la comparación y SteamDT ayuda a descubrir artículos que requieren una captura más detallada.
+El caso de estudio combina una plataforma oficial y fuentes externas con funciones complementarias:
+\begin{itemize}
+    \item \textbf{Steam Community Market:} plataforma oficial con un inventario asociado a la cuenta, anuncios de venta y órdenes de compra \cite{steamMarketFAQ}.
+    \item \textbf{BUFF:} fuente externa para comparar precios de entrada y demanda. El sistema conserva los precios en CNY y su conversión a EUR \cite{buffMarketplace}.
+    \item \textbf{SteamDT:} fuente de descubrimiento de artículos que requieren una captura detallada.
+\end{itemize}
 
-El \emph{inventario Steam} es el conjunto de activos vinculados a una cuenta de Steam. Cuando un artículo puede intercambiarse, el inventario actúa como punto de partida para publicarlo o transferirlo según las reglas de la plataforma. Esto diferencia un activo disponible para intercambiar de otro que existe dentro del juego, pero no puede salir de él.
-
-Las plataformas emplean dos mecanismos básicos para organizar el intercambio. Un \emph{anuncio de venta} indica que alguien ofrece un artículo a un precio determinado. Una \emph{orden de compra} o \textit{buy order} indica el precio máximo que otra persona está dispuesta a pagar. Steam describe las órdenes de compra como una referencia que permite decidir entre vender de inmediato a un precio menor o esperar una venta a un precio superior \cite{steamMarketFAQ}. Esta diferencia resulta relevante porque el precio visible no siempre coincide con el precio al que puede ejecutarse una operación.
-
-Steam es una plataforma de distribución digital que permite acceder a videojuegos mediante una cuenta de usuario. Para los juegos que habilitan intercambio, la misma cuenta mantiene un inventario de activos y puede acceder al Mercado de la Comunidad de Steam. En este mercado las personas usuarias publican anuncios de venta, consultan órdenes de compra y reciben el saldo resultante en su cartera Steam. Dentro del proyecto, Steam aporta precios de salida, histórico y señales de liquidez para las variantes analizadas.
-
-\acroref{BUFF}{BUFF} es una plataforma externa de intercambio que el sistema utiliza como fuente de comparación. Sus anuncios ofrecen precios de entrada y sus órdenes de compra aportan una señal adicional sobre la demanda disponible. La aplicación conserva el precio original en CNY y su conversión a EUR para poder comparar cada observación con Steam sin perder el valor publicado por la fuente.
-
-SteamDT se utiliza como fuente de descubrimiento. Su función es localizar artículos que pueden merecer una captura más detallada, pero no sustituye el cálculo de costes ni decide una operación. Por ello, una diferencia detectada en SteamDT se transforma primero en un candidato y debe contrastarse después con los precios y condiciones recogidos de Steam y BUFF.
+Un \emph{anuncio de venta} indica que alguien ofrece un artículo a un precio determinado. Una \emph{orden de compra} o \textit{buy order} indica el precio máximo que otra persona está dispuesta a pagar. Esta diferencia resulta relevante porque el precio visible no siempre coincide con el precio al que puede ejecutarse una operación.
 
 \section{Precios y fricciones en el caso de estudio}
 
@@ -46,12 +53,4 @@ La \emph{liquidez} expresa la facilidad con la que un activo puede comprarse o v
 
 También existen fricciones específicas de cada plataforma. Las comisiones reducen el ingreso neto, la conversión de divisa puede variar y algunas operaciones aplican un \textit{trade hold}. Este último es un periodo durante el cual un artículo adquirido no puede transferirse o venderse. Por tanto, la decisión no consiste solo en comparar dos precios. Debe estimar si el margen puede mantenerse durante el tiempo necesario para cerrar la posición.
 
-\section{Caso de estudio: Counter-Strike 2}
-
-\textit{Counter-Strike 2} se utiliza como caso de estudio porque reúne activos cosméticos con múltiples variantes, un inventario integrado en Steam y fuentes de precio con formatos distintos. Estas condiciones permiten evaluar la propuesta sobre un mercado donde la normalización del artículo, las comisiones, la liquidez y el bloqueo temporal afectan de forma directa a una decisión.
-
-Los objetos más relevantes son \emph{skins}, guantes, cuchillos, pegatinas y cajas. Una \emph{skin} modifica el aspecto visual de un arma. Su valor puede depender de la categoría, la colección, la rareza y la condición. El \emph{float} es el valor numérico que representa el desgaste de una skin. StatTrak identifica una variante que incorpora un contador de víctimas obtenidas con el arma. Estos campos permiten diferenciar variantes que comparten nombre, pero no precio ni demanda.
-
-Las tres fuentes tienen funciones complementarias: Steam aporta inventario, anuncios, órdenes de compra e histórico cuando está disponible, BUFF aporta precios de entrada y SteamDT apoya el descubrimiento de candidatos. Ninguna se toma como verdad única. El sistema conserva su origen, fecha, moneda y calidad para que una comparación posterior pueda reconstruirse y revisarse.
-
-La ruta de interés del proyecto es comprar en \acroref{BUFF}{BUFF} y estimar una salida posterior en Steam. Por esta razón, la comparación incorpora conversión de moneda, comisión de venta de Steam, liquidez, órdenes de compra y bloqueo temporal. El resto de capítulos describe cómo estas condiciones se convierten en datos, señales y decisiones simuladas.
+La ruta analizada consiste en adquirir una variante en una plataforma externa y estimar una salida posterior en la plataforma oficial. Por esta razón, la comparación incorpora conversión de moneda, comisión de venta, liquidez, órdenes de compra y bloqueo temporal. Los capítulos posteriores muestran cómo estas condiciones se transforman en datos, señales y decisiones simuladas.
