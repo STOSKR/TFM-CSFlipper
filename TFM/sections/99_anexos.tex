@@ -3,21 +3,43 @@
 \noindent Los anexos reúnen detalles operativos que complementan la explicación principal: estructura del repositorio, configuración del entorno, comandos reproducibles y parámetros de entrenamiento.
 
 \section{Estructura del repositorio}
+\label{anx:repositorio}
 
-El repositorio se organiza como un monorepo. La carpeta \texttt{apps} contiene aplicaciones y comandos ejecutables. La carpeta \texttt{packages} contiene la lógica reutilizable. La carpeta \texttt{docs} recoge decisiones y documentación técnica. La carpeta \texttt{tests} contiene pruebas unitarias e integración. La carpeta \texttt{TFM} mantiene la memoria en \LaTeX{}.
+El código fuente completo se encuentra en el repositorio público del proyecto:\\[0.4em]
+\begin{center}
+\url{https://github.com/STOSKR/TFM-CSFlipper}
+\end{center}
 
-Los módulos principales son:
+La Figura~\ref{fig:estructura-repositorio} resume la organización. Se muestran solo los directorios que ayudan a localizar cada parte del sistema, mientras que los ficheros y resultados generados se consultan directamente en el repositorio.
+
+\begin{figure}[htbp]
+\centering
+\fbox{%
+\begin{minipage}{0.78\textwidth}
+\small
+\begin{tabular}{@{}ll}
+\texttt{TFM-CSFlipper/} & \\
+\quad \texttt{apps/} & comandos, extractores e interfaz local \\
+\quad \texttt{packages/} & lógica reutilizable del sistema \\
+\quad \texttt{tests/} & pruebas unitarias y de integración \\
+\quad \texttt{data/} & datasets y resultados derivados \\
+\quad \texttt{docs/} & documentación técnica \\
+\quad \texttt{TFM/} & memoria, figuras y bibliografía
+\end{tabular}
+\end{minipage}}
+\caption{Estructura del repositorio.}
+\label{fig:estructura-repositorio}
+\end{figure}
+
+Los directorios principales cumplen estas funciones:
 
 \begin{itemize}
-  \item \texttt{apps/acquisition}: extractores, scraping, \acroref{OCR}{OCR}, importadores y SteamDT.
-  \item \texttt{apps/cli}: comandos de construcción de datasets, entrenamiento, scraping y evaluación.
-  \item \texttt{apps/web}: interfaz web local de consulta y control operativo.
-  \item \texttt{packages/contracts}: contratos Pydantic compartidos.
-  \item \texttt{packages/persistence}: conexión, repositorios y persistencia.
-  \item \texttt{packages/prediction}: entrenamiento e inferencia supervisada.
-  \item \texttt{packages/simulation}: reglas económicas, cartera, riesgo y backtesting.
-  \item \texttt{packages/marl}: entorno multiagente, wrappers PettingZoo/\acroref{RLlib}{RLlib} y entrenamiento.
-  \item \texttt{packages/vision}: \acroref{OCR}{OCR}, preprocesado y parsing visual.
+  \item \texttt{apps}: contiene los extractores, los comandos de consola y la interfaz local.
+  \item \texttt{packages}: agrupa los contratos, la persistencia, la predicción, el simulador, el entorno \acroref{MARL}{MARL} y el procesamiento visual.
+  \item \texttt{tests}: reúne las pruebas unitarias y de integración que verifican reglas económicas, conectores y flujos principales.
+  \item \texttt{data}: conserva datasets derivados, informes y resultados que no forman parte del código fuente.
+  \item \texttt{docs}: recoge documentación técnica y decisiones de desarrollo.
+  \item \texttt{TFM}: contiene el código \LaTeX{}, las figuras y la bibliografía de esta memoria.
 \end{itemize}
 
 \section{Configuración del entorno}

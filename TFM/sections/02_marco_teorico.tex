@@ -6,24 +6,26 @@
 
 Los bienes virtuales pueden tener utilidad dentro de un videojuego y, cuando las reglas lo permiten, circular entre personas usuarias a través de mecanismos de intercambio. La investigación sobre consumo de bienes virtuales muestra que la demanda no depende solo de una función dentro del juego. También intervienen la apariencia, la rareza, la identidad social y la percepción de valor del objeto \cite{lehdonvirta2009virtual,guo2009virtual}.
 
-Por ejemplo, un atuendo para un avatar o una apariencia para un arma modifica su presentación visual sin cambiar las reglas de juego. Un objeto funcional puede dar acceso a una capacidad, una zona o un recurso dentro del juego. También existen objetos coleccionables cuyo interés depende de una serie limitada, su rareza o la demanda de la comunidad. Algunos bienes son consumibles, como cajas, sobres o mejoras, y desaparecen o se transforman al utilizarlos.
+Por ejemplo, un atuendo para un avatar o una apariencia para un arma modifica su presentación visual sin cambiar las reglas de juego. Un objeto funcional puede dar acceso a una capacidad, una zona o un recurso dentro del juego proporcionando ventaja al usuario. También existen objetos coleccionables cuyo interés depende de una serie limitada, su rareza o la demanda de la comunidad. Algunos bienes son consumibles, como cajas, sobres o mejoras, y desaparecen o se transforman al utilizarlos.
 
 Estos mercados de activos digitales comparten elementos con otros mercados de bienes diferenciados, como la oferta, la demanda, los precios, los costes de transacción y la liquidez, aunque funcionan bajo reglas definidas por las plataformas.
 
 Para situar el problema, resulta útil distinguir tres configuraciones generales:
 \begin{itemize}
     \item \textbf{Mercados cerrados:} los objetos se utilizan dentro del videojuego, pero no se intercambian entre personas usuarias.
-    \item \textbf{Mercados secundarios oficiales:} la plataforma responsable del ecosistema regula los inventarios y las operaciones.
-    \item \textbf{Mercados secundarios de terceros:} una plataforma externa intermedia la compra y venta de activos vinculados a otro ecosistema.
+    \item \textbf{Mercados integrados:} el propio ecosistema administra el inventario y las operaciones de intercambio entre usuarios.
+    \item \textbf{Plataformas externas:} un intermediario distinto del ecosistema publica ofertas o facilita la compra y venta de sus activos.
 \end{itemize}
 
 \subsection{Configuración analizada}
 
-Este trabajo se centra en mercados secundarios centralizados conectados entre plataformas. En esta configuración, un activo pertenece a un inventario administrado por una plataforma oficial, mientras que otra plataforma externa puede publicar precios u ofertas sobre ese mismo activo. El sistema compara ambas fuentes, identifica la misma variante del objeto y estima una posible operación considerando moneda, comisiones, liquidez y restricciones temporales.
+Este trabajo analiza activos transferibles que aparecen en dos entornos. El mercado integrado administra el inventario asociado a la cuenta y permite publicar el activo para su venta. La plataforma externa publica ofertas o precios para ese mismo activo. Ambos entornos aplican sus propias reglas y no comparten un único mercado.
 
-Los mercados cerrados y las alternativas descentralizadas se describen para delimitar el alcance y contrastar reglas, disponibilidad de datos y mecanismos de intercambio. El análisis se limita a la configuración centralizada, donde los datos y las operaciones dependen de las normas de cada plataforma.
+La conexión entre ellos la establece el sistema de análisis. Para cada oferta externa, identifica si se refiere a la misma variante que puede venderse en el mercado integrado y compara el coste de compra con el posible ingreso de venta. La estimación incorpora la moneda, las comisiones, la liquidez y las restricciones temporales antes de considerar una operación.
 
-Los mercados secundarios oficiales muestran cómo un mismo ecosistema concentra inventario y operaciones. Entre ellos se encuentran Steam Community Market, Roblox Marketplace, Auction House y EVE Online Market \cite{steamMarketFAQ,robloxMarketplace,blizzardAuctionHouse,eveMarketOrders}.
+Los mercados cerrados y las alternativas descentralizadas se han descrito para delimitar el alcance y contrastar reglas, disponibilidad de datos y mecanismos de intercambio. No se analizan mercados cerrados porque sus objetos no pueden intercambiarse entre usuarios, ni sistemas descentralizados donde la gestión del activo no depende de una plataforma central.
+
+La Tabla~\ref{tab:mercados-integrados} reúne ejemplos de mercados integrados, mientras que la Tabla~\ref{tab:plataformas-externas} recoge intermediarios externos. Las filas no forman parejas entre sí: solo muestran los dos tipos de entorno que intervienen en la configuración analizada. Las referencias oficiales de los mercados integrados son Steam Community Market, Roblox Marketplace, Auction House y EVE Online Market \cite{steamMarketFAQ,robloxMarketplace,blizzardAuctionHouse,eveMarketOrders}.
 
 \begin{table}[htbp]
 \centering
@@ -38,11 +40,11 @@ Auction House & World of Warcraft & Equipo, materiales y moneda \\
 EVE Online Market & EVE Online & Naves, módulos y recursos \\
 \bottomrule
 \end{tabularx}
-\caption{Ejemplos de mercados oficiales.}
-\label{tab:mercados-oficiales}
+\caption{Ejemplos de mercados integrados.}
+\label{tab:mercados-integrados}
 \end{table}
 
-Las plataformas de terceros disponen de mecanismos propios para publicar y adquirir activos transferibles. BUFF, Skinport, BitSkins y DMarket son ejemplos de este tipo de mercado \cite{buffMarketplace,skinportItemsApi,bitskinsMarketplace,dmarketMarketplace}.
+BUFF, Skinport, BitSkins y DMarket son ejemplos de plataformas externas \cite{buffMarketplace,skinportItemsApi,bitskinsMarketplace,dmarketMarketplace}.
 
 \begin{table}[htbp]
 \centering
@@ -57,8 +59,8 @@ BitSkins & Objetos virtuales transferibles & Mercado de terceros \\
 DMarket & Activos digitales de videojuegos & Compra y venta entre usuarios \\
 \bottomrule
 \end{tabularx}
-\caption{Ejemplos de mercados de terceros.}
-\label{tab:mercados-terceros}
+\caption{Ejemplos de plataformas externas.}
+\label{tab:plataformas-externas}
 \end{table}
 
 \section{Operativa y expresiones económicas}

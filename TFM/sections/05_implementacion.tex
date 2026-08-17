@@ -1,31 +1,12 @@
 \chapter{Implementación y operación}
 
-\noindent Este capítulo traslada la propuesta a componentes de software. Describe cómo se organiza el repositorio, cómo se ejecutan los flujos de adquisición y persistencia y cómo la consola local presenta las oportunidades y su trazabilidad.
+\noindent Este capítulo traslada la propuesta a componentes de software. Describe cómo se conectan los flujos de adquisición, persistencia y consulta local para mantener la trazabilidad de las oportunidades. La estructura detallada del código se incluye en el Anexo~\ref{anx:repositorio}.
 
 \section{Organización del sistema}
 
-La implementación se ha organizado como un monorepo para separar el código de dominio, los conectores de adquisición y las herramientas de operación. La separación no responde solo a una preferencia de estructura. Permite ejecutar un scraper, repetir un entrenamiento o consultar el panel sin mezclar esa lógica con las reglas económicas y con los contratos de datos.
+La implementación separa las responsabilidades de adquisición, persistencia, simulación, predicción y operación local. Esta separación permite ejecutar un scraper, repetir un entrenamiento o consultar el panel sin mezclar esas tareas con las reglas económicas y los contratos de datos.
 
 La predicción tabular se ejecuta con scikit-learn y los modelos entrenados se conservan con Joblib. El entorno multiagente se implementa con PettingZoo y se conecta con Ray/\acroref{RLlib}{RLlib}; Gymnasium y PyTorch forman parte de ese ecosistema de entrenamiento. Las pruebas unitarias y de integración se ejecutan con Pytest y pytest-asyncio, mientras que Ruff y Mypy se emplean para revisar estilo y tipos. Cada herramienta se utiliza en el componente que corresponde, de modo que el código no sustituye a la explicación metodológica de los capítulos anteriores.
-
-\begin{table}[h]
-\centering
-\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{0.26\textwidth} >{\raggedright\arraybackslash}X}
-\toprule
-Módulo & Función \\
-\midrule
-Dominio y contratos & Tipos, identificadores y validaciones comunes. \\
-Persistencia & Artículos, históricos y señales en PostgreSQL. \\
-Simulación & Cartera, comisiones, bloqueos y riesgo. \\
-Predicción & Variables, entrenamiento e inferencia supervisada. \\
-MARL & Entorno, recompensas y políticas. \\
-Visión & Preprocesado de imagen y OCR. \\
-Aplicaciones & Comandos y consola local. \\
-\bottomrule
-\end{tabularx}
-\caption{Módulos del sistema.}
-\label{tab:modulos-repositorio}
-\end{table}
 
 Las capas se comunican mediante contratos explícitos. Por ejemplo, un extractor no entrega directamente una recomendación. Entrega una observación con artículo, plataforma, fecha, precio, moneda, volumen, origen y calidad. La persistencia conserva esta información y los módulos de datos construyen después las variables necesarias para cada experimento. Esta secuencia facilita localizar un error sin tener que rehacer todo el flujo.
 
