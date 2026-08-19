@@ -74,7 +74,7 @@ El precio de una oferta externa representa el coste de compra y el precio del me
 Los conceptos económicos empleados son los siguientes:
 \begin{description}
     \item[Precio de entrada ($P_e$)] Precio publicado para adquirir el activo, convertido a EUR cuando la oferta original está en otra moneda.
-    \item[Precio de salida ($P_s$)] Precio bruto al que se publica el activo para venderlo.
+    \item[Precio de salida ($P_s$)] Precio bruto al que se publica el activo para venderlo, expresado en EUR para realizar los cálculos.
     \item[Anuncio de venta] Oferta de una persona que desea vender una variante concreta a un precio determinado.
     \item[Orden de compra] Precio máximo que una persona declara estar dispuesta a pagar por esa variante. Permanece activa hasta que se ejecuta, se cancela o expira según las reglas del mercado.
     \item[Conversión de moneda] Transformación del precio de una divisa a EUR para comparar ofertas expresadas en monedas distintas. La conversión y el método de pago pueden generar comisiones o costes adicionales que se añaden al coste de compra.
@@ -82,7 +82,7 @@ Los conceptos económicos empleados son los siguientes:
 
 La diferencia entre el mejor anuncio de venta y la mejor orden de compra de un mismo activo se denomina \textit{spread}. Este valor informa sobre la distancia entre oferta y demanda, pero no equivale por sí solo a un beneficio.
 
-Si $P_e$ es el precio de entrada ya convertido a EUR, $P_s$ es el precio bruto de salida, $f_s$ es la comisión de venta y $c$ reúne los costes adicionales de conversión o retirada. El ingreso neto, $P_{\mathrm{neto}}$, y el margen, $m$, se expresan como:
+Si $P_e$ es el precio de entrada en EUR, $P_s$ es el precio bruto de salida en EUR, $f_s$ es la comisión de venta y $c$ reúne los costes adicionales de conversión o retirada. El ingreso neto, $P_{\mathrm{neto}}$, y el margen, $m$, se expresan como:
 
 \[
 P_{\mathrm{neto}}=P_s(1-f_s),
@@ -96,7 +96,7 @@ El retorno porcentual permite comparar operaciones de distinto importe:
 \rho=\frac{m}{P_e}
 \]
 
-Una oportunidad de compra solo se considera interesante cuando el margen neto es positivo y el activo puede venderse después en condiciones razonables. Desde la compra hasta esa venta, el activo constituye una posición abierta y el capital empleado queda bloqueado. La liquidez expresa la facilidad de comprar o vender sin esperar demasiado ni alterar de forma apreciable el precio esperado. En este trabajo se aproxima mediante volumen, número de anuncios de venta y órdenes de compra disponibles. Cuando la liquidez es baja, el capital puede permanecer inmovilizado y el margen calculado pierde utilidad.
+Una oportunidad de compra solo se considera interesante cuando el margen neto es positivo y el activo puede venderse después. Desde la compra hasta esa venta, el activo constituye una posición abierta y el capital empleado queda bloqueado. La liquidez expresa la facilidad de comprar o vender sin esperar demasiado ni alterar de forma apreciable el precio esperado. En este trabajo se aproxima mediante volumen, número de anuncios de venta y órdenes de compra disponibles. Cuando la liquidez es baja, el capital puede permanecer inmovilizado y el margen calculado pierde utilidad.
 
 Los costes de transacción y la liquidez son restricciones habituales en los entornos de trading con aprendizaje por refuerzo \cite{liu2021finrl}. También pueden existir bloqueos temporales, como el \textit{trade hold}, durante los cuales un artículo adquirido no puede transferirse ni venderse. Por tanto, una comparación de precios debe incorporar tanto el margen neto como el tiempo y el riesgo necesarios para realizar la salida.
 
