@@ -23,7 +23,7 @@ Los mercados cerrados delimitan lo que queda fuera del alcance de este trabajo, 
 
 La configuración analizada utiliza dos entornos de intercambio distintos. Un \textbf{mercado integrado} es el mercado que forma parte del ecosistema donde se gestiona el activo. Su función es conservar el inventario asociado a la cuenta y permitir que el usuario publique ese activo para venderlo. Una \textbf{plataforma externa} es un servicio independiente de ese ecosistema que publica sus propias ofertas y precios para activos transferibles. Tanto el mercado integrado como la plataforma externa son entornos de intercambio, pero no pertenecen a la misma plataforma ni comparten sus reglas.
 
-El análisis parte de que una misma variante puede aparecer en los dos entornos. El sistema comprueba primero que la oferta publicada en la plataforma externa y el activo disponible en el mercado integrado se refieren a esa misma variante. A continuación, estima una posible operación: adquirir el activo al precio de la oferta externa y venderlo después en el mercado integrado. Para ello compara ambos precios e incorpora la conversión de moneda, las comisiones, la liquidez y las restricciones temporales. El sistema no une ni ejecuta las operaciones de las dos plataformas, sino que evalúa si sus datos permiten plantear esa operación.
+El análisis parte de que una misma variante puede aparecer en ambos entornos. El sistema comprueba primero que la oferta publicada en la plataforma externa y el activo disponible en el mercado integrado se refieren a esa misma variante. A continuación, estima una posible operación: adquirir el activo al precio de la oferta externa y venderlo después en el mercado integrado. Para ello compara ambos precios e incorpora la conversión de moneda, las comisiones, la liquidez y las restricciones temporales. El sistema no une ni ejecuta las operaciones de las dos plataformas, sino que evalúa si sus datos permiten plantear esa operación.
 
 Las tablas siguientes no emparejan sus filas. La primera reúne mercados integrados y la segunda plataformas externas para mostrar los dos tipos de entorno que intervienen en esta configuración. Entre los mercados integrados se encuentran Steam Community Market, Roblox Marketplace, Auction House y EVE Online Market \cite{steamMarketFAQ,robloxMarketplace,blizzardAuctionHouse,eveMarketOrders}.
 
@@ -65,15 +65,19 @@ DMarket & Activos digitales de videojuegos & Compra y venta entre usuarios \\
 
 \section{Operativa y expresiones económicas}
 
-En esta memoria, una \textbf{operación} consiste en adquirir una variante concreta de un activo virtual y evaluar su posible venta posterior. No se comparan dos objetos distintos, sino los precios publicados para la misma variante en dos entornos. El precio de una oferta externa representa el coste de compra y el precio del mercado integrado representa una posible venta posterior.
+Una \textbf{operación} consiste en adquirir una variante concreta de un activo virtual y evaluar su posible venta posterior. No se comparan objetos distintos, sino los precios publicados para la misma variante en dos entornos.
+
+Puede entenderse como la comparación del precio de un mismo producto en dos comercios distintos: aunque el artículo sea el mismo, el precio puede variar. En este caso, el producto es una variante concreta de un activo virtual y los comercios son las plataformas.
+
+El precio de una oferta externa representa el coste de compra y el precio del mercado integrado representa una posible venta posterior.
 
 Los conceptos económicos empleados son los siguientes:
 \begin{description}
     \item[Precio de entrada ($P_e$)] Precio publicado para adquirir el activo, convertido a EUR cuando la oferta original está en otra moneda.
     \item[Precio de salida ($P_s$)] Precio bruto al que se publica el activo para venderlo.
     \item[Anuncio de venta] Oferta de una persona que desea vender una variante concreta a un precio determinado.
-    \item[Orden de compra] Precio máximo que otra persona declara estar dispuesta a pagar por esa variante.
-    \item[Conversión de moneda] Transformación del precio de una divisa a EUR para comparar ofertas expresadas en monedas distintas.
+    \item[Orden de compra] Precio máximo que una persona declara estar dispuesta a pagar por esa variante. Permanece activa hasta que se ejecuta, se cancela o expira según las reglas del mercado.
+    \item[Conversión de moneda] Transformación del precio de una divisa a EUR para comparar ofertas expresadas en monedas distintas. La conversión y el método de pago pueden generar comisiones o costes adicionales que se añaden al coste de compra.
 \end{description}
 
 La diferencia entre el mejor anuncio de venta y la mejor orden de compra de un mismo activo se denomina \textit{spread}. Este valor informa sobre la distancia entre oferta y demanda, pero no equivale por sí solo a un beneficio.
@@ -92,7 +96,7 @@ El retorno porcentual permite comparar operaciones de distinto importe:
 \rho=\frac{m}{P_e}
 \]
 
-Una oportunidad de compra solo se considera interesante cuando el margen neto es positivo y el activo puede venderse después en condiciones razonables. Desde la compra hasta esa venta, el activo constituye una posición abierta y el capital empleado queda bloqueado. La liquidez expresa la facilidad de comprar o vender sin esperar demasiado ni alterar de forma apreciable el precio esperado. En este trabajo se aproxima mediante volumen, número de anuncios y órdenes de compra disponibles. Cuando la liquidez es baja, el capital puede permanecer inmovilizado y el margen calculado pierde utilidad.
+Una oportunidad de compra solo se considera interesante cuando el margen neto es positivo y el activo puede venderse después en condiciones razonables. Desde la compra hasta esa venta, el activo constituye una posición abierta y el capital empleado queda bloqueado. La liquidez expresa la facilidad de comprar o vender sin esperar demasiado ni alterar de forma apreciable el precio esperado. En este trabajo se aproxima mediante volumen, número de anuncios de venta y órdenes de compra disponibles. Cuando la liquidez es baja, el capital puede permanecer inmovilizado y el margen calculado pierde utilidad.
 
 Los costes de transacción y la liquidez son restricciones habituales en los entornos de trading con aprendizaje por refuerzo \cite{liu2021finrl}. También pueden existir bloqueos temporales, como el \textit{trade hold}, durante los cuales un artículo adquirido no puede transferirse ni venderse. Por tanto, una comparación de precios debe incorporar tanto el margen neto como el tiempo y el riesgo necesarios para realizar la salida.
 
