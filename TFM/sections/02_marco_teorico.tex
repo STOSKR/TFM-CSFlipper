@@ -8,24 +8,24 @@ Los bienes virtuales pueden tener utilidad dentro de un videojuego y, cuando las
 
 Por ejemplo, un atuendo para un avatar o una apariencia para un arma modifica su presentación visual sin cambiar las reglas de juego. Un objeto funcional puede dar acceso a una capacidad, una zona o un recurso dentro del juego proporcionando ventaja al usuario. También existen objetos coleccionables cuyo interés depende de una serie limitada, su rareza o la demanda de la comunidad. Algunos bienes son consumibles, como cajas, sobres o mejoras, y desaparecen o se transforman al utilizarlos.
 
-Estos mercados de activos digitales comparten elementos con otros mercados de bienes diferenciados, como la oferta, la demanda, los precios, los costes de transacción y la liquidez, aunque funcionan bajo reglas definidas por las plataformas.
+Los mercados de activos digitales comparten elementos con otros mercados de bienes diferenciados, como oferta, demanda, precios, costes de transacción y liquidez. Su funcionamiento depende, sin embargo, de las reglas que establecen las plataformas. En este contexto, una \textbf{plataforma} es el servicio digital que administra inventarios, datos u operaciones. Un \textbf{mercado} es el conjunto de reglas y mecanismos con los que las personas usuarias publican, consultan y aceptan ofertas sobre activos virtuales.
 
-Para situar el problema, resulta útil distinguir tres configuraciones generales:
+Para situar el problema, se distinguen tres configuraciones generales:
 \begin{itemize}
-    \item \textbf{Mercados cerrados:} los objetos se utilizan dentro del videojuego, pero no se intercambian entre personas usuarias.
-    \item \textbf{Mercados integrados:} el propio ecosistema administra el inventario y las operaciones de intercambio entre usuarios.
-    \item \textbf{Plataformas externas:} un intermediario distinto del ecosistema publica ofertas o facilita la compra y venta de sus activos.
+    \item \textbf{Mercados cerrados:} los activos se usan dentro del videojuego, pero no se intercambian entre personas usuarias. Por tanto, no existe un precio de reventa observable ni una operación de compra y venta entre cuentas.
+    \item \textbf{Mercados integrados:} el propio ecosistema administra el inventario asociado a la cuenta y define cómo se publican activos, anuncios de venta y órdenes de compra.
+    \item \textbf{Plataformas externas:} son servicios distintos del ecosistema que publican ofertas o facilitan operaciones sobre activos transferibles. Aplican sus propias reglas, precios y mecanismos de pago.
 \end{itemize}
+
+Los mercados cerrados delimitan lo que queda fuera del alcance de este trabajo, ya que sus objetos no permiten una operación entre usuarios. También quedan fuera los sistemas descentralizados en los que la gestión del activo no depende de una plataforma central. El análisis se centra, en cambio, en activos transferibles gestionados por plataformas centralizadas.
 
 \subsection{Configuración analizada}
 
-Este trabajo analiza activos transferibles que aparecen en dos entornos. El mercado integrado administra el inventario asociado a la cuenta y permite publicar el activo para su venta. La plataforma externa publica ofertas o precios para ese mismo activo. Ambos entornos aplican sus propias reglas y no comparten un único mercado.
+La configuración analizada combina un \textbf{mercado integrado} y una \textbf{plataforma externa}. El mercado integrado conserva el inventario asociado a la cuenta y permite publicar un activo para su venta. La plataforma externa muestra ofertas o precios para ese mismo activo. Ambos entornos pueden referirse a la misma variante, pero mantienen reglas, monedas, comisiones y registros de ofertas propios.
 
-La conexión entre ellos la establece el sistema de análisis. Para cada oferta externa, identifica si se refiere a la misma variante que puede venderse en el mercado integrado y compara el coste de compra con el posible ingreso de venta. La estimación incorpora la moneda, las comisiones, la liquidez y las restricciones temporales antes de considerar una operación.
+El sistema de análisis conecta la información disponible en ambos entornos. Primero identifica si una oferta externa y un activo del mercado integrado representan la misma variante. Después compara el coste de adquirir ese activo con el ingreso que podría obtenerse al venderlo. Antes de considerar una operación, incorpora la conversión de moneda, las comisiones, la liquidez y las restricciones temporales.
 
-Los mercados cerrados y las alternativas descentralizadas se han descrito para delimitar el alcance y contrastar reglas, disponibilidad de datos y mecanismos de intercambio. No se analizan mercados cerrados porque sus objetos no pueden intercambiarse entre usuarios, ni sistemas descentralizados donde la gestión del activo no depende de una plataforma central.
-
-La Tabla~\ref{tab:mercados-integrados} reúne ejemplos de mercados integrados, mientras que la Tabla~\ref{tab:plataformas-externas} recoge intermediarios externos. Las filas no forman parejas entre sí: solo muestran los dos tipos de entorno que intervienen en la configuración analizada. Las referencias oficiales de los mercados integrados son Steam Community Market, Roblox Marketplace, Auction House y EVE Online Market \cite{steamMarketFAQ,robloxMarketplace,blizzardAuctionHouse,eveMarketOrders}.
+Las tablas siguientes no emparejan sus filas. La primera reúne mercados integrados y la segunda plataformas externas para mostrar los dos tipos de entorno que intervienen en esta configuración. Entre los mercados integrados se encuentran Steam Community Market, Roblox Marketplace, Auction House y EVE Online Market \cite{steamMarketFAQ,robloxMarketplace,blizzardAuctionHouse,eveMarketOrders}.
 
 \begin{table}[htbp]
 \centering
@@ -65,9 +65,20 @@ DMarket & Activos digitales de videojuegos & Compra y venta entre usuarios \\
 
 \section{Operativa y expresiones económicas}
 
-Una operación entre plataformas no se evalúa comparando dos precios visibles. Debe identificar el precio de entrada, el precio de salida, las comisiones, el coste de conversión y el tiempo durante el que el capital queda inmovilizado. Un anuncio de venta representa un precio al que alguien ofrece un activo. Una orden de compra indica el precio máximo que otra persona está dispuesta a pagar. La diferencia entre ambos se denomina \textit{spread}, pero por sí sola no representa un beneficio.
+En esta memoria, una \textbf{operación} consiste en adquirir una variante concreta de un activo virtual y evaluar su posible venta posterior. No se comparan dos objetos distintos, sino los precios publicados para la misma variante en dos entornos. El precio de una oferta externa representa el coste de compra y el precio del mercado integrado representa una posible venta posterior.
 
-Si $P_e$ es el precio de entrada ya convertido a EUR, $P_s$ es el precio bruto de salida, $f_s$ es la comisión de venta y $c$ reúne los costes adicionales de conversión o retirada, el ingreso neto y el margen se expresan como:
+Los conceptos económicos empleados son los siguientes:
+\begin{description}
+    \item[Precio de entrada ($P_e$)] Precio publicado para adquirir el activo, convertido a EUR cuando la oferta original está en otra moneda.
+    \item[Precio de salida ($P_s$)] Precio bruto al que se publica el activo para venderlo.
+    \item[Anuncio de venta] Oferta de una persona que desea vender una variante concreta a un precio determinado.
+    \item[Orden de compra] Precio máximo que otra persona declara estar dispuesta a pagar por esa variante.
+    \item[Conversión de moneda] Transformación del precio de una divisa a EUR para comparar ofertas expresadas en monedas distintas.
+\end{description}
+
+La diferencia entre el mejor anuncio de venta y la mejor orden de compra de un mismo activo se denomina \textit{spread}. Este valor informa sobre la distancia entre oferta y demanda, pero no equivale por sí solo a un beneficio.
+
+Si $P_e$ es el precio de entrada ya convertido a EUR, $P_s$ es el precio bruto de salida, $f_s$ es la comisión de venta y $c$ reúne los costes adicionales de conversión o retirada. El ingreso neto, $P_{\mathrm{neto}}$, y el margen, $m$, se expresan como:
 
 \[
 P_{\mathrm{neto}}=P_s(1-f_s),
@@ -78,28 +89,18 @@ m=P_{\mathrm{neto}}-P_e-c.
 El retorno porcentual permite comparar operaciones de distinto importe:
 
 \[
-\rho=\frac{m}{P_e}.
+\rho=\frac{m}{P_e}
 \]
 
-Una oportunidad solo se considera interesante cuando el margen neto es positivo y sus condiciones permiten cerrar la posición. La liquidez expresa la facilidad de comprar o vender sin esperar demasiado ni alterar de forma apreciable el precio esperado. En este trabajo se aproxima mediante volumen, número de anuncios y órdenes de compra disponibles. Cuando es baja, el capital puede permanecer inmovilizado y el margen calculado pierde utilidad.
+Una oportunidad de compra solo se considera interesante cuando el margen neto es positivo y el activo puede venderse después en condiciones razonables. Desde la compra hasta esa venta, el activo constituye una posición abierta y el capital empleado queda bloqueado. La liquidez expresa la facilidad de comprar o vender sin esperar demasiado ni alterar de forma apreciable el precio esperado. En este trabajo se aproxima mediante volumen, número de anuncios y órdenes de compra disponibles. Cuando la liquidez es baja, el capital puede permanecer inmovilizado y el margen calculado pierde utilidad.
 
 Los costes de transacción y la liquidez son restricciones habituales en los entornos de trading con aprendizaje por refuerzo \cite{liu2021finrl}. También pueden existir bloqueos temporales, como el \textit{trade hold}, durante los cuales un artículo adquirido no puede transferirse ni venderse. Por tanto, una comparación de precios debe incorporar tanto el margen neto como el tiempo y el riesgo necesarios para realizar la salida.
 
-\section{Agentes inteligentes}
-
-En inteligencia artificial, un agente es un componente que observa una parte de su entorno, elige una acción y persigue un objetivo. No tiene por qué ser una persona ni un robot. Recibe una observación $o_t$, aplica una política y elige una acción $a_t$. Después recibe una recompensa que le permite ajustar su comportamiento en episodios posteriores \cite{sutton2018reinforcement}.
-
-La política es la regla que transforma observaciones en acciones. Por ejemplo, un agente puede observar un precio, una comisión y el saldo disponible, y decidir mantener, comprar o vender. En el contexto de esta memoria, sus observaciones combinan información de mercado y de cartera para que la decisión no dependa de un único indicador.
-
-\section{Sistemas multiagente}
-
-Un sistema multiagente reúne dos o más agentes que actúan sobre un mismo entorno. Pueden colaborar, competir o tomar decisiones independientes. En un sistema cooperativo comparten un objetivo global, aunque cada uno disponga de información y responsabilidades distintas \cite{wooldridge2009multiagent,busoniu2008comprehensive}. Esta división no equivale solo a separar el código en módulos. Cada rol debe tener observaciones, acciones y una política de decisión propias.
-
-En esta memoria se adopta un sistema cooperativo de tres roles. Scout observa las oportunidades de mercado y decide si merecen atención. Trader propone mantener, comprar o vender. Portfolio observa el estado de la cartera y aprueba o rechaza operaciones según saldo, exposición y restricciones. La coordinación es necesaria porque una decisión localmente buena puede ser globalmente mala. Por ejemplo, una compra puede ser atractiva para Trader, pero no para Portfolio si ya existe demasiada exposición al mismo tipo de activo.
-
 \section{Aprendizaje por refuerzo}
 
-El aprendizaje por refuerzo estudia problemas en los que un agente interactúa con un entorno, toma acciones y recibe recompensas. A diferencia del aprendizaje supervisado, donde el modelo aprende a reproducir etiquetas históricas, en \acroref{RL}{RL} el modelo aprende una política de actuación a partir de las consecuencias de sus acciones \cite{sutton2018reinforcement}. Esta formulación es útil cuando una decisión actual modifica el estado futuro, como ocurre al abrir una posición que queda bloqueada por \textit{trade hold}.
+El aprendizaje por refuerzo, o \acroref{RL}{RL}, estudia problemas en los que un agente interactúa con un entorno, toma acciones y recibe recompensas. En este contexto, un agente es un componente de decisión que observa una parte del entorno, elige una acción y ajusta su comportamiento a partir de las consecuencias obtenidas. A diferencia del aprendizaje supervisado, donde el modelo aprende a reproducir etiquetas históricas, en \acroref{RL}{RL} aprende una política de actuación \cite{sutton2018reinforcement}. Esta formulación es útil cuando una decisión actual modifica el estado futuro, como ocurre al abrir una posición que queda bloqueada por \textit{trade hold}.
+
+La política es la regla que transforma observaciones en acciones. Por ejemplo, un agente puede observar un precio, una comisión y el saldo disponible, y decidir mantener, comprar o vender. En el contexto de esta memoria, sus observaciones combinan información de mercado y cartera para que la decisión no dependa de un único indicador.
 
 \subsection{Procesos de decisión de Markov}
 
@@ -129,9 +130,11 @@ La exploración permite probar acciones que todavía no se conocen bien. En un m
 
 \section{Aprendizaje por refuerzo multiagente}
 
-El aprendizaje por refuerzo multiagente extiende la formulación anterior a los sistemas formados por varios agentes. Esta ampliación introduce dificultades nuevas: cada agente aprende mientras los demás también cambian, por lo que el entorno puede volverse no estacionario desde el punto de vista individual. Lowe et al. señalan este problema y proponen entrenar agentes con información adicional durante el entrenamiento para mejorar la coordinación mediante \acroref{MADDPG}{MADDPG} \cite{lowe2017maddpg}.
+Un sistema multiagente reúne dos o más agentes que actúan sobre un mismo entorno. Pueden colaborar, competir o tomar decisiones independientes. En un sistema cooperativo comparten un objetivo global, aunque cada uno disponga de información y responsabilidades distintas \cite{wooldridge2009multiagent,busoniu2008comprehensive}. El aprendizaje por refuerzo multiagente, o \acroref{MARL}{MARL}, aplica la formulación de \acroref{RL}{RL} a estos sistemas. Esta ampliación introduce dificultades nuevas: cada agente aprende mientras los demás también cambian, por lo que el entorno puede volverse no estacionario desde el punto de vista individual. Lowe et al. señalan este problema y proponen entrenar agentes con información adicional durante el entrenamiento para mejorar la coordinación mediante \acroref{MADDPG}{MADDPG} \cite{lowe2017maddpg}.
 
-La implementación reparte la decisión de cartera entre Scout, Trader y Portfolio. Para $N$ agentes, cada paso combina observaciones y acciones locales. La recompensa cooperativa se calcula a partir del resultado de cartera y se asigna por igual a todos los agentes:
+En esta memoria se adopta un sistema cooperativo de tres roles. Scout observa oportunidades de mercado y decide si merecen atención. Trader propone mantener, comprar o vender. Portfolio observa el estado de la cartera y aprueba o rechaza operaciones según saldo, exposición y restricciones. La coordinación evita que una decisión atractiva para un rol exceda los límites de riesgo de la cartera.
+
+Para $N$ agentes, cada paso combina observaciones y acciones locales. La recompensa cooperativa se calcula a partir del resultado de cartera y se asigna por igual a todos los agentes:
 
 \[
 \mathbf{o}_t=(o_t^1,\ldots,o_t^N),
@@ -171,18 +174,21 @@ L^{\mathrm{CLIP}}(\theta)=
 
 El recorte evita que una actualización cambie en exceso la probabilidad de una acción. Posteriormente, Yu et al. muestran que \acroref{PPO}{PPO} puede funcionar como baseline fuerte en juegos cooperativos multiagente cuando se implementa con cuidado \cite{yu2022mappo}. En el proyecto, esta línea se materializa en un entorno PettingZoo y un wrapper para \acroref{RLlib}{RLlib}, que permiten integrar entrenamientos con \acroref{PPO}{PPO} y \acroref{MAPPO}{MAPPO}.
 
+
 \section{Toma de decisiones en carteras}
 
-La gestión de una cartera no consiste solo en elegir activos con rentabilidad esperada positiva. También debe controlar riesgo, concentración, liquidez, costes de transacción y horizonte temporal. La teoría moderna de carteras introdujo la idea de estudiar rentabilidad y riesgo conjuntamente, en lugar de analizar cada inversión de forma aislada \cite{markowitz1952portfolio}. Aunque el mercado estudiado no sea un mercado bursátil regulado, la intuición sigue siendo útil: una cartera puede empeorar aunque una operación individual parezca atractiva.
+La gestión de una cartera no consiste solo en elegir operaciones con un beneficio neto esperado positivo. Esta estimación no es el ingreso neto de venta $P_{\mathrm{neto}}$, sino el resultado previsto después de restar precio de entrada y costes. También debe controlar riesgo, concentración, liquidez, costes de transacción y horizonte temporal. La concentración indica qué parte del capital se dedica a un mismo activo, categoría o plataforma. El horizonte temporal es el periodo previsto entre la compra y la venta.
+
+La teoría moderna de carteras introdujo la idea de estudiar rentabilidad y riesgo conjuntamente, en lugar de analizar cada inversión de forma aislada \cite{markowitz1952portfolio}. Aunque el mercado estudiado no sea un mercado bursátil regulado, la intuición sigue siendo útil: una cartera puede empeorar aunque una operación individual parezca atractiva.
 
 \subsection{Rentabilidad y riesgo}
 
-En este \acroref{TFM}{TFM}, la rentabilidad se mide mediante beneficio neto, retorno porcentual, saldo final y evolución del valor de cartera. El riesgo se observa mediante \textit{drawdown}, capital bloqueado, exposición por activo o plataforma y operaciones rechazadas por restricciones. Estas métricas son más informativas que una simple precisión de predicción, porque conectan el modelo con el resultado económico simulado.
+En este \acroref{TFM}{TFM}, la rentabilidad se mide mediante el beneficio neto $m$, el retorno porcentual, el saldo final y la evolución del valor de cartera. $P_{\mathrm{neto}}$ representa solo el ingreso de venta después de aplicar su comisión. El riesgo se observa mediante \textit{drawdown}, capital bloqueado, exposición por activo o plataforma y operaciones rechazadas por restricciones. El capital bloqueado es el saldo comprometido en activos que aún no pueden venderse o transferirse. La exposición expresa qué parte de la cartera depende de un activo, categoría o plataforma. Estas métricas conectan la calidad de las señales con su efecto económico en la simulación.
 
-El aprendizaje supervisado puede estimar una probabilidad útil, pero esa probabilidad no es una decisión. Una señal de subida o de spread rentable debe pasar por el simulador, por las comisiones, por la liquidez y por el estado de cartera. Esta separación evita que el sistema confunda predecir con invertir.
+El aprendizaje supervisado puede estimar la probabilidad de que una operación cumpla el criterio de rentabilidad definido para el horizonte temporal analizado. Esta probabilidad es una señal, no una decisión. Debe pasar por el simulador, las comisiones, la liquidez y el estado de cartera antes de aprobar una compra. Esta separación evita que el sistema confunda predecir con invertir.
 
 \section{Aplicaciones relacionadas}
 
-Los trabajos de \acroref{RL}{RL} financiero muestran que entrenar agentes de trading exige reproducibilidad, backtesting y control de fricciones \cite{liu2021finrl}. Los trabajos de \acroref{MARL}{MARL} muestran que la coordinación entre agentes puede ser útil, pero también introduce inestabilidad y necesidad de evaluación cuidadosa \cite{lowe2017maddpg,yu2022mappo}. El proyecto se sitúa en la intersección de ambas ideas: usa un mercado de activos digitales como entorno de decisión, incorpora señales supervisadas y plantea una arquitectura multiagente cooperativa.
+Los trabajos de \acroref{RL}{RL} financiero muestran que entrenar agentes de trading exige reproducibilidad, \textit{backtesting} y control de fricciones \cite{liu2021finrl}. Los trabajos de \acroref{MARL}{MARL} muestran que la coordinación entre agentes puede ser útil, pero también introduce inestabilidad y necesidad de evaluación cuidadosa \cite{lowe2017maddpg,yu2022mappo}. El proyecto se sitúa en la intersección de ambas ideas: usa un mercado de activos digitales como entorno de decisión, incorpora señales supervisadas y plantea una arquitectura multiagente cooperativa.
 
-La diferencia principal respecto a una aplicación financiera clásica es el dominio. Los activos de \acroref{CS2}{CS2} son bienes virtuales controlados por plataformas, con liquidez fragmentada y reglas propias. La diferencia respecto a una simple herramienta de scraping es el objetivo: no basta con mostrar precios, sino que se busca evaluar decisiones de cartera bajo restricciones. Por ello, el trabajo combina adquisición de datos, simulación económica, predicción supervisada y aprendizaje por refuerzo multiagente dentro de una misma metodología.
+La diferencia principal respecto a una aplicación financiera clásica es el dominio. Los activos virtuales analizados están controlados por plataformas, presentan liquidez fragmentada y siguen reglas propias. La diferencia respecto a una simple herramienta de scraping es el objetivo: no basta con mostrar precios, sino que se busca evaluar decisiones de cartera bajo restricciones. Por ello, el trabajo combina adquisición de datos, simulación económica, predicción supervisada y aprendizaje por refuerzo multiagente dentro de una misma metodología.
