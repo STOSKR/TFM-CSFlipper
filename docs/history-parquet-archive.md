@@ -28,7 +28,10 @@ modifica datos remotos.
 ## Capturas futuras
 
 `refresh_market_history` guarda Parquet automáticamente antes de persistir los
-datos actuales. Para cambiar el destino:
+datos actuales. Por defecto, Supabase solo recibe el catálogo y los precios
+actuales; los puntos históricos nuevos se conservan en Parquet y OneDrive. Para
+mantener temporalmente una tercera copia histórica en Supabase puede usarse
+`--history-to-db`. Para cambiar el destino:
 
 ```powershell
 python -m apps.cli.refresh_market_history --persist `

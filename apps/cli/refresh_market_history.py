@@ -83,6 +83,7 @@ async def run(args: argparse.Namespace) -> int:
 
     history_points_ready = sum(history_point_count(snapshot) for snapshot in snapshots)
     history_points_persisted = 0
+    current_items_persisted = 0
     archive_rows = 0
     archive_files = 0
     archive_backups = 0
@@ -104,21 +105,29 @@ async def run(args: argparse.Namespace) -> int:
     if args.persist and not args.dry_run:
         print(
             f"persist_start snapshots={len(snapshots)} "
-            f"history_points_ready={history_points_ready}",
+            f"history_points_ready={history_points_ready} history_to_db={args.history_to_db}",
             flush=True,
         )
         pool = await create_pool(max_size=2)
         try:
             async with pool.acquire() as connection:
-                report = await _await_with_heartbeat(
-                    SimpleMarketSnapshotRepository(connection).record_snapshots_report(
-                        snapshots
-                    ),
-                    label="persist",
-                )
-                history_points_persisted = report.history_points
+                repository = SimpleMarketSnapshotRepository(connection)
+                if args.history_to_db:
+                    report = await _await_with_heartbeat(
+                        repository.record_snapshots_report(snapshots),
+                        label="persist",
+                    )
+                    current_items_persisted = report.snapshots
+                    history_points_persisted = report.history_points
+                else:
+                    current_items_persisted = await _await_with_heartbeat(
+                        repository.record_current_snapshots(snapshots),
+                        label="persist_current",
+                    )
                 print(
-                    f"persist_done history_points_persisted={history_points_persisted}",
+                    "persist_done "
+                    f"current_items_persisted={current_items_persisted} "
+                    f"history_points_persisted={history_points_persisted}",
                     flush=True,
                 )
         finally:
@@ -134,6 +143,7 @@ async def run(args: argparse.Namespace) -> int:
         f"loaded={len(candidates)} snapshots={len(snapshots)} "
         f"history_points_ready={history_points_ready} "
         f"history_points_persisted={history_points_persisted} "
+        f"current_items_persisted={current_items_persisted} "
         f"archive_rows={archive_rows} archive_files={archive_files} "
         f"archive_backups={archive_backups} "
         f"{compact_platform_summary(results)} "
@@ -512,6 +522,15 @@ def main() -> None:
     parser.add_argument("--verbose", action="store_true")
     parser.add_argument("--progress", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--persist", action="store_true")
+    parser.add_argument(
+        "--history-to-db",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help=(
+            "Mantiene una copia del histórico en Supabase; por defecto solo actualiza "
+            "precios actuales."
+        ),
+    )
     parser.add_argument(
         "--archive",
         action=argparse.BooleanOptionalAction,

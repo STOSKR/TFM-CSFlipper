@@ -60,6 +60,13 @@ class SimpleMarketSnapshotRepository:
         await self.record_snapshots_report(snapshots)
         return len(snapshots)
 
+    async def record_current_snapshots(self, snapshots: Sequence[SimpleMarketSnapshot]) -> int:
+        """Persist only current catalogue prices, leaving long history in the archive."""
+
+        for snapshot in snapshots:
+            await self.upsert_item(snapshot)
+        return len(snapshots)
+
     async def record_snapshots_report(
         self,
         snapshots: Sequence[SimpleMarketSnapshot],

@@ -356,6 +356,28 @@ async def test_simple_market_snapshot_repository_reports_history_points() -> Non
 
 
 @pytest.mark.asyncio
+async def test_snapshot_repository_persists_current_prices_without_history() -> None:
+    connection = FakeConnection()
+    snapshot = SimpleMarketSnapshot(
+        name="AK-47 | Slate",
+        quality="Field-Tested",
+        stattrak=False,
+        scraped_at=datetime(2026, 6, 9, 12, 0, tzinfo=UTC),
+        steam_price=Decimal("12.50"),
+        steam_currency="EUR",
+    )
+
+    persisted = await SimpleMarketSnapshotRepository(connection).record_current_snapshots(
+        (snapshot,)
+    )
+
+    assert persisted == 1
+    assert len(connection.statements) == 1
+    assert "insert into market_items" in connection.statements[0].lower()
+    assert "market_history_points" not in connection.statements[0].lower()
+
+
+@pytest.mark.asyncio
 async def test_simple_market_snapshot_repository_persists_current_buff_price_as_history() -> None:
     connection = FakeConnection()
     snapshot = SimpleMarketSnapshot(
