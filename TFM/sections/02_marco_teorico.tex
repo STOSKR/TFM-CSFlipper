@@ -68,10 +68,8 @@ Una \textbf{operación} consta de dos pasos: primero se adquiere un activo virtu
 
 Los conceptos económicos empleados son los siguientes:
 \begin{description}
-    \item[Precio de entrada ($P_e$)] Precio publicado para adquirir el activo, convertido a EUR cuando la oferta original está en otra moneda.
-    \item[Precio de salida ($P_s$)] Precio bruto al que se publica el activo para venderlo, expresado en EUR para realizar los cálculos.
-
-\textcolor{magenta}{precio de entrada y precio de salida es precio de compra y precio de venta?? Es decir, si lo he entendido bien, se trata de un usuario que adquiere un activo a un precio de compra ($P_e$) y que luego lo quiere vender a un precio de salida o precio de venta ($P_s)$, es así???  QUIERO DECIR, LA IDEA ES QUE PRIMERO HAY UNA COMPRA Y LUEGO UNA VENTA?? AL FINAL DE ESTE APARTADO, CUANDO HAS PUESTO LAS FÓRMULAS, PODÍAS PONER UN EJEMPLO CONCRETO PARA QUE LA GENTE LO ENTIENDA}
+    \item[Precio de compra o entrada ($P_e$)] Importe pagado para adquirir el activo virtual, convertido a EUR cuando la oferta original está en otra moneda.
+    \item[Precio de venta o salida ($P_s$)] Importe bruto al que se publica el mismo activo virtual para venderlo, expresado en EUR para realizar los cálculos.
 
     \item[Anuncio de venta] Oferta de una persona que desea vender un activo virtual concreto a un precio determinado.
     \item[Orden de compra] Precio máximo que una persona declara estar dispuesta a pagar por un activo virtual concreto. La orden de compra permanece activa hasta que se ejecuta, se cancela o expira según las reglas del mercado.
@@ -93,6 +91,8 @@ El retorno porcentual permite comparar operaciones de distinto importe:
 \[
 \rho=\frac{m}{P_e}
 \]
+
+Por ejemplo, si una persona compra un activo virtual por 100~EUR ($P_e$), estima venderlo por 130~EUR ($P_s$), la comisión de venta es del 13~\% ($f_s=0{,}13$) y existen 2~EUR de costes adicionales ($c=2$), el ingreso neto de venta es 113{,}10~EUR. El margen de la operación es 11{,}10~EUR y el retorno porcentual es 11,1~\%. La operación sigue esta secuencia: primero se compra el activo virtual y, cuando puede venderse, se calcula el resultado de la venta.
 
 Una oportunidad de compra solo se considera interesante cuando el margen neto \textcolor{magenta}{utiliza los mismos conceptos y nombres de variables que has presentado arriba ... 'margen neto' es precio neto?? entiendo que no, te refires entonces al margen $m$?? si es así entonces llámalo arriba 'margen neto' ... tienes que ser consistente con los nombres que utilizas, si pones nombres de variables, úsalas después para explicar las cosas} es positivo y el activo puede venderse después. Desde la compra hasta esa venta, el activo constituye una posición abierta y el capital empleado queda bloqueado. La liquidez expresa la facilidad de comprar o vender sin esperar demasiado ni alterar de forma apreciable el precio esperado \textcolor{blue}{hay alguna forma de definir 'liquidez' de un modo un poco más formal??}. En este trabajo se aproxima \textcolor{magenta}{el qué?? el precio esperado? Entonces di, 'En este trabajo, el precio esperado se aproxima ...'} mediante \textcolor{magenta}{volumen ???}, número de anuncios de venta \textcolor{magenta}{del artículo virtual???} y órdenes de compra disponibles \textcolor{magenta}{entiendo que del artículo, que no estás hablando de anuncios y compras generales de todos los artículos}. Cuando la liquidez es baja, el capital puede permanecer inmovilizado y el margen calculado pierde utilidad.
 
