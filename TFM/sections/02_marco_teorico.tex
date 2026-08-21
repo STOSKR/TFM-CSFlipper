@@ -125,9 +125,7 @@ En esta expresión, $P(s'\mid s,a)$ representa la probabilidad de pasar del esta
 G_t=\sum_{k=0}^{\infty}\gamma^k r_{t+k+1}.
 \]
 
-El estado resume la información disponible y la acción representa lo que el agente decide. En el contexto del \acroref{TFM}{TFM}, el estado incluye variables de mercado y cartera, las acciones son comprar, vender, observar o mantener, y la recompensa se asocia al valor neto de la cartera simulada. \textcolor{magenta}{todo esto debería ser la definición formal de tu MDP y debería ir al capítulo 4 ... POR CIERTO, NO VEO LA DEFINICIÓN DE TU MDP EN EL CAPÍTULO 4!! }
-
-La hipótesis de Markov no implica que el sistema conozca todo el futuro, sino que el estado utilizado contiene la información necesaria para tomar la mejor decisión disponible en ese momento. Por eso es importante construir observaciones ricas: precio, spread, liquidez, probabilidad supervisada, capital disponible, posiciones abiertas y capital bloqueado.
+El estado resume la información disponible y la acción representa lo que el agente decide. La hipótesis de Markov no implica que el sistema conozca todo el futuro, sino que el estado utilizado contiene la información necesaria para tomar la mejor decisión disponible en ese momento. Por ello, la elección de las variables que componen el estado resulta determinante para el comportamiento del agente.
 
 \Needspace{10\baselineskip}
 \subsection{Política, retorno y exploración}
