@@ -84,6 +84,7 @@ let visibleRecommendations = [];
 let selectedDealIndex = 0;
 let localCommands = [];
 let sessionState = {};
+let commandsEnabled = true;
 let scrapeWasRunning = false;
 let scrapeStatusTimer = null;
 let scrapeStatusSignature = "";
@@ -467,8 +468,14 @@ async function loadCommands() {
   }
   localCommands = response.payload?.commands || [];
   sessionState = response.payload?.sessions || {};
+  commandsEnabled = response.payload?.commands_enabled !== false;
   renderCommands(localCommands.filter((command) => command.group !== "login"));
   renderLoginCommands(localCommands.filter((command) => command.group === "login"));
+  if (!commandsEnabled) {
+    document.querySelector("#scrape-start-button").disabled = true;
+    document.querySelector("#scrape-action-status").textContent =
+      "Los comandos están deshabilitados en el panel desplegado; la actualización diaria se ejecuta por separado.";
+  }
   updateCommandButtons(Boolean(response.payload?.job?.running));
 }
 
@@ -491,7 +498,7 @@ function renderCommands(commands) {
         </article>
       `)
       .join("")
-    : `<div class="empty-list"><strong>Sin comandos</strong><span>No hay comandos configurados.</span></div>`;
+    : `<div class="empty-list"><strong>Sin comandos</strong><span>${commandsEnabled ? "No hay comandos configurados." : "El despliegue es de solo lectura."}</span></div>`;
 }
 
 function renderLoginCommands(commands) {
@@ -514,7 +521,7 @@ function renderLoginCommands(commands) {
         </article>
       `)
       .join("")
-    : `<div class="empty-list"><strong>Sin logins</strong><span>No hay comandos de login configurados.</span></div>`;
+    : `<div class="empty-list"><strong>Sin logins</strong><span>${commandsEnabled ? "No hay comandos de login configurados." : "Los inicios de sesión se realizan solo en local."}</span></div>`;
 }
 
 function sessionSummary(commandId) {

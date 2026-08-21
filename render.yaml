@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: csflipper-dashboard
+    runtime: python
+    region: frankfurt
+    plan: starter
+    buildCommand: ./render-build.sh
+    startCommand: python -m apps.cli.web_dashboard_server --host 0.0.0.0
+    healthCheckPath: /healthz
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: WEB_COMMANDS_ENABLED
+        value: "false"
+      - key: PLAYWRIGHT_BROWSERS_PATH
+        value: "0"
+
+  - type: cron
+    name: csflipper-daily-steam-refresh
+    runtime: python
+    region: frankfurt
+    plan: starter
+    schedule: "30 5 * * *"
+    buildCommand: ./render-build.sh
+    startCommand: python -m apps.cli.refresh_market_history --stale-minutes 1440 --persist --no-buff
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: PLAYWRIGHT_BROWSERS_PATH
+        value: "0"

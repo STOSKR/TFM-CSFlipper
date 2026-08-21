@@ -1,6 +1,7 @@
 from apps.cli.scrape_job_server import ScrapeJobRunner
 from apps.cli.session_state_metadata import write_session_metadata
 from apps.cli.web_dashboard_server import (
+    _command_execution_enabled,
     _command_payload,
     _limit_from_query,
     _local_command,
@@ -9,6 +10,15 @@ from apps.cli.web_dashboard_server import (
     _session_payload,
     _web_scrape_command,
 )
+
+
+def test_command_execution_can_be_disabled_for_public_deployments(monkeypatch) -> None:
+    monkeypatch.setenv("WEB_COMMANDS_ENABLED", "false")
+
+    assert _command_execution_enabled() is False
+
+    monkeypatch.setenv("WEB_COMMANDS_ENABLED", "true")
+    assert _command_execution_enabled() is True
 
 
 def test_dashboard_server_limit_query_is_bounded() -> None:

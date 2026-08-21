@@ -31,6 +31,12 @@ class DashboardHandler(SimpleHTTPRequestHandler):
 
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
+        if parsed.path == "/healthz":
+            self._write_json(
+                HTTPStatus.OK,
+                {"status": "ok", "commands_enabled": _command_execution_enabled()},
+            )
+            return
         if parsed.path == "/api/dashboard":
             self._write_dashboard(parsed.query)
             return
@@ -44,6 +50,9 @@ class DashboardHandler(SimpleHTTPRequestHandler):
 
     def do_POST(self) -> None:
         parsed = urlparse(self.path)
+        if not _command_execution_enabled():
+            self._write_json(HTTPStatus.FORBIDDEN, {"error": "commands_disabled"})
+            return
         if parsed.path == "/api/scrape/start":
             self._start_scrape_job()
             return
@@ -77,11 +86,17 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         self._write_json(HTTPStatus.OK, _scrape_status_payload(self.server.scrape_runner))
 
     def _write_commands(self) -> None:
+        commands_enabled = _command_execution_enabled()
         self._write_json(
             HTTPStatus.OK,
             {
-                "commands": [_command_payload(command) for command in _local_commands()],
-                "sessions": _session_payload(),
+                "commands": (
+                    [_command_payload(command) for command in _local_commands()]
+                    if commands_enabled
+                    else []
+                ),
+                "commands_enabled": commands_enabled,
+                "sessions": _session_payload() if commands_enabled else {},
                 "job": _snapshot_payload(self.server.scrape_runner.snapshot()),
             },
         )
@@ -180,6 +195,11 @@ def _limit_from_query(query: str) -> int:
     except ValueError:
         return 500
     return min(max(value, 1), 2000)
+
+
+def _command_execution_enabled() -> bool:
+    value = os.getenv("WEB_COMMANDS_ENABLED", "true").strip().lower()
+    return value in {"1", "true", "yes", "on"}
 
 
 def _scrape_status_payload(runner: ScrapeJobRunner) -> dict[str, Any]:
