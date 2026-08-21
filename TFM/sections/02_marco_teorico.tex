@@ -25,8 +25,6 @@ La configuración analizada en este trabajo utiliza dos entornos de intercambio 
 
 El análisis parte de que un mismo activo virtual puede aparecer en ambos entornos. El sistema comprueba primero que la oferta publicada en la plataforma externa y el activo disponible en el mercado integrado se refieren al mismo activo virtual. A continuación, se estima una posible operación: adquirir el activo al precio de la oferta externa y venderlo después en el mercado integrado. Para ello, se compara ambos precios y se incorpora la conversión de moneda, las comisiones, la liquidez y las restricciones temporales. El sistema no une ni ejecuta las operaciones de las dos plataformas, sino que evalúa si sus datos permiten plantear esa operación.
 
-Las tablas siguientes no emparejan sus filas \textcolor{magenta}{esto dilo después cuando hayas presentado las tablas}. La primera \textcolor{magenta}{referencia la tabla explícitamente, 2.1, y pon enlace a la tabla} reúne mercados integrados y la segunda \textcolor{magenta}{lo mismo} plataformas externas para mostrar los dos tipos de entorno que intervienen en la configuración analizada. Entre los mercados integrados se encuentran Steam Community Market, Roblox Marketplace, Auction House y EVE Online Market \cite{steamMarketFAQ,robloxMarketplace,blizzardAuctionHouse,eveMarketOrders}. BUFF, Skinport, BitSkins y DMarket son ejemplos de plataformas externas \cite{buffMarketplace,skinportItemsApi,bitskinsMarketplace,dmarketMarketplace}.
-
 \begin{table}[htbp]
 \centering
 \small
@@ -44,7 +42,7 @@ EVE Online Market & EVE Online & Naves, módulos y recursos \\
 \label{tab:mercados-integrados}
 \end{table}
 
-
+La Tabla~\ref{tab:mercados-integrados} reúne ejemplos de mercados integrados en distintos ecosistemas \cite{steamMarketFAQ,robloxMarketplace,blizzardAuctionHouse,eveMarketOrders}.
 
 \begin{table}[htbp]
 \centering
@@ -63,6 +61,7 @@ DMarket & Activos digitales de videojuegos & Compra y venta entre usuarios \\
 \label{tab:plataformas-externas}
 \end{table}
 
+La Tabla~\ref{tab:plataformas-externas} presenta ejemplos de plataformas externas \cite{buffMarketplace,skinportItemsApi,bitskinsMarketplace,dmarketMarketplace}. Las dos tablas no deben interpretarse como pares equivalentes: cada una reúne ejemplos independientes de uno de los dos entornos analizados.
 \section{Operativa y expresiones económicas}
 
 Una \textbf{operación} consiste en adquirir un activo virtual concreto y evaluar su posible venta posterior. No se comparan objetos distintos, sino los precios publicados para el mismo activo virtual en dos entornos. \textcolor{magenta}{cuando dices dos entornos, ¿te refieres a dos plataformas externas? o a una plataforma y un mercado integrado?? ACLARAR}
