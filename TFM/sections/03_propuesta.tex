@@ -59,7 +59,7 @@ El entorno representa una cartera simulada que evoluciona a partir de datos hist
 
 \subsection{Estado y observaciones}
 
-Las observaciones combinan variables de mercado y variables de cartera. Entre las variables de mercado se incluyen precios de Steam y \acroref{BUFF}{BUFF} normalizados a \acroref{EUR}{EUR}, precios originales en su moneda nativa, volumen, liquidez, spread bruto, spread neto, buy orders, antigüedad del activo virtual y señales temporales como retornos, medias móviles, \acroref{RSI}{RSI} o desviaciones de ventas. Entre las variables de cartera se incluyen efectivo disponible, capital bloqueado, posiciones abiertas, exposición por activo y estado de desbloqueo.
+Las observaciones combinan variables de mercado y variables de cartera. Entre las variables de mercado se incluyen precios de Steam y \acroref{BUFF}{BUFF} normalizados a \acroref{EUR}{EUR}, precios originales en su moneda nativa, volumen, liquidez, spread bruto, spread neto, órdenes de compra (\textit{buy orders}), antigüedad del activo virtual y señales temporales como retornos, medias móviles, \acroref{RSI}{RSI} o desviaciones de ventas. Entre las variables de cartera se incluyen efectivo disponible, capital bloqueado, posiciones abiertas, exposición por activo y estado de desbloqueo.
 
 La salida del modelo supervisado se incorpora como una probabilidad calibrada de que una oportunidad mantenga un spread rentable en el horizonte definido. Esta señal permite aprovechar aprendizaje supervisado sin convertirlo en una decisión rígida. Si la probabilidad es alta pero la cartera está sobreexpuesta o el capital está bloqueado, el entorno puede rechazar o posponer la operación.
 
