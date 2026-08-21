@@ -82,6 +82,8 @@ def test_web_mvp_static_files_are_wired() -> None:
     assert ".switch-control" in css
     assert ".segmented-control" in css
     assert ".login-view" in css
+    assert ".view[hidden]" in css
+    assert "display: none !important" in css
     assert ".login-grid" in css
     assert ".progress-panel" in css
     assert ".scrape-log" in css
