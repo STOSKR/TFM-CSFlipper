@@ -61,6 +61,15 @@ El entorno representa una cartera simulada que evoluciona a partir de datos hist
 
 El problema se formula como un proceso de decisión de Markov, $\mathcal{M}=(\mathcal{S},\mathcal{A},\mathcal{P},\mathcal{R},\gamma)$, donde $\mathcal{S}$ representa los estados de la cartera simulada, $\mathcal{A}$ las acciones posibles, $\mathcal{P}$ la transición entre estados, $\mathcal{R}$ la recompensa y $\gamma$ el factor de descuento de las recompensas futuras.
 
+El objetivo del aprendizaje por refuerzo es obtener la política $\pi^*$ que maximiza la recompensa acumulada esperada durante un episodio:
+
+\begin{equation}
+\pi^*=\arg\max_{\pi}\mathbb{E}_{\pi}\!\left[\sum_{t=0}^{T-1}\gamma^t r_{t+1}\right].
+\label{eq:objetivo-rl}
+\end{equation}
+
+En la Ecuación~\ref{eq:objetivo-rl}, $\pi$ es la regla con la que el agente selecciona acciones, $r_{t+1}$ es la recompensa obtenida tras cada acción y $\mathbb{E}_{\pi}$ representa el promedio sobre las posibles evoluciones del episodio al seguir esa política. El factor $\gamma$ da menos peso a las recompensas más lejanas. En este trabajo, la recompensa se define a partir de la evolución de la cartera simulada y penaliza costes, riesgo, falta de liquidez y capital bloqueado.
+
 En este trabajo, el estado incluye la información del mercado, el saldo disponible, las posiciones abiertas y bloqueadas, las fechas de desbloqueo y la exposición acumulada. Las acciones permiten comprar, vender, mantener u observar una oportunidad, siempre sujetas a las restricciones de riesgo. La transición actualiza el saldo, las posiciones, el capital bloqueado y la exposición después de cada acción. La recompensa evalúa cómo cambia el valor neto de la cartera simulada, considerando beneficio, costes, liquidez y riesgo.
 
 \subsection{Estado y observaciones}

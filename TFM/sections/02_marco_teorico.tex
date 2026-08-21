@@ -132,8 +132,6 @@ El estado resume la información disponible y la acción representa lo que el ag
 
 El retorno mide la recompensa acumulada a lo largo del episodio. En un mercado con fricciones, maximizar la recompensa inmediata puede ser mala estrategia: una compra aparentemente rentable puede bloquear capital, aumentar exposición o no encontrar salida. Por ello, la recompensa debe mirar más allá del margen instantáneo y considerar el resultado de cartera.
 
-\textcolor{magenta}{poner fórmula de optimización del RL}
-
 \textcolor{blue}{aquí estás en el estado del arte, toda la formalización del agente de RL para el problema de los activos digitales debe ir al capítulo 4}
 
 La exploración permite probar acciones que todavía no se conocen bien. En un mercado de activos digitales con costes y restricciones, esta idea debe aplicarse con cuidado. En el \acroref{TFM}{TFM}, la exploración se realiza en simulación, no con capital. Esta separación permite probar políticas y recompensas sin trasladar errores del entrenamiento al mercado. \textcolor{magenta}{tienes que hablar de explotación exploración RL en general ... lo que dices aquí de exploración en el TFM no se entiende, esto tienes que explicarlo en el capítulo 4 tras haber formalizado bien el problema en el contexto del MDP}
