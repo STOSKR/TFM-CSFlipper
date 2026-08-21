@@ -10,22 +10,34 @@
     <a class="skip-link" href="#main-content">Saltar al contenido</a>
     <div class="app-shell">
       <aside class="sidebar" aria-label="Navegacion principal">
-        <a class="brand" href="#overview" aria-label="CSFlipper Console">
+        <a class="brand" href="#recommendations" aria-label="Ir a oportunidades de CSFlipper">
           <img src="./assets/ledger-mark.svg" alt="" width="36" height="36" />
           <span>
             <strong>CSFlipper</strong>
             <small>Local desk</small>
           </span>
         </a>
-        <nav class="nav-list">
-          <a href="#recommendations" class="active"><span>01</span>Oportunidades</a>
-          <a href="#scraper"><span>02</span>Scraper</a>
-          <a href="#login"><span>03</span>Sesiones</a>
-          <a href="#model"><span>04</span>Modelo</a>
-          <a href="#agents"><span>05</span>Agentes</a>
-          <a href="#marl-simulation"><span>06</span>Simulación</a>
-          <a href="#portfolio"><span>07</span>Riesgo</a>
-          <a href="#backlog"><span>08</span>Roadmap</a>
+        <nav class="nav-list" aria-label="Secciones de trabajo">
+          <div class="nav-group">
+            <p class="nav-group-label">Mesa</p>
+            <a href="#recommendations" class="active" aria-current="page"><span>01</span>Oportunidades</a>
+          </div>
+          <div class="nav-group">
+            <p class="nav-group-label">Datos</p>
+            <a href="#scraper"><span>02</span>Captura</a>
+            <a href="#login"><span>03</span>Sesiones</a>
+          </div>
+          <div class="nav-group">
+            <p class="nav-group-label">Laboratorio</p>
+            <a href="#marl-simulation"><span>04</span>Simulación</a>
+            <a href="#agents"><span>05</span>Agentes</a>
+            <a href="#portfolio"><span>06</span>Riesgo</a>
+          </div>
+          <div class="nav-group">
+            <p class="nav-group-label">Sistema</p>
+            <a href="#model"><span>07</span>Modelo</a>
+            <a href="#backlog"><span>08</span>Roadmap</a>
+          </div>
         </nav>
         <div class="sidebar-footer">
           <span>Fuente</span>
@@ -44,7 +56,7 @@
               <span class="dot ok"></span>
               <span>BD conectada</span>
             </div>
-            <button class="ghost-action" data-open-view="scraper" type="button">Scraper</button>
+            <button class="ghost-action" data-open-view="scraper" type="button">Captura</button>
           </div>
         </header>
 

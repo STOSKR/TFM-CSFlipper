@@ -875,7 +875,7 @@ function setupNavigation() {
   const defaultId = "recommendations";
   const titles = {
     recommendations: "Oportunidades",
-    scraper: "Scraper",
+    scraper: "Captura de datos",
     login: "Sesiones",
     model: "Modelo",
     agents: "Agentes",
@@ -887,7 +887,13 @@ function setupNavigation() {
   function activate(id) {
     const selected = views.some((view) => view.id === id) ? id : defaultId;
     links.forEach((link) => {
-      link.classList.toggle("active", link.getAttribute("href") === `#${selected}`);
+      const isActive = link.getAttribute("href") === `#${selected}`;
+      link.classList.toggle("active", isActive);
+      if (isActive) {
+        link.setAttribute("aria-current", "page");
+      } else {
+        link.removeAttribute("aria-current");
+      }
     });
     views.forEach((view) => {
       view.hidden = view.id !== selected;
