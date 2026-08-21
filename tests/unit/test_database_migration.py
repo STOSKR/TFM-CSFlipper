@@ -26,6 +26,9 @@ MARKET_PRICE_CURRENCY_DERIVATIVES_MIGRATION = Path(
 MARKET_OPPORTUNITY_SIGNALS_MIGRATION = Path(
     "supabase/migrations/0011_market_opportunity_signals.sql"
 )
+MARKET_HISTORY_QUALITY_MIGRATION = Path(
+    "supabase/migrations/0012_normalize_buff_history_and_quarantine_future_points.sql"
+)
 
 
 def test_initial_migration_defines_required_tables() -> None:
@@ -226,3 +229,14 @@ def test_market_opportunity_signals_migration_supports_live_scoring() -> None:
     assert "status in ('review', 'observe', 'blocked')" in sql
     assert "idx_market_opportunity_signals_item_scored" in sql
     assert "idx_market_opportunity_signals_status_scored" in sql
+
+
+def test_market_history_quality_migration_normalizes_buff_and_preserves_future_data() -> None:
+    sql = MARKET_HISTORY_QUALITY_MIGRATION.read_text(encoding="utf-8").lower()
+
+    assert "create table if not exists market_history_quarantine" in sql
+    assert "future_observed_at_after_2026_08_21" in sql
+    assert "observed_at >= timestamptz '2026-08-22 00:00:00+00'" in sql
+    assert "where platform_id = 'buff163'" in sql
+    assert "'legacy_buff163'" in sql
+    assert "create or replace view market_platform_freshness" in sql
