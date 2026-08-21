@@ -72,6 +72,8 @@ En la Ecuación~\ref{eq:objetivo-rl}, $\pi$ es la regla con la que el agente sel
 
 En este trabajo, el estado incluye la información del mercado, el saldo disponible, las posiciones abiertas y bloqueadas, las fechas de desbloqueo y la exposición acumulada. Las acciones permiten comprar, vender, mantener u observar una oportunidad, siempre sujetas a las restricciones de riesgo. La transición actualiza el saldo, las posiciones, el capital bloqueado y la exposición después de cada acción. La recompensa evalúa cómo cambia el valor neto de la cartera simulada, considerando beneficio, costes, liquidez y riesgo.
 
+La exploración y el entrenamiento se realizan únicamente dentro del simulador y con datos históricos. Las acciones exploratorias modifican una cartera simulada, no una cuenta real ni el inventario de una plataforma. De este modo, el sistema puede probar decisiones de compra, venta o mantenimiento y observar sus consecuencias ---comisiones, \textit{trade hold}, liquidez y riesgo--- sin utilizar capital real.
+
 \subsection{Estado y observaciones}
 
 Las observaciones combinan variables de mercado y variables de cartera. Entre las variables de mercado se incluyen precios de Steam y \acroref{BUFF}{BUFF} normalizados a \acroref{EUR}{EUR}, precios originales en su moneda nativa, volumen, liquidez, spread bruto, spread neto, órdenes de compra (\textit{buy orders}), antigüedad del activo virtual y señales temporales como retornos, medias móviles, \acroref{RSI}{RSI} o desviaciones de ventas. Entre las variables de cartera se incluyen efectivo disponible, capital bloqueado, posiciones abiertas, exposición por activo y estado de desbloqueo.
