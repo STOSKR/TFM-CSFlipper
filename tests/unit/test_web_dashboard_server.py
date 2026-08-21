@@ -1,3 +1,5 @@
+import pytest
+
 from apps.cli.scrape_job_server import ScrapeJobRunner
 from apps.cli.session_state_metadata import write_session_metadata
 from apps.cli.web_dashboard_server import (
@@ -6,6 +8,9 @@ from apps.cli.web_dashboard_server import (
     _limit_from_query,
     _local_command,
     _local_commands,
+    _marl_cash,
+    _marl_policy,
+    _marl_simulation_payload,
     _scrape_status_payload,
     _session_payload,
     _web_scrape_command,
@@ -27,6 +32,32 @@ def test_dashboard_server_limit_query_is_bounded() -> None:
     assert _limit_from_query("limit=9999") == 2000
     assert _limit_from_query("limit=nope") == 500
     assert _limit_from_query("") == 500
+
+
+def test_marl_simulation_uses_controlled_scenario_with_editable_capital() -> None:
+    payload = _marl_simulation_payload(cash=500.0, policy="buy-and-sell")
+
+    assert payload["kind"] == "controlled_marl_simulation"
+    assert payload["initial_cash_eur"] == 500.0
+    assert payload["cash_available_eur"] == 502.18
+    assert payload["portfolio"]["closed_positions"] == 1
+    assert payload["candidates"][0]["item_name"] == "AK-47 | Slate_FT_0"
+    assert [entry["outcome"] for entry in payload["evolution"]] == [
+        "Compra simulada",
+        "Venta simulada",
+    ]
+
+
+def test_marl_simulation_validates_public_inputs() -> None:
+    assert _marl_cash("250") == 250.0
+    assert _marl_policy("hold") == "hold"
+
+    with pytest.raises(ValueError):
+        _marl_cash(0)
+    with pytest.raises(ValueError):
+        _marl_cash("not-a-number")
+    with pytest.raises(ValueError):
+        _marl_policy("train-ppo")
 
 
 def test_scrape_status_payload_exposes_job_without_command_path() -> None:

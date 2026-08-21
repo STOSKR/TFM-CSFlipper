@@ -1134,6 +1134,277 @@ input[type="search"] {
   background: var(--teal);
 }
 
+.marl-view > .section-note {
+  max-width: 76ch;
+  margin: -4px 0 16px;
+}
+
+.marl-workbench {
+  display: grid;
+  grid-template-columns: minmax(245px, 0.76fr) minmax(0, 1.7fr);
+  gap: 12px;
+}
+
+.marl-controls,
+.marl-agent-flow,
+.marl-empty-state,
+.marl-evolution-panel,
+.marl-candidates-panel {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+}
+
+.marl-controls {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  padding: 15px;
+}
+
+.currency-input {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  overflow: hidden;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: var(--canvas-raised);
+}
+
+.currency-input:focus-within {
+  border-color: var(--teal);
+}
+
+.currency-input input {
+  min-width: 0;
+  border: 0;
+}
+
+.currency-input input:focus-visible {
+  outline: 0;
+}
+
+.currency-input span {
+  display: grid;
+  place-items: center;
+  border-left: 1px solid var(--line);
+  color: var(--muted);
+  font-size: var(--text-caption);
+  font-weight: 750;
+  padding: 0 10px;
+}
+
+.marl-controls .primary-action {
+  justify-self: start;
+}
+
+.marl-agent-flow {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  overflow: hidden;
+}
+
+.marl-agent-flow article {
+  position: relative;
+  min-height: 142px;
+  padding: 15px;
+}
+
+.marl-agent-flow article + article {
+  border-left: 1px solid var(--line);
+}
+
+.marl-agent-flow article + article::before {
+  position: absolute;
+  top: 29px;
+  left: -7px;
+  width: 13px;
+  height: 13px;
+  transform: rotate(45deg);
+  border-top: 1px solid var(--line-strong);
+  border-right: 1px solid var(--line-strong);
+  background: var(--panel);
+  content: "";
+}
+
+.marl-agent-flow span {
+  display: block;
+  color: var(--teal);
+  font-family: "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
+  font-size: var(--text-caption);
+  font-weight: 750;
+}
+
+.marl-agent-flow strong {
+  display: block;
+  margin-top: 16px;
+  font-size: 1rem;
+}
+
+.marl-agent-flow p {
+  margin-top: 7px;
+  color: var(--muted);
+  font-size: var(--text-small);
+  line-height: 1.45;
+}
+
+.marl-empty-state {
+  display: grid;
+  gap: 4px;
+  margin-top: 12px;
+  padding: 15px;
+}
+
+.marl-empty-state strong {
+  font-size: var(--text-small);
+}
+
+.marl-empty-state span {
+  color: var(--muted);
+  font-size: var(--text-small);
+}
+
+.marl-results {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.marl-results .notice {
+  margin: 0;
+}
+
+.marl-summary {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.marl-summary div {
+  min-height: 82px;
+  border-top: 1px solid var(--line-strong);
+  padding: 9px 2px 0;
+}
+
+.marl-summary dt {
+  color: var(--muted);
+  font-size: var(--text-caption);
+  font-weight: 700;
+}
+
+.marl-summary dd {
+  margin: 8px 0 0;
+  color: var(--teal);
+  font-size: 1rem;
+  font-weight: 760;
+  line-height: 1.25;
+}
+
+.marl-result-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.65fr) minmax(230px, 0.65fr);
+  gap: 12px;
+}
+
+.marl-evolution-panel,
+.marl-candidates-panel {
+  padding: 15px;
+}
+
+.result-panel-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 13px;
+}
+
+.marl-evolution,
+.marl-candidates {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.marl-evolution {
+  border-top: 1px solid var(--line);
+}
+
+.marl-step {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) minmax(134px, 0.48fr);
+  gap: 12px;
+  align-items: start;
+  border-bottom: 1px solid var(--line);
+  padding: 13px 0;
+}
+
+.marl-step-index {
+  color: var(--quiet);
+  font-family: "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
+  font-size: var(--text-caption);
+  font-weight: 750;
+  padding-top: 2px;
+}
+
+.marl-step-main {
+  display: grid;
+  gap: 3px;
+}
+
+.marl-step-main strong {
+  font-size: var(--text-small);
+}
+
+.marl-step-main > span:not(.ops-label),
+.marl-step-main p,
+.marl-step-outcome small,
+.marl-step-outcome > span:last-child {
+  color: var(--muted);
+  font-size: var(--text-caption);
+  line-height: 1.4;
+}
+
+.marl-step-main p {
+  margin-top: 5px;
+}
+
+.marl-step-outcome {
+  display: grid;
+  justify-items: start;
+  gap: 3px;
+}
+
+.marl-step-outcome strong {
+  margin-top: 4px;
+  color: var(--ink);
+  font-size: var(--text-small);
+}
+
+.marl-candidates {
+  gap: 9px;
+  margin-top: 13px;
+}
+
+.marl-candidates article {
+  display: grid;
+  gap: 4px;
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+
+.marl-candidates article strong {
+  font-size: var(--text-small);
+}
+
+.marl-candidates article span,
+.marl-candidates article small {
+  color: var(--muted);
+  font-size: var(--text-caption);
+  line-height: 1.4;
+}
+
 .timeline {
   display: grid;
   grid-template-columns: repeat(2, minmax(240px, 1fr));
@@ -1181,7 +1452,9 @@ input[type="search"] {
   }
 
   .agent-workbench,
-  .risk-workbench {
+  .risk-workbench,
+  .marl-workbench,
+  .marl-result-grid {
     grid-template-columns: 1fr;
   }
 }
@@ -1277,9 +1550,33 @@ input[type="search"] {
   .model-grid,
   .agent-list,
   .risk-grid,
+  .marl-summary,
   .timeline,
   .split {
     grid-template-columns: 1fr;
+  }
+
+  .marl-agent-flow {
+    grid-template-columns: 1fr;
+  }
+
+  .marl-agent-flow article + article {
+    border-top: 1px solid var(--line);
+    border-left: 0;
+  }
+
+  .marl-agent-flow article + article::before {
+    top: -7px;
+    left: 28px;
+    transform: rotate(135deg);
+  }
+
+  .marl-step {
+    grid-template-columns: 28px minmax(0, 1fr);
+  }
+
+  .marl-step-outcome {
+    grid-column: 2;
   }
 
   .deal-list-head {

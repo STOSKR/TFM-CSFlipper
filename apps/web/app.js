@@ -634,6 +634,118 @@ async function refreshDashboardView() {
     "Datos actualizados desde la base de datos.";
 }
 
+async function runMarlSimulation(event) {
+  event.preventDefault();
+  const cashInput = document.querySelector("#marl-cash");
+  const policyInput = document.querySelector("#marl-policy");
+  const button = document.querySelector("#marl-run-button");
+  const status = document.querySelector("#marl-action-status");
+  const cash = Number(cashInput.value);
+  if (!Number.isFinite(cash) || cash < 1 || cash > 1000000) {
+    status.textContent = "Introduce un capital entre 1 € y 1.000.000 €.";
+    cashInput.focus();
+    return;
+  }
+  button.disabled = true;
+  status.textContent = "Simulando el recorrido de cartera…";
+  const response = await requestJson("./api/marl/simulate", {
+    method: "POST",
+    body: { cash, policy: policyInput.value },
+  });
+  button.disabled = false;
+  if (!response.ok || !response.payload) {
+    status.textContent = response.payload?.message || "No se pudo ejecutar la simulación.";
+    return;
+  }
+  renderMarlSimulation(response.payload);
+  status.textContent = "Simulación completada. No se ha enviado ninguna orden a los mercados.";
+}
+
+function renderMarlSimulation(simulation) {
+  document.querySelector("#marl-empty-state").hidden = true;
+  document.querySelector("#marl-results").hidden = false;
+  document.querySelector("#marl-notice").textContent = simulation.notice || "Simulación local.";
+  const portfolio = simulation.portfolio || {};
+  document.querySelector("#marl-summary").innerHTML = [
+    ["Capital inicial", formatEuro(simulation.initial_cash_eur)],
+    ["Efectivo final", formatEuro(simulation.cash_available_eur)],
+    ["Capital bloqueado", formatEuro(portfolio.capital_blocked_eur)],
+    ["Beneficio realizado", formatEuro(portfolio.realized_profit_eur)],
+    ["Posiciones", `${portfolio.closed_positions || 0} cerradas · ${portfolio.open_positions || 0} abiertas`],
+  ].map(([label, value]) => `
+    <div>
+      <dt>${escapeHtml(label)}</dt>
+      <dd>${escapeHtml(value)}</dd>
+    </div>
+  `).join("");
+
+  const evolution = Array.isArray(simulation.evolution) ? simulation.evolution : [];
+  document.querySelector("#marl-evolution").innerHTML = evolution.length
+    ? evolution.map((step, index) => `
+      <li class="marl-step ${marlStepClass(step)}">
+        <span class="marl-step-index">0${index + 1}</span>
+        <div class="marl-step-main">
+          <span class="ops-label">${escapeHtml(formatMarlDay(step.day))}</span>
+          <strong>${escapeHtml(step.item_name || "Artículo sin nombre")}</strong>
+          <span>${escapeHtml(step.route || "Ruta no disponible")}</span>
+          <p>${escapeHtml(formatMarlActions(step.actions))}</p>
+        </div>
+        <div class="marl-step-outcome">
+          <span class="badge ${marlStepClass(step)}">${escapeHtml(step.outcome || "Sin operación")}</span>
+          <strong>${escapeHtml(formatEuro(step.cash_available_eur))}</strong>
+          <small>efectivo disponible</small>
+          <span>${escapeHtml(formatEuro(step.capital_blocked_eur))} bloqueado</span>
+        </div>
+      </li>
+    `).join("")
+    : `<li class="marl-no-data">No se han generado pasos para este escenario.</li>`;
+
+  const candidates = Array.isArray(simulation.candidates) ? simulation.candidates : [];
+  document.querySelector("#marl-candidates").innerHTML = candidates.length
+    ? candidates.map((candidate) => `
+      <article>
+        <strong>${escapeHtml(candidate.item_name || "Artículo sin nombre")}</strong>
+        <span>${escapeHtml(candidate.route || "Ruta no disponible")}</span>
+        <small>${escapeHtml(candidate.observations || 0)} observaciones · ${escapeHtml(formatMarlDay(candidate.first_day))} a ${escapeHtml(formatMarlDay(candidate.last_day))}</small>
+      </article>
+    `).join("")
+    : `<div class="empty-list"><strong>Sin candidatos</strong><span>La política no ha procesado artículos.</span></div>`;
+}
+
+function marlStepClass(step) {
+  if (step.executed_sale) return "review";
+  if (step.executed_buy) return "observe";
+  return "blocked";
+}
+
+function formatMarlActions(actions) {
+  const scout = Number(actions?.scout);
+  const trader = Number(actions?.trader);
+  const portfolio = Number(actions?.portfolio);
+  const scoutText = scout === 1 ? "marca" : "ignora";
+  const traderText = trader === 2 ? "vende" : trader === 1 ? "compra" : "mantiene";
+  const portfolioText = portfolio === 1 ? "aprueba" : "rechaza";
+  return `Scout ${scoutText} · Trader ${traderText} · Portfolio ${portfolioText}`;
+}
+
+function formatMarlDay(value) {
+  if (!value) return "Sin fecha";
+  const parsed = new Date(`${value}T12:00:00`);
+  if (Number.isNaN(parsed.getTime())) return String(value);
+  return new Intl.DateTimeFormat("es-ES", { dateStyle: "medium" }).format(parsed);
+}
+
+function formatEuro(value) {
+  const amount = Number(value);
+  if (!Number.isFinite(amount)) return "—";
+  return new Intl.NumberFormat("es-ES", {
+    style: "currency",
+    currency: "EUR",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
+}
+
 function requestJson(path, options = {}) {
   return new Promise((resolve) => {
     const request = new XMLHttpRequest();
@@ -747,6 +859,7 @@ document.querySelector("#login-command-list").addEventListener("click", (event) 
   }
   runLocalCommand(button.dataset.commandId);
 });
+document.querySelector("#marl-simulation-form").addEventListener("submit", runMarlSimulation);
 
 setupNavigation();
 loadDashboard().then(renderAll);
@@ -766,6 +879,7 @@ function setupNavigation() {
     login: "Sesiones",
     model: "Modelo",
     agents: "Agentes",
+    "marl-simulation": "Simulación MARL",
     portfolio: "Riesgo",
     backlog: "Roadmap",
   };

@@ -23,8 +23,9 @@
           <a href="#login"><span>03</span>Sesiones</a>
           <a href="#model"><span>04</span>Modelo</a>
           <a href="#agents"><span>05</span>Agentes</a>
-          <a href="#portfolio"><span>06</span>Riesgo</a>
-          <a href="#backlog"><span>07</span>Roadmap</a>
+          <a href="#marl-simulation"><span>06</span>Simulación</a>
+          <a href="#portfolio"><span>07</span>Riesgo</a>
+          <a href="#backlog"><span>08</span>Roadmap</a>
         </nav>
         <div class="sidebar-footer">
           <span>Fuente</span>
@@ -257,6 +258,83 @@
                 <strong>Modelo no autoejecuta compras</strong>
               </div>
             </aside>
+          </div>
+        </section>
+
+        <section id="marl-simulation" class="band view marl-view" aria-labelledby="marl-title" hidden>
+          <div class="section-toolbar">
+            <div>
+              <p class="eyebrow">MARL explicado</p>
+              <h2 id="marl-title">Simulación de cartera</h2>
+            </div>
+            <span class="badge review">Solo simulación</span>
+          </div>
+          <p class="section-note">Prueba un recorrido reproducible: los agentes coordinan una decisión, pero no se consulta ningún mercado ni se envía una orden real.</p>
+
+          <div class="marl-workbench">
+            <form id="marl-simulation-form" class="marl-controls">
+              <label for="marl-cash">
+                Capital inicial
+                <span class="currency-input">
+                  <input id="marl-cash" name="cash" type="number" min="1" max="1000000" step="1" value="1000" inputmode="decimal" required />
+                  <span>EUR</span>
+                </span>
+              </label>
+              <label for="marl-policy">
+                Política de prueba
+                <select id="marl-policy" name="policy">
+                  <option value="buy-and-sell" selected>Comprar y vender al desbloquear</option>
+                  <option value="buy-positive">Comprar si el margen es positivo</option>
+                  <option value="hold">Mantener cartera sin comprar</option>
+                </select>
+              </label>
+              <button id="marl-run-button" class="primary-action" type="submit">Ejecutar simulación</button>
+              <p id="marl-action-status" class="inline-status" role="status">Preparada para una ejecución local.</p>
+            </form>
+
+            <div class="marl-agent-flow" aria-label="Flujo de decisión coordinada">
+              <article>
+                <span>01</span>
+                <strong>Scout</strong>
+                <p>Detecta el artículo y marca el candidato.</p>
+              </article>
+              <article>
+                <span>02</span>
+                <strong>Trader</strong>
+                <p>Propone comprar, mantener o vender.</p>
+              </article>
+              <article>
+                <span>03</span>
+                <strong>Portfolio</strong>
+                <p>Aprueba solo si se respetan los límites.</p>
+              </article>
+            </div>
+          </div>
+
+          <div id="marl-empty-state" class="marl-empty-state">
+            <strong>Configura el capital inicial y ejecuta el escenario.</strong>
+            <span>Verás qué artículo se considera y cómo evoluciona el efectivo durante la compra, el bloqueo y la venta.</span>
+          </div>
+
+          <div id="marl-results" class="marl-results" hidden aria-live="polite">
+            <div id="marl-notice" class="notice"></div>
+            <dl id="marl-summary" class="marl-summary"></dl>
+            <div class="marl-result-grid">
+              <section class="marl-evolution-panel" aria-labelledby="marl-evolution-title">
+                <div class="result-panel-heading">
+                  <div>
+                    <p class="eyebrow">Evolución</p>
+                    <h3 id="marl-evolution-title">Recorrido de la cartera</h3>
+                  </div>
+                </div>
+                <ol id="marl-evolution" class="marl-evolution"></ol>
+              </section>
+              <aside class="marl-candidates-panel" aria-labelledby="marl-candidates-title">
+                <p class="eyebrow">Artículos considerados</p>
+                <h3 id="marl-candidates-title">Candidatos del escenario</h3>
+                <div id="marl-candidates" class="marl-candidates"></div>
+              </aside>
+            </div>
           </div>
         </section>
 
