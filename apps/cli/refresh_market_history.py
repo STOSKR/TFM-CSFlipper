@@ -28,6 +28,10 @@ from apps.cli.scrape_candidate_platforms import (
     build_simple_market_snapshots,
     simple_results_to_jsonable,
 )
+from packages.datasets.history_archive import (
+    default_history_backup_dir,
+    write_snapshot_history_archive,
+)
 from packages.domain.market_parsing import market_hash_name
 from packages.persistence.connection import create_pool
 from packages.persistence.simple_market import SimpleMarketSnapshotRepository, history_point_count
@@ -79,6 +83,24 @@ async def run(args: argparse.Namespace) -> int:
 
     history_points_ready = sum(history_point_count(snapshot) for snapshot in snapshots)
     history_points_persisted = 0
+    archive_rows = 0
+    archive_files = 0
+    archive_backups = 0
+    if args.archive and not args.dry_run:
+        archive_report = write_snapshot_history_archive(
+            snapshots,
+            archive_dir=args.archive_dir,
+            backup_dir=args.archive_backup_dir,
+            cny_per_eur=Decimal(str(args.archive_cny_per_eur)),
+        )
+        archive_rows = archive_report.rows
+        archive_files = len(archive_report.files)
+        archive_backups = len(archive_report.backup_files)
+        print(
+            f"archive_done rows={archive_rows} files={archive_files} "
+            f"backups={archive_backups} path={args.archive_dir}",
+            flush=True,
+        )
     if args.persist and not args.dry_run:
         print(
             f"persist_start snapshots={len(snapshots)} "
@@ -112,6 +134,8 @@ async def run(args: argparse.Namespace) -> int:
         f"loaded={len(candidates)} snapshots={len(snapshots)} "
         f"history_points_ready={history_points_ready} "
         f"history_points_persisted={history_points_persisted} "
+        f"archive_rows={archive_rows} archive_files={archive_files} "
+        f"archive_backups={archive_backups} "
         f"{compact_platform_summary(results)} "
         f"mode={'persisted' if args.persist and not args.dry_run else 'dry_run'}"
     )
@@ -488,6 +512,24 @@ def main() -> None:
     parser.add_argument("--verbose", action="store_true")
     parser.add_argument("--progress", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--persist", action="store_true")
+    parser.add_argument(
+        "--archive",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Escribe cada punto histórico nuevo en Parquet local antes de persistirlo.",
+    )
+    parser.add_argument(
+        "--archive-dir",
+        type=Path,
+        default=Path("data/history/market_history_v1"),
+    )
+    parser.add_argument(
+        "--archive-backup-dir",
+        type=Path,
+        default=default_history_backup_dir(),
+        help="Segunda copia verificada; por defecto usa OneDrive si está configurado.",
+    )
+    parser.add_argument("--archive-cny-per-eur", type=str, default="8")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
     asyncio.run(run(args))

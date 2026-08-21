@@ -17,6 +17,8 @@ Estado actual resumido:
 - Dataset real de trading: pipeline listo, pero la senal Steam/BUFF aun es escasa para defender metricas finales.
 - MARL: hay smoke PPO/RLlib con checkpoint; MAPPO/CTDE completo queda pendiente.
 - Web local: existe dashboard operativo en `apps/web` servido por `python -m apps.cli.web_dashboard_server`.
+- Histórico: cada refresco local archiva los puntos en Parquet y crea una copia
+  verificada en OneDrive cuando está disponible; véase `docs/history-parquet-archive.md`.
 
 Antes de empezar cualquier tarea, lee el tablero Kanban físico:
 

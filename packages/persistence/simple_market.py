@@ -247,7 +247,7 @@ class SimpleMarketSnapshotRepository:
         *,
         item_id: UUID,
     ) -> int:
-        rows = _history_points_from_snapshot(snapshot)
+        rows = history_points_from_snapshot(snapshot)
         if not rows:
             return 0
 
@@ -359,7 +359,7 @@ def _json(value: Mapping[str, Any]) -> str:
 
 
 def history_point_count(snapshot: SimpleMarketSnapshot) -> int:
-    return len(_history_points_from_snapshot(snapshot))
+    return len(history_points_from_snapshot(snapshot))
 
 
 def representation_name(name: str, quality: str, stattrak: bool) -> str:
@@ -377,7 +377,7 @@ def _quality_code(value: str) -> str:
     }.get(text, text.upper().replace(" ", "_"))
 
 
-def _history_points_from_snapshot(snapshot: SimpleMarketSnapshot) -> tuple[dict[str, Any], ...]:
+def history_points_from_snapshot(snapshot: SimpleMarketSnapshot) -> tuple[dict[str, Any], ...]:
     rows: list[dict[str, Any]] = []
     if snapshot.steam_price is not None:
         rows.append(

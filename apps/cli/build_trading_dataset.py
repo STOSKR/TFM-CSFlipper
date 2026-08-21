@@ -10,6 +10,7 @@ from pathlib import Path
 
 import pandas as pd  # type: ignore[import-untyped]
 
+from packages.datasets.history_archive import load_history_archive
 from packages.datasets.trading import TradingDatasetBuildConfig, build_trading_dataset_from_history
 from packages.persistence.connection import create_pool
 from packages.runtime_config import load_runtime_config
@@ -21,7 +22,11 @@ async def run(args: argparse.Namespace) -> int:
     steam_sale_factor = Decimal("1") - runtime_config.fees.steam_sale_rate
     steam_cashout_loss = runtime_config.fees.withdrawal_rate
     if args.input_parquet:
-        history = pd.read_parquet(args.input_parquet)
+        history = (
+            load_history_archive(args.input_parquet)
+            if args.input_parquet.is_dir()
+            else pd.read_parquet(args.input_parquet)
+        )
     else:
         history = await _fetch_history(args)
 
@@ -108,7 +113,11 @@ def main() -> None:
         description="Build trading train/validation/test parquet splits from market history."
     )
     parser.add_argument("--config", type=Path, default=Path("csflipper_config.toml"))
-    parser.add_argument("--input-parquet", type=Path)
+    parser.add_argument(
+        "--input-parquet",
+        type=Path,
+        help="Archivo Parquet o directorio de histórico particionado creado por el refresco.",
+    )
     parser.add_argument("--output", type=Path, default=Path("data/datasets/trading_profit_v1"))
     parser.add_argument(
         "--trade-direction",
