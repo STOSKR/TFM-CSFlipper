@@ -6,9 +6,9 @@
 
 Los bienes virtuales pueden tener utilidad dentro de un videojuego y, cuando las reglas lo permiten, circular entre personas usuarias a través de mecanismos de intercambio. La investigación sobre consumo de bienes virtuales muestra que la demanda no depende solo de una función dentro del juego. También intervienen la apariencia, la rareza, la identidad social y la percepción de valor del objeto \cite{lehdonvirta2009virtual,guo2009virtual}.
 
-Por ejemplo, un atuendo para un avatar o una apariencia para un arma modifica su presentación visual sin cambiar las reglas de juego. Un objeto funcional puede dar acceso a una capacidad, una zona o un recurso dentro del juego proporcionando ventaja al usuario. También existen objetos coleccionables cuyo interés depende de una serie limitada, su rareza o la demanda de la comunidad. Algunos bienes son consumibles, como cajas, sobres o mejoras, y desaparecen o se transforman al utilizarlos.
+Por ejemplo, un atuendo para un avatar o una apariencia para un arma modifica su presentación visual sin cambiar las reglas de juego. Un objeto funcional puede dar acceso a una capacidad, una zona o un recurso dentro del juego, proporcionando ventaja al usuario. También existen objetos coleccionables cuyo interés depende de una serie limitada, su rareza o la demanda de la comunidad. Algunos bienes son consumibles, como cajas, sobres o mejoras, y desaparecen o se transforman al utilizarlos.
 
-Los mercados de activos digitales comparten elementos con otros mercados de bienes diferenciados, como las ofertas de venta, las órdenes de compra, los precios, los costes de transacción y la liquidez. Su funcionamiento depende, sin embargo, de las reglas que establecen las plataformas. En esta memoria, una \textbf{oferta} es una publicación que identifica una variante concreta y fija el precio al que una persona está dispuesta a venderla. Una \textbf{plataforma} es el servicio digital que administra inventarios, datos u operaciones. Un \textbf{mercado} es el conjunto de reglas y mecanismos con los que las personas usuarias publican, consultan y aceptan ofertas sobre activos virtuales.
+Los mercados de activos digitales comparten los mismos conceptos que otros mercados de bienes diferenciados; conceptos como, por ejemplo, ofertas de venta, órdenes de compra, precios, costes de transacción y liquidez. El funcionamiento de dichos mercados depende, sin embargo, de las reglas que establecen las plataformas. En este trabajo, una \textbf{oferta} es un anuncio mediante el cual una persona pone a la venta un activo virtual identificado por sus características relevantes e indica su precio. Una \textbf{plataforma} es el servicio digital que administra inventarios, datos u operaciones sobre los activos. Un \textbf{mercado} es el conjunto de reglas y mecanismos con los que las personas usuarias publican, consultan y aceptan ofertas sobre activos virtuales.
 
 Para situar el problema, se distinguen tres configuraciones generales:
 \begin{itemize}
@@ -17,15 +17,15 @@ Para situar el problema, se distinguen tres configuraciones generales:
     \item \textbf{Plataformas externas:} son servicios distintos del ecosistema que publican ofertas o facilitan operaciones sobre activos transferibles. Aplican sus propias reglas, precios y mecanismos de pago.
 \end{itemize}
 
-Los mercados cerrados delimitan lo que queda fuera del alcance de este trabajo, ya que sus objetos no permiten una operación entre usuarios. También quedan fuera los sistemas descentralizados en los que la gestión del activo no depende de una plataforma central. El análisis se centra, en cambio, en activos transferibles gestionados por plataformas centralizadas.
+Los mercados cerrados delimitan lo que queda fuera del alcance de este trabajo, ya que sus objetos no permiten una operación entre usuarios. También quedan fuera los sistemas descentralizados en los que la gestión del activo no depende de una plataforma central. El análisis se centra, en cambio, en activos transferibles gestionados por plataformas centralizadas. \textcolor{magenta}{aquí hablas de sistemas descentralizados y plataformas centralizadas, pero los conceptos centralizado/descentralizado no aparecen en los bullets de antes, tienes que relacionarlo con mercados integrados y/o plataformas externas, que es lo que presentas previamente, o bien lo que debes presentar previamente es mercados y plataformas centralizados/descentralizados}
 
 \subsection{Configuración analizada}
 
-La configuración analizada utiliza dos entornos de intercambio distintos. Un \textbf{mercado integrado} es el mercado que forma parte del ecosistema donde se gestiona el activo. Su función es conservar el inventario asociado a la cuenta y permitir que el usuario publique ese activo para venderlo. Una \textbf{plataforma externa} es un servicio independiente de ese ecosistema que publica sus propias ofertas y precios para activos transferibles. Tanto el mercado integrado como la plataforma externa son entornos de intercambio, pero no pertenecen a la misma plataforma ni comparten sus reglas.
+La configuración analizada en este trabajo utiliza dos entornos de intercambio distintos. Un \textbf{mercado integrado} es el mercado que forma parte del ecosistema donde se gestiona el activo. Su función es conservar el inventario asociado a la cuenta y permitir que el usuario publique ese activo para venderlo. Una \textbf{plataforma externa} es un servicio independiente de ese ecosistema que publica sus propias ofertas y precios para activos transferibles. Tanto el mercado integrado como la plataforma externa son entornos de intercambio, pero no pertenecen a la misma plataforma ni comparten sus reglas.
 
-El análisis parte de que una misma variante puede aparecer en ambos entornos. El sistema comprueba primero que la oferta publicada en la plataforma externa y el activo disponible en el mercado integrado se refieren a esa misma variante. A continuación, estima una posible operación: adquirir el activo al precio de la oferta externa y venderlo después en el mercado integrado. Para ello compara ambos precios e incorpora la conversión de moneda, las comisiones, la liquidez y las restricciones temporales. El sistema no une ni ejecuta las operaciones de las dos plataformas, sino que evalúa si sus datos permiten plantear esa operación.
+El análisis parte de que un mismo activo virtual puede aparecer en ambos entornos. El sistema comprueba primero que la oferta publicada en la plataforma externa y el activo disponible en el mercado integrado se refieren al mismo activo virtual. A continuación, se estima una posible operación: adquirir el activo al precio de la oferta externa y venderlo después en el mercado integrado. Para ello, se compara ambos precios y se incorpora la conversión de moneda, las comisiones, la liquidez y las restricciones temporales. El sistema no une ni ejecuta las operaciones de las dos plataformas, sino que evalúa si sus datos permiten plantear esa operación.
 
-Las tablas siguientes no emparejan sus filas. La primera reúne mercados integrados y la segunda plataformas externas para mostrar los dos tipos de entorno que intervienen en esta configuración. Entre los mercados integrados se encuentran Steam Community Market, Roblox Marketplace, Auction House y EVE Online Market \cite{steamMarketFAQ,robloxMarketplace,blizzardAuctionHouse,eveMarketOrders}.
+Las tablas siguientes no emparejan sus filas \textcolor{magenta}{esto dilo después cuando hayas presentado las tablas}. La primera \textcolor{magenta}{referencia la tabla explícitamente, 2.1, y pon enlace a la tabla} reúne mercados integrados y la segunda \textcolor{magenta}{lo mismo} plataformas externas para mostrar los dos tipos de entorno que intervienen en la configuración analizada. Entre los mercados integrados se encuentran Steam Community Market, Roblox Marketplace, Auction House y EVE Online Market \cite{steamMarketFAQ,robloxMarketplace,blizzardAuctionHouse,eveMarketOrders}. BUFF, Skinport, BitSkins y DMarket son ejemplos de plataformas externas \cite{buffMarketplace,skinportItemsApi,bitskinsMarketplace,dmarketMarketplace}.
 
 \begin{table}[htbp]
 \centering
@@ -44,7 +44,7 @@ EVE Online Market & EVE Online & Naves, módulos y recursos \\
 \label{tab:mercados-integrados}
 \end{table}
 
-BUFF, Skinport, BitSkins y DMarket son ejemplos de plataformas externas \cite{buffMarketplace,skinportItemsApi,bitskinsMarketplace,dmarketMarketplace}.
+
 
 \begin{table}[htbp]
 \centering
@@ -65,24 +65,27 @@ DMarket & Activos digitales de videojuegos & Compra y venta entre usuarios \\
 
 \section{Operativa y expresiones económicas}
 
-Una \textbf{operación} consiste en adquirir una variante concreta de un activo virtual y evaluar su posible venta posterior. No se comparan objetos distintos, sino los precios publicados para la misma variante en dos entornos.
+Una \textbf{operación} consiste en adquirir un activo virtual concreto y evaluar su posible venta posterior. No se comparan objetos distintos, sino los precios publicados para el mismo activo virtual en dos entornos. \textcolor{magenta}{cuando dices dos entornos, ¿te refieres a dos plataformas externas? o a una plataforma y un mercado integrado?? ACLARAR}
 
-Puede entenderse como la comparación del precio de un mismo producto en dos comercios distintos: aunque el artículo sea el mismo, el precio puede variar. En este caso, el producto es una variante concreta de un activo virtual y los comercios son las plataformas.
+Una operación puede entenderse como la comparación del precio de un mismo producto en dos comercios distintos: aunque el artículo sea el mismo, el precio puede variar. En este caso, el producto es un activo virtual concreto y los comercios son las plataformas. \textcolor{magenta}{aquí hablas ahora de dos plataformas}
 
-El precio de una oferta externa representa el coste de compra y el precio del mercado integrado representa una posible venta posterior.
+El precio de una oferta externa representa el coste de compra y el precio del mercado integrado representa una posible venta posterior. \textcolor{magenta}{y aquí hablas de mercado integrado ... no queda claro si los dos entornos que estás analizando son dos plataformas o una plataforma y un mercado integrado -- ACLARAR}
 
 Los conceptos económicos empleados son los siguientes:
 \begin{description}
     \item[Precio de entrada ($P_e$)] Precio publicado para adquirir el activo, convertido a EUR cuando la oferta original está en otra moneda.
     \item[Precio de salida ($P_s$)] Precio bruto al que se publica el activo para venderlo, expresado en EUR para realizar los cálculos.
-    \item[Anuncio de venta] Oferta de una persona que desea vender una variante concreta a un precio determinado.
-    \item[Orden de compra] Precio máximo que una persona declara estar dispuesta a pagar por esa variante. Permanece activa hasta que se ejecuta, se cancela o expira según las reglas del mercado.
+
+\textcolor{magenta}{precio de entrada y precio de salida es precio de compra y precio de venta?? Es decir, si lo he entendido bien, se trata de un usuario que adquiere un activo a un precio de compra ($P_e$) y que luego lo quiere vender a un precio de salida o precio de venta ($P_s)$, es así???  QUIERO DECIR, LA IDEA ES QUE PRIMERO HAY UNA COMPRA Y LUEGO UNA VENTA?? AL FINAL DE ESTE APARTADO, CUANDO HAS PUESTO LAS FÓRMULAS, PODÍAS PONER UN EJEMPLO CONCRETO PARA QUE LA GENTE LO ENTIENDA}
+
+    \item[Anuncio de venta] Oferta de una persona que desea vender un activo virtual concreto a un precio determinado.
+    \item[Orden de compra] Precio máximo que una persona declara estar dispuesta a pagar por un activo virtual concreto. La orden de compra permanece activa hasta que se ejecuta, se cancela o expira según las reglas del mercado.
     \item[Conversión de moneda] Transformación del precio de una divisa a EUR para comparar ofertas expresadas en monedas distintas. La conversión y el método de pago pueden generar comisiones o costes adicionales que se añaden al coste de compra.
 \end{description}
 
 La diferencia entre el mejor anuncio de venta y la mejor orden de compra de un mismo activo se denomina \textit{spread}. Este valor informa sobre la distancia entre oferta y demanda, pero no equivale por sí solo a un beneficio.
 
-Si $P_e$ es el precio de entrada en EUR, $P_s$ es el precio bruto de salida en EUR, $f_s$ es la comisión de venta y $c$ reúne los costes adicionales de conversión o retirada. El ingreso neto, $P_{\mathrm{neto}}$, y el margen, $m$, se expresan como:
+Asumiendo que $P_e$ es el precio de entrada en EUR, $P_s$ es el precio bruto de salida en EUR, $f_s$ es la comisión de venta y $c$ reúne los costes adicionales de conversión o retirada, el precio neto, $P_{\mathrm{neto}}$, y el margen, $m$, se expresan como:
 
 \[
 P_{\mathrm{neto}}=P_s(1-f_s),
@@ -96,15 +99,23 @@ El retorno porcentual permite comparar operaciones de distinto importe:
 \rho=\frac{m}{P_e}
 \]
 
-Una oportunidad de compra solo se considera interesante cuando el margen neto es positivo y el activo puede venderse después. Desde la compra hasta esa venta, el activo constituye una posición abierta y el capital empleado queda bloqueado. La liquidez expresa la facilidad de comprar o vender sin esperar demasiado ni alterar de forma apreciable el precio esperado. En este trabajo se aproxima mediante volumen, número de anuncios de venta y órdenes de compra disponibles. Cuando la liquidez es baja, el capital puede permanecer inmovilizado y el margen calculado pierde utilidad.
+Una oportunidad de compra solo se considera interesante cuando el margen neto \textcolor{magenta}{utiliza los mismos conceptos y nombres de variables que has presentado arriba ... 'margen neto' es precio neto?? entiendo que no, te refires entonces al margen $m$?? si es así entonces llámalo arriba 'margen neto' ... tienes que ser consistente con los nombres que utilizas, si pones nombres de variables, úsalas después para explicar las cosas} es positivo y el activo puede venderse después. Desde la compra hasta esa venta, el activo constituye una posición abierta y el capital empleado queda bloqueado. La liquidez expresa la facilidad de comprar o vender sin esperar demasiado ni alterar de forma apreciable el precio esperado \textcolor{blue}{hay alguna forma de definir 'liquidez' de un modo un poco más formal??}. En este trabajo se aproxima \textcolor{magenta}{el qué?? el precio esperado? Entonces di, 'En este trabajo, el precio esperado se aproxima ...'} mediante \textcolor{magenta}{volumen ???}, número de anuncios de venta \textcolor{magenta}{del artículo virtual???} y órdenes de compra disponibles \textcolor{magenta}{entiendo que del artículo, que no estás hablando de anuncios y compras generales de todos los artículos}. Cuando la liquidez es baja, el capital puede permanecer inmovilizado y el margen calculado pierde utilidad.
 
-Los costes de transacción y la liquidez son restricciones habituales en los entornos de trading con aprendizaje por refuerzo \cite{liu2021finrl}. También pueden existir bloqueos temporales, como el \textit{trade hold}, durante los cuales un artículo adquirido no puede transferirse ni venderse. Por tanto, una comparación de precios debe incorporar tanto el margen neto como el tiempo y el riesgo necesarios para realizar la salida.
+Los costes de transacción y la liquidez son restricciones habituales en los entornos de trading con aprendizaje por refuerzo \cite{liu2021finrl} \textcolor{magenta}{no deberías hablar aquí de AR porque esto es la metodología que vas a usar, deberías hablar solo de los mercados} \textcolor{blue}{los costes de transacción son $c$??? INTENTA EXPLICAR ESTO CON UN POCO DE FORMALIDAD Y UTILIZA LOS NOMBRES DE LAS VARIABLES QUE HAS DEFINIDO ANTES $P_{neto}$, $P_s$, $P_e$ ... de nada sirve poner fórmulas si luego no lo usas dentro del texto para explicar los conceptos}. También pueden existir bloqueos temporales, como el \textit{trade hold}, durante los cuales un artículo adquirido no puede transferirse ni venderse. Por tanto, una comparación de precios debe incorporar tanto el margen neto como el tiempo y el riesgo necesarios para realizar la salida.
+
+\textcolor{magenta}{no veo 'trade hold' definido, ni aparece en el glosario}
+
+\textcolor{blue}{'margen neto' no está definido, es lo mismo que $m$???}
 
 \section{Aprendizaje por refuerzo}
 
-El aprendizaje por refuerzo, o \acroref{RL}{RL}, estudia problemas en los que un agente interactúa con un entorno, toma acciones y recibe recompensas. En este contexto, un agente es un componente de decisión que observa una parte del entorno, elige una acción y ajusta su comportamiento a partir de las consecuencias obtenidas. A diferencia del aprendizaje supervisado, donde el modelo aprende a reproducir etiquetas históricas, en \acroref{RL}{RL} aprende una política de actuación \cite{sutton2018reinforcement}. Esta formulación es útil cuando una decisión actual modifica el estado futuro, como ocurre al abrir una posición que queda bloqueada por \textit{trade hold}.
+El aprendizaje por refuerzo (\acroref{RL}{RL}, por sus siglas en inglés de Reinforcement Learning), estudia problemas en los que un agente interactúa con un entorno, toma acciones y recibe recompensas. En este contexto, un agente es un componente de decisión que observa una parte del entorno, elige una acción y ajusta su comportamiento a partir de las consecuencias obtenidas. A diferencia del aprendizaje supervisado, donde el modelo aprende a reproducir etiquetas históricas, en \acroref{RL}{RL} aprende una política de actuación \cite{sutton2018reinforcement}. \textcolor{magenta}{Esta formulación es útil cuando una decisión actual modifica el estado futuro, como ocurre al abrir una posición que queda bloqueada por \textit{trade hold}.   ESTO TIENES QUE EXPLICARLO MEJOR PORQUE NO SE ENTIENDE}
 
-La política es la regla que transforma observaciones en acciones. Por ejemplo, un agente puede observar un precio, una comisión y el saldo disponible, y decidir mantener, comprar o vender. En el contexto de esta memoria, sus observaciones combinan información de mercado y cartera para que la decisión no dependa de un único indicador.
+La política es la regla que transforma observaciones en acciones. Por ejemplo, un agente puede observar un precio \textcolor{magenta}{de entrada o de salida??}, una comisión \textcolor{magenta}{comisión de venta $f_s$???} y el saldo disponible, y decidir mantener \textcolor{magenta}{entiendo que 'mantener' es no hacer nada??? entonces di 'comprar', 'vender' o 'mantener' en este orden}, comprar o vender. En el contexto de este trabajo, las observaciones del agente combinan información de mercado y cartera para que la decisión no dependa de un único indicador.
+
+\textcolor{blue}{no has definido nunca 'cartera', tampoco en el apartado anterior}
+
+
 
 \subsection{Procesos de decisión de Markov}
 
@@ -121,7 +132,7 @@ En esta expresión, $P(s'\mid s,a)$ representa la probabilidad de pasar del esta
 G_t=\sum_{k=0}^{\infty}\gamma^k r_{t+k+1}.
 \]
 
-El estado resume la información disponible y la acción representa lo que el agente decide. En el contexto del \acroref{TFM}{TFM}, el estado incluye variables de mercado y cartera, las acciones son comprar, vender, observar o mantener, y la recompensa se asocia al valor neto de la cartera simulada.
+El estado resume la información disponible y la acción representa lo que el agente decide. En el contexto del \acroref{TFM}{TFM}, el estado incluye variables de mercado y cartera, las acciones son comprar, vender, observar o mantener, y la recompensa se asocia al valor neto de la cartera simulada. \textcolor{magenta}{todo esto debería ser la definición formal de tu MDP y debería ir al capítulo 4 ... POR CIERTO, NO VEO LA DEFINICIÓN DE TU MDP EN EL CAPÍTULO 4!! }
 
 La hipótesis de Markov no implica que el sistema conozca todo el futuro, sino que el estado utilizado contiene la información necesaria para tomar la mejor decisión disponible en ese momento. Por eso es importante construir observaciones ricas: precio, spread, liquidez, probabilidad supervisada, capital disponible, posiciones abiertas y capital bloqueado.
 
@@ -130,7 +141,11 @@ La hipótesis de Markov no implica que el sistema conozca todo el futuro, sino q
 
 El retorno mide la recompensa acumulada a lo largo del episodio. En un mercado con fricciones, maximizar la recompensa inmediata puede ser mala estrategia: una compra aparentemente rentable puede bloquear capital, aumentar exposición o no encontrar salida. Por ello, la recompensa debe mirar más allá del margen instantáneo y considerar el resultado de cartera.
 
-La exploración permite probar acciones que todavía no se conocen bien. En un mercado de activos digitales con costes y restricciones, esta idea debe aplicarse con cuidado. En el \acroref{TFM}{TFM}, la exploración se realiza en simulación, no con capital. Esta separación permite probar políticas y recompensas sin trasladar errores del entrenamiento al mercado.
+\textcolor{magenta}{poner fórmula de optimización del RL}
+
+\textcolor{blue}{aquí estás en el estado del arte, toda la formalización del agente de RL para el problema de los activos digitales debe ir al capítulo 4}
+
+La exploración permite probar acciones que todavía no se conocen bien. En un mercado de activos digitales con costes y restricciones, esta idea debe aplicarse con cuidado. En el \acroref{TFM}{TFM}, la exploración se realiza en simulación, no con capital. Esta separación permite probar políticas y recompensas sin trasladar errores del entrenamiento al mercado. \textcolor{magenta}{tienes que hablar de explotación exploración RL en general ... lo que dices aquí de exploración en el TFM no se entiende, esto tienes que explicarlo en el capítulo 4 tras haber formalizado bien el problema en el contexto del MDP}
 
 \section{Aprendizaje por refuerzo multiagente}
 
@@ -162,7 +177,7 @@ Por ejemplo, si una cartera alcanza 1.000 EUR y después baja a 900 EUR, su \tex
 
 \subsection{Entrenamiento centralizado y ejecución descentralizada}
 
-El paradigma de entrenamiento centralizado y ejecución descentralizada, conocido como \acroref{CTDE}{CTDE}, permite entrenar con más información de la que cada agente tendrá en ejecución. La idea es que durante el entrenamiento puede existir un crítico o una función de valor con acceso al estado global, mientras que en ejecución cada actor decide con su observación local. Este enfoque aparece en trabajos multiagente como \acroref{MADDPG}{MADDPG} \cite{lowe2017maddpg} y en variantes cooperativas basadas en \acroref{PPO}{PPO} como \acroref{MAPPO}{MAPPO} \cite{yu2022mappo}.
+El paradigma de entrenamiento centralizado y ejecución descentralizada, conocido como \acroref{CTDE}{CTDE}, permite entrenar con más información de la que cada agente tendrá en ejecución. La idea es que durante el entrenamiento puede existir un crítico o una función de valor con acceso al estado global, mientras que en ejecución cada actor decide con su observación local. Este enfoque aparece en trabajos multiagente como \acroref{MADDPG}{MADDPG} \cite{lowe2017maddpg} y en versiones cooperativas basadas en \acroref{PPO}{PPO} como \acroref{MAPPO}{MAPPO} \cite{yu2022mappo}.
 
 La elección de \acroref{PPO}{PPO} como base práctica se debe a su estabilidad y a su disponibilidad en herramientas maduras. Schulman et al. introducen \acroref{PPO}{PPO} como un método de gradiente de política que limita actualizaciones demasiado agresivas \cite{schulman2017ppo}. Para una acción observada, el cociente entre la política nueva y la anterior es:
 
@@ -189,7 +204,7 @@ La teoría moderna de carteras introdujo la idea de estudiar rentabilidad y ries
 
 En este \acroref{TFM}{TFM}, la rentabilidad se mide mediante el beneficio neto $m$, el retorno porcentual, el saldo final y la evolución del valor de cartera. $P_{\mathrm{neto}}$ representa solo el ingreso de venta después de aplicar su comisión. El riesgo se observa mediante \textit{drawdown}, capital bloqueado, exposición por activo o plataforma y operaciones rechazadas por restricciones. El capital bloqueado es el saldo comprometido en activos que aún no pueden venderse o transferirse. La exposición expresa qué parte de la cartera depende de un activo, categoría o plataforma. Estas métricas conectan la calidad de las señales con su efecto económico en la simulación.
 
-El aprendizaje supervisado estima una probabilidad, pero no compra ni vende por sí mismo. Por ejemplo, una variante puede costar 100~EUR en \acroref{BUFF}{BUFF} y el modelo puede asignarle una probabilidad de 0,85 de superar un retorno neto del 10~\% tras ocho días. Ese 0,85 no significa que se vaya a obtener un 85~\% de beneficio ni garantiza que la operación sea rentable; indica que, según los datos históricos, es un caso que merece ser revisado.
+El aprendizaje supervisado estima una probabilidad, pero no compra ni vende por sí mismo. Por ejemplo, un activo virtual puede costar 100~EUR en \acroref{BUFF}{BUFF} y el modelo puede asignarle una probabilidad de 0,85 de superar un retorno neto del 10~\% tras ocho días. Ese 0,85 no significa que se vaya a obtener un 85~\% de beneficio ni garantiza que la operación sea rentable; indica que, según los datos históricos, es un caso que merece ser revisado.
 
 Antes de considerarla válida en la simulación, el sistema comprueba el precio actual, la conversión de moneda y las comisiones para verificar que sigue existiendo margen. También revisa la liquidez, el saldo disponible, el capital ya bloqueado y la exposición de la cartera. Si alguna de estas condiciones no se cumple, la operación se rechaza o se pospone. Así, el modelo predice y el simulador decide si esa predicción puede convertirse en una operación viable.
 

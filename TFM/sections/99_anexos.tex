@@ -91,7 +91,7 @@ Simulación & Saldo inicial, tamaño máximo de posición, \textit{trade hold}, 
 
 \section{Modelo de datos}
 
-El modelo operativo actual gira alrededor de dos tablas principales: \texttt{market\_items} y \texttt{market\_history\_points}. La primera representa variantes concretas de artículos y su estado actual por plataforma. La segunda almacena series temporales en formato largo, con una fila por artículo, plataforma, fecha y métrica. Esta estructura evita mezclar métricas distintas y permite añadir nuevas señales sin alterar la forma general del histórico.
+El modelo operativo actual gira alrededor de dos tablas principales: \texttt{market\_items} y \texttt{market\_history\_points}. La primera representa artículos identificados por sus atributos y su estado actual por plataforma. La segunda almacena series temporales en formato largo, con una fila por artículo, plataforma, fecha y métrica. Esta estructura evita mezclar métricas distintas y permite añadir nuevas señales sin alterar la forma general del histórico.
 
 El esquema canónico previsto añade entidades como \texttt{assets}, \texttt{platforms}, \texttt{market\_observations}, \texttt{predictions}, \texttt{agent\_actions}, \texttt{investment\_decisions} y \texttt{simulated\_positions}. El objetivo de este esquema es mejorar trazabilidad, auditoría y separación entre observación, predicción y decisión.
 

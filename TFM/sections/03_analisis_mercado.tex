@@ -4,7 +4,7 @@
 
 \section{Justificación del caso de estudio}
 
-\textit{Counter-Strike 2} se utiliza como caso de estudio porque reúne objetos cosméticos con variantes diferenciables, un inventario integrado en una plataforma de distribución digital y varias fuentes de precio con formatos distintos. Estas condiciones permiten evaluar la propuesta sobre un mercado donde la normalización del artículo, las comisiones, la liquidez y los bloqueos temporales influyen directamente en una decisión de compraventa.
+\textit{Counter-Strike 2} se utiliza como caso de estudio porque reúne objetos cosméticos que se diferencian por sus atributos, un inventario integrado en una plataforma de distribución digital y varias fuentes de precio con formatos distintos. Estas condiciones permiten evaluar la propuesta sobre un mercado donde la normalización del artículo, las comisiones, la liquidez y los bloqueos temporales influyen directamente en una decisión de compraventa.
 
 Su mercado de objetos virtuales presenta precios variables, anuncios de venta, órdenes de compra y actividad de intercambio en distintas plataformas. Por ello, permite estudiar cómo una diferencia visible entre precios puede transformarse en una oportunidad que debe validarse con costes, disponibilidad de demanda y restricciones de cartera. No se utiliza como un ejemplo aislado, sino como un contexto con datos y reglas suficientes para poner a prueba el marco genérico de adquisición, predicción y simulación.
 
@@ -30,9 +30,9 @@ Consumible & Se utiliza o transforma durante el juego y puede desaparecer. \\
 \label{tab:tipos-activos}
 \end{table}
 
-La identificación de un activo requiere algo más que su nombre. En los mercados de videojuegos son habituales atributos como categoría, colección, rareza, condición y variante. Estos atributos permiten distinguir objetos que parecen similares, pero que se intercambian como referencias diferentes. El sistema conserva esos campos para evitar comparar precios de variantes no equivalentes.
+La identificación de un activo requiere algo más que su nombre. En los mercados de videojuegos son habituales atributos como categoría, colección, rareza, condición y características especiales. Estos atributos permiten distinguir objetos que parecen similares, pero que se intercambian como referencias diferentes. El sistema conserva esos campos para evitar comparar precios de activos virtuales distintos.
 
-En el caso de estudio, los objetos más habituales son \emph{skins}, guantes, cuchillos, pegatinas y cajas. Una \emph{skin} modifica el aspecto visual de un arma. El \emph{float} es el valor numérico que representa su desgaste y StatTrak identifica una variante que incorpora un contador de víctimas obtenidas con el arma. Estos atributos permiten diferenciar variantes que comparten nombre, pero no precio ni demanda.
+En el caso de estudio, los objetos más habituales son \emph{skins}, guantes, cuchillos, pegatinas y cajas. Una \emph{skin} modifica el aspecto visual de un arma. El \emph{float} es el valor numérico que representa su desgaste y StatTrak identifica una versión que incorpora un contador de víctimas obtenidas con el arma. Estos atributos permiten diferenciar activos virtuales que comparten nombre, pero no precio ni demanda.
 
 \section{Plataformas del caso de estudio}
 
@@ -47,10 +47,10 @@ Un \emph{anuncio de venta} indica que alguien ofrece un artículo a un precio de
 
 \section{Precios y fricciones en el caso de estudio}
 
-El \emph{precio de mercado} es el valor observado para una variante de activo en una plataforma y en un momento concreto. Por sí solo no representa el resultado de una operación. El sistema debe considerar las comisiones, la moneda, el precio de entrada, el precio neto de salida y las restricciones temporales. La diferencia entre el mejor precio de venta y la mejor orden de compra se denomina \emph{spread}. Un spread amplio puede reflejar una oportunidad, pero también falta de liquidez o incertidumbre sobre el precio ejecutable.
+El \emph{precio de mercado} es el valor observado para un activo virtual concreto en una plataforma y en un momento concreto. Por sí solo no representa el resultado de una operación. El sistema debe considerar las comisiones, la moneda, el precio de entrada, el precio neto de salida y las restricciones temporales. La diferencia entre el mejor precio de venta y la mejor orden de compra se denomina \emph{spread}. Un spread amplio puede reflejar una oportunidad, pero también falta de liquidez o incertidumbre sobre el precio ejecutable.
 
 La \emph{liquidez} expresa la facilidad con la que un activo puede comprarse o venderse sin esperar demasiado ni modificar de forma apreciable el precio esperado. En este trabajo se aproxima mediante volumen, número de anuncios y órdenes de compra disponibles. Cuando la liquidez es baja, el capital puede permanecer inmovilizado y el margen calculado pierde utilidad.
 
 También existen fricciones específicas de cada plataforma. Las comisiones reducen el ingreso neto, la conversión de divisa puede variar y algunas operaciones aplican un \textit{trade hold}. Este último es un periodo durante el cual un artículo adquirido no puede transferirse o venderse. Por tanto, la decisión no consiste solo en comparar dos precios. Debe estimar si el margen puede mantenerse durante el tiempo necesario para cerrar la posición.
 
-La ruta analizada consiste en adquirir una variante en una plataforma externa y estimar una salida posterior en la plataforma oficial. Por esta razón, la comparación incorpora conversión de moneda, comisión de venta, liquidez, órdenes de compra y bloqueo temporal. Los capítulos posteriores muestran cómo estas condiciones se transforman en datos, señales y decisiones simuladas.
+La ruta analizada consiste en adquirir un activo virtual concreto en una plataforma externa y estimar una salida posterior en la plataforma oficial. Por esta razón, la comparación incorpora conversión de moneda, comisión de venta, liquidez, órdenes de compra y bloqueo temporal. Los capítulos posteriores muestran cómo estas condiciones se transforman en datos, señales y decisiones simuladas.

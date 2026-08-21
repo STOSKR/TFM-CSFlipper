@@ -403,7 +403,7 @@ La discusión relaciona los resultados con el alcance del trabajo. Se identifica
 
 \subsection{Amenazas a la validez}
 
-La principal amenaza interna es el desbalance de etiquetas: la prueba de marzo contiene 85 casos rentables de 95 y los bloques posteriores llegan a tener una sola clase. La segunda es el solapamiento de artículos entre entrenamiento y prueba. La división por fecha protege frente al uso de futuro, pero no responde a la pregunta más exigente de generalizar a variantes nuevas. La tercera amenaza es operativa: el precio BUFF se usa como entrada puntual y la salida Steam se estima con histórico y comisiones, por lo que la sincronización exacta de ambos mercados requiere más capturas.
+La principal amenaza interna es el desbalance de etiquetas: la prueba de marzo contiene 85 casos rentables de 95 y los bloques posteriores llegan a tener una sola clase. La segunda es el solapamiento de artículos entre entrenamiento y prueba. La división por fecha protege frente al uso de futuro, pero no responde a la pregunta más exigente de generalizar a activos virtuales no presentes en el entrenamiento. La tercera amenaza es operativa: el precio BUFF se usa como entrada puntual y la salida Steam se estima con histórico y comisiones, por lo que la sincronización exacta de ambos mercados requiere más capturas.
 
 También hay límites de medición. El OCR está validado a nivel funcional, pero aún no dispone de un corpus de imágenes etiquetado. El entorno MARL ya incluye compra, bloqueo y venta simulada, aunque todavía no cuenta con una política entrenada durante suficientes episodios. Estas limitaciones no invalidan la arquitectura, pero acotan las conclusiones a viabilidad técnica y experimental preliminar.
 

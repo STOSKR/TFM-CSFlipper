@@ -10,7 +10,7 @@ La capa de adquisición se ha desarrollado en Python 3.11. HTTPX se emplea cuand
 
 \subsection{Mercado de Steam}
 
-Steam actúa como una de las fuentes principales de precio e histórico. En el proyecto se capturan variantes de artículos, precios actuales, moneda, buy orders y puntos históricos cuando están disponibles. La información se normaliza para que pueda combinarse con otras plataformas y para evitar que las decisiones dependan de nombres o formatos propios de una fuente.
+Steam actúa como una de las fuentes principales de precio e histórico. En el proyecto se capturan artículos identificados por sus atributos, precios actuales, moneda, buy orders y puntos históricos cuando están disponibles. La información se normaliza para que pueda combinarse con otras plataformas y para evitar que las decisiones dependan de nombres o formatos propios de una fuente.
 
 En la práctica, Steam no se usa solo como una tabla de precios. También aporta señales de liquidez y de comportamiento temporal. El histórico permite construir retornos, medias móviles, volatilidad y desviaciones frente a ventas recientes. Estas variables son necesarias para que el modelo no mire únicamente una fotografía puntual del mercado.
 
@@ -85,7 +85,7 @@ La adquisición periódica contempla cookies o sesiones, delays configurables, l
 
 \subsection{Modelo de persistencia}
 
-La persistencia se apoya en Supabase/Postgres. La decisión de diseño es tratar la base de datos como fuente de verdad y mantener el histórico de forma append-only siempre que sea posible. Las tablas operativas principales son \texttt{market\_items} y \texttt{market\_history\_points}. La primera mantiene una fila por variante de artículo y estado actual por plataforma. La segunda guarda series temporales en formato largo por artículo, plataforma, fecha y métrica.
+La persistencia se apoya en Supabase/Postgres. La decisión de diseño es tratar la base de datos como fuente de verdad y mantener el histórico de forma append-only siempre que sea posible. Las tablas operativas principales son \texttt{market\_items} y \texttt{market\_history\_points}. La primera mantiene una fila por artículo identificado por sus atributos y estado actual por plataforma. La segunda guarda series temporales en formato largo por artículo, plataforma, fecha y métrica.
 
 También se define un esquema canónico más amplio con entidades como \texttt{assets}, \texttt{platforms}, \texttt{market\_observations}, \texttt{predictions}, \texttt{investment\_decisions} y \texttt{simulated\_positions}. Esta separación permite evolucionar desde el esquema operativo actual hacia una representación más trazable y auditable.
 
@@ -95,7 +95,7 @@ También se define un esquema canónico más amplio con entidades como \texttt{a
 \toprule
 Entidad & Uso dentro del \acroref{TFM}{TFM} \\
 \midrule
-\texttt{market\_items} & Estado actual de cada variante por plataforma. \\
+\texttt{market\_items} & Estado actual de cada artículo identificado por sus atributos, por plataforma. \\
 \texttt{market\_history\_points} & Serie temporal en formato largo para precios, buy orders y métricas. \\
 \texttt{predictions} & Salidas versionadas del modelo supervisado. \\
 \texttt{investment\_decisions} & Decisiones simuladas y razones asociadas. \\
@@ -113,7 +113,7 @@ Antes de entrenar un modelo o simular una cartera, las observaciones se transfor
 
 \subsection{Variables de mercado}
 
-Las características de mercado incluyen precios Steam y \acroref{BUFF}{BUFF} normalizados, precios originales, spread bruto, spread neto, buy orders, volumen, liquidez, número de listings, antigüedad de variante y señales temporales. En la fase supervisada se han explorado variables de momentum y reversión como retornos a 1, 3 y 7 días, distancia a medias móviles, \acroref{RSI}{RSI}, volatilidad y desviaciones de ventas. Esta combinación de señales temporales y restricciones operativas sigue la misma lógica que los entornos de trading con control de fricciones \cite{liu2021finrl}.
+Las características de mercado incluyen precios Steam y \acroref{BUFF}{BUFF} normalizados, precios originales, spread bruto, spread neto, buy orders, volumen, liquidez, número de listings, antigüedad del activo virtual y señales temporales. En la fase supervisada se han explorado variables de momentum y reversión como retornos a 1, 3 y 7 días, distancia a medias móviles, \acroref{RSI}{RSI}, volatilidad y desviaciones de ventas. Esta combinación de señales temporales y restricciones operativas sigue la misma lógica que los entornos de trading con control de fricciones \cite{liu2021finrl}.
 
 La exploración inicial detectó que algunas señales temporales aportan información moderada, mientras que ciertas variables categóricas de alta cardinalidad, como identificadores concretos de skins, deben tratarse con cuidado para evitar sobreajuste. Por ello, el entrenamiento separa variables de evaluación y variables de entrenamiento, y permite realizar ablations sin reconstruir todo el dataset.
 
