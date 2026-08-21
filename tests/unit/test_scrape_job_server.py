@@ -341,6 +341,18 @@ def test_scrape_progress_parser_maps_streaming_steps() -> None:
         20,
         "Reintentando scraper",
     )
+    assert _progress_from_line("buff_login_browser_open=true") == (
+        20,
+        "BUFF: navegador abierto para iniciar sesión",
+    )
+    assert _progress_from_line("buff_login_waiting remaining=285") == (
+        20,
+        "BUFF: esperando inicio de sesión (285s)",
+    )
+    assert _progress_from_line("buff_session_state_saved=data/browser-state/buff_storage_state.json") == (
+        95,
+        "BUFF: sesión guardada",
+    )
     assert _progress_from_line("render_stream_strategy=steam_sell_slow") == (
         8,
         "Buscando candidatos",

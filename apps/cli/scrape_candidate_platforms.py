@@ -375,7 +375,10 @@ async def _save_login_states(args: argparse.Namespace, logger: logging.Logger) -
         raise RuntimeError("Playwright is required. Run: python -m pip install playwright") from exc
 
     async with async_playwright() as playwright:
-        browser = await playwright.chromium.launch(headless=False)
+        browser = await playwright.chromium.launch(
+            headless=False,
+            args=["--start-maximized"],
+        )
         try:
             tasks = []
             if args.steam:
@@ -446,7 +449,15 @@ async def _login_platform(
         logger.info("%s_login_url=%s", name, url)
         logger.info("%s_login_wait_seconds=%s", name, wait_seconds)
         await page.goto(url, wait_until="domcontentloaded", timeout=30000)
-        await asyncio.sleep(wait_seconds)
+        print(f"{name}_login_browser_open=true")
+        logger.info("%s_login_browser_open=true", name)
+        remaining = wait_seconds
+        while remaining > 0:
+            interval = min(15, remaining)
+            await asyncio.sleep(interval)
+            remaining -= interval
+            print(f"{name}_login_waiting remaining={remaining}")
+            logger.info("%s_login_waiting remaining=%s", name, remaining)
         if state_path:
             await asyncio.to_thread(state_path.parent.mkdir, parents=True, exist_ok=True)
             await context.storage_state(path=str(state_path))

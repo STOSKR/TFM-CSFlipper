@@ -642,7 +642,17 @@ def _progress_from_line(
     if line.startswith("job_retry"):
         return 20, "Reintentando scraper"
     if line.startswith("job_attempt"):
-        return 20, "Intento de scraper"
+        return 20, "Proceso local iniciado"
+    if line.endswith("_login_browser_open=true"):
+        platform = line.partition("_login_browser_open")[0]
+        return 20, f"{_platform_label(platform)}: navegador abierto para iniciar sesión"
+    if line.startswith(("steam_login_waiting", "buff_login_waiting")):
+        platform, _, detail = line.partition("_login_waiting")
+        remaining = _line_text_value(detail.strip(), "remaining") or "?"
+        return 20, f"{_platform_label(platform)}: esperando inicio de sesión ({remaining}s)"
+    if line.startswith(("steam_session_state_saved", "buff_session_state_saved")):
+        platform = line.partition("_session_state_saved")[0]
+        return 95, f"{_platform_label(platform)}: sesión guardada"
     if line.startswith("render_stream_candidate="):
         return 14, "Candidatos detectados"
     if line.startswith("stream_batch="):

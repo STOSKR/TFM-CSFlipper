@@ -362,7 +362,7 @@ def _local_commands() -> tuple[LocalCommand, ...]:
         LocalCommand(
             id="login_steam",
             label="Login Steam",
-            description="Abre Steam Market en navegador visible y guarda la sesion local.",
+            description="Abre una ventana de Chromium visible para Steam y guarda la sesion local.",
             command=[
                 sys.executable,
                 "-u",
@@ -373,14 +373,14 @@ def _local_commands() -> tuple[LocalCommand, ...]:
                 "--no-buff",
                 "--show-browser",
                 "--login-wait",
-                "180",
+                "300",
             ],
             group="login",
         ),
         LocalCommand(
             id="login_buff",
             label="Login BUFF",
-            description="Abre BUFF en navegador visible y guarda la sesion local.",
+            description="Abre una ventana de Chromium visible para BUFF y guarda la sesion local.",
             command=[
                 sys.executable,
                 "-u",
@@ -391,7 +391,7 @@ def _local_commands() -> tuple[LocalCommand, ...]:
                 "--buff",
                 "--show-browser",
                 "--login-wait",
-                "180",
+                "300",
             ],
             group="login",
         ),
