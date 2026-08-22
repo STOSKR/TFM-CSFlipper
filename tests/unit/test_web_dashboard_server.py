@@ -39,10 +39,17 @@ def test_marl_simulation_uses_controlled_scenario_with_editable_capital() -> Non
 
     assert payload["kind"] == "controlled_marl_simulation"
     assert payload["initial_cash_eur"] == 500.0
-    assert payload["cash_available_eur"] == 502.18
-    assert payload["portfolio"]["closed_positions"] == 1
+    assert payload["cash_available_eur"] == 529.73
+    assert payload["portfolio"]["closed_positions"] == 4
     assert payload["candidates"][0]["item_name"] == "AK-47 | Slate_FT_0"
     assert [entry["outcome"] for entry in payload["evolution"]] == [
+        "Compra simulada",
+        "Compra simulada",
+        "Compra simulada",
+        "Sin operación",
+        "Venta simulada",
+        "Venta simulada",
+        "Venta simulada",
         "Compra simulada",
         "Venta simulada",
     ]
