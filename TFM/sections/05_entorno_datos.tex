@@ -12,7 +12,7 @@ La capa de adquisición se ha desarrollado en Python 3.11. HTTPX se emplea cuand
 
 Steam actúa como una de las fuentes principales de precio e histórico. En el proyecto se capturan artículos identificados por sus atributos, precios actuales, moneda, buy orders y puntos históricos cuando están disponibles. La información se normaliza para que pueda combinarse con otras plataformas y para evitar que las decisiones dependan de nombres o formatos propios de una fuente.
 
-En la práctica, Steam no se usa solo como una tabla de precios. También aporta señales de liquidez y de comportamiento temporal. El histórico permite construir retornos, medias móviles, volatilidad y desviaciones frente a ventas recientes. Estas variables son necesarias para que el modelo no mire únicamente una fotografía puntual del mercado.
+En la práctica, Steam no se usa solo como una tabla de precios. También aporta señales de volumen de intercambios y de comportamiento temporal. El histórico permite construir retornos, medias móviles, volatilidad y desviaciones frente a ventas recientes. Estas variables son necesarias para que el modelo no mire únicamente una fotografía puntual del mercado.
 
 \subsection{BUFF y mercados externos}
 
@@ -109,11 +109,11 @@ Entidad & Uso dentro del \acroref{TFM}{TFM} \\
 
 Los datos normalizados se preparan con Pandas y NumPy. PyArrow permite conservar los datasets derivados en un formato reproducible. Estas herramientas se usan aquí para construir variables temporales y cortes de evaluación, no como parte del marco teórico.
 
-Antes de entrenar un modelo o simular una cartera, las observaciones se transforman en variables que resumen precios, liquidez, evolución temporal y estado de la cartera. A continuación se explican las variables empleadas y la construcción temporal de las etiquetas.
+Antes de entrenar un modelo o simular una cartera, las observaciones se transforman en variables que resumen precios, volumen de intercambios, evolución temporal y estado de la cartera. A continuación se explican las variables empleadas y la construcción temporal de las etiquetas.
 
 \subsection{Variables de mercado}
 
-Las características de mercado incluyen precios Steam y \acroref{BUFF}{BUFF} normalizados, precios originales, spread bruto, spread neto, buy orders, volumen, liquidez, número de listings, antigüedad del activo virtual y señales temporales. En la fase supervisada se han explorado variables de momentum y reversión como retornos a 1, 3 y 7 días, distancia a medias móviles, \acroref{RSI}{RSI}, volatilidad y desviaciones de ventas. Esta combinación de señales temporales y restricciones operativas sigue la misma lógica que los entornos de trading con control de fricciones \cite{liu2021finrl}.
+Las características de mercado incluyen precios Steam y \acroref{BUFF}{BUFF} normalizados, precios originales, spread bruto, spread neto, buy orders, volumen de intercambios, número de listings, antigüedad del activo virtual y señales temporales. En la fase supervisada se han explorado variables de momentum y reversión como retornos a 1, 3 y 7 días, distancia a medias móviles, \acroref{RSI}{RSI}, volatilidad y desviaciones de ventas. Esta combinación de señales temporales y restricciones operativas sigue la misma lógica que los entornos de trading con control de fricciones \cite{liu2021finrl}.
 
 La exploración inicial detectó que algunas señales temporales aportan información moderada, mientras que ciertas variables categóricas de alta cardinalidad, como identificadores concretos de skins, deben tratarse con cuidado para evitar sobreajuste. Por ello, el entrenamiento separa variables de evaluación y variables de entrenamiento, y permite realizar ablations sin reconstruir todo el dataset.
 
@@ -164,7 +164,7 @@ Regla & Uso en la simulación \\
 Conversión \acroref{EUR}{EUR}/\acroref{CNY}{CNY} & Normaliza precios de Steam y \acroref{BUFF}{BUFF} para compararlos en una moneda común. \\
 Fee \acroref{BUFF}{BUFF} 0,975 & Estima el ingreso neto al vender en \acroref{BUFF}{BUFF}. \\
 Fee Steam 0,87 & Representa la comisión de mercado en ventas Steam. \\
-Cash-out conservador & Permite simular pérdida adicional al convertir saldo Steam en liquidez externa. \\
+Cash-out conservador & Permite simular pérdida adicional al convertir saldo Steam en saldo externo. \\
 \textit{Trade hold} & Bloquea posiciones durante un horizonte conservador de ocho días. \\
 Beneficio neto & Calcula diferencia entre ingreso neto de venta y coste de entrada. \\
 \bottomrule
@@ -180,7 +180,7 @@ El simulador representa las consecuencias de una decisión sobre el efectivo dis
 
 \subsection{Operaciones permitidas}
 
-Las operaciones básicas son comprar, vender y mantener. Una compra abre una posición con precio de entrada, cantidad, plataforma y fecha de bloqueo. Una venta cierra una posición si está disponible y calcula el beneficio realizado. Mantener no modifica la posición, pero puede afectar al rendimiento si el mercado se mueve o si el capital sigue inmovilizado.
+Las operaciones básicas son comprar, vender y mantener. Una compra abre una posición con precio de compra, cantidad, plataforma y fecha de bloqueo. Una venta cierra una posición si está disponible y calcula el beneficio realizado. Mantener no modifica la posición, pero puede afectar al rendimiento si el mercado se mueve o si el capital sigue inmovilizado.
 
 \subsection{Comisiones y valoración}
 

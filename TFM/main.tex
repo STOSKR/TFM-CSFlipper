@@ -94,6 +94,8 @@
 }
 \newcommand{\acroref}[2]{\hyperlink{acro:#1}{#2}}
 \newcommand{\acrotarget}[2]{\raisebox{1.5\baselineskip}[0pt][0pt]{\hypertarget{acro:#1}{}}#2}
+\newcommand{\glosref}[2]{\hyperlink{glos:#1}{#2}}
+\newcommand{\glostarget}[2]{\raisebox{1.5\baselineskip}[0pt][0pt]{\hypertarget{glos:#1}{}}#2}
 
 \title{Arquitectura multiagente para la toma de decisiones en mercados de activos digitales}
 \author{}
@@ -101,49 +103,16 @@
 
 \begin{document}
 
-\hypersetup{pageanchor=false}
-\input{sections/00_portada}
-\cleardoublepage
-\hypersetup{pageanchor=true}
-\pagenumbering{arabic}
-
-\input{sections/00_resumenes}
-
-\cleardoublepage
-\tableofcontents
-\indicebottomrule
-
-\cleardoublepage
-\phantomsection
-\addcontentsline{toc}{chapter}{Índice de figuras}
-\listoffigures
-\indicebottomrule
-
-\cleardoublepage
-\phantomsection
-\addcontentsline{toc}{chapter}{Índice de tablas}
-\listoftables
-\indicebottomrule
-
-\cleardoublepage
-\phantomsection
-\addcontentsline{toc}{chapter}{Lista de algoritmos}
-\listofalgorithms
-\indicebottomrule
-
-\input{sections/00_acronimos}
-\input{sections/00_glosario}
-
-\cleardoublepage
+\input{sections/00_preliminares}
 
 \input{sections/01_introduccion}
-\input{sections/02_marco_teorico}
-\input{sections/03_analisis_mercado}
-\input{sections/03_propuesta}
-\input{sections/04_entorno_datos}
-\input{sections/05_implementacion}
-\input{sections/05_experimentacion}
-\input{sections/06_conclusiones}
+\input{sections/02_estado_arte}
+\input{sections/03_caso_estudio}
+\input{sections/04_propuesta}
+\input{sections/05_entorno_datos}
+\input{sections/06_implementacion}
+\input{sections/07_experimentacion}
+\input{sections/08_conclusiones}
 
 \nocite{sutton2018reinforcement,schulman2017ppo,terry2021pettingzoo,ray2018rllib}
 \cleardoublepage

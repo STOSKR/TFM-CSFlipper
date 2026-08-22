@@ -4,7 +4,7 @@
 
 \section{Conclusiones principales}
 
-El desarrollo realizado hasta el momento permite concluir que el problema no puede reducirse a una predicción aislada de subida o bajada de precio. En mercados como el de \textit{Counter-Strike 2}, la decisión depende de fricciones muy concretas: comisiones, conversión de moneda, liquidez, \textit{trade hold}, capital bloqueado y riesgo de cartera. Por ello, la arquitectura propuesta necesita combinar adquisición de datos, simulación económica y decisión multiagente, siguiendo la disciplina de backtesting y control de fricciones propia de los entornos de trading con aprendizaje automático \cite{liu2021finrl}.
+El desarrollo realizado hasta el momento permite concluir que el problema no puede reducirse a una predicción aislada de subida o bajada de precio. En mercados como el de \textit{Counter-Strike 2}, la decisión depende de fricciones muy concretas: comisiones, conversión de moneda, volumen de intercambios, \textit{trade hold}, capital bloqueado y riesgo de cartera. Por ello, la arquitectura propuesta necesita combinar adquisición de datos, simulación económica y decisión multiagente, siguiendo la disciplina de backtesting y control de fricciones propia de los entornos de trading con aprendizaje automático \cite{liu2021finrl}.
 
 También se ha comprobado que la separación por capas facilita el avance del proyecto. Los agentes extractores se encargan de observar el mercado, el modelo supervisado produce señales probabilísticas, el simulador aplica reglas económicas y los agentes \acroref{MARL}{MARL} operan dentro de un entorno controlado. Esta división reduce el acoplamiento y permite validar cada parte por separado.
 

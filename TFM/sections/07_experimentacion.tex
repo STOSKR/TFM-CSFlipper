@@ -155,7 +155,7 @@ El flujo reproducible queda definido así: capturar observaciones, normalizar ar
 
 \subsection{Protocolo temporal reproducible}
 
-La validación se ha repetido el 10 de agosto de 2026 con los datos disponibles desde el 1 de diciembre de 2025. Cada ejemplo representa la posibilidad de comprar un artículo en BUFF y venderlo en Steam tras un horizonte de ocho días. La etiqueta vale uno cuando, después de aplicar las comisiones configuradas, el retorno supera el 10\%. El precio de entrada se toma de BUFF y la salida de Steam se valora con el factor de venta de 0,87 empleado por el simulador.
+La validación se ha repetido el 10 de agosto de 2026 con los datos disponibles desde el 1 de diciembre de 2025. Cada ejemplo representa la posibilidad de comprar un artículo en BUFF y venderlo en Steam tras un horizonte de ocho días. La etiqueta vale uno cuando, después de aplicar las comisiones configuradas, el retorno supera el 10\%. El precio de compra se toma de BUFF y el precio de venta de Steam se valora con el factor de venta de 0,87 empleado por el simulador.
 
 El orden temporal se conserva en todas las fases. Para el corte de marzo se usaron 171 ejemplos de entrenamiento, 76 de validación y 95 de prueba. El entrenamiento termina el 20 de enero, la validación ocupa del 2 al 20 de febrero y la prueba comprende del 4 al 28 de marzo. Se eliminan ocho días antes de cada frontera para que el horizonte futuro de una observación no alcance el bloque siguiente. Ningún parámetro se modifica al consultar la prueba. Esta separación evita mezclar pasado y futuro, una precaución esencial cuando las observaciones tienen dependencia temporal \cite{bergmeir2018cv}.
 
@@ -366,7 +366,7 @@ La diferencia entre el recorrido funcional y PPO debe mantenerse clara. La regla
 
 \subsection{Resultados MARL}
 
-El entorno multiagente se ha comprobado con el bloque de marzo. Scout marca una oportunidad, Trader solicita una compra o una venta y Portfolio decide si la operación respeta saldo, exposición, liquidez y capital bloqueado. La recompensa compartida utilizada en estas ejecuciones se define en la Sección~4.6.2. La venta añade un resultado importante: el beneficio se registra al cerrar la posición, no solo como una estimación en el momento de comprar.
+El entorno multiagente se ha comprobado con el bloque de marzo. Scout marca una oportunidad, Trader solicita una compra o una venta y Portfolio decide si la operación respeta saldo, exposición, volumen de intercambios y capital bloqueado. La recompensa compartida utilizada en estas ejecuciones se define en la Sección~4.6.2. La venta añade un resultado importante: el beneficio se registra al cerrar la posición, no solo como una estimación en el momento de comprar.
 
 \begin{table}[H]
 \centering
@@ -395,7 +395,7 @@ El comando PPO con \acroref{RLlib}{RLlib} completó una iteración y 64 pasos de
 
 Para cerrar la validación del \acroref{TFM}{TFM} será necesario ejecutar una fase experimental más estricta. Primero debe validarse el modelo Steam-only de salida a ocho días y conectarlo a candidatos con precio \acroref{BUFF}{BUFF} vivo. Después deben compararse baselines simples: comprar todos los candidatos de SteamDT, comprar solo cuando el margen \acroref{BUFF}{BUFF} -> Steam es positivo, agente único y política dummy.
 
-La evaluación \acroref{MARL}{MARL} deberá incluir ablations. Las más relevantes son: sin probabilidad supervisada, sin agente Portfolio, sin penalización por capital bloqueado y sin restricciones de liquidez. Estas comparaciones permitirán distinguir si la mejora viene de la arquitectura multiagente, del modelo supervisado, de una regla de riesgo o simplemente de la estructura del simulador.
+La evaluación \acroref{MARL}{MARL} deberá incluir ablations. Las más relevantes son: sin probabilidad supervisada, sin agente Portfolio, sin penalización por capital bloqueado y sin restricciones de volumen de intercambios. Estas comparaciones permitirán distinguir si la mejora viene de la arquitectura multiagente, del modelo supervisado, de una regla de riesgo o simplemente de la estructura del simulador.
 
 \section{Discusión}
 

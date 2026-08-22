@@ -1,12 +1,12 @@
 \chapter{Arquitectura multiagente propuesta}
 
-\noindent En este capítulo se describe la arquitectura planteada para convertir datos de mercado en decisiones simuladas. Se presentan sus capas, el flujo de información, el entorno de cartera y la distribución de responsabilidades entre los agentes Scout, Trader y Portfolio.
+\noindent En este capítulo se describe la arquitectura planteada para convertir datos de mercado en decisiones simuladas. La arquitectura establece una coordinación cooperativa entre roles diferenciados que comparten el objetivo de evaluar la cartera simulada. Se presentan sus capas, el flujo de información, el entorno de cartera y la distribución de responsabilidades entre los agentes Scout, Trader y Portfolio.
 
 \section{Formulación técnica del sistema}
 
 A partir del planteamiento descrito en el Capítulo 1, la propuesta traduce el caso de uso a una tarea de decisión secuencial sobre una cartera simulada de activos digitales, siguiendo la formulación general de los problemas de aprendizaje por refuerzo \cite{sutton2018reinforcement}. En cada instante, el sistema recibe observaciones de mercado, estado de cartera y señales derivadas. A partir de esa información decide si conviene comprar, vender, mantener en observación o rechazar una oportunidad.
 
-La formulación técnica incorpora las fricciones que condicionan cada acción: beneficio neto después de comisiones, cambio de moneda, liquidez disponible, capital ya bloqueado, tiempo de desbloqueo por \textit{trade hold} y exposición acumulada a un mismo activo o plataforma. Con estos elementos, el objetivo del sistema es maximizar el valor total de la cartera simulada bajo restricciones de riesgo y fricción de mercado.
+La formulación técnica incorpora las fricciones que condicionan cada acción: beneficio neto después de comisiones, cambio de moneda, volumen de intercambios observado, capital ya bloqueado, tiempo de desbloqueo por \textit{trade hold} y exposición acumulada a un mismo activo o plataforma. Con estos elementos, el objetivo del sistema es maximizar el valor total de la cartera simulada bajo restricciones de riesgo y fricción de mercado.
 
 La arquitectura propuesta separa esta formulación en dos niveles. El primer nivel observa y transforma el mercado: extrae datos, los normaliza, los guarda y calcula señales supervisadas. El segundo nivel toma decisiones dentro de un simulador: recibe observaciones ya preparadas, emite acciones y recibe recompensas según el comportamiento de la cartera. Esta separación permite aislar la adquisición de datos, la limpieza, la predicción y el control de riesgo como responsabilidades diferenciadas.
 
@@ -43,7 +43,7 @@ Sobre ese histórico se construyen características de mercado. El modelo superv
 \caption{Ciclo de decisión}
 \begin{algorithmic}[1]
 \State Recoger observaciones recientes del mercado.
-\State Normalizar precios, moneda, liquidez y metadatos de plataforma.
+    \State Normalizar precios, moneda, volumen de intercambios y metadatos de plataforma.
 \State Actualizar el estado de cartera y las variables de riesgo.
 \State Calcular señales supervisadas disponibles para el episodio.
 \State Generar una observación local para Scout, Trader y Portfolio.
@@ -68,15 +68,15 @@ El objetivo del aprendizaje por refuerzo es obtener la política $\pi^*$ que max
 \label{eq:objetivo-rl}
 \end{equation}
 
-En la Ecuación~\ref{eq:objetivo-rl}, $\pi$ es la regla con la que el agente selecciona acciones, $r_{t+1}$ es la recompensa obtenida tras cada acción y $\mathbb{E}_{\pi}$ representa el promedio sobre las posibles evoluciones del episodio al seguir esa política. El factor $\gamma$ da menos peso a las recompensas más lejanas. En este trabajo, la recompensa se define a partir de la evolución de la cartera simulada y penaliza costes, riesgo, falta de liquidez y capital bloqueado.
+En la Ecuación~\ref{eq:objetivo-rl}, $\pi$ es la regla con la que el agente selecciona acciones, $r_{t+1}$ es la recompensa obtenida tras cada acción y $\mathbb{E}_{\pi}$ representa el promedio sobre las posibles evoluciones del episodio al seguir esa política. El factor $\gamma$ da menos peso a las recompensas más lejanas. En este trabajo, la recompensa se define a partir de la evolución de la cartera simulada y penaliza costes, riesgo, un volumen de intercambios bajo y capital bloqueado.
 
-En este trabajo, el estado incluye la información del mercado, el saldo disponible, las posiciones abiertas y bloqueadas, las fechas de desbloqueo y la exposición acumulada. Las acciones permiten comprar, vender, mantener u observar una oportunidad, siempre sujetas a las restricciones de riesgo. La transición actualiza el saldo, las posiciones, el capital bloqueado y la exposición después de cada acción. La recompensa evalúa cómo cambia el valor neto de la cartera simulada, considerando beneficio, costes, liquidez y riesgo.
+En este trabajo, el estado incluye la información del mercado, el saldo disponible, las posiciones abiertas y bloqueadas, las fechas de desbloqueo y la exposición acumulada. Las acciones permiten comprar, vender, mantener u observar una oportunidad, siempre sujetas a las restricciones de riesgo. La transición actualiza el saldo, las posiciones, el capital bloqueado y la exposición después de cada acción. La recompensa evalúa cómo cambia el valor neto de la cartera simulada, considerando beneficio, costes, volumen de intercambios y riesgo.
 
-La exploración y el entrenamiento se realizan únicamente dentro del simulador y con datos históricos. Las acciones exploratorias modifican una cartera simulada, no una cuenta real ni el inventario de una plataforma. De este modo, el sistema puede probar decisiones de compra, venta o mantenimiento y observar sus consecuencias ---comisiones, \textit{trade hold}, liquidez y riesgo--- sin utilizar capital real.
+La exploración y el entrenamiento se realizan únicamente dentro del simulador y con datos históricos. Las acciones exploratorias modifican una cartera simulada, no una cuenta real ni el inventario de una plataforma. De este modo, el sistema puede probar decisiones de compra, venta o mantenimiento y observar sus consecuencias ---comisiones, \textit{trade hold}, volumen de intercambios y riesgo--- sin utilizar capital real.
 
 \subsection{Estado y observaciones}
 
-Las observaciones combinan variables de mercado y variables de cartera. Entre las variables de mercado se incluyen precios de Steam y \acroref{BUFF}{BUFF} normalizados a \acroref{EUR}{EUR}, precios originales en su moneda nativa, volumen, liquidez, spread bruto, spread neto, órdenes de compra (\textit{buy orders}), antigüedad del activo virtual y señales temporales como retornos, medias móviles, \acroref{RSI}{RSI} o desviaciones de ventas. Entre las variables de cartera se incluyen efectivo disponible, capital bloqueado, posiciones abiertas, exposición por activo y estado de desbloqueo.
+Las observaciones combinan variables de mercado y variables de cartera. Entre las variables de mercado se incluyen precios de Steam y \acroref{BUFF}{BUFF} normalizados a \acroref{EUR}{EUR}, precios originales en su moneda nativa, volumen de intercambios, spread bruto, spread neto, órdenes de compra (\textit{buy orders}), antigüedad del activo virtual y señales temporales como retornos, medias móviles, \acroref{RSI}{RSI} o desviaciones de ventas. Entre las variables de cartera se incluyen efectivo disponible, capital bloqueado, posiciones abiertas, exposición por activo y estado de desbloqueo.
 
 La salida del modelo supervisado se incorpora como una probabilidad calibrada de que una oportunidad mantenga un spread rentable en el horizonte definido. Esta señal permite aprovechar aprendizaje supervisado sin convertirlo en una decisión rígida. Si la probabilidad es alta pero la cartera está sobreexpuesta o el capital está bloqueado, el entorno puede rechazar o posponer la operación.
 
@@ -128,7 +128,7 @@ SteamDT & Descubre candidatos para priorizar la captura. \\
 \acroref{OCR}{OCR} y \acroref{CSV}{CSV} & Convierten capturas y archivos en observaciones. \\
 \addlinespace
 \multicolumn{2}{l}{\textit{Decisión multiagente}} \\
-Scout & Filtra oportunidades por margen, liquidez y señal. \\
+Scout & Filtra oportunidades por margen, volumen de intercambios y señal. \\
 Trader & Propone comprar, vender, mantener u observar. \\
 Portfolio & Valida exposición, capital bloqueado y riesgo. \\
 \bottomrule
@@ -138,7 +138,7 @@ Portfolio & Valida exposición, capital bloqueado y riesgo. \\
 
 \subsection{Scout}
 
-Scout se encarga de detectar oportunidades. Su observación está orientada a señales de precio, spread, liquidez y probabilidad supervisada. Su papel no es decidir toda la operación, sino marcar qué activos parecen merecer atención dentro del episodio.
+Scout se encarga de detectar oportunidades. Su observación está orientada a señales de precio, spread, volumen de intercambios y probabilidad supervisada. Su papel no es decidir toda la operación, sino marcar qué activos parecen merecer atención dentro del episodio.
 
 \subsection{Trader}
 
@@ -174,6 +174,6 @@ Aquí, $\Delta \Pi_t$ es el cambio en beneficio realizado en euros, $\rho_t$ es 
 
 \section{Restricciones de riesgo}
 
-Las restricciones de riesgo se introducen antes de escalar el entrenamiento. Las más importantes son: no usar capital inexistente, limitar exposición por activo o plataforma, rechazar operaciones con liquidez insuficiente, respetar el \textit{trade hold}, controlar el capital bloqueado y separar claramente simulación de operación. Estas reglas son sencillas, pero evitan que los agentes aprendan políticas imposibles de ejecutar en el mercado.
+Las restricciones de riesgo se introducen antes de escalar el entrenamiento. Las más importantes son: no usar capital inexistente, limitar exposición por activo o plataforma, rechazar operaciones con un volumen de intercambios insuficiente, respetar el \textit{trade hold}, controlar el capital bloqueado y separar claramente simulación de operación. Estas restricciones de riesgo son sencillas, pero evitan que los agentes aprendan políticas imposibles de ejecutar en el mercado.
 
 La salida del sistema debe ser siempre auditable. Cada predicción, acción o decisión simulada debe poder relacionarse con su fuente de datos, versión de modelo, episodio y configuración de simulación. Esta trazabilidad es necesaria para interpretar resultados y para distinguir entre error de datos, error de modelo y mala política de decisión.

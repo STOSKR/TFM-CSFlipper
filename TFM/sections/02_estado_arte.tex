@@ -8,12 +8,12 @@ Los bienes virtuales pueden tener utilidad dentro de un videojuego y, cuando las
 
 Por ejemplo, un atuendo para un avatar o una apariencia para un arma modifica su presentación visual sin cambiar las reglas de juego. Un objeto funcional puede dar acceso a una capacidad, una zona o un recurso dentro del juego, proporcionando ventaja al usuario. También existen objetos coleccionables cuyo interés depende de una serie limitada, su rareza o la demanda de la comunidad. Algunos bienes son consumibles, como cajas, sobres o mejoras, y desaparecen o se transforman al utilizarlos.
 
-Los mercados de activos digitales comparten los mismos conceptos que otros mercados de bienes diferenciados; conceptos como, por ejemplo, ofertas de venta, órdenes de compra, precios, costes de transacción y liquidez. El funcionamiento de dichos mercados depende, sin embargo, de las reglas que establecen las plataformas. En este trabajo, una \textbf{oferta} es un anuncio mediante el cual una persona pone a la venta un activo virtual identificado por sus características relevantes e indica su precio. Una \textbf{plataforma} es el servicio digital que administra inventarios, datos u operaciones sobre los activos. Un \textbf{mercado} es el conjunto de reglas y mecanismos con los que las personas usuarias publican, consultan y aceptan ofertas sobre activos virtuales.
+Los mercados de activos digitales comparten los mismos conceptos que otros mercados de bienes diferenciados, como ofertas de venta, \textbf{\glosref{orden-compra}{órdenes de compra}}, precios, costes de transacción y volumen de intercambios. El funcionamiento de dichos mercados depende, sin embargo, de las reglas que establecen las plataformas. En este trabajo, una oferta es una publicación mediante la cual una persona pone a la venta un activo virtual identificado por sus características relevantes e indica su precio. Una plataforma es el servicio digital que administra inventarios, datos u operaciones sobre los activos. Un mercado es el conjunto de reglas y mecanismos con los que las personas usuarias publican, consultan y aceptan ofertas sobre activos virtuales.
 
 Para situar el problema, se distinguen tres configuraciones generales:
 \begin{itemize}
-    \item \textbf{Mercados cerrados:} los activos se usan dentro del videojuego, pero no se intercambian entre personas usuarias. Por tanto, no existe un precio de reventa observable ni una operación de compra y venta entre cuentas.
-    \item \textbf{Mercados integrados:} el propio ecosistema administra el inventario asociado a la cuenta y define cómo se publican activos, anuncios de venta y órdenes de compra.
+    \item \textbf{\glosref{mercado-cerrado}{Mercados cerrados}:} los activos se usan dentro del videojuego, pero no se intercambian entre personas usuarias. Por tanto, no existe un precio de reventa observable ni una operación de compra y venta entre cuentas.
+    \item \textbf{\glosref{mercado-integrado}{Mercados integrados}:} el propio ecosistema administra el inventario asociado a la cuenta y define cómo se publican activos, ofertas de venta y órdenes de compra.
     \item \textbf{Plataformas externas:} son servicios distintos del ecosistema que publican ofertas o facilitan operaciones sobre activos transferibles. Aplican sus propias reglas, precios y mecanismos de pago.
 \end{itemize}
 
@@ -23,7 +23,7 @@ Los mercados cerrados delimitan lo que queda fuera del alcance de este trabajo, 
 
 La configuración analizada en este trabajo utiliza dos entornos de intercambio distintos. Un \textbf{mercado integrado} es el mercado que forma parte del ecosistema donde se gestiona el activo. Su función es conservar el inventario asociado a la cuenta y permitir que el usuario publique ese activo para venderlo. Una \textbf{plataforma externa} es un servicio independiente de ese ecosistema que publica sus propias ofertas y precios para activos transferibles. Tanto el mercado integrado como la plataforma externa son entornos de intercambio, pero no pertenecen a la misma plataforma ni comparten sus reglas.
 
-El análisis parte de que un mismo activo virtual puede aparecer en ambos entornos. El sistema comprueba primero que la oferta publicada en la plataforma externa y el activo disponible en el mercado integrado se refieren al mismo activo virtual. A continuación, se estima una posible operación: adquirir el activo al precio de la oferta externa y venderlo después en el mercado integrado. Para ello, se compara ambos precios y se incorpora la conversión de moneda, las comisiones, la liquidez y las restricciones temporales. El sistema no une ni ejecuta las operaciones de las dos plataformas, sino que evalúa si sus datos permiten plantear esa operación.
+El análisis parte de que un mismo activo virtual puede aparecer en ambos entornos. El sistema comprueba primero que la oferta publicada en la plataforma externa y el activo disponible en el mercado integrado se refieren al mismo activo virtual. A continuación, se estima una posible operación: adquirir el activo al precio de la oferta externa y venderlo después en el mercado integrado. Para ello, se compara ambos precios y se incorpora la conversión de moneda, las comisiones, el volumen de intercambios y las restricciones temporales. El sistema no une ni ejecuta las operaciones de las dos plataformas, sino que evalúa si sus datos permiten plantear esa operación.
 
 \begin{table}[htbp]
 \centering
@@ -68,43 +68,43 @@ Una \textbf{operación} consta de dos pasos: primero se adquiere un activo virtu
 
 Los conceptos económicos empleados son los siguientes:
 \begin{description}
-    \item[Precio de compra o entrada ($P_e$)] Importe pagado para adquirir el activo virtual, convertido a EUR cuando la oferta original está en otra moneda.
-    \item[Precio de venta o salida ($P_s$)] Importe bruto al que se publica el mismo activo virtual para venderlo, expresado en EUR para realizar los cálculos.
+    \item[Precio de compra ($P_c$)] Importe pagado para adquirir el activo virtual, convertido a EUR cuando la oferta original está en otra moneda.
+    \item[Precio de venta ($P_v$)] Importe bruto al que se publica el mismo activo virtual para venderlo, expresado en EUR para realizar los cálculos.
 
-    \item[Anuncio de venta] Oferta de una persona que desea vender un activo virtual concreto a un precio determinado.
+    \item[Oferta de venta] Publicación con la que una persona ofrece un activo virtual concreto a un precio determinado.
     \item[Orden de compra] Precio máximo que una persona declara estar dispuesta a pagar por un activo virtual concreto. La orden de compra permanece activa hasta que se ejecuta, se cancela o expira según las reglas del mercado.
     \item[Conversión de moneda] Transformación del precio de una divisa a EUR para comparar ofertas expresadas en monedas distintas. La conversión y el método de pago pueden generar comisiones o costes adicionales que se añaden al coste de compra.
 \end{description}
 
-La diferencia entre el mejor anuncio de venta y la mejor orden de compra de un mismo activo se denomina \textit{spread}. Este valor informa sobre la distancia entre oferta y demanda, pero no equivale por sí solo a un beneficio.
+La diferencia entre la mejor oferta de venta y la mejor orden de compra de un mismo activo se denomina \textbf{\glosref{spread}{\textit{spread}}}. Este valor informa sobre la distancia entre oferta y demanda, pero no equivale por sí solo a un beneficio.
 
-Asumiendo que $P_e$ es el precio de entrada en EUR, $P_s$ es el precio bruto de salida en EUR, $f_s$ es la comisión de venta y $c$ reúne los costes adicionales de conversión o retirada, el precio neto, $P_{\mathrm{neto}}$, y el margen, $m$, se expresan como:
+Asumiendo que $P_c$ es el precio de compra en EUR, $P_v$ es el precio bruto de venta en EUR, $f_v$ es la comisión de venta y $c$ reúne los costes adicionales de conversión o retirada, el precio neto, $P_{\mathrm{neto}}$, y el margen, $m$, se expresan como:
 
 \[
-P_{\mathrm{neto}}=P_s(1-f_s),
+P_{\mathrm{neto}}=P_v(1-f_v),
 \qquad
-m=P_{\mathrm{neto}}-P_e-c.
+m=P_{\mathrm{neto}}-P_c-c.
 \]
 
 El retorno porcentual permite comparar operaciones de distinto importe:
 
 \[
-\rho=\frac{m}{P_e}
+\rho=\frac{m}{P_c}
 \]
 
-Por ejemplo, si una persona compra un activo virtual por 100~EUR ($P_e$), estima venderlo por 130~EUR ($P_s$), la comisión de venta es del 13~\% ($f_s=0{,}13$) y existen 2~EUR de costes adicionales ($c=2$), el ingreso neto de venta es 113{,}10~EUR. El margen de la operación es 11{,}10~EUR y el retorno porcentual es 11,1~\%. La operación sigue esta secuencia: primero se compra el activo virtual y, cuando puede venderse, se calcula el resultado de la venta.
+Por ejemplo, si una persona compra un activo virtual por 100~EUR ($P_c$), estima venderlo por 130~EUR ($P_v$), la comisión de venta es del 13~\% ($f_v=0{,}13$) y existen 2~EUR de costes adicionales ($c=2$), el ingreso neto de venta es 113{,}10~EUR. El margen de la operación es 11{,}10~EUR y el retorno porcentual es 11,1~\%. La operación sigue esta secuencia: primero se compra el activo virtual y, cuando puede venderse, se calcula el resultado de la venta.
 
-Una oportunidad de compra solo se considera interesante cuando el \textbf{margen $m$} es positivo. Un margen positivo indica que, tras restar al ingreso neto de venta $P_{\mathrm{neto}}$ el precio de compra $P_e$ y los costes adicionales $c$, la operación conservaría un resultado favorable. En este trabajo, una \textbf{cartera} reúne el saldo disponible y las posiciones abiertas. Una posición abierta es un activo virtual que ya se ha comprado y todavía no se ha vendido. Mientras la posición permanezca abierta, el importe empleado en la compra queda comprometido y no puede destinarse a otra operación.
+Una oportunidad de compra solo se considera interesante cuando el \textbf{margen $m$} es positivo. Un margen positivo indica que, tras restar al ingreso neto de venta $P_{\mathrm{neto}}$ el precio de compra $P_c$ y los costes adicionales $c$, la operación conservaría un resultado favorable. En este trabajo, una \textbf{cartera} reúne el saldo disponible y las posiciones abiertas. Una posición abierta es un activo virtual que ya se ha comprado y todavía no se ha vendido. Mientras la posición permanezca abierta, el importe empleado en la compra queda comprometido y no puede destinarse a otra operación.
 
-La \textbf{liquidez} es la facilidad para comprar o vender un activo virtual en una plataforma sin una espera prolongada ni una variación relevante del precio. El sistema estima la liquidez de cada activo virtual en cada plataforma a partir del volumen de intercambios observados, del número de anuncios de venta y del número de órdenes de compra disponibles para ese activo. Cuando hay pocos intercambios, anuncios u órdenes de compra, una venta puede tardar más tiempo o requerir un precio inferior al previsto.
+El \textbf{volumen de intercambios} es la cantidad de unidades de un activo virtual vendidas durante un periodo determinado. El sistema calcula este volumen para cada activo virtual y plataforma a partir de los intercambios observados. Un volumen bajo indica que se han producido pocas ventas durante el periodo analizado y puede dificultar la venta posterior del activo.
 
-Las comisiones de venta reducen el precio de salida $P_s$ mediante el factor $f_s$, de modo que el sistema obtiene el ingreso neto $P_{\mathrm{neto}}$. Los costes de conversión de moneda o retirada se agrupan en $c$ y se restan después junto con el precio de compra $P_e$ para calcular el margen $m$. Además, un \textit{trade hold} puede impedir temporalmente vender o transferir un activo virtual recién adquirido. Por tanto, una comparación de precios debe considerar el margen $m$, la liquidez y el tiempo durante el que el capital permanecerá bloqueado.
+Las comisiones de venta reducen el precio de venta $P_v$ mediante el factor $f_v$, de modo que el sistema obtiene el ingreso neto $P_{\mathrm{neto}}$. Los costes de conversión de moneda o retirada se agrupan en $c$ y se restan después junto con el precio de compra $P_c$ para calcular el margen $m$. Además, un \textit{trade hold} puede impedir temporalmente vender o transferir un activo virtual recién adquirido. Por tanto, una comparación de precios debe considerar el margen $m$, el volumen de intercambios y el tiempo durante el que el capital permanecerá bloqueado.
 
 \section{Aprendizaje por refuerzo}
 
 El aprendizaje por refuerzo (\acroref{RL}{RL}, por sus siglas en inglés de Reinforcement Learning), estudia problemas en los que un agente interactúa con un entorno, toma acciones y recibe recompensas. En este contexto, un agente es un componente de decisión que observa una parte del entorno, elige una acción y ajusta su comportamiento a partir de las consecuencias obtenidas. A diferencia del aprendizaje supervisado, donde el modelo aprende a reproducir etiquetas históricas, en \acroref{RL}{RL} aprende una política de actuación \cite{sutton2018reinforcement}. Esta formulación es útil cuando una acción cambia las decisiones disponibles después. Por ejemplo, si el agente compra un activo virtual, disminuye el saldo de la cartera y se abre una posición. Mientras el \textit{trade hold} esté activo, no puede vender esa posición; por tanto, el estado de la cartera y las acciones posibles en los pasos siguientes son distintos de los que tenía antes de comprar.
 
-La política es la regla que transforma observaciones en acciones. En este trabajo, el agente puede observar el precio de compra o entrada $P_e$, el precio de venta o salida $P_s$, la comisión de venta $f_s$ y el saldo disponible de la cartera. Con esta información, decide comprar, vender o mantener. Mantener significa no enviar una orden de compra ni de venta en ese momento. Las observaciones combinan información de mercado y cartera para que la decisión no dependa de un único indicador.
+La política es la regla que transforma observaciones en acciones. En este trabajo, el agente puede observar el precio de compra $P_c$, el precio de venta $P_v$, la comisión de venta $f_v$ y el saldo disponible de la cartera. Con esta información, decide comprar, vender o mantener. Mantener significa no enviar una orden de compra ni de venta en ese momento. Las observaciones combinan información de mercado y cartera para que la decisión no dependa de un único indicador.
 
 
 
@@ -182,7 +182,7 @@ El recorte evita que una actualización cambie en exceso la probabilidad de una 
 
 \section{Toma de decisiones en carteras}
 
-En este trabajo, una \textbf{cartera} reúne el saldo disponible y las posiciones abiertas en activos virtuales. Su gestión no consiste solo en elegir operaciones cuyo margen estimado, $m$, sea positivo. Ese margen representa el resultado de la operación: el ingreso neto de venta menos el precio de compra y los costes adicionales. No debe confundirse con $P_{\mathrm{neto}}$, que solo indica cuánto se recibe al vender, una vez descontada la comisión de venta. También debe controlar riesgo, concentración, liquidez, costes de transacción y horizonte temporal. La concentración indica qué parte del capital se dedica a un mismo activo, categoría o plataforma. El horizonte temporal es el periodo previsto entre la compra y la venta.
+En este trabajo, una \textbf{cartera} reúne el saldo disponible y las posiciones abiertas en activos virtuales. Su gestión no consiste solo en elegir operaciones cuyo margen estimado, $m$, sea positivo. Ese margen representa el resultado de la operación: el ingreso neto de venta menos el precio de compra y los costes adicionales. No debe confundirse con $P_{\mathrm{neto}}$, que solo indica cuánto se recibe al vender, una vez descontada la comisión de venta. También debe controlar riesgo, concentración, volumen de intercambios, costes de transacción y horizonte temporal. La concentración indica qué parte del capital se dedica a un mismo activo, categoría o plataforma. El horizonte temporal es el periodo previsto entre la compra y la venta.
 
 La teoría moderna de carteras introdujo la idea de estudiar rentabilidad y riesgo conjuntamente, en lugar de analizar cada inversión de forma aislada \cite{markowitz1952portfolio}. Aunque el mercado estudiado no sea un mercado bursátil regulado, la intuición sigue siendo útil: una cartera puede empeorar aunque una operación individual parezca atractiva.
 
@@ -192,10 +192,10 @@ En este \acroref{TFM}{TFM}, la rentabilidad se mide mediante el beneficio neto $
 
 El aprendizaje supervisado estima una probabilidad, pero no compra ni vende por sí mismo. Por ejemplo, un activo virtual puede costar 100~EUR en \acroref{BUFF}{BUFF} y el modelo puede asignarle una probabilidad de 0,85 de superar un retorno neto del 10~\% tras ocho días. Ese 0,85 no significa que se vaya a obtener un 85~\% de beneficio ni garantiza que la operación sea rentable; indica que, según los datos históricos, es un caso que merece ser revisado.
 
-Antes de considerarla válida en la simulación, el sistema comprueba el precio actual, la conversión de moneda y las comisiones para verificar que sigue existiendo margen. También revisa la liquidez, el saldo disponible, el capital ya bloqueado y la exposición de la cartera. Si alguna de estas condiciones no se cumple, la operación se rechaza o se pospone. Así, el modelo predice y el simulador decide si esa predicción puede convertirse en una operación viable.
+Antes de considerarla válida en la simulación, el sistema comprueba el precio actual, la conversión de moneda y las comisiones para verificar que sigue existiendo margen. También revisa el volumen de intercambios, el saldo disponible, el capital ya bloqueado y la exposición de la cartera. Si alguna de estas condiciones no se cumple, la operación se rechaza o se pospone. Así, el modelo predice y el simulador decide si esa predicción puede convertirse en una operación viable.
 
 \section{Aplicaciones relacionadas}
 
 Los trabajos de \acroref{RL}{RL} financiero muestran que entrenar agentes de trading exige reproducibilidad, \textit{backtesting} y control de fricciones \cite{liu2021finrl}. Los trabajos de \acroref{MARL}{MARL} muestran que la coordinación entre agentes puede ser útil, pero también introduce inestabilidad y necesidad de evaluación cuidadosa \cite{lowe2017maddpg,yu2022mappo}. El proyecto se sitúa en la intersección de ambas ideas: usa un mercado de activos digitales como entorno de decisión, incorpora señales supervisadas y plantea una arquitectura multiagente cooperativa.
 
-La diferencia principal respecto a una aplicación financiera clásica es el dominio. Los activos virtuales analizados están controlados por plataformas, presentan liquidez fragmentada y siguen reglas propias. La diferencia respecto a una simple herramienta de scraping es el objetivo: no basta con mostrar precios, sino que se busca evaluar decisiones de cartera bajo restricciones. Por ello, el trabajo combina adquisición de datos, simulación económica, predicción supervisada y aprendizaje por refuerzo multiagente dentro de una misma metodología.
+La diferencia principal respecto a una aplicación financiera clásica es el dominio. Los activos virtuales analizados están controlados por plataformas, presentan volúmenes de intercambio distintos entre plataformas y siguen reglas propias. La diferencia respecto a una simple herramienta de scraping es el objetivo: no basta con mostrar precios, sino que se busca evaluar decisiones de cartera bajo restricciones. Por ello, el trabajo combina adquisición de datos, simulación económica, predicción supervisada y aprendizaje por refuerzo multiagente dentro de una misma metodología.
