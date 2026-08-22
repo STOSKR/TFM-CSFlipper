@@ -24,42 +24,18 @@ Cuando se analizan conjuntamente una compra y una venta posterior, se habla de u
 
 Con la información mencionada anteriormente, el sistema debe decidir qué operaciones conviene realizar, mantener o descartar. Para justificar esa decisión, también debe considerar el \textbf{\glosref{volumen-intercambios}{volumen de intercambios}} (la cantidad de unidades vendidas durante un día, una semana o un mes), las reglas económicas y de intercambio aplicables y el estado de la cartera. La pregunta que debe responder es si la posible operación merece ser estudiada con criterios consistentes.
 
-\section{Planteamiento de la solución}
-
-Para responder a este problema, se ha diseñado un flujo reproducible que adquiere los datos, normaliza sus diferencias, aplica las reglas económicas, genera señales y simula el efecto de cada decisión sobre una cartera. Así, una posible operación se evalúa con los mismos criterios aunque proceda de fuentes distintas o se revise en momentos diferentes.
-
-Cuando el sistema localiza un artículo en una o varias fuentes, lo incorpora como \emph{candidato}. Tras recopilar sus precios y condiciones, puede clasificarlo en tres estados. \emph{Revisar} indica que el margen estimado y la información disponible justifican una comprobación manual. \emph{Observar} indica que faltan datos o que conviene esperar una nueva captura. \emph{Bloquear} indica que los costes, el riesgo o las restricciones de cartera impiden continuar. Estas clasificaciones no sustituyen la decisión de la persona usuaria, sino que organizan los artículos que conviene atender antes.
-
-La solución propuesta se organiza en tres fases. Esta separación permite evaluar cada parte por separado y conservar la trazabilidad desde una observación de mercado hasta la recomendación final:
-
-\begin{enumerate}
-    \item \textbf{Observación y limpieza.} Reúne precios, \textbf{\glosref{oferta}{ofertas de venta}}, volumen y metadatos desde las fuentes disponibles. Después normaliza monedas, nombres y fechas, elimina duplicados y registra la calidad de cada captura. El resultado es un historial comparable, con la fuente y el instante de adquisición asociados a cada dato.
-    \item \textbf{Predicción.} Transforma ese historial en variables como el margen neto entre plataformas, la evolución del precio, el volumen de intercambios y la antigüedad de la captura. Con ellas, el modelo estima una probabilidad o puntuación que ayuda a priorizar cada artículo.
-    \item \textbf{Decisión.} Combina las señales con las reglas económicas y el estado de cartera dentro de un simulador. La arquitectura multiagente reparte la detección de oportunidades, la propuesta de acción y el control de riesgo. Su salida clasifica el artículo para revisión, observación o bloqueo.
-\end{enumerate}
-
 \section{Objetivos}
 
-El objetivo principal de este \acroref{TFM}{TFM} es diseñar y evaluar una arquitectura multiagente para apoyar la toma de decisiones en mercados de activos digitales, usando como caso de estudio la economía virtual de \textit{Counter-Strike 2}.
+El objetivo principal de este \acroref{TFM}{TFM} es diseñar y evaluar, mediante simulación, una arquitectura multiagente que apoye la identificación y evaluación de operaciones orientadas a generar un beneficio neto en mercados de activos digitales. El caso de estudio es la economía virtual del videojuego \textit{Counter-Strike 2}.
 
 Los objetivos específicos se agrupan en cuatro bloques:
 
 \begin{itemize}
-  \item \textbf{Comprensión del dominio}: analizar el mercado de activos digitales de \textit{Counter-Strike 2}, sus plataformas, restricciones, comisiones, divisas, volumen de intercambios y efectos del \textit{trade hold}.
-  \item \textbf{Construcción de datos}: diseñar un flujo de adquisición y preparación de datos procedentes de diferentes plataformas de mercado y fuentes manuales, manteniendo trazabilidad de fuente, fecha, moneda y calidad del dato.
-  \item \textbf{Simulación y predicción}: migrar reglas económicas del proceso manual a código comprobable, construir datasets temporales, entrenar modelos supervisados y generar señales probabilísticas que puedan usarse dentro del entorno de decisión.
-  \item \textbf{Aprendizaje por refuerzo y decisión multiagente}: formular un entorno de aprendizaje por refuerzo con estado de cartera, acciones y recompensas definidos. Sobre esa base, distribuir los roles de detección, decisión y control de riesgo entre agentes especializados y evaluar su funcionamiento con métricas de \textbf{\glosref{rentabilidad}{rentabilidad}}, riesgo, \textbf{\glosref{exposicion}{exposición}} y capital inmovilizado.
+  \item \textbf{Análisis del caso de estudio}: analizar el mercado de activos digitales de \textit{Counter-Strike 2}, sus plataformas, restricciones, comisiones, divisas, volumen de intercambios y efectos del \textit{trade hold}.
+  \item \textbf{Construcción de datos}: construir un flujo de adquisición y preparación de datos procedentes de diferentes plataformas de mercado y fuentes manuales, manteniendo la trazabilidad de la fuente, la fecha, la moneda y la calidad del dato.
+  \item \textbf{Simulación y estimación}: desarrollar un simulador que incorpore las reglas económicas del procedimiento manual, construir conjuntos de datos temporales y obtener estimaciones de beneficio que puedan incorporarse al entorno de decisión.
+  \item \textbf{Coordinación multiagente}: formular un entorno de aprendizaje por refuerzo con el estado de la cartera, las acciones y las recompensas definidos. Sobre esa base, distribuir los roles de detección, decisión y control de riesgo entre agentes especializados y evaluar su funcionamiento con métricas de \textbf{\glosref{rentabilidad}{rentabilidad}}, riesgo, \textbf{\glosref{exposicion}{exposición}} y capital bloqueado.
 \end{itemize}
-
-\section{Alcance y restricciones}
-
-El alcance del proyecto se centra en la simulación y en la evaluación de estrategias. Las decisiones generadas se registran con sus datos, reglas y resultado simulado. El sistema no ejecuta operaciones en los mercados. Este enfoque permite comparar propuestas de forma reproducible y estudiar su efecto sobre la cartera.
-
-La arquitectura multiagente se plantea como una forma de separar responsabilidades dentro del proceso de decisión. La adquisición de datos, la predicción supervisada, el simulador económico, los agentes del sistema y la evaluación experimental se mantienen como capas diferenciadas para que cada parte pueda validarse, sustituirse o compararse sin comprometer el conjunto del sistema.
-
-Otra restricción relevante es la disponibilidad de histórico alineado entre plataformas. Las plataformas de mercado no siempre ofrecen datos con la misma granularidad, moneda, horizonte o estabilidad de acceso. Por ello, una parte del trabajo consiste en construir una base experimental, donde los resultados preliminares se distingan claramente de una validación definitiva.
-
-La metodología distingue entre el aprendizaje de patrones temporales y la evaluación operativa de oportunidades concretas. Esta separación permite aprovechar históricos más estables para entrenar modelos y, al mismo tiempo, incorporar precios puntuales de mercado cuando se simulan decisiones de cartera.
 
 \section{Estructura del documento}
 

@@ -53,6 +53,16 @@ Sobre ese histórico se construyen características de mercado. El modelo superv
 \end{algorithmic}
 \end{algorithm}
 
+\subsection{Clasificación de oportunidades}
+
+Después de recopilar los precios y las condiciones de un activo digital, el sistema clasifica la posible operación en uno de tres estados. Esta clasificación no sustituye la decisión de la persona usuaria, sino que organiza las posibles operaciones que conviene atender antes.
+
+\begin{description}
+    \item[\emph{Revisar}] La información disponible y el resultado económico estimado justifican una comprobación manual.
+    \item[\emph{Observar}] Faltan datos o conviene esperar una nueva captura antes de evaluar la posible operación.
+    \item[\emph{Bloquear}] Los costes, el riesgo o las restricciones de cartera impiden continuar con la posible operación.
+\end{description}
+
 \section{Definición del entorno}
 
 El entorno representa una cartera simulada que evoluciona a partir de datos históricos. Cada episodio contiene una secuencia de observaciones de mercado y un estado interno formado por saldo disponible, posiciones abiertas, posiciones bloqueadas, fechas de desbloqueo y métricas de exposición.
@@ -155,6 +165,16 @@ La recompensa debe reflejar el objetivo del sistema: mejorar el valor neto de la
 \subsection{Recompensa individual}
 
 Las señales individuales pueden ayudar a entrenar comportamientos especializados. Scout puede recibir recompensa por identificar oportunidades que más adelante resultan útiles. Trader puede recibirla por ejecutar acciones con beneficio neto y Portfolio por evitar sobreexposición, operaciones ilíquidas o capital bloqueado excesivo. Estas recompensas no sustituyen al objetivo global, pero pueden guiar el aprendizaje de cada rol.
+
+Como ampliación de la arquitectura, la recompensa de cada rol puede combinar una parte compartida, vinculada a la evolución de la cartera, y una parte individual, vinculada a su responsabilidad concreta:
+
+\begin{equation}
+r_t^i=\lambda r_t^{\mathrm{cartera}}+(1-\lambda)r_{t,\mathrm{rol}}^i,
+\qquad 0\leq\lambda\leq1.
+\label{eq:recompensa-hibrida}
+\end{equation}
+
+En la Ecuación~\ref{eq:recompensa-hibrida}, $r_t^{\mathrm{cartera}}$ es la recompensa común, $r_{t,\mathrm{rol}}^i$ mide la contribución del agente $i$ y $\lambda$ determina el peso de cada parte. La parte compartida debe tener un peso mayor para que todos los agentes mantengan como prioridad el resultado global de la cartera. Las ejecuciones descritas en este trabajo utilizan la recompensa compartida de la sección siguiente. La recompensa individual queda definida como una extensión que deberá evaluarse con datos suficientes.
 
 \subsection{Recompensa cooperativa}
 
