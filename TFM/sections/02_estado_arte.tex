@@ -208,9 +208,11 @@ En la Ecuación~\ref{eq:recompensa-compartida}, $r_t$ representa la recompensa c
 
 MARL introduce dificultades que no aparecen con un único agente. Cada agente aprende y modifica su política mientras los demás también modifican las suyas. Por ello, desde el punto de vista de un agente, las consecuencias de una acción pueden cambiar aunque el entorno físico permanezca igual. Este fenómeno se denomina no estacionariedad. Además, un agente puede decidir a partir de una observación local que no contiene toda la información del estado global, lo que dificulta atribuir a cada decisión la parte del resultado que le corresponde.
 
-El paradigma de entrenamiento centralizado y ejecución descentralizada, conocido como \acroref{CTDE}{CTDE}, aborda parte de estas dificultades. Durante el entrenamiento, un crítico o una función de valor puede utilizar el estado global y las acciones de todos los agentes para evaluar la coordinación. Durante la ejecución, cada agente selecciona su acción a partir de su propia observación. Este enfoque permite entrenar con información adicional sin exigir que esa información esté disponible cuando el sistema toma decisiones \cite{lowe2017maddpg,yu2022mappo}.
+La información disponible puede repartirse de forma distinta durante el entrenamiento y la ejecución. El entrenamiento es la fase en la que las políticas se ajustan a partir de la experiencia obtenida en el entorno. La ejecución es la fase posterior en la que las políticas ya entrenadas seleccionan acciones. En el entrenamiento centralizado y ejecución centralizada, conocido como \acroref{CTCE}{CTCE}, una entidad central recibe el estado global y selecciona la acción conjunta tanto durante el entrenamiento como durante la ejecución. Esta configuración facilita la coordinación porque concentra toda la información en una única decisión, pero exige que el estado global y la entidad central estén disponibles cuando el sistema actúa. Por ejemplo, un coche autónomo puede utilizar un controlador central que recibe toda la información disponible y decide la aceleración, el frenado y la dirección tanto durante el entrenamiento como durante la conducción.
 
-La Figura~\ref{fig:marl-ctde} muestra una interacción general de este tipo. Las líneas continuas representan el intercambio necesario para ejecutar la política de cada agente. Las líneas discontinuas representan la información adicional que utiliza el crítico únicamente durante el entrenamiento.
+El paradigma de entrenamiento centralizado y ejecución descentralizada, conocido como \acroref{CTDE}{CTDE}, separa ambas funciones. Durante el entrenamiento, un modelo evaluador puede utilizar el estado global y las acciones de todos los agentes para estimar la calidad esperada de su coordinación. Durante la ejecución, cada agente selecciona su acción a partir de su propia observación local. Por ejemplo, varios coches autónomos pueden entrenarse con un modelo evaluador que conoce la posición, la velocidad y las acciones de todos ellos. Cuando circulan, cada coche decide utilizando únicamente sus propios sensores. Este enfoque permite entrenar con información adicional sin exigir que esa información esté disponible cuando el sistema toma decisiones \cite{lowe2017maddpg,yu2022mappo}. El número de coches no determina el paradigma. Varios coches controlados por una única entidad central seguirían un enfoque CTCE. Por tanto, CTCE y CTDE representan dos formas distintas de distribuir la información y la responsabilidad de decisión entre los agentes.
+
+La Figura~\ref{fig:marl-ctde} muestra una interacción general de este tipo. Las líneas continuas representan el intercambio necesario para ejecutar la política de cada agente. Las líneas discontinuas representan la información adicional que utiliza el modelo evaluador únicamente durante el entrenamiento.
 
 \begin{figure}[H]
   \centering
@@ -225,7 +227,7 @@ La Figura~\ref{fig:marl-ctde} muestra una interacción general de este tipo. Las
       minimum height=1.05cm,
       align=center
     },
-    critico/.style={
+    evaluador/.style={
       bloque,
       draw=tfmMuted,
       fill=white,
@@ -239,15 +241,15 @@ La Figura~\ref{fig:marl-ctde} muestra una interacción general de este tipo. Las
     \node[bloque, below=of estado] (agente2) {Agente $i$\\{\small Observación local $o_t^i$}};
     \node[bloque, below right=of estado] (agenteN) {Agente $N$\\{\small Observación local $o_t^N$}};
     \node[bloque, below=2.25cm of agente2, minimum width=5.2cm, minimum height=1.45cm] (entorno) {Entorno compartido\\{\small Acción conjunta $\mathbf{a}_t=(a_t^1,\ldots,a_t^N)$}\\{\small Recompensas $(r_{t+1}^1,\ldots,r_{t+1}^N)$}};
-    \node[critico, below=1.65cm of entorno] (critico) {Crítico centralizado\\{\small Disponible solo durante el entrenamiento}};
+    \node[evaluador, below=1.65cm of entorno] (evaluador) {Modelo evaluador centralizado\\{\small Disponible solo durante el entrenamiento}};
 
     \draw[flujo] (estado) -- node[left, font=\scriptsize] {$o_t^1$} (agente1);
     \draw[flujo] (estado) -- node[right, font=\scriptsize] {$o_t^i$} (agente2);
     \draw[flujo] (estado) -- node[right, font=\scriptsize] {$o_t^N$} (agenteN);
     \draw[flujo] (agente1.south) -- node[left, font=\scriptsize] {$a_t^1$} (entorno.north west);
-    \draw[flujo] (agente2.south west) -- node[left, font=\scriptsize] {$a_t^i$} (entorno.north);
+    \draw[flujo] (agente2.south) -- node[right, font=\scriptsize] {$a_t^i$} (entorno.north);
     \draw[flujo] (agenteN.south) -- node[right, font=\scriptsize] {$a_t^N$} (entorno.north east);
-    \draw[entrenamiento] (entorno) -- node[right, font=\scriptsize, align=left] {estado global y\\acción conjunta} (critico);
+    \draw[entrenamiento] (entorno) -- node[right, font=\scriptsize, align=left] {estado global y\\acción conjunta} (evaluador);
   \end{tikzpicture}
   \caption{Interacción general en MARL con entrenamiento centralizado y ejecución descentralizada.}
   \label{fig:marl-ctde}
