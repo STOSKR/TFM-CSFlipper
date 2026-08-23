@@ -1,56 +1,54 @@
 \chapter{Contextualización del caso de estudio: activos digitales en Counter-Strike 2}
 
-\noindent Este capítulo concreta el marco general del Capítulo 2 en el caso de estudio utilizado por el sistema. Se presentan los activos, las plataformas y las reglas de intercambio que permiten aplicar la propuesta a \textit{Counter-Strike 2}. El objetivo es que la terminología posterior pueda entenderse sin conocer previamente el videojuego ni sus mercados.
+\noindent Este capítulo concreta el marco general presentado en el Capítulo 2 mediante el caso de estudio de \textit{Counter-Strike 2}, un videojuego multijugador en el que las personas usuarias pueden obtener y utilizar artículos digitales asociados a sus cuentas. Los artículos analizados se intercambian en Steam Community Market, una plataforma centralizada que opera un mercado secundario integrado, y en BUFF, una plataforma centralizada externa que opera otro mercado secundario. Este caso permite estudiar decisiones de compraventa cuando el activo, la plataforma y las reglas de intercambio condicionan conjuntamente el resultado de una operación.
 
-\section{Justificación del caso de estudio}
+A diferencia de un instrumento financiero estandarizado, como una acción ordinaria de una empresa cotizada cuyas unidades de una misma clase son intercambiables entre sí, un artículo de \textit{Counter-Strike 2} puede diferenciarse por atributos como su condición, desgaste o versión. Además, las plataformas administran los artículos asociados a las cuentas y establecen reglas distintas sobre precios, comisiones, moneda y transferencia. Estas condiciones hacen que una diferencia visible entre dos precios no baste para determinar si una operación puede generar un beneficio neto. Un mercado bursátil requeriría modelar instrumentos regulados, fuentes de información y reglas de negociación diferentes, por lo que respondería a un problema de investigación distinto.
 
-\textit{Counter-Strike 2} se utiliza como caso de estudio porque reúne objetos cosméticos que se diferencian por sus atributos, activos digitales asociados a una cuenta en una plataforma de distribución digital y varias fuentes de precio con formatos distintos. Estas condiciones permiten evaluar la propuesta sobre un mercado donde la normalización del artículo, las comisiones, el volumen de intercambios y los bloqueos temporales influyen directamente en una decisión de compraventa.
+El caso de estudio se centra en artículos comparables entre BUFF y Steam Community Market. El capítulo describe los artículos, las plataformas y las fricciones que delimitan esta ruta de análisis. No presenta todavía la arquitectura, las expresiones económicas ni el simulador, que se desarrollan en los capítulos posteriores.
 
-Su mercado de objetos virtuales presenta precios variables, ofertas de venta, órdenes de compra y actividad de intercambio en distintas plataformas. Por ello, permite estudiar cómo una diferencia visible entre precios puede transformarse en una oportunidad que debe validarse con costes, disponibilidad de demanda y restricciones de cartera. No se utiliza como un ejemplo aislado, sino como un contexto con datos y reglas suficientes para poner a prueba el marco genérico de adquisición, predicción y simulación.
+\section{Justificación y alcance del caso de estudio}
 
-Las secciones siguientes describen primero los artículos que se intercambian, después las plataformas que aportan la información y, por último, las variables económicas que condicionan una operación.
+\textit{Counter-Strike 2} se utiliza como caso de estudio porque cuenta con artículos digitales intercambiables, asociados a las cuentas de las personas usuarias, y con mercados que publican precios mediante formatos distintos. Estas condiciones permiten estudiar decisiones de compraventa en las que intervienen la identificación correcta del artículo, las comisiones, la conversión de moneda, el volumen de intercambios y los bloqueos temporales.
 
-\section{Activos virtuales del caso de estudio}
+Los artículos cosméticos de \textit{Counter-Strike 2} no modifican las reglas de una partida, pero pueden tener precios diferentes según sus características y la actividad de intercambio existente. Esta combinación permite observar cómo una diferencia entre precios publicados en dos plataformas no equivale necesariamente a una oportunidad. Antes de simular una compra y una venta posterior, es necesario comprobar que ambas publicaciones se refieren al mismo artículo y considerar las reglas económicas y temporales aplicables.
 
-El capítulo anterior ha presentado de forma general los mercados y plataformas de activos digitales. Este apartado aplica esa clasificación al caso de estudio. Un \emph{activo virtual} es un elemento digital asociado a una cuenta o a un videojuego. Puede aportar una función dentro de la partida, modificar la apariencia de un elemento o tener interés por su disponibilidad limitada. Un mismo objeto puede pertenecer a varias categorías, por lo que la clasificación se utiliza para describirlo y no para asignarle un valor fijo.
+El estudio se limita a los artículos para los que existen observaciones comparables y a una ruta de análisis entre BUFF y Steam Community Market. Esta delimitación permite disponer de un caso concreto y trazable sin pretender representar todos los artículos ni todas las plataformas relacionadas con el videojuego.
 
-\begin{table}[h]
-\centering
-\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{0.27\textwidth} >{\raggedright\arraybackslash}X}
-\toprule
-Tipo & Característica principal \\
-\midrule
-Funcional & Modifica una capacidad, acceso o progreso dentro del juego. \\
-Cosmético & Cambia la apariencia sin alterar las reglas de juego. \\
-Coleccionable & Su interés depende de la serie, la escasez o la demanda de la comunidad. \\
-Consumible & Se utiliza o transforma durante el juego y puede desaparecer. \\
-\bottomrule
-\end{tabularx}
-\caption{Tipos de activos virtuales.}
-\label{tab:tipos-activos}
-\end{table}
+\section{Activos digitales de Counter-Strike 2}
 
-La identificación de un activo requiere algo más que su nombre. En los mercados de videojuegos son habituales atributos como categoría, colección, rareza, condición y características especiales. Estos atributos permiten distinguir objetos que parecen similares, pero que se intercambian como referencias diferentes. El sistema conserva esos campos para evitar comparar precios de activos virtuales distintos.
+Los artículos analizados pertenecen principalmente a las categorías cosméticas y coleccionables descritas en el Capítulo 2. En \textit{Counter-Strike 2}, una \textit{skin} modifica la apariencia visual de un arma sin cambiar sus características durante la partida. Los cuchillos y los guantes también son artículos cosméticos. Las pegatinas pueden aplicarse a determinadas armas, mientras que las cajas son contenedores que pueden intercambiarse o abrirse para obtener otros artículos.
 
-En el caso de estudio, los objetos más habituales son \emph{skins}, guantes, cuchillos, pegatinas y cajas. Una \emph{skin} modifica el aspecto visual de un arma. El \emph{float} es el valor numérico que representa su desgaste y StatTrak identifica una versión que incorpora un contador de víctimas obtenidas con el arma. Estos atributos permiten diferenciar activos virtuales que comparten nombre, pero no precio ni demanda.
+El interés de estos artículos no depende solo de su utilidad dentro del videojuego. También intervienen la disponibilidad, la rareza, la colección a la que pertenecen y la demanda existente en los mercados. Por este motivo, dos artículos del mismo tipo pueden mantener precios muy diferentes. El caso de estudio se centra en los artículos que pueden identificarse y compararse entre las plataformas seleccionadas.
 
-\section{Plataformas del caso de estudio}
+\section{Identificación y atributos de los artículos}
 
-El caso de estudio combina una plataforma oficial y fuentes externas con funciones complementarias:
+Para comparar publicaciones de dos plataformas es necesario determinar si ambas se refieren exactamente al mismo artículo. El nombre base no siempre es suficiente. Por ejemplo, dos artículos denominados \enquote{AK-47 | Slate} pueden corresponder a condiciones de desgaste distintas y, por tanto, negociarse con precios distintos.
+
+La identificación del artículo combina el nombre con sus atributos de mercado. Entre ellos se encuentran la calidad o condición, la colección, la rareza y las características especiales. El \textit{float} expresa numéricamente el desgaste de determinados artículos. StatTrak identifica una versión que incorpora un contador asociado al uso del arma. También pueden existir ediciones especiales que se negocian como referencias distintas.
+
+Estos atributos permiten construir una referencia de mercado para cada artículo y evitan comparar precios de activos digitales que solo parecen equivalentes. La normalización de esta referencia se describe en el Capítulo 5, donde se explica cómo se preparan las observaciones antes de utilizarlas en los modelos y en la simulación.
+
+\section{Plataformas y fuentes de información}
+
+El caso de estudio combina dos plataformas centralizadas que operan mercados secundarios con una fuente auxiliar de descubrimiento. Las tres fuentes tienen funciones diferenciadas:
 \begin{itemize}
-    \item \textbf{Steam Community Market:} plataforma oficial con activos digitales asociados a la cuenta, ofertas de venta y órdenes de compra \cite{steamMarketFAQ}.
-    \item \textbf{BUFF:} fuente externa para comparar precios de compra y demanda. El sistema conserva los precios en CNY y su conversión a EUR \cite{buffMarketplace}.
-    \item \textbf{SteamDT:} fuente de descubrimiento de artículos que requieren una captura detallada.
+    \item \textbf{Steam Community Market} es una plataforma centralizada que opera un mercado secundario integrado en el ecosistema de Steam. Publica ofertas de venta y órdenes de compra de artículos asociados a las cuentas de las personas usuarias. En este trabajo se utiliza como referencia para observar precios de venta y actividad de intercambio \cite{steamMarketFAQ}.
+    \item \textbf{BUFF} es una plataforma centralizada externa que opera un mercado secundario de artículos transferibles. Se utiliza para observar precios de compra y actividad de intercambio, conservando los precios en CNY y su conversión a EUR para permitir la comparación \cite{buffMarketplace}.
+    \item \textbf{SteamDT} se emplea como fuente de descubrimiento inicial de artículos que requieren una captura detallada. No interviene en la operación simulada ni establece sus condiciones económicas.
 \end{itemize}
 
-Una \emph{oferta} indica que alguien ofrece un artículo a un precio determinado. Una \emph{orden de compra} o \textit{buy order} indica el precio máximo que otra persona está dispuesta a pagar. Esta diferencia resulta relevante porque el precio visible no siempre coincide con el precio al que puede ejecutarse una operación.
+Las plataformas no tienen por qué publicar la misma información ni aplicar las mismas reglas de intercambio. Por ello, una comparación solo es válida cuando identifica un mismo artículo, conserva el instante de observación y tiene en cuenta qué precio representa cada plataforma.
 
-\section{Precios y fricciones en el caso de estudio}
+\section{Reglas económicas y fricciones de la ruta analizada}
 
-El \emph{precio de mercado} es el valor observado para un activo virtual concreto en una plataforma y en un momento concreto. Por sí solo no representa el resultado de una operación. El sistema debe considerar las comisiones, la moneda, el precio de compra, el ingreso neto de venta y las restricciones temporales. La diferencia entre el mejor precio de venta y la mejor orden de compra se denomina \emph{spread}. Un spread amplio puede reflejar una oportunidad, pero también un volumen de intercambios bajo o incertidumbre sobre el precio ejecutable.
+La ruta analizada parte de un precio de compra observado en BUFF y de un precio de venta observado en Steam Community Market para el mismo artículo. Esta comparación requiere expresar ambos precios en una moneda común y aplicar las comisiones que afectan al ingreso de venta. Una diferencia entre precios antes de esos ajustes no permite determinar por sí sola el resultado de una operación.
 
-El \emph{volumen de intercambios} expresa la cantidad de unidades de un activo virtual vendidas durante un periodo determinado. El sistema calcula el volumen de intercambios de cada activo virtual y plataforma a partir de las ventas observadas. Cuando el volumen es bajo, el capital puede permanecer inmovilizado y el margen calculado pierde utilidad.
+El volumen de intercambios aporta información sobre la actividad observada para un artículo en cada plataforma. Cuando el volumen es bajo, puede ser más difícil completar una venta en el plazo previsto. Asimismo, un \textit{trade hold} puede impedir temporalmente vender o transferir un artículo adquirido. Estas fricciones afectan tanto a la disponibilidad del capital como al momento en que una posición puede cerrarse.
 
-También existen fricciones específicas de cada plataforma. Las comisiones reducen el ingreso neto, la conversión de divisa puede variar y algunas operaciones aplican un \textit{trade hold}. El \textit{trade hold} es un periodo durante el cual un artículo adquirido no puede transferirse o venderse. Por tanto, la decisión no consiste solo en comparar dos precios. Debe estimar si el margen puede mantenerse durante el tiempo necesario para cerrar la posición.
+La comparación de precios se utiliza para seleccionar candidatos que pueden estudiarse en la simulación. No supone que el artículo pueda comprarse o venderse al precio publicado, ni garantiza que ese precio se mantenga hasta completar el intercambio. Las expresiones económicas y las reglas que utiliza el simulador se presentan en los Capítulos 4 y 5.
 
-La ruta analizada consiste en adquirir un activo virtual concreto en una plataforma externa y estimar una venta posterior en un mercado integrado. La comparación entre la plataforma externa de compra y el mercado integrado de venta incorpora conversión de moneda, comisión de venta, volumen de intercambios, órdenes de compra y bloqueo temporal. Los Capítulos 4 a 7 muestran cómo estas condiciones se transforman en datos, señales y decisiones simuladas.
+\section{Alcance y limitaciones del caso de estudio}
+
+El caso de estudio representa decisiones a partir de datos observados y de reglas de intercambio que pueden incorporarse a una simulación. El sistema no envía órdenes reales, no mueve artículos entre plataformas y no utiliza capital real. Por tanto, sus resultados sirven para evaluar decisiones simuladas bajo las condiciones representadas, no para garantizar la ejecución de operaciones futuras.
+
+La cobertura depende de los artículos y de las observaciones disponibles en las fuentes seleccionadas. Además, las reglas de las plataformas, sus comisiones y la actividad de intercambio pueden cambiar con el tiempo. Estas limitaciones deben tenerse en cuenta al interpretar los resultados experimentales y justifican la separación entre los datos observados, las reglas económicas y la evaluación de la simulación que se desarrolla en los capítulos siguientes.
