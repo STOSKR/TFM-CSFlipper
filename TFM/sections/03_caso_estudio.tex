@@ -6,13 +6,17 @@ El interés del caso se encuentra en la fragmentación de precios entre mercados
 
 El caso de estudio se centra en artículos con precios registrados en los mercados secundarios de BUFF y Steam Community Market, cuyas publicaciones pueden verificarse como el mismo artículo. El capítulo describe los artículos, los mercados y las condiciones de intercambio que delimitan esta ruta de análisis. No presenta todavía la arquitectura, las expresiones económicas ni el simulador, que se desarrollan en los capítulos posteriores.
 
-\section{Justificación y alcance}
+\section{Justificación, alcance y limitaciones}
 
 El motivo de seleccionar \textit{Counter-Strike 2} es analizar decisiones de compraventa de activos digitales que persiguen generar un beneficio neto a partir de diferencias de precio entre mercados secundarios. Una vez comprobado que dos publicaciones se refieren exactamente al mismo artículo, una diferencia entre sus precios permite plantear una compra en el mercado más barato y una venta posterior en el mercado con mayor precio. El objetivo no es asumir que toda diferencia de precios es rentable, sino determinar cuáles merecen evaluarse como posibles operaciones.
 
 Esta situación no es exclusiva de los activos digitales, pero presenta características distintas de un mercado bursátil líquido. Las unidades de una misma acción ordinaria son intercambiables entre sí y las diferencias de precio para el mismo instrumento suelen corregirse rápidamente. En cambio, los mercados secundarios de activos digitales se encuentran administrados por plataformas separadas que publican información y aplican reglas de intercambio propias. Esta fragmentación permite observar diferencias de precio más visibles y convierte a \textit{Counter-Strike 2} en un caso adecuado para el objetivo de este trabajo.
 
 El análisis se limita a los artículos con precios registrados en BUFF y Steam Community Market cuyas publicaciones pueden verificarse como el mismo artículo. Esta delimitación permite estudiar una ruta concreta y trazable sin pretender representar todos los artículos de \textit{Counter-Strike 2}, todas las plataformas ni todos los mecanismos de intercambio del videojuego.
+
+El caso de estudio representa decisiones a partir de datos observados y de reglas de intercambio que pueden incorporarse a una simulación. El sistema no envía órdenes reales, no mueve artículos entre plataformas y no utiliza capital real. Por tanto, sus resultados sirven para evaluar decisiones simuladas bajo las condiciones representadas, no para garantizar la ejecución de operaciones futuras.
+
+La cobertura depende de los artículos y de los datos disponibles en las fuentes seleccionadas. Además, las reglas de las plataformas, sus comisiones y la actividad de intercambio pueden cambiar con el tiempo. Estas limitaciones deben tenerse en cuenta al interpretar los resultados experimentales.
 
 \section{Artículos y atributos de Counter-Strike 2}
 
@@ -40,7 +44,7 @@ La identificación del artículo combina el nombre con los atributos que se indi
 
 Estos atributos permiten construir un identificador para cada artículo y evitan comparar precios de activos digitales que solo parecen equivalentes. La normalización de este identificador se describe en el Capítulo 5, donde se explica cómo se preparan los datos antes de utilizarlos en los modelos y en la simulación.
 
-\section{Mercados secundarios y fuentes de información}
+\section{Mercados secundarios y condiciones de intercambio}
 
 El caso de estudio combina dos mercados secundarios administrados por plataformas distintas con una fuente auxiliar de descubrimiento. Cada fuente aporta una parte diferente de la información necesaria para estudiar una posible operación:
 \begin{itemize}
@@ -51,16 +55,8 @@ El caso de estudio combina dos mercados secundarios administrados por plataforma
 
 La ruta estudiada compara una oferta de venta en BUFF con una oferta de venta en Steam Community Market para el mismo artículo. Las órdenes de compra describen una intención distinta, ya que una persona ofrece dinero hasta un importe máximo para adquirir un artículo, por lo que se emplean como información complementaria y no como el precio principal de esta ruta. El Capítulo 5 detalla la captura y normalización de los datos de las tres fuentes.
 
-\section{Reglas económicas y fricciones}
-
 La ruta analizada parte de un precio de compra observado en el mercado secundario de BUFF y de un precio de venta observado en Steam Community Market para el mismo artículo. Esta comparación requiere expresar ambos precios en una moneda común y aplicar las comisiones que afectan al ingreso de venta. Una diferencia entre precios antes de esos ajustes no permite determinar por sí sola el resultado de una operación.
 
 El volumen de intercambios aporta información sobre la actividad observada para un artículo en cada mercado secundario. Cuando el volumen es bajo, puede ser más difícil completar una venta en el plazo previsto. Asimismo, un \textit{trade hold} puede impedir temporalmente vender o transferir un artículo adquirido. Estas fricciones afectan tanto a la disponibilidad del capital como al momento en que una posición puede cerrarse.
 
 La comparación de precios se utiliza para seleccionar candidatos que pueden estudiarse en la simulación. No supone que el artículo pueda comprarse o venderse al precio publicado, ni garantiza que ese precio se mantenga hasta completar el intercambio. Las expresiones económicas y las reglas que utiliza el simulador se presentan en los Capítulos 4 y 5.
-
-\section{Limitaciones del caso}
-
-El caso de estudio representa decisiones a partir de datos observados y de reglas de intercambio que pueden incorporarse a una simulación. El sistema no envía órdenes reales, no mueve artículos entre plataformas y no utiliza capital real. Por tanto, sus resultados sirven para evaluar decisiones simuladas bajo las condiciones representadas, no para garantizar la ejecución de operaciones futuras.
-
-La cobertura depende de los artículos y de los datos disponibles en las fuentes seleccionadas. Además, las reglas de las plataformas, sus comisiones y la actividad de intercambio pueden cambiar con el tiempo. Estas limitaciones deben tenerse en cuenta al interpretar los resultados experimentales y justifican la separación entre los datos observados, las reglas económicas y la evaluación de la simulación que se desarrolla en los capítulos siguientes.
