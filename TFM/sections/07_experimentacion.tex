@@ -341,7 +341,7 @@ La tercera pivotación aparece en la parte multiagente. Antes de ampliar entrena
 
 \subsection{Protocolo de episodios MARL}
 
-La evaluación multiagente no utiliza una lista abstracta de acciones. Cada episodio recorre las observaciones del bloque de prueba de marzo en orden temporal. Scout indica si una oportunidad merece atención, Trader puede comprar una unidad, mantener o solicitar una venta y Portfolio aplica las restricciones de cartera. Una compra requiere el acuerdo de los tres roles. Una venta requiere que exista una posición desbloqueada del mismo artículo y que Portfolio la apruebe. De este modo, el episodio permite comprobar el intercambio entre una oportunidad local, el inventario ya abierto y el capital disponible para el conjunto de la cartera.
+La evaluación multiagente no utiliza una lista abstracta de acciones. Cada episodio recorre las observaciones del bloque de prueba de marzo en orden temporal. Scout indica si una oportunidad merece atención, Trader puede comprar una unidad, mantener o solicitar una venta y Portfolio aplica las restricciones de cartera. Una compra requiere el acuerdo de los tres roles. Una venta requiere que exista una posición desbloqueada del mismo artículo y que Portfolio la apruebe. De este modo, el episodio permite comprobar el intercambio entre una oportunidad local, las posiciones abiertas y el capital disponible para el conjunto de la cartera.
 
 \begin{table}[htbp]
 \centering
@@ -387,7 +387,7 @@ En el caso controlado se compró una unidad por 10,00 EUR en BUFF el 1 de enero 
 
 El recorrido de cartera parte de 1.000 EUR y procesa 95 observaciones de marzo. La regla determinista compra cuando el margen neto observado es positivo y las restricciones lo permiten. Cuando encuentra una posición desbloqueada del mismo artículo, solicita su venta. Se ejecutaron 24 compras y 19 ventas, con un máximo de 11 posiciones simultáneas. Al terminar quedaron cinco posiciones abiertas, 306,60 EUR de capital bloqueado, 888,99 EUR de efectivo disponible y 195,59 EUR de beneficio realizado. El valor de cartera registrado fue 1.195,59 EUR.
 
-Estas cifras verifican que el entorno conserva inventario, aplica límites y reutiliza efectivo después de una venta. No miden el rendimiento de PPO ni permiten estimar beneficio futuro: el corte contiene oportunidades preseleccionadas y está muy concentrado en márgenes positivos.
+Estas cifras verifican que el entorno conserva las posiciones abiertas, aplica límites y reutiliza efectivo después de una venta. No miden el rendimiento de PPO ni permiten estimar beneficio futuro: el corte contiene oportunidades preseleccionadas y está muy concentrado en márgenes positivos.
 
 El comando PPO con \acroref{RLlib}{RLlib} completó una iteración y 64 pasos de entorno con el conjunto de entrenamiento. El estado central se expone al adaptador y hay una política por rol. La evaluación del checkpoint corto no ejecutó compras. Esta prueba valida la compatibilidad técnica, pero una única iteración no permite comparar una política aprendida con una regla de margen. Las comparaciones futuras deberán repetir semillas, episodios y cortes temporales para comunicar la variabilidad del aprendizaje \cite{agarwal2021deep}.
 

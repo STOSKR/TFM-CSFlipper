@@ -2,7 +2,7 @@
 
 \noindent Este capítulo presenta los fundamentos teóricos y los trabajos previos que contextualizan este trabajo. En primer lugar, sitúa los mercados digitales de activos dentro de las economías de los videojuegos y diferencia los principales tipos de mercado y plataforma. Esta distinción permite entender que las posibilidades de intercambio, los precios observados y las reglas de cada operación dependen del entorno en el que se realiza.
 
-Después, el capítulo introduce los fundamentos del aprendizaje por refuerzo en el caso de un único agente. Se presentan la interacción entre agente y entorno, los procesos de decisión de Markov, las políticas, las recompensas y el retorno acumulado. A continuación, estos conceptos se amplían al aprendizaje por refuerzo multiagente, donde varios agentes actúan sobre un entorno compartido. Se revisan las formas de cooperación, las recompensas individuales y colectivas, y los enfoques centralizados y descentralizados.
+Después, el capítulo introduce el aprendizaje supervisado como método para obtener estimaciones a partir de datos históricos. A continuación, presenta los fundamentos del aprendizaje por refuerzo en el caso de un único agente, incluyendo la interacción entre agente y entorno, los procesos de decisión de Markov, las políticas, las recompensas y el retorno acumulado. Estos conceptos se amplían después al aprendizaje por refuerzo multiagente, donde varios agentes actúan sobre un entorno compartido. Se revisan las formas de cooperación, las recompensas individuales y colectivas, y los enfoques centralizados y descentralizados.
 
 Por último, se exponen los principios generales de la toma de decisiones en carteras y se revisan aplicaciones relacionadas de aprendizaje por refuerzo y aprendizaje por refuerzo multiagente. Esta revisión permite identificar las aportaciones, limitaciones y retos que fundamentan el planteamiento desarrollado en los capítulos posteriores.
 
@@ -12,22 +12,26 @@ Los bienes virtuales pueden tener utilidad dentro de un videojuego y, cuando las
 
 Por ejemplo, un atuendo para un avatar o una apariencia para un arma modifica su presentación visual sin cambiar las reglas de juego. Un objeto funcional puede dar acceso a una capacidad, una zona o un recurso dentro del juego, proporcionando ventaja al usuario. También existen objetos coleccionables cuyo interés depende de una serie limitada, su rareza o la demanda de la comunidad. Algunos bienes son consumibles, como cajas, sobres o mejoras, y desaparecen o se transforman al utilizarlos.
 
-Los mercados de activos digitales comparten los mismos conceptos que otros mercados de bienes diferenciados, como ofertas de venta, \textbf{\glosref{orden-compra}{órdenes de compra}}, precios, costes de transacción y volumen de intercambios. El funcionamiento de dichos mercados depende, sin embargo, de las reglas que establecen las plataformas. En este trabajo, una oferta es una publicación mediante la cual una persona pone a la venta un activo virtual identificado por sus características relevantes e indica su precio. Una plataforma es el servicio digital que administra inventarios, datos u operaciones sobre los activos. Un mercado es el conjunto de reglas y mecanismos con los que las personas usuarias publican, consultan y aceptan ofertas sobre activos virtuales.
-
-Para situar el problema, se distinguen tres configuraciones generales:
+En los mercados de activos digitales hay dos formas de anunciar un intercambio:
 \begin{itemize}
-    \item \textbf{\glosref{mercado-cerrado}{Mercados cerrados}:} los activos se usan dentro del videojuego, pero no se intercambian entre personas usuarias. Por tanto, no existe un precio de reventa observable ni una operación de compra y venta entre cuentas.
-    \item \textbf{\glosref{mercado-integrado}{Mercados integrados}:} el propio ecosistema administra el inventario asociado a la cuenta y define cómo se publican activos, ofertas de venta y órdenes de compra.
-    \item \textbf{Plataformas externas:} son servicios distintos del ecosistema que publican ofertas o facilitan operaciones sobre activos transferibles. Aplican sus propias reglas, precios y mecanismos de pago.
+    \item Una persona usuaria que posee un activo digital y desea venderlo publica una \textbf{\glosref{oferta}{oferta}}. En esa publicación ofrece el activo digital e indica el precio de venta para que otra persona pueda comprarlo.
+    \item Una persona usuaria que desea adquirir un activo digital publica una \textbf{\glosref{orden-compra}{orden de compra}}. En esa publicación ofrece una cantidad máxima de dinero por un activo digital concreto.
 \end{itemize}
 
-Los mercados cerrados delimitan lo que queda fuera del alcance de este trabajo, ya que sus objetos no permiten una operación entre usuarios. También quedan fuera los sistemas descentralizados, donde la gestión del activo y las reglas de intercambio no dependen de una plataforma. El análisis se centra, en cambio, en mercados integrados y plataformas externas que median en operaciones sobre activos transferibles.
+Cuando se completa el intercambio, la plataforma o el servicio de pago puede cobrar costes de transacción, como una comisión por la compra o la venta. Las reglas de cada plataforma determinan cómo se publican, consultan y aceptan estas publicaciones.
 
-\subsection{Configuración analizada}
+Los mercados de activos digitales pueden clasificarse en centralizados y descentralizados según quién administra la cuenta, los activos digitales asociados a ella y las reglas de intercambio:
+\begin{itemize}
+    \item \textbf{\glosref{mercado-centralizado}{Mercados centralizados}:} una empresa o plataforma administra las cuentas, los activos digitales o las reglas de intercambio. Dentro de esta categoría se encuentran:
+    \begin{itemize}
+        \item \textbf{\glosref{mercado-cerrado}{Mercados cerrados}:} los activos digitales se usan dentro del videojuego, pero no se intercambian entre personas usuarias. Por tanto, no constituyen un \textbf{\glosref{mercado-secundario}{mercado secundario}} (un mercado en el que las personas usuarias se revenden activos digitales entre sí) ni existe un precio de reventa observable.
+        \item \textbf{\glosref{mercado-integrado}{Mercados integrados}:} el mercado está incluido dentro de la plataforma que administra la cuenta y los activos digitales asociados a ella. Esa plataforma establece las reglas para publicar ofertas y órdenes de compra.
+        \item \textbf{\glosref{plataforma-externa}{Plataformas externas}:} proporcionan un espacio de intercambio distinto de la plataforma donde se gestionan originalmente la cuenta y los activos digitales. Aplican sus propias reglas, precios y mecanismos de pago.
+    \end{itemize}
+    \item \textbf{\glosref{mercado-descentralizado}{Mercados descentralizados}:} la gestión del activo y las reglas de intercambio no dependen de una plataforma central. Habitualmente emplean una infraestructura distribuida para registrar la propiedad y las operaciones.
+\end{itemize}
 
-La configuración analizada en este trabajo utiliza dos entornos de intercambio distintos. Un \textbf{mercado integrado} es el mercado que forma parte del ecosistema donde se gestiona el activo. Su función es conservar el inventario asociado a la cuenta y permitir que el usuario publique ese activo para venderlo. Una \textbf{plataforma externa} es un servicio independiente de ese ecosistema que publica sus propias ofertas y precios para activos transferibles. Tanto el mercado integrado como la plataforma externa son entornos de intercambio, pero no pertenecen a la misma plataforma ni comparten sus reglas.
-
-El análisis parte de que un mismo activo virtual puede aparecer en ambos entornos. El sistema comprueba primero que la oferta publicada en la plataforma externa y el activo disponible en el mercado integrado se refieren al mismo activo virtual. A continuación, se estima una posible operación: adquirir el activo al precio de la oferta externa y venderlo después en el mercado integrado. Para ello, se compara ambos precios y se incorpora la conversión de moneda, las comisiones, el volumen de intercambios y las restricciones temporales. El sistema no une ni ejecuta las operaciones de las dos plataformas, sino que evalúa si sus datos permiten plantear esa operación.
+Los mercados integrados están presentes en distintos ecosistemas de videojuego y distribución. La Tabla~\ref{tab:mercados-integrados} presenta algunos ejemplos.
 
 \begin{table}[htbp]
 \centering
@@ -36,8 +40,8 @@ El análisis parte de que un mismo activo virtual puede aparecer en ambos entorn
 \toprule
 \textbf{Mercado} & \textbf{Ecosistema} & \textbf{Activos habituales} \\
 \midrule
-Steam Community Market & Steam & Objetos cosméticos, cajas y pegatinas \\
-Roblox Marketplace & Roblox & Ropa, accesorios y animaciones \\
+Steam Community Market & Steam & Activos cosméticos, cajas y pegatinas \\
+Roblox Marketplace & Roblox & Prendas digitales, accesorios y animaciones \\
 Auction House & World of Warcraft & Equipo, materiales y moneda \\
 EVE Online Market & EVE Online & Naves, módulos y recursos \\
 \bottomrule
@@ -46,7 +50,11 @@ EVE Online Market & EVE Online & Naves, módulos y recursos \\
 \label{tab:mercados-integrados}
 \end{table}
 
-La Tabla~\ref{tab:mercados-integrados} reúne ejemplos de mercados integrados en distintos ecosistemas \cite{steamMarketFAQ,robloxMarketplace,blizzardAuctionHouse,eveMarketOrders}.
+Aunque sus activos digitales y reglas son diferentes, estos mercados gestionan los activos digitales asociados a las cuentas y el mecanismo de intercambio dentro del mismo ecosistema \cite{steamMarketFAQ,robloxMarketplace,blizzardAuctionHouse,eveMarketOrders}.
+
+Las plataformas externas ofrecen espacios de intercambio independientes para activos digitales transferibles. La Tabla~\ref{tab:plataformas-externas} presenta algunos ejemplos.
+
+\clearpage
 
 \begin{table}[htbp]
 \centering
@@ -55,9 +63,9 @@ La Tabla~\ref{tab:mercados-integrados} reúne ejemplos de mercados integrados en
 \toprule
 \textbf{Plataforma} & \textbf{Especialización} & \textbf{Modalidad} \\
 \midrule
-BUFF & Objetos virtuales transferibles & Compra y venta entre usuarios \\
-Skinport & Objetos cosméticos de videojuegos & Mercado con precios publicados \\
-BitSkins & Objetos virtuales transferibles & Mercado de terceros \\
+BUFF & Activos digitales transferibles & Compra y venta entre usuarios \\
+Skinport & Activos cosméticos de videojuegos & Mercado con precios publicados \\
+BitSkins & Activos digitales transferibles & Mercado de terceros \\
 DMarket & Activos digitales de videojuegos & Compra y venta entre usuarios \\
 \bottomrule
 \end{tabularx}
@@ -65,123 +73,185 @@ DMarket & Activos digitales de videojuegos & Compra y venta entre usuarios \\
 \label{tab:plataformas-externas}
 \end{table}
 
-La Tabla~\ref{tab:plataformas-externas} presenta ejemplos de plataformas externas \cite{buffMarketplace,skinportItemsApi,bitskinsMarketplace,dmarketMarketplace}. Las dos tablas no deben interpretarse como pares equivalentes: cada una reúne ejemplos independientes de uno de los dos entornos analizados.
-\section{Operativa y expresiones económicas}
+Las dos tablas no deben interpretarse como pares equivalentes, ya que cada una reúne ejemplos independientes de una configuración de intercambio \cite{buffMarketplace,skinportItemsApi,bitskinsMarketplace,dmarketMarketplace}.
+\section{Aprendizaje supervisado y no supervisado}
 
-Una \textbf{operación} consta de dos pasos: primero se adquiere un activo virtual concreto en una \textbf{plataforma externa} y después se evalúa su posible venta en el \textbf{mercado integrado} del ecosistema correspondiente. Por tanto, los dos entornos analizados no son dos plataformas externas: uno es la plataforma externa de compra y el otro es el mercado integrado de venta. No se comparan activos distintos, sino los precios publicados para el mismo activo virtual en ambos entornos. El precio de la oferta externa representa el coste de compra y el precio del mercado integrado representa una posible venta posterior.
+El aprendizaje supervisado es un método que aprende a partir de ejemplos en los que se conoce tanto la información de entrada como el resultado que debe estimarse. Cada ejemplo se representa mediante una entrada $x$ y una etiqueta $y$, que es el resultado conocido asociado a esa entrada. Durante el entrenamiento, el modelo ajusta sus parámetros para aprender la relación entre ambas variables.
 
-Los conceptos económicos empleados son los siguientes:
-\begin{description}
-    \item[Precio de compra ($P_c$)] Importe pagado para adquirir el activo virtual, convertido a EUR cuando la oferta original está en otra moneda.
-    \item[Precio de venta ($P_v$)] Importe bruto al que se publica el mismo activo virtual para venderlo, expresado en EUR para realizar los cálculos.
+Una vez entrenado, el modelo aplica la relación aprendida a nuevas entradas y genera una estimación:
 
-    \item[Oferta de venta] Publicación con la que una persona ofrece un activo virtual concreto a un precio determinado.
-    \item[Orden de compra] Precio máximo que una persona declara estar dispuesta a pagar por un activo virtual concreto. La orden de compra permanece activa hasta que se ejecuta, se cancela o expira según las reglas del mercado.
-    \item[Conversión de moneda] Transformación del precio de una divisa a EUR para comparar ofertas expresadas en monedas distintas. La conversión y el método de pago pueden generar comisiones o costes adicionales que se añaden al coste de compra.
-\end{description}
+\begin{equation}
+\hat{y}=f_{\theta}(x),
+\label{eq:prediccion-supervisada}
+\end{equation}
 
-La diferencia entre la mejor oferta de venta y la mejor orden de compra de un mismo activo se denomina \textbf{\glosref{spread}{\textit{spread}}}. Este valor informa sobre la distancia entre oferta y demanda, pero no equivale por sí solo a un beneficio.
+donde $x$ representa la información de entrada, $f_{\theta}$ el modelo con parámetros $\theta$ y $\hat{y}$ el resultado estimado. Cuando el resultado pertenece a una categoría, el problema se denomina clasificación. Cuando el resultado es un valor numérico, se denomina regresión. En un problema de clasificación binaria, el modelo también puede estimar la probabilidad de que una entrada pertenezca a la clase positiva:
 
-Asumiendo que $P_c$ es el precio de compra en EUR, $P_v$ es el precio bruto de venta en EUR, $f_v$ es la comisión de venta y $c$ reúne los costes adicionales de conversión o retirada, el precio neto, $P_{\mathrm{neto}}$, y el margen, $m$, se expresan como:
+\begin{equation}
+\hat{p}=\mathbb{P}(Y=1\mid x).
+\label{eq:probabilidad-supervisada}
+\end{equation}
 
-\[
-P_{\mathrm{neto}}=P_v(1-f_v),
-\qquad
-m=P_{\mathrm{neto}}-P_c-c.
-\]
+En la Ecuación~\ref{eq:probabilidad-supervisada}, $Y$ representa el resultado que se desea clasificar, $Y=1$ representa la clase positiva y $\hat{p}$ es la probabilidad estimada de pertenecer a esa clase. El entrenamiento consiste en seleccionar los parámetros que reducen el error entre las estimaciones y los resultados conocidos del conjunto de ejemplos. Si se dispone de $n$ ejemplos, este ajuste puede expresarse mediante una función de pérdida $\mathcal{L}$:
 
-El retorno porcentual permite comparar operaciones de distinto importe:
+\begin{equation}
+\theta^\star=\arg\min_{\theta}\frac{1}{n}\sum_{i=1}^{n}\mathcal{L}\bigl(y_i,f_{\theta}(x_i)\bigr).
+\label{eq:perdida-supervisada}
+\end{equation}
 
-\[
-\rho=\frac{m}{P_c}
-\]
+En la Ecuación~\ref{eq:perdida-supervisada}, $n$ es el número de ejemplos, $x_i$ es la entrada del ejemplo $i$, $y_i$ su resultado conocido y $\mathcal{L}$ mide el error entre ese resultado y la estimación del modelo. El valor $\theta^\star$ representa los parámetros que minimizan el error medio. La ecuación no fija un único modelo ni una única forma de medir el error. La función de pérdida se elige según la tarea. Por ejemplo, puede penalizar la diferencia entre un valor estimado y el valor observado en regresión, o penalizar una clasificación incorrecta cuando las etiquetas representan categorías.
 
-Por ejemplo, si una persona compra un activo virtual por 100~EUR ($P_c$), estima venderlo por 130~EUR ($P_v$), la comisión de venta es del 13~\% ($f_v=0{,}13$) y existen 2~EUR de costes adicionales ($c=2$), el ingreso neto de venta es 113{,}10~EUR. El margen de la operación es 11{,}10~EUR y el retorno porcentual es 11,1~\%. La operación sigue esta secuencia: primero se compra el activo virtual y, cuando puede venderse, se calcula el resultado de la venta.
+El aprendizaje no supervisado parte de datos de entrada sin una etiqueta o resultado conocido asociado. Su objetivo es descubrir estructuras presentes en los datos, como grupos de observaciones con características parecidas, relaciones entre variables o comportamientos poco habituales. Por ello, puede utilizarse para explorar un conjunto de datos, agrupar elementos similares o detectar observaciones anómalas.
 
-Una oportunidad de compra solo se considera interesante cuando el \textbf{margen $m$} es positivo. Un margen positivo indica que, tras restar al ingreso neto de venta $P_{\mathrm{neto}}$ el precio de compra $P_c$ y los costes adicionales $c$, la operación conservaría un resultado favorable. En este trabajo, una \textbf{cartera} reúne el saldo disponible y las posiciones abiertas. Una posición abierta es un activo virtual que ya se ha comprado y todavía no se ha vendido. Mientras la posición permanezca abierta, el importe empleado en la compra queda comprometido y no puede destinarse a otra operación.
-
-El \textbf{volumen de intercambios} es la cantidad de unidades de un activo virtual vendidas durante un periodo determinado. El sistema calcula este volumen para cada activo virtual y plataforma a partir de los intercambios observados. Un volumen bajo indica que se han producido pocas ventas durante el periodo analizado y puede dificultar la venta posterior del activo.
-
-Las comisiones de venta reducen el precio de venta $P_v$ mediante el factor $f_v$, de modo que el sistema obtiene el ingreso neto $P_{\mathrm{neto}}$. Los costes de conversión de moneda o retirada se agrupan en $c$ y se restan después junto con el precio de compra $P_c$ para calcular el margen $m$. Además, un \textit{trade hold} puede impedir temporalmente vender o transferir un activo virtual recién adquirido. Por tanto, una comparación de precios debe considerar el margen $m$, el volumen de intercambios y el tiempo durante el que el capital permanecerá bloqueado.
+La diferencia esencial entre ambos enfoques se encuentra en la información disponible durante el entrenamiento. El aprendizaje supervisado aprende a relacionar una entrada con un resultado conocido, mientras que el aprendizaje no supervisado describe la estructura de los datos sin partir de un resultado objetivo. Ambos enfoques pueden utilizarse de forma complementaria, por ejemplo, cuando los grupos o patrones identificados mediante aprendizaje no supervisado se incorporan como información adicional a un modelo supervisado. Una estimación o una probabilidad no constituye por sí sola una decisión, ya que no incorpora automáticamente las restricciones ni las consecuencias posteriores de una acción.
 
 \section{Aprendizaje por refuerzo}
 
-El aprendizaje por refuerzo (\acroref{RL}{RL}, por sus siglas en inglés de Reinforcement Learning), estudia problemas en los que un agente interactúa con un entorno, toma acciones y recibe recompensas. En este contexto, un agente es un componente de decisión que observa una parte del entorno, elige una acción y ajusta su comportamiento a partir de las consecuencias obtenidas. A diferencia del aprendizaje supervisado, donde el modelo aprende a reproducir etiquetas históricas, en \acroref{RL}{RL} aprende una política de actuación \cite{sutton2018reinforcement}. Esta formulación es útil cuando una acción cambia las decisiones disponibles después. Por ejemplo, si el agente compra un activo virtual, disminuye el saldo de la cartera y se abre una posición. Mientras el \textit{trade hold} esté activo, no puede vender esa posición; por tanto, el estado de la cartera y las acciones posibles en los pasos siguientes son distintos de los que tenía antes de comprar.
+El aprendizaje por refuerzo (\acroref{RL}{RL}, por sus siglas en inglés de \emph{Reinforcement Learning}) estudia problemas de decisión secuencial en los que un agente aprende mediante su interacción con un entorno \cite{sutton2018reinforcement}. En cada instante $t$, el agente recibe la información disponible, denominada estado $s_t$, selecciona una acción $a_t$ y recibe una recompensa $r_{t+1}$. Como consecuencia de esa acción, el entorno pasa a un nuevo estado $s_{t+1}$. A diferencia del aprendizaje supervisado, donde un modelo aprende a reproducir etiquetas históricas, en RL el agente aprende qué acciones conviene seleccionar a lo largo de una secuencia de decisiones.
 
-La política es la regla que transforma observaciones en acciones. En este trabajo, el agente puede observar el precio de compra $P_c$, el precio de venta $P_v$, la comisión de venta $f_v$ y el saldo disponible de la cartera. Con esta información, decide comprar, vender o mantener. Mantener significa no enviar una orden de compra ni de venta en ese momento. Las observaciones combinan información de mercado y cartera para que la decisión no dependa de un único indicador.
+Esta interacción puede representarse mediante un proceso de decisión de Markov, o \acroref{MDP}{MDP}, definido por el estado, las acciones, la transición, la recompensa y el factor de descuento:
 
-
-
-
-\subsection{Procesos de decisión de Markov}
-
-Un proceso de decisión de Markov, o \acroref{MDP}{MDP}, se define mediante el estado, las acciones, la transición, la recompensa y el factor de descuento:
-
-\[
+\begin{equation}
 \mathcal{M}=(\mathcal{S},\mathcal{A},P,R,\gamma),
-\qquad 0 \leq \gamma < 1.
-\]
+\qquad 0\leq\gamma<1.
+\label{eq:mdp-general}
+\end{equation}
 
-En esta expresión, $P(s'\mid s,a)$ representa la probabilidad de pasar del estado $s$ al estado $s'$ después de ejecutar la acción $a$, mientras que $R(s,a,s')$ representa la recompensa asociada a esa transición. El retorno acumulado desde el instante $t$ se calcula por separado como:
+En la Ecuación~\ref{eq:mdp-general}, $\mathcal{M}$ representa el proceso de decisión de Markov, $\mathcal{S}$ es el conjunto de estados posibles y $\mathcal{A}$ el conjunto de acciones disponibles. La función de transición $P(s'\mid s,a)$ expresa la probabilidad de pasar del estado $s$ al estado $s'$ después de ejecutar la acción $a$. La función $R(s,a,s')$ asigna la recompensa obtenida en esa transición. El factor $\gamma$ determina cuánto peso reciben las recompensas futuras frente a las inmediatas.
 
-\[
-G_t=\sum_{k=0}^{\infty}\gamma^k r_{t+k+1}.
-\]
+El comportamiento que aprende el agente se denomina política y se representa por $\pi$. En una política estocástica, $\pi(a\mid s)$ expresa la probabilidad de seleccionar la acción $a$ cuando el agente se encuentra en el estado $s$:
 
-El estado resume la información disponible y la acción representa lo que el agente decide. La hipótesis de Markov no implica que el sistema conozca todo el futuro, sino que el estado utilizado contiene la información necesaria para tomar la mejor decisión disponible en ese momento. Por ello, la elección de las variables que componen el estado resulta determinante para el comportamiento del agente.
+\begin{equation}
+\pi(a\mid s)=\mathbb{P}(A_t=a\mid S_t=s).
+\label{eq:politica-rl}
+\end{equation}
 
-\Needspace{10\baselineskip}
-\subsection{Política, retorno y exploración}
+La Figura~\ref{fig:ciclo-rl} representa el ciclo básico de interacción. El estado del entorno se entrega al agente, el agente selecciona una acción y el entorno actualiza el estado y proporciona la recompensa correspondiente.
 
-El retorno mide la recompensa acumulada a lo largo del episodio. En problemas de decisión secuencial, maximizar una recompensa inmediata puede ser una mala estrategia si esa acción reduce las posibilidades de obtener una recompensa mayor en pasos posteriores.
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}[
+    node distance=1.7cm,
+    bloque/.style={
+      draw=tfmAccent,
+      thick,
+      rounded corners=3pt,
+      fill=tfmSoft,
+      minimum width=4.3cm,
+      minimum height=1.15cm,
+      align=center
+    },
+    flujo/.style={-{Latex[length=2.4mm]}, thick, draw=tfmAccent},
+    retorno/.style={-{Latex[length=2.4mm]}, thick, draw=tfmMuted}
+  ]
+    \node[bloque] (estado) {Estado del entorno\\{\small $s_t$}};
+    \node[bloque, below=of estado] (agente) {Agente\\{\small Política $\pi$}};
+    \node[bloque, below=2.1cm of agente] (entorno) {Entorno\\{\small $P(s_{t+1}\mid s_t,a_t)$ y $R(s_t,a_t,s_{t+1})$}};
 
-La exploración consiste en probar acciones cuya utilidad todavía es incierta para obtener información sobre sus consecuencias. La explotación consiste en elegir las acciones que, según lo aprendido hasta ese momento, ofrecen una recompensa esperada mayor. El aprendizaje por refuerzo debe equilibrar ambas: explorar en exceso puede acumular decisiones poco útiles, mientras que explotar demasiado pronto puede impedir descubrir alternativas mejores.
+    \draw[flujo] (estado) -- node[right, font=\small] {estado $s_t$} (agente);
+    \draw[flujo] (agente.south west) -- node[left, font=\small] {acción $a_t$} (entorno.north west);
+    \draw[retorno] (entorno.north east) -- node[right, font=\small] {recompensa $r_{t+1}$} (agente.south east);
+    \draw[retorno] (entorno.west) .. controls +(-4.0,0) and +(-4.0,0) .. node[left, font=\small, align=center] {nuevo estado\\$s_{t+1}$} (estado.west);
+  \end{tikzpicture}
+  \caption{Ciclo de interacción entre un agente y un entorno en aprendizaje por refuerzo.}
+  \label{fig:ciclo-rl}
+\end{figure}
+
+El retorno mide la recompensa acumulada durante un episodio. Si $T$ representa el último instante del episodio, el retorno desde el instante $t$ se define como:
+
+\begin{equation}
+G_t^{\pi}=\sum_{k=0}^{T-t-1}\gamma^k r_{t+k+1}.
+\label{eq:retorno-rl}
+\end{equation}
+
+En la Ecuación~\ref{eq:retorno-rl}, $r_{t+k+1}$ es la recompensa recibida después de la acción tomada en cada instante futuro y $\gamma^k$ es el descuento aplicado a esa recompensa. Por tanto, una recompensa inmediata tiene más peso que una recompensa situada varios instantes después. El objetivo de RL es aprender la política que maximiza el retorno esperado desde el estado inicial:
+
+\begin{equation}
+\pi^\star=\arg\max_{\pi}\mathbb{E}_{\pi}\left[G_0^{\pi}\right].
+\label{eq:objetivo-rl-general}
+\end{equation}
+
+En la Ecuación~\ref{eq:objetivo-rl-general}, $\pi^\star$ es la política buscada y $\mathbb{E}_{\pi}$ representa el valor medio del retorno al seguir la política $\pi$. La ecuación no busca únicamente la acción con una recompensa inmediata mayor. Busca una política que tenga en cuenta las consecuencias de las decisiones posteriores. La propiedad de Markov no implica que el agente conozca el futuro, sino que el estado reúne la información necesaria para decidir en el instante actual.
+
+Durante el aprendizaje, el agente debe equilibrar exploración y explotación. La exploración consiste en probar acciones cuya utilidad todavía es incierta para conocer sus consecuencias. La explotación consiste en seleccionar las acciones que, según lo aprendido hasta ese momento, tienen un retorno esperado mayor. Explorar en exceso puede acumular decisiones poco útiles, mientras que explotar demasiado pronto puede impedir descubrir alternativas mejores.
 
 \section{Aprendizaje por refuerzo multiagente}
 
-Un sistema multiagente reúne dos o más agentes que actúan sobre un mismo entorno. Estos agentes pueden colaborar, competir o tomar decisiones independientes. En un sistema cooperativo comparten un objetivo global, aunque cada agebte disponga de información y responsabilidades distintas \cite{wooldridge2009multiagent,busoniu2008comprehensive}. El aprendizaje por refuerzo multiagente, o \acroref{MARL}{MARL}, aplica la formulación de \acroref{RL}{RL} a estos sistemas. Esta ampliación introduce dificultades nuevas: cada agente aprende mientras los demás también cambian, por lo que el entorno puede volverse no estacionario desde el punto de vista individual. Lowe et al. señalan este problema y proponen entrenar agentes con información adicional durante el entrenamiento para mejorar la coordinación mediante \acroref{MADDPG}{MADDPG} \cite{lowe2017maddpg}.
+Un sistema multiagente reúne dos o más agentes que actúan sobre un mismo entorno. Estos agentes pueden colaborar, competir o tomar decisiones independientes. En un sistema cooperativo comparten un objetivo global, aunque cada agente disponga de información y responsabilidades distintas \cite{wooldridge2009multiagent,busoniu2008comprehensive}. El aprendizaje por refuerzo multiagente, o \acroref{MARL}{MARL}, amplía la formulación de \acroref{RL}{RL} para representar estos sistemas.
 
-Utilizamos un sistema cooperativo de tres roles. Scout observa oportunidades de mercado y decide si merecen atención. Trader propone mantener, comprar o vender. Portfolio observa el estado de la cartera y aprueba o rechaza operaciones según saldo, exposición y restricciones. La coordinación evita que una decisión atractiva para un rol exceda los límites de riesgo de la cartera.
+Un modelo genérico de MARL puede expresarse como una extensión del proceso de decisión de Markov:
 
-Para $N$ agentes, cada paso combina observaciones y acciones locales. La recompensa cooperativa se calcula a partir del resultado de cartera y se asigna por igual a todos los agentes:
+\begin{equation}
+\mathcal{M}=\left(\mathcal{N},\mathcal{S},\{\mathcal{A}^{i}\}_{i\in\mathcal{N}},P,\{R^{i}\}_{i\in\mathcal{N}},\gamma\right).
+\label{eq:marl-general}
+\end{equation}
 
-\[
-\mathbf{o}_t=(o_t^1,\ldots,o_t^N),
+En la Ecuación~\ref{eq:marl-general}, $\mathcal{N}$ es el conjunto de agentes, $\mathcal{S}$ es el conjunto de estados globales y $\mathcal{A}^{i}$ es el conjunto de acciones disponibles para el agente $i$. La función $P$ describe la transición del entorno después de la acción conjunta de los agentes. Cada función $R^{i}$ calcula la recompensa que recibe el agente $i$ y $\gamma$ es el factor de descuento. En cada instante, los agentes generan una acción conjunta:
+
+\begin{equation}
+\mathbf{a}_{t}=\left(a_t^1,\ldots,a_t^N\right),
 \qquad
-\mathbf{a}_t=(a_t^1,\ldots,a_t^N),
-\qquad
-r_t^i=R_{\mathrm{cartera},t}
-\quad \forall i\in\{1,\ldots,N\}.
-\]
+r_{t+1}^{i}=R^{i}\left(s_t,\mathbf{a}_{t},s_{t+1}\right).
+\label{eq:acciones-recompensas-marl}
+\end{equation}
 
-En esta expresión, $N$ es el número de agentes, que en el prototipo es tres. El vector $\mathbf{o}_t$ reúne las observaciones de Scout, Trader y Portfolio en el instante $t$, mientras que $\mathbf{a}_t$ reúne las acciones que han propuesto. El valor $r_t^i$ es la recompensa que recibe el agente $i$. Como todos los valores $r_t^i$ se igualan a $R_{\mathrm{cartera},t}$, los tres agentes reciben el mismo resultado en cada paso.
+En la Ecuación~\ref{eq:acciones-recompensas-marl}, $N$ es el número de agentes, $\mathbf{a}_{t}$ reúne las acciones tomadas en el instante $t$ y $r_{t+1}^{i}$ es la recompensa que recibe el agente $i$ tras la transición al estado $s_{t+1}$. Esta formulación permite distinguir cómo se reparten los incentivos entre los agentes.
 
-\Needspace{13\baselineskip}
-$R_{\mathrm{cartera},t}$ considera el beneficio realizado, el retorno de una operación ejecutada y penalizaciones por inactividad, límites de riesgo incumplidos, \textit{drawdown}, capital bloqueado y volatilidad. El \textit{drawdown}, o caída máxima, mide cuánto ha bajado la cartera desde su máximo anterior. Si $V_t$ es el valor de la cartera y $M_t=\max_{\tau\leq t}V_\tau$ es el mayor valor alcanzado hasta ese momento, se calcula como:
+En un problema plenamente cooperativo todos los agentes reciben la misma recompensa:
 
-\[
-DD_t = \frac{M_t - V_t}{M_t}.
-\]
+\begin{equation}
+r_{t}^{1}=r_{t}^{2}=\cdots=r_{t}^{N}=r_t.
+\label{eq:recompensa-compartida}
+\end{equation}
 
-Por ejemplo, si una cartera alcanza 1.000 EUR y después baja a 900 EUR, su \textit{drawdown} es del 10\%. Esta elección mantiene a los agentes alineados con el mismo objetivo de cartera. Cada política recibe solo su observación $o_t^i$, mientras que el estado global se conserva para diagnóstico y para ampliar el entrenamiento con un crítico centralizado cuando sea necesario.
+En la Ecuación~\ref{eq:recompensa-compartida}, $r_t$ representa la recompensa común. Esta estructura alinea explícitamente a todos los agentes con el mismo resultado. En un problema cooperativo, en cambio, cada agente puede recibir una recompensa individual distinta. Estas recompensas no tienen por qué coincidir, pero deben diseñarse para que los comportamientos que incentivan contribuyan al objetivo compartido. La distinción es relevante porque una recompensa común favorece la cooperación directa, mientras que las recompensas individuales permiten reflejar responsabilidades diferentes y pueden dificultar la coordinación si no están bien alineadas.
 
-\subsection{Entrenamiento centralizado y ejecución descentralizada}
+MARL introduce dificultades que no aparecen con un único agente. Cada agente aprende y modifica su política mientras los demás también modifican las suyas. Por ello, desde el punto de vista de un agente, las consecuencias de una acción pueden cambiar aunque el entorno físico permanezca igual. Este fenómeno se denomina no estacionariedad. Además, un agente puede decidir a partir de una observación local que no contiene toda la información del estado global, lo que dificulta atribuir a cada decisión la parte del resultado que le corresponde.
 
-El paradigma de entrenamiento centralizado y ejecución descentralizada, conocido como \acroref{CTDE}{CTDE}, permite entrenar con más información de la que cada agente tendrá en ejecución. La idea es que durante el entrenamiento puede existir un crítico o una función de valor con acceso al estado global, mientras que en ejecución cada actor decide con su observación local. Este enfoque aparece en trabajos multiagente como \acroref{MADDPG}{MADDPG} \cite{lowe2017maddpg} y en versiones cooperativas basadas en \acroref{PPO}{PPO} como \acroref{MAPPO}{MAPPO} \cite{yu2022mappo}.
+El paradigma de entrenamiento centralizado y ejecución descentralizada, conocido como \acroref{CTDE}{CTDE}, aborda parte de estas dificultades. Durante el entrenamiento, un crítico o una función de valor puede utilizar el estado global y las acciones de todos los agentes para evaluar la coordinación. Durante la ejecución, cada agente selecciona su acción a partir de su propia observación. Este enfoque permite entrenar con información adicional sin exigir que esa información esté disponible cuando el sistema toma decisiones \cite{lowe2017maddpg,yu2022mappo}.
 
-La elección de \acroref{PPO}{PPO} como base práctica se debe a su estabilidad y a su disponibilidad en herramientas maduras. Schulman et al. introducen \acroref{PPO}{PPO} como un método de gradiente de política que limita actualizaciones demasiado agresivas \cite{schulman2017ppo}. Para una acción observada, el cociente entre la política nueva y la anterior es:
+La Figura~\ref{fig:marl-ctde} muestra una interacción general de este tipo. Las líneas continuas representan el intercambio necesario para ejecutar la política de cada agente. Las líneas discontinuas representan la información adicional que utiliza el crítico únicamente durante el entrenamiento.
 
-\[
-r_t(\theta)=\frac{\pi_\theta(a_t\mid o_t)}{\pi_{\theta_{\mathrm{old}}}(a_t\mid o_t)},
-\qquad
-L^{\mathrm{CLIP}}(\theta)=
-\mathbb{E}_t\!\left[
-\min\!\left(r_t(\theta)\widehat{A}_t,
-\operatorname{clip}(r_t(\theta),1-\varepsilon,1+\varepsilon)\widehat{A}_t\right)
-\right].
-\]
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}[
+    node distance=1.75cm and 1.35cm,
+    bloque/.style={
+      draw=tfmAccent,
+      thick,
+      rounded corners=3pt,
+      fill=tfmSoft,
+      minimum width=3cm,
+      minimum height=1.05cm,
+      align=center
+    },
+    critico/.style={
+      bloque,
+      draw=tfmMuted,
+      fill=white,
+      minimum width=4.8cm
+    },
+    flujo/.style={-{Latex[length=2.1mm]}, thick, draw=tfmAccent},
+    entrenamiento/.style={-{Latex[length=2.1mm]}, dashed, thick, draw=tfmMuted}
+  ]
+    \node[bloque, minimum width=5.2cm] (estado) {Estado global y observaciones\\{\small $s_t$}};
+    \node[bloque, below left=of estado] (agente1) {Agente 1\\{\small Observación local $o_t^1$}};
+    \node[bloque, below=of estado] (agente2) {Agente $i$\\{\small Observación local $o_t^i$}};
+    \node[bloque, below right=of estado] (agenteN) {Agente $N$\\{\small Observación local $o_t^N$}};
+    \node[bloque, below=2.25cm of agente2, minimum width=5.2cm, minimum height=1.45cm] (entorno) {Entorno compartido\\{\small Acción conjunta $\mathbf{a}_t=(a_t^1,\ldots,a_t^N)$}\\{\small Recompensas $(r_{t+1}^1,\ldots,r_{t+1}^N)$}};
+    \node[critico, below=1.65cm of entorno] (critico) {Crítico centralizado\\{\small Disponible solo durante el entrenamiento}};
 
-El recorte evita que una actualización cambie en exceso la probabilidad de una acción. Posteriormente, Yu et al. muestran que \acroref{PPO}{PPO} puede funcionar como baseline fuerte en juegos cooperativos multiagente cuando se implementa con cuidado \cite{yu2022mappo}. En el proyecto, esta línea se materializa en un entorno PettingZoo y un wrapper para \acroref{RLlib}{RLlib}, que permiten integrar entrenamientos con \acroref{PPO}{PPO} y \acroref{MAPPO}{MAPPO}.
+    \draw[flujo] (estado) -- node[left, font=\scriptsize] {$o_t^1$} (agente1);
+    \draw[flujo] (estado) -- node[right, font=\scriptsize] {$o_t^i$} (agente2);
+    \draw[flujo] (estado) -- node[right, font=\scriptsize] {$o_t^N$} (agenteN);
+    \draw[flujo] (agente1.south) -- node[left, font=\scriptsize] {$a_t^1$} (entorno.north west);
+    \draw[flujo] (agente2.south west) -- node[left, font=\scriptsize] {$a_t^i$} (entorno.north);
+    \draw[flujo] (agenteN.south) -- node[right, font=\scriptsize] {$a_t^N$} (entorno.north east);
+    \draw[entrenamiento] (entorno) -- node[right, font=\scriptsize, align=left] {estado global y\\acción conjunta} (critico);
+  \end{tikzpicture}
+  \caption{Interacción general en MARL con entrenamiento centralizado y ejecución descentralizada.}
+  \label{fig:marl-ctde}
+\end{figure}
 
 
 \section{Toma de decisiones en carteras}
@@ -193,10 +263,6 @@ La teoría moderna de carteras introdujo la idea de estudiar rentabilidad y ries
 \subsection{Rentabilidad y riesgo}
 
 En este \acroref{TFM}{TFM}, la rentabilidad se mide mediante el beneficio neto $m$, el retorno porcentual, el saldo final y la evolución del valor de cartera. $P_{\mathrm{neto}}$ representa solo el ingreso de venta después de aplicar su comisión. El riesgo se observa mediante \textit{drawdown}, capital bloqueado, exposición por activo o plataforma y operaciones rechazadas por restricciones. El capital bloqueado es el saldo comprometido en activos que aún no pueden venderse o transferirse. La exposición expresa qué parte de la cartera depende de un activo, categoría o plataforma. Estas métricas conectan la calidad de las señales con su efecto económico en la simulación.
-
-El aprendizaje supervisado estima una probabilidad, pero no compra ni vende por sí mismo. Por ejemplo, un activo virtual puede costar 100~EUR en \acroref{BUFF}{BUFF} y el modelo puede asignarle una probabilidad de 0,85 de superar un retorno neto del 10~\% tras ocho días. Ese 0,85 no significa que se vaya a obtener un 85~\% de beneficio ni garantiza que la operación sea rentable; indica que, según los datos históricos, es un caso que merece ser revisado.
-
-Antes de considerarla válida en la simulación, el sistema comprueba el precio actual, la conversión de moneda y las comisiones para verificar que sigue existiendo margen. También revisa el volumen de intercambios, el saldo disponible, el capital ya bloqueado y la exposición de la cartera. Si alguna de estas condiciones no se cumple, la operación se rechaza o se pospone. Así, el modelo predice y el simulador decide si esa predicción puede convertirse en una operación viable.
 
 \section{Aplicaciones relacionadas}
 
