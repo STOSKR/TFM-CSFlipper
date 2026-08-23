@@ -42,14 +42,14 @@ Estos atributos permiten construir un identificador para cada artículo y evitan
 
 \section{Mercados secundarios y fuentes de información}
 
-El caso de estudio combina dos mercados secundarios administrados por plataformas distintas con una fuente auxiliar de descubrimiento. Las tres fuentes tienen funciones diferenciadas:
+El caso de estudio combina dos mercados secundarios administrados por plataformas distintas con una fuente auxiliar de descubrimiento. Cada fuente aporta una parte diferente de la información necesaria para estudiar una posible operación:
 \begin{itemize}
-    \item \textbf{Steam Community Market} es el mercado secundario integrado en la plataforma Steam. Publica ofertas de venta y órdenes de compra de artículos asociados a las cuentas de las personas usuarias. En este trabajo se utiliza como referencia para observar precios de venta y actividad de intercambio \cite{steamMarketFAQ}.
-    \item \textbf{BUFF} es una plataforma externa que opera un mercado secundario de artículos transferibles. Se utiliza para observar precios de compra y actividad de intercambio, conservando los precios en CNY y su conversión a EUR para permitir la comparación \cite{buffMarketplace}.
-    \item \textbf{SteamDT} se emplea como fuente de descubrimiento inicial de artículos que requieren una captura detallada. No interviene en la operación simulada ni establece sus condiciones económicas.
+    \item \textbf{Steam Community Market} es el mercado secundario integrado en la plataforma Steam. Publica ofertas de venta y órdenes de compra de artículos asociados a las cuentas de las personas usuarias. En la ruta analizada, el precio de una oferta de venta observada en este mercado se utiliza como referencia del precio de venta simulado. También aporta información histórica y de actividad de intercambio \cite{steamMarketFAQ}.
+    \item \textbf{BUFF} es una plataforma externa que opera un mercado secundario de artículos transferibles. En la ruta analizada, el precio de una oferta de venta observada en BUFF se utiliza como referencia del precio de compra simulado. Los precios se conservan en CNY y con su conversión a EUR para permitir la comparación, junto con la actividad de intercambio y las órdenes de compra disponibles \cite{buffMarketplace}.
+    \item \textbf{SteamDT} se utiliza para localizar artículos candidatos que posteriormente se verifican en BUFF y Steam Community Market. No proporciona el precio de compra ni el precio de venta de la operación simulada, ni establece sus condiciones económicas.
 \end{itemize}
 
-Cada mercado secundario puede mostrar información diferente. Las plataformas que los administran tampoco tienen por qué aplicar las mismas reglas de intercambio. Por ello, una comparación solo es válida cuando identifica un mismo artículo, conserva el instante de observación y tiene en cuenta qué precio representa cada mercado.
+La ruta estudiada compara una oferta de venta en BUFF con una oferta de venta en Steam Community Market para el mismo artículo. Las órdenes de compra describen una intención distinta, ya que una persona ofrece dinero hasta un importe máximo para adquirir un artículo, por lo que se emplean como información complementaria y no como el precio principal de esta ruta. El Capítulo 5 detalla la captura y normalización de los datos de las tres fuentes.
 
 \section{Reglas económicas y fricciones}
 
