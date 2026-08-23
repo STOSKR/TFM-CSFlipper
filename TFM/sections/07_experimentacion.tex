@@ -403,7 +403,7 @@ La discusión relaciona los resultados con el alcance del trabajo. Se identifica
 
 \subsection{Amenazas a la validez}
 
-La principal amenaza interna es el desbalance de etiquetas: la prueba de marzo contiene 85 casos rentables de 95 y los bloques posteriores llegan a tener una sola clase. La segunda es el solapamiento de artículos entre entrenamiento y prueba. La división por fecha protege frente al uso de futuro, pero no responde a la pregunta más exigente de generalizar a activos virtuales no presentes en el entrenamiento. La tercera amenaza es operativa: el precio BUFF se usa como entrada puntual y la salida Steam se estima con histórico y comisiones, por lo que la sincronización exacta de ambos mercados requiere más capturas.
+La principal amenaza interna es el desbalance de etiquetas: la prueba de marzo contiene 85 casos rentables de 95 y los bloques posteriores llegan a tener una sola clase. La segunda es el solapamiento de artículos entre entrenamiento y prueba. La división por fecha protege frente al uso de futuro, pero no responde a la pregunta más exigente de generalizar a activos virtuales no presentes en el entrenamiento. La tercera amenaza es operativa: el precio BUFF se usa como entrada puntual y la salida Steam se estima con histórico y comisiones, por lo que la sincronización exacta de ambos mercados requiere más capturas. Además, los experimentos simulan operaciones con datos observados. No envían órdenes reales, no transfieren artículos entre plataformas ni utilizan capital real, por lo que no permiten garantizar la ejecución futura de una operación.
 
 También hay límites de medición. El OCR está validado a nivel funcional, pero aún no dispone de un corpus de imágenes etiquetado. El entorno MARL ya incluye compra, bloqueo y venta simulada, aunque todavía no cuenta con una política entrenada durante suficientes episodios. Estas limitaciones no invalidan la arquitectura, pero acotan las conclusiones a viabilidad técnica y experimental preliminar.
 
@@ -413,7 +413,7 @@ El trabajo realizado muestra que el sistema ya puede integrar fuentes, construir
 
 \subsection{Limitaciones observadas}
 
-La principal limitación actual es la disponibilidad de histórico alineado entre Steam y \acroref{BUFF}{BUFF}. Sin suficientes ejemplos negativos en validación y prueba, cualquier métrica de trading puede ser engañosa. También existe riesgo de sobreajuste en variables categóricas de alta cardinalidad y en señales de precisión alta con pocos casos. Por último, el entorno \acroref{MARL}{MARL} necesita una validación experimental más amplia antes de poder concluir si la arquitectura multiagente mejora a una estrategia simple.
+La principal limitación actual es la disponibilidad de histórico alineado entre Steam y \acroref{BUFF}{BUFF}. Sin suficientes ejemplos negativos en validación y prueba, cualquier métrica de trading puede ser engañosa. También existe riesgo de sobreajuste en variables categóricas de alta cardinalidad y en señales de precisión alta con pocos casos. Las reglas de las plataformas, sus comisiones y la actividad de intercambio también pueden cambiar con el tiempo, por lo que los resultados deben interpretarse según las condiciones observadas en cada captura. Por último, el entorno \acroref{MARL}{MARL} necesita una validación experimental más amplia antes de poder concluir si la arquitectura multiagente mejora a una estrategia simple.
 
 \subsection{Lectura de los resultados}
 
