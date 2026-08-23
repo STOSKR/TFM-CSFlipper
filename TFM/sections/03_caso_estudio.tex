@@ -1,12 +1,12 @@
 \chapter{Contextualización del caso de estudio: activos digitales en Counter-Strike 2}
 
-\noindent Este capítulo concreta el marco general presentado en el Capítulo 2 mediante el caso de estudio de \textit{Counter-Strike 2}, un videojuego multijugador en el que las personas usuarias pueden obtener y utilizar artículos digitales asociados a sus cuentas. Los artículos analizados se intercambian en Steam Community Market, un mercado secundario integrado en la plataforma Steam, y en BUFF, una plataforma externa que opera un mercado secundario. Este caso permite estudiar decisiones de compraventa cuando el activo, la plataforma y las reglas de intercambio condicionan conjuntamente el resultado de una operación.
+\noindent Este capítulo concreta el marco general presentado en el Capítulo 2 mediante el caso de estudio de \textit{Counter-Strike 2}, un videojuego multijugador en el que las personas usuarias pueden obtener y utilizar artículos digitales asociados a sus cuentas. Los artículos analizados se intercambian en Steam Community Market, un mercado secundario integrado en la plataforma Steam, y en BUFF, una plataforma externa que opera un mercado secundario. Este caso permite estudiar decisiones de compraventa cuando el artículo, el mercado secundario y las reglas de intercambio condicionan conjuntamente el resultado de una operación.
 
 El interés del caso se encuentra en la fragmentación de precios entre mercados secundarios. Un mismo artículo puede publicarse a precios distintos en dos mercados, lo que permite plantear una compra en el mercado más barato y una venta posterior en el mercado con mayor precio. En un mercado bursátil líquido, las diferencias de precio de una misma acción suelen corregirse rápidamente. La existencia de plataformas separadas que administran estos mercados y aplican reglas de intercambio propias hace que \textit{Counter-Strike 2} sea un caso de estudio adecuado para analizar si una diferencia de precios puede convertirse en un beneficio neto.
 
 El caso de estudio se centra en artículos con precios registrados en los mercados secundarios de BUFF y Steam Community Market, cuyas publicaciones pueden verificarse como el mismo artículo. El capítulo describe los artículos, los mercados y las condiciones de intercambio que delimitan esta ruta de análisis. No presenta todavía la arquitectura, las expresiones económicas ni el simulador, que se desarrollan en los capítulos posteriores.
 
-\section{Justificación y alcance del caso de estudio}
+\section{Justificación y alcance}
 
 El motivo de seleccionar \textit{Counter-Strike 2} es analizar decisiones de compraventa de activos digitales que persiguen generar un beneficio neto a partir de diferencias de precio entre mercados secundarios. Una vez comprobado que dos publicaciones se refieren exactamente al mismo artículo, una diferencia entre sus precios permite plantear una compra en el mercado más barato y una venta posterior en el mercado con mayor precio. El objetivo no es asumir que toda diferencia de precios es rentable, sino determinar cuáles merecen evaluarse como posibles operaciones.
 
@@ -14,19 +14,31 @@ Esta situación no es exclusiva de los activos digitales, pero presenta caracter
 
 El análisis se limita a los artículos con precios registrados en BUFF y Steam Community Market cuyas publicaciones pueden verificarse como el mismo artículo. Esta delimitación permite estudiar una ruta concreta y trazable sin pretender representar todos los artículos de \textit{Counter-Strike 2}, todas las plataformas ni todos los mecanismos de intercambio del videojuego.
 
-\section{Activos digitales de Counter-Strike 2}
+\section{Artículos y atributos de Counter-Strike 2}
 
-Los artículos analizados pertenecen principalmente a las categorías cosméticas y coleccionables descritas en el Capítulo 2. Los artículos cosméticos no modifican las reglas de una partida, pero pueden tener precios diferentes según sus características y el volumen de intercambios existente. En \textit{Counter-Strike 2}, una \textit{skin} modifica la apariencia visual de un arma sin cambiar sus características durante la partida. Los cuchillos y los guantes también son artículos cosméticos. Las pegatinas pueden aplicarse a determinadas armas, mientras que las cajas son contenedores que pueden intercambiarse o abrirse para obtener otros artículos.
+Los artículos analizados pertenecen a las categorías cosméticas y coleccionables descritas en el Capítulo 2. Los artículos cosméticos no modifican las reglas de una partida, pero pueden tener precios diferentes según sus características y el volumen de intercambios existente. Los principales tipos de artículos del caso de estudio son:
+\begin{itemize}
+    \item \textbf{\textit{Skins}:} artículos que cambian el diseño visual de un arma. Se pueden equipar durante una partida, pero no alteran ninguna regla del juego.
+    \item \textbf{Cuchillos:} artículos que sustituyen el aspecto del cuchillo básico equipado por el personaje. Su categoría y acabado hacen que sean especialmente relevantes como artículos coleccionables.
+    \item \textbf{Guantes:} artículos que modifican el aspecto de las manos del personaje. Pueden combinarse visualmente con un cuchillo o con una \textit{skin}.
+    \item \textbf{Pegatinas:} elementos que se aplican a armas compatibles para personalizarlas. Su diseño y la colección de la que proceden pueden influir en su valor de mercado.
+    \item \textbf{Cajas:} contenedores que pueden intercambiarse o abrirse. Al abrir una caja se consume y el usuario obtiene un artículo de la colección asociada.
+\end{itemize}
 
-El interés de estos artículos no depende solo de su utilidad dentro del videojuego. También intervienen la disponibilidad, la rareza, la colección a la que pertenecen y la demanda existente en los mercados. Por este motivo, dos artículos del mismo tipo pueden mantener precios muy diferentes. El caso de estudio se centra en los artículos que pueden identificarse y compararse entre los mercados seleccionados.
-
-\section{Identificación y atributos de los artículos}
+El interés de estos artículos no depende solo de su utilidad dentro del videojuego. También intervienen la disponibilidad, la rareza, la colección a la que pertenecen y la demanda existente en los mercados. Por este motivo, dos artículos del mismo tipo pueden mantener precios muy diferentes. El caso de estudio se centra en los artículos que pueden identificarse y compararse entre los mercados secundarios seleccionados.
 
 Para comparar publicaciones de dos mercados secundarios es necesario determinar si ambas se refieren exactamente al mismo artículo. El nombre base no siempre es suficiente. Por ejemplo, dos artículos denominados \enquote{AK-47 | Slate} pueden corresponder a condiciones de desgaste distintas y, por tanto, negociarse con precios distintos.
 
-La identificación del artículo combina el nombre con sus atributos de mercado. Entre ellos se encuentran la calidad o condición, la colección, la rareza y las características especiales. El \textit{float} expresa numéricamente el desgaste de determinados artículos. StatTrak identifica una versión que incorpora un contador asociado al uso del arma. También pueden existir ediciones especiales que se negocian como referencias distintas.
+\Needspace{14\baselineskip}
+La identificación del artículo combina el nombre con los atributos que se indican a continuación:
+\begin{itemize}
+    \item \textbf{Nivel de desgaste:} categoría que describe el desgaste visible del artículo, como \textit{Factory New} o \textit{Battle-Scarred}.
+    \item \textbf{\textit{Float}:} valor numérico asociado al desgaste. En general, un valor más próximo a cero indica un desgaste visual menor.
+    \item \textbf{Rareza:} nivel que expresa la dificultad para obtener el artículo. Una rareza mayor no implica necesariamente un precio mayor.
+    \item \textbf{StatTrak:} versión especial que incorpora un contador del número de eliminaciones logradas con el arma.
+\end{itemize}
 
-Estos atributos permiten construir una referencia de mercado para cada artículo y evitan comparar precios de activos digitales que solo parecen equivalentes. La normalización de esta referencia se describe en el Capítulo 5, donde se explica cómo se preparan las observaciones antes de utilizarlas en los modelos y en la simulación.
+Estos atributos permiten construir un identificador para cada artículo y evitan comparar precios de activos digitales que solo parecen equivalentes. La normalización de este identificador se describe en el Capítulo 5, donde se explica cómo se preparan los datos antes de utilizarlos en los modelos y en la simulación.
 
 \section{Mercados secundarios y fuentes de información}
 
@@ -37,18 +49,18 @@ El caso de estudio combina dos mercados secundarios administrados por plataforma
     \item \textbf{SteamDT} se emplea como fuente de descubrimiento inicial de artículos que requieren una captura detallada. No interviene en la operación simulada ni establece sus condiciones económicas.
 \end{itemize}
 
-Los mercados secundarios no tienen por qué publicar la misma información. Las plataformas que los administran tampoco tienen por qué aplicar las mismas reglas de intercambio. Por ello, una comparación solo es válida cuando identifica un mismo artículo, conserva el instante de observación y tiene en cuenta qué precio representa cada mercado.
+Cada mercado secundario puede mostrar información diferente. Las plataformas que los administran tampoco tienen por qué aplicar las mismas reglas de intercambio. Por ello, una comparación solo es válida cuando identifica un mismo artículo, conserva el instante de observación y tiene en cuenta qué precio representa cada mercado.
 
-\section{Reglas económicas y fricciones de la ruta analizada}
+\section{Reglas económicas y fricciones}
 
-La ruta analizada parte de un precio de compra observado en BUFF y de un precio de venta observado en Steam Community Market para el mismo artículo. Esta comparación requiere expresar ambos precios en una moneda común y aplicar las comisiones que afectan al ingreso de venta. Una diferencia entre precios antes de esos ajustes no permite determinar por sí sola el resultado de una operación.
+La ruta analizada parte de un precio de compra observado en el mercado secundario de BUFF y de un precio de venta observado en Steam Community Market para el mismo artículo. Esta comparación requiere expresar ambos precios en una moneda común y aplicar las comisiones que afectan al ingreso de venta. Una diferencia entre precios antes de esos ajustes no permite determinar por sí sola el resultado de una operación.
 
 El volumen de intercambios aporta información sobre la actividad observada para un artículo en cada mercado secundario. Cuando el volumen es bajo, puede ser más difícil completar una venta en el plazo previsto. Asimismo, un \textit{trade hold} puede impedir temporalmente vender o transferir un artículo adquirido. Estas fricciones afectan tanto a la disponibilidad del capital como al momento en que una posición puede cerrarse.
 
 La comparación de precios se utiliza para seleccionar candidatos que pueden estudiarse en la simulación. No supone que el artículo pueda comprarse o venderse al precio publicado, ni garantiza que ese precio se mantenga hasta completar el intercambio. Las expresiones económicas y las reglas que utiliza el simulador se presentan en los Capítulos 4 y 5.
 
-\section{Alcance y limitaciones del caso de estudio}
+\section{Limitaciones del caso}
 
 El caso de estudio representa decisiones a partir de datos observados y de reglas de intercambio que pueden incorporarse a una simulación. El sistema no envía órdenes reales, no mueve artículos entre plataformas y no utiliza capital real. Por tanto, sus resultados sirven para evaluar decisiones simuladas bajo las condiciones representadas, no para garantizar la ejecución de operaciones futuras.
 
-La cobertura depende de los artículos y de las observaciones disponibles en las fuentes seleccionadas. Además, las reglas de las plataformas, sus comisiones y la actividad de intercambio pueden cambiar con el tiempo. Estas limitaciones deben tenerse en cuenta al interpretar los resultados experimentales y justifican la separación entre los datos observados, las reglas económicas y la evaluación de la simulación que se desarrolla en los capítulos siguientes.
+La cobertura depende de los artículos y de los datos disponibles en las fuentes seleccionadas. Además, las reglas de las plataformas, sus comisiones y la actividad de intercambio pueden cambiar con el tiempo. Estas limitaciones deben tenerse en cuenta al interpretar los resultados experimentales y justifican la separación entre los datos observados, las reglas económicas y la evaluación de la simulación que se desarrolla en los capítulos siguientes.
