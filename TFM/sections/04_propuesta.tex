@@ -78,56 +78,45 @@ El espacio de acciones es discreto y se limita a ignorar o marcar un artículo, 
 
 La exploración y el entrenamiento se realizan únicamente dentro del simulador y con datos históricos. Las acciones modifican una cartera simulada, no una cuenta ni artículos reales.
 
-\section{Agentes del sistema}
+\section{Agentes de decisión}
 
-La arquitectura distingue entre componentes de adquisición y agentes \acroref{MARL}{MARL}. Los componentes de adquisición no se entrenan mediante aprendizaje por refuerzo ni deciden operaciones. Su trabajo es obtener datos desde Steam, \acroref{BUFF}{BUFF}, SteamDT, \acroref{OCR}{OCR} o \acroref{CSV}{CSV}/\acroref{API}{API} y transformarlos en observaciones persistidas. Los agentes \acroref{MARL}{MARL}, en cambio, operan dentro del entorno de simulación.
+La decisión simulada se distribuye entre tres agentes \acroref{MARL}{MARL} con responsabilidades diferenciadas. Cada agente recibe una observación local adaptada a su función y propone una acción dentro del entorno de simulación:
 
-\begin{table}[h]
-\centering
-\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{0.22\textwidth} >{\raggedright\arraybackslash}X}
-\toprule
-Componente o agente & Función \\
-\midrule
-\multicolumn{2}{l}{\textit{Adquisición de datos}} \\
-Steam y \acroref{BUFF}{BUFF} & Aportan precios, histórico, órdenes de compra y volumen de intercambios. \\
-SteamDT & Identifica artículos para priorizar la captura. \\
-\acroref{OCR}{OCR}, \acroref{CSV}{CSV} y \acroref{API}{API} & Incorporan capturas y archivos como observaciones. \\
-\addlinespace
-\multicolumn{2}{l}{\textit{Decisión multiagente}} \\
-Scout & Marca artículos según el retorno previsto, la disponibilidad y la señal supervisada. \\
-Trader & Propone comprar, vender o mantener. \\
-Portfolio & Valida exposición, capital bloqueado y riesgo. \\
-\bottomrule
-\end{tabularx}
-\caption{Roles del sistema.}
-\end{table}
+\begin{itemize}
+    \item \textbf{Scout:} revisa la plataforma, el tipo de publicación, el precio de compra, el retorno previsto, la disponibilidad y la probabilidad supervisada. Su función es identificar los artículos que merecen atención.
+    \item \textbf{Trader:} utiliza la señal de Scout, la información de compra y venta prevista y las posiciones del mismo artículo que ya existen en la cartera para proponer la acción operativa principal.
+    \item \textbf{Portfolio:} comprueba el saldo, el capital bloqueado, la exposición prevista, las posiciones que pueden venderse y las restricciones de riesgo antes de validar una propuesta.
+\end{itemize}
 
-\noindent\textbf{Scout.} Scout se encarga de detectar oportunidades. Su observación está orientada a la plataforma, el tipo de publicación, el precio de compra, el retorno previsto, la disponibilidad y la probabilidad supervisada. Su papel no es decidir toda la operación, sino marcar qué artículos parecen merecer atención dentro del episodio.
-
-\noindent\textbf{Trader.} Trader decide la acción operativa principal: mantener, comprar una unidad o solicitar la venta de una posición desbloqueada. Para ello considera la señal de Scout, la información de compra y venta prevista, el retorno calculado, la probabilidad supervisada y las posiciones del mismo artículo ya presentes en la cartera.
-
-\noindent\textbf{Portfolio.} Portfolio controla la coherencia global de la cartera. Su observación incorpora saldo, capital bloqueado, exposición prevista, posiciones que pueden venderse y restricciones de riesgo. Este agente puede rechazar decisiones que parezcan favorables de forma aislada si exceden los límites configurados.
+Las acciones disponibles para cada agente son las siguientes:
+\begin{itemize}
+    \item \textbf{Scout:} \textit{ignorar} o \textit{marcar} un artículo.
+    \item \textbf{Trader:} \textit{mantener} la cartera, \textit{comprar} una unidad o \textit{vender} una posición desbloqueada del artículo.
+    \item \textbf{Portfolio:} \textit{rechazar} o \textit{aprobar} la propuesta.
+\end{itemize}
 
 \begin{algorithm}[H]
 \caption{Decisión cooperativa}
 \label{alg:decision-cooperativa}
 \begin{algorithmic}[1]
-\Require Candidato $c_t$, estado de cartera $s_t$ y observaciones locales
-\Ensure Transición de cartera y recompensa compartida $R_t$
+\Require Artículo candidato $c_t$ y observaciones locales
+\Ensure Transición de cartera y recompensa compartida $r_t$
 \State $a_t^{S} \gets \pi_S(o_t^{S})$
 \State $a_t^{T} \gets \pi_T(o_t^{T})$
 \State $a_t^{P} \gets \pi_P(o_t^{P})$
-\If{$a_t^{S}=\textit{marcar}$ \textbf{and} $a_t^{T}=\textit{comprar}$ \textbf{and} $a_t^{P}=\textit{aprobar}$ \textbf{and} $c_t$ cumple los límites}
+\If{$a_t^{S}=\textit{marcar}$ \textbf{y} $a_t^{T}=\textit{comprar}$ \textbf{y} $a_t^{P}=\textit{aprobar}$ \textbf{y} la compra cumple los límites de riesgo}
   \State Abrir una posición simulada y bloquear su capital
-\ElsIf{$a_t^{T}=\textit{vender}$ \textbf{and} $a_t^{P}=\textit{aprobar}$ \textbf{and} existe una posición desbloqueada de $c_t$}
+\ElsIf{$a_t^{T}=\textit{vender}$ \textbf{y} $a_t^{P}=\textit{aprobar}$ \textbf{y} existe una posición desbloqueada de $c_t$}
   \State Cerrar una posición simulada y abonar su importe neto
 \Else
   \State Mantener el saldo y registrar el motivo de no ejecución
 \EndIf
 \State Actualizar el saldo, las posiciones, la exposición y las métricas de riesgo.
-\State Calcular $R_t$ y devolver la misma recompensa a los tres agentes.
+\State Calcular $r_t$ y devolver la misma recompensa a los tres agentes.
 \end{algorithmic}
 \end{algorithm}
+
+En el Algoritmo~\ref{alg:decision-cooperativa}, $c_t$ representa el artículo considerado en el instante $t$. Las funciones $\pi_S$, $\pi_T$ y $\pi_P$ son las políticas de Scout, Trader y Portfolio. Cada política recibe su observación local, representada por $o_t^S$, $o_t^T$ u $o_t^P$, y produce una acción, representada por $a_t^S$, $a_t^T$ o $a_t^P$.
 
 Una compra simulada requiere que Scout marque el artículo, Trader solicite la compra y Portfolio la apruebe. Una venta simulada requiere la solicitud de Trader, la aprobación de Portfolio y una posición desbloqueada del mismo artículo. Scout no emite una marca nueva para vender porque la posición ya forma parte de la cartera. La recompensa compartida que recibe cada agente se explica en la Sección~4.4.
 
