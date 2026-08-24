@@ -79,18 +79,28 @@ python -m apps.cli.train_marl_rllib --dataset-dir data/datasets/trading_profit_v
 El smoke guarda checkpoint y reporta metricas operativas basicas. Aun no implementa critico
 centralizado MAPPO completo; esa parte queda marcada como siguiente paso de CTDE.
 
-## Recompensa
+## Recompensas
 
-`calculate_cooperative_reward()` devuelve una recompensa comun para Scout, Trader y Portfolio.
-La version actual es interpretable y configurable:
+La función calculate_cooperative_reward() calcula la recompensa común vinculada a la cartera.
+La versión actual es interpretable y configurable:
 
 - beneficio realizado neto normalizado;
 - retorno inmediato del candidato comprado como senal provisional;
 - penalizacion por oportunidad accionable ignorada;
 - penalizacion por intentar compras que violan riesgo;
-- penalizacion por drawdown, capital bloqueado y volatilidad si esta disponible.
+- penalización por drawdown, capital bloqueado y volatilidad si está disponible.
 
-El entorno copia el desglose en `info["reward_breakdown"]` para poder auditar entrenamientos.
+La función calculate_agent_reward_breakdowns() combina esa recompensa con una señal individual
+por agente. Por defecto, cada agente recibe el 70 % de la recompensa común y el 30 % de su
+señal individual:
+
+- Scout recibe señal por marcar o ignorar una oportunidad permitida;
+- Trader recibe señal por la compra, venta o mantenimiento que propone;
+- Portfolio recibe señal por aprobar o rechazar una propuesta y por respetar los límites.
+
+El entorno devuelve una recompensa distinta por agente y copia el desglose común en
+info["reward_breakdown"] y el desglose individual en info["individual_reward_breakdown"]
+para poder auditar entrenamientos.
 
 ## Prueba local
 

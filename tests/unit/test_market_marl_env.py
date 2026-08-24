@@ -101,7 +101,7 @@ def test_market_marl_env_executes_buy_when_all_agents_accept() -> None:
     assert len(env.simulator.positions) == 1
     assert env.simulator.positions[0].buy_platform == "STEAM"
     assert env.simulator.cash_available_eur == Decimal("90")
-    assert rewards == {"scout": 0.195, "trader": 0.195, "portfolio": 0.195}
+    assert rewards == {"scout": 0.1965, "trader": 0.1965, "portfolio": 0.1965}
     assert observations["scout"]["buy_price_eur"] == 20.0
     assert env.central_state()["current_return"] == -0.05
     assert terminations == {"scout": False, "trader": False, "portfolio": False}
@@ -123,7 +123,13 @@ def test_market_marl_env_step_info_describes_processed_item() -> None:
     assert infos["trader"]["item_id"] == "item-1"
     assert infos["trader"]["observed_day"] == "2026-01-01"
     assert infos["trader"]["central_state"]["current_return"] == 0.2
-    assert infos["trader"]["reward"] == 0.195
+    assert infos["trader"]["reward"] == 0.1965
+    assert infos["trader"]["individual_reward_breakdown"] == {
+        "total": 0.1965,
+        "shared_component": 0.1365,
+        "individual_signal": 0.2,
+        "individual_component": 0.06,
+    }
 
 
 def test_market_marl_central_state_is_separate_from_local_observations() -> None:
@@ -179,15 +185,25 @@ def test_market_marl_env_can_execute_buy_from_buff_candidate() -> None:
 
 
 @pytest.mark.parametrize(
-    "actions",
+    ("actions", "expected_rewards"),
     [
-        {"scout": 1, "trader": 0, "portfolio": 1},
-        {"scout": 0, "trader": 1, "portfolio": 1},
-        {"scout": 1, "trader": 1, "portfolio": 0},
+        (
+            {"scout": 1, "trader": 0, "portfolio": 1},
+            {"scout": 0.053, "trader": -0.01, "portfolio": 0.053},
+        ),
+        (
+            {"scout": 0, "trader": 1, "portfolio": 1},
+            {"scout": -0.01, "trader": 0.053, "portfolio": 0.053},
+        ),
+        (
+            {"scout": 1, "trader": 1, "portfolio": 0},
+            {"scout": 0.053, "trader": 0.053, "portfolio": -0.01},
+        ),
     ],
 )
 def test_market_marl_env_requires_all_agents_to_accept_before_buy(
     actions: dict[str, int],
+    expected_rewards: dict[str, float],
 ) -> None:
     env = MarketMARLEnvironment(_episode(), initial_cash_eur=Decimal("100"))
     env.reset()
@@ -195,7 +211,7 @@ def test_market_marl_env_requires_all_agents_to_accept_before_buy(
     _observations, rewards, _terminations, _truncations, infos = env.step(actions)
 
     assert env.simulator.positions == ()
-    assert rewards == {"scout": -0.01, "trader": -0.01, "portfolio": -0.01}
+    assert rewards == expected_rewards
     assert infos["trader"]["executed_trade"] is False
     assert infos["trader"]["reward_breakdown"]["inactivity"] == -0.01
 
@@ -213,7 +229,7 @@ def test_market_marl_env_blocks_buy_when_portfolio_risk_rejects() -> None:
     )
 
     assert env.simulator.positions == ()
-    assert rewards == {"scout": -0.05, "trader": -0.05, "portfolio": -0.05}
+    assert rewards == {"scout": -0.035, "trader": -0.035, "portfolio": -0.05}
     assert infos["portfolio"]["executed_trade"] is False
     assert infos["portfolio"]["risk_violations"] == ("position_fraction",)
     assert infos["portfolio"]["reward_breakdown"]["risk_violation"] == -0.05
@@ -396,7 +412,7 @@ def test_market_marl_env_sells_matching_position_after_trade_hold() -> None:
     assert infos["trader"]["executed_buy"] is False
     assert infos["trader"]["executed_sale"] is True
     assert infos["trader"]["sold_position_id"] == "pos-1"
-    assert rewards["trader"] == pytest.approx(0.2398)
+    assert rewards["trader"] == pytest.approx(0.23326)
     assert terminations["trader"] is True
 
 

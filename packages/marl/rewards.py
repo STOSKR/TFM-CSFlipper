@@ -1,4 +1,4 @@
-"""Cooperative reward shaping for the MARL market environment."""
+"""Shared and individual reward shaping for the MARL market environment."""
 
 from __future__ import annotations
 
@@ -35,6 +35,17 @@ class CooperativeRewardConfig:
 
 
 @dataclass(frozen=True, slots=True)
+class HybridRewardConfig:
+    """Combines the common portfolio reward with a role-specific signal."""
+
+    shared_weight: Decimal = Decimal("0.70")
+
+    def __post_init__(self) -> None:
+        if not Decimal("0") <= self.shared_weight <= Decimal("1"):
+            raise ValueError("shared_weight must be between zero and one")
+
+
+@dataclass(frozen=True, slots=True)
 class CooperativeRewardBreakdown:
     realized_profit: Decimal
     executed_return: Decimal
@@ -66,6 +77,27 @@ class CooperativeRewardBreakdown:
             "drawdown": float(self.drawdown),
             "blocked_capital": float(self.blocked_capital),
             "volatility": float(self.volatility),
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class AgentRewardBreakdown:
+    """Reward received by one agent after combining both reward components."""
+
+    shared_component: Decimal
+    individual_signal: Decimal
+    individual_component: Decimal
+
+    @property
+    def total(self) -> Decimal:
+        return self.shared_component + self.individual_component
+
+    def as_float_dict(self) -> dict[str, float]:
+        return {
+            "total": float(self.total),
+            "shared_component": float(self.shared_component),
+            "individual_signal": float(self.individual_signal),
+            "individual_component": float(self.individual_component),
         }
 
 
@@ -121,10 +153,143 @@ def shared_reward_map(
     return {agent_id: reward for agent_id in agents}
 
 
+def calculate_agent_reward_breakdowns(
+    *,
+    agents: tuple[str, ...],
+    shared_breakdown: CooperativeRewardBreakdown,
+    actions: Mapping[str, int],
+    executed_buy: bool,
+    executed_sale: bool,
+    opportunity_available: bool,
+    risk_violations: tuple[str, ...] = (),
+    candidate_return: Decimal | None = None,
+    executed_return: Decimal | None = None,
+    cooperative_config: CooperativeRewardConfig | None = None,
+    hybrid_config: HybridRewardConfig | None = None,
+) -> dict[str, AgentRewardBreakdown]:
+    """Return one hybrid reward for Scout, Trader and Portfolio.
+
+    The individual signal measures whether each role fulfilled its own task. The
+    shared component remains present for every agent, so no role can improve its
+    own reward while ignoring the simulated portfolio.
+    """
+
+    reward_config = cooperative_config or CooperativeRewardConfig()
+    mix_config = hybrid_config or HybridRewardConfig()
+    candidate_signal = candidate_return or Decimal("0")
+    execution_signal = executed_return if executed_return is not None else candidate_signal
+    scout_action = int(actions.get("scout", 0))
+    trader_action = int(actions.get("trader", 0))
+    portfolio_action = int(actions.get("portfolio", 0))
+
+    signals = {
+        "scout": _scout_signal(
+            action=scout_action,
+            opportunity_available=opportunity_available,
+            executed_sale=executed_sale,
+            candidate_return=candidate_signal,
+            inactivity_penalty=reward_config.inactivity_penalty,
+        ),
+        "trader": _trader_signal(
+            action=trader_action,
+            executed_buy=executed_buy,
+            executed_sale=executed_sale,
+            opportunity_available=opportunity_available,
+            candidate_return=candidate_signal,
+            execution_return=execution_signal,
+            inactivity_penalty=reward_config.inactivity_penalty,
+        ),
+        "portfolio": _portfolio_signal(
+            action=portfolio_action,
+            executed_buy=executed_buy,
+            executed_sale=executed_sale,
+            opportunity_available=opportunity_available,
+            risk_violations=risk_violations,
+            candidate_return=candidate_signal,
+            execution_return=execution_signal,
+            inactivity_penalty=reward_config.inactivity_penalty,
+            risk_violation_penalty=reward_config.risk_violation_penalty,
+        ),
+    }
+    shared_component = shared_breakdown.total * mix_config.shared_weight
+    individual_weight = Decimal("1") - mix_config.shared_weight
+    return {
+        agent_id: AgentRewardBreakdown(
+            shared_component=shared_component,
+            individual_signal=signals.get(agent_id, Decimal("0")),
+            individual_component=signals.get(agent_id, Decimal("0")) * individual_weight,
+        )
+        for agent_id in agents
+    }
+
+
+def agent_reward_map(
+    breakdowns: Mapping[str, AgentRewardBreakdown],
+) -> dict[str, float]:
+    return {agent_id: float(breakdown.total) for agent_id, breakdown in breakdowns.items()}
+
+
 def reward_info(
     breakdown: CooperativeRewardBreakdown,
 ) -> Mapping[str, float]:
     return breakdown.as_float_dict()
+
+
+def agent_reward_info(
+    breakdown: AgentRewardBreakdown,
+) -> Mapping[str, float]:
+    return breakdown.as_float_dict()
+
+
+def _scout_signal(
+    *,
+    action: int,
+    opportunity_available: bool,
+    executed_sale: bool,
+    candidate_return: Decimal,
+    inactivity_penalty: Decimal,
+) -> Decimal:
+    if executed_sale or not opportunity_available:
+        return Decimal("0")
+    return candidate_return if action == 1 else -inactivity_penalty
+
+
+def _trader_signal(
+    *,
+    action: int,
+    executed_buy: bool,
+    executed_sale: bool,
+    opportunity_available: bool,
+    candidate_return: Decimal,
+    execution_return: Decimal,
+    inactivity_penalty: Decimal,
+) -> Decimal:
+    if executed_buy or executed_sale:
+        return execution_return
+    if opportunity_available:
+        return candidate_return if action == 1 else -inactivity_penalty
+    return Decimal("0")
+
+
+def _portfolio_signal(
+    *,
+    action: int,
+    executed_buy: bool,
+    executed_sale: bool,
+    opportunity_available: bool,
+    risk_violations: tuple[str, ...],
+    candidate_return: Decimal,
+    execution_return: Decimal,
+    inactivity_penalty: Decimal,
+    risk_violation_penalty: Decimal,
+) -> Decimal:
+    if risk_violations and action == 1:
+        return -risk_violation_penalty * Decimal(len(risk_violations))
+    if executed_buy or executed_sale:
+        return execution_return if action == 1 else Decimal("0")
+    if opportunity_available:
+        return candidate_return if action == 1 else -inactivity_penalty
+    return Decimal("0")
 
 
 def _portfolio_denominator(metrics: PortfolioMetrics) -> Decimal:

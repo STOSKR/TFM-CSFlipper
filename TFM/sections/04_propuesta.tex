@@ -100,7 +100,7 @@ Las acciones disponibles para cada agente son las siguientes:
 \label{alg:decision-cooperativa}
 \begin{algorithmic}[1]
 \Require Artículo candidato $c_t$ y observaciones locales
-\Ensure Transición de cartera y recompensa compartida $r_t$
+\Ensure Transición de cartera y recompensas híbridas $r_t^S$, $r_t^T$ y $r_t^P$
 \State $a_t^{S} \gets \pi_S(o_t^{S})$
 \State $a_t^{T} \gets \pi_T(o_t^{T})$
 \State $a_t^{P} \gets \pi_P(o_t^{P})$
@@ -112,23 +112,58 @@ Las acciones disponibles para cada agente son las siguientes:
   \State Mantener el saldo y registrar el motivo de no ejecución
 \EndIf
 \State Actualizar el saldo, las posiciones, la exposición y las métricas de riesgo.
-\State Calcular $r_t$ y devolver la misma recompensa a los tres agentes.
+\State Calcular la recompensa común y las señales individuales de los tres agentes.
+\State Devolver $r_t^S$, $r_t^T$ y $r_t^P$ mediante la combinación híbrida.
 \end{algorithmic}
 \end{algorithm}
 
 En el Algoritmo~\ref{alg:decision-cooperativa}, $c_t$ representa el artículo considerado en el instante $t$. Las funciones $\pi_S$, $\pi_T$ y $\pi_P$ son las políticas de Scout, Trader y Portfolio. Cada política recibe su observación local, representada por $o_t^S$, $o_t^T$ u $o_t^P$, y produce una acción, representada por $a_t^S$, $a_t^T$ o $a_t^P$.
 
-Una compra simulada requiere que Scout marque el artículo, Trader solicite la compra y Portfolio la apruebe. Una venta simulada requiere la solicitud de Trader, la aprobación de Portfolio y una posición desbloqueada del mismo artículo. Scout no emite una marca nueva para vender porque la posición ya forma parte de la cartera. La recompensa compartida que recibe cada agente se explica en la Sección~4.4.
+Una compra simulada requiere que Scout marque el artículo, Trader solicite la compra y Portfolio la apruebe. Una venta simulada requiere la solicitud de Trader, la aprobación de Portfolio y una posición desbloqueada del mismo artículo. Scout no emite una marca nueva para vender porque la posición ya forma parte de la cartera. La recompensa de cada agente incorpora un componente común y otro individual, como se explica en la Sección~4.4.
 
 \section{Función de recompensa}
 
-La recompensa debe reflejar el objetivo del sistema: mejorar el valor neto de la cartera sin ignorar riesgo ni fricción. Una recompensa basada solo en comprar barato o en detectar subida de precio sería incompleta, porque no tendría en cuenta si la operación puede cerrarse, si el capital queda bloqueado o si el spread desaparece antes de poder vender.
+El objetivo del sistema es maximizar el valor de la cartera simulada. La recompensa debe reflejar este objetivo sin incentivar decisiones que incumplan los límites de riesgo, ignoren los costes o no respeten las restricciones de intercambio. Una recompensa basada solo en comprar a un precio bajo o en detectar una subida de precio sería incompleta, porque no tendría en cuenta si puede realizarse una venta posterior, si el capital queda bloqueado o si la compra supera los límites de la cartera.
 
-\subsection{Recompensa individual}
+\noindent\textbf{Recompensa cooperativa.} La recompensa común se vincula al valor total de la cartera simulada. Se forma a partir de contribuciones separadas para que cada una pueda interpretarse y auditarse:
 
-Las señales individuales pueden ayudar a entrenar comportamientos especializados. Scout puede recibir recompensa por identificar oportunidades que más adelante resultan útiles. Trader puede recibirla por ejecutar acciones con beneficio neto y Portfolio por evitar sobreexposición, operaciones ilíquidas o capital bloqueado excesivo. Estas recompensas no sustituyen al objetivo global, pero pueden guiar el aprendizaje de cada rol.
+\begin{align}
+r_t^{\mathrm{beneficio}} &= \frac{\Delta \Pi_t}{100}, \\
+r_t^{\mathrm{retorno}} &= \rho_t\mathbb{I}_{\mathrm{operacion}}, \\
+r_t^{\mathrm{inactividad}} &= -0{,}01\mathbb{I}_{\mathrm{oportunidad\ ignorada}}, \\
+r_t^{\mathrm{riesgo}} &= -0{,}05v_t-0{,}50DD_t, \\
+r_t^{\mathrm{bloqueo}} &= -0{,}05B_t, \\
+r_t^{\mathrm{volatilidad}} &= -0{,}10\sigma_t\mathbb{I}_{\mathrm{compra}}.
+\label{eq:componentes-recompensa-cooperativa}
+\end{align}
 
-Como ampliación de la arquitectura, la recompensa de cada rol puede combinar una parte compartida, vinculada a la evolución de la cartera, y una parte individual, vinculada a su responsabilidad concreta:
+En estas expresiones, $t$ es el instante del episodio. $\Delta \Pi_t$ es el cambio en el beneficio realizado de la cartera, expresado en euros. El divisor 100 normaliza este importe para que una ganancia monetaria no domine al resto de contribuciones. $\rho_t$ es el retorno asociado a la operación ejecutada. En una compra representa el retorno previsto del artículo y en una venta representa el retorno finalmente realizado. La función indicadora $\mathbb{I}$ vale 1 cuando se cumple la condición que la acompaña y 0 cuando no se cumple.
+
+La indicadora de oportunidad ignorada vale 1 cuando existe una compra permitida con retorno previsto positivo y no se ejecuta. $v_t$ es el número de restricciones incumplidas al intentar una compra. $DD_t$ es la caída relativa de la cartera respecto de su valor neto máximo anterior, también denominada \textit{drawdown}. $B_t$ es la proporción del valor neto de la cartera que permanece bloqueada. Por último, $\sigma_t$ representa la volatilidad disponible para el artículo y solo se penaliza cuando se ejecuta una compra. Los coeficientes $0{,}01$, $0{,}05$, $0{,}50$, $0{,}05$ y $0{,}10$ determinan, respectivamente, la intensidad de las penalizaciones por inactividad, restricciones, caída de cartera, capital bloqueado y volatilidad.
+
+La recompensa cooperativa se obtiene sumando las seis contribuciones:
+
+\begin{equation}
+r_t^{\mathrm{cartera}} = r_t^{\mathrm{beneficio}}
++ r_t^{\mathrm{retorno}}
++ r_t^{\mathrm{inactividad}}
++ r_t^{\mathrm{riesgo}}
++ r_t^{\mathrm{bloqueo}}
++ r_t^{\mathrm{volatilidad}}.
+\label{eq:recompensa-cooperativa}
+\end{equation}
+
+Por ejemplo, considérese una compra simulada cuyo retorno previsto es $\rho_t=0{,}218$. En ese instante no hay beneficio realizado todavía, no se incumplen restricciones ni existe caída de cartera. Si el 10\,\% del valor neto queda bloqueado y no se dispone de volatilidad para el artículo, la recompensa cooperativa es:
+
+\begin{equation}
+r_t^{\mathrm{cartera}}=0+0{,}218-0-0-0-0{,}05\cdot0{,}10-0=0{,}213.
+\label{eq:ejemplo-recompensa-cooperativa}
+\end{equation}
+
+\Needspace{13\baselineskip}
+\noindent\textbf{Recompensa individual.} Además de la recompensa común, el entorno calcula una señal individual para cada rol. Scout recibe una señal positiva cuando marca un artículo que constituye una oportunidad permitida y una penalización cuando lo ignora. Trader recibe una señal asociada al retorno de la compra o venta que propone, o una penalización cuando mantiene la cartera ante una oportunidad permitida. Portfolio recibe una señal positiva cuando aprueba una propuesta permitida y una penalización cuando la rechaza o cuando aprueba una compra que incumple restricciones de riesgo.
+
+La recompensa que recibe cada agente combina la recompensa común, vinculada a la evolución de la cartera, y la señal individual asociada a su responsabilidad concreta:
 
 \begin{equation}
 r_t^i=\lambda r_t^{\mathrm{cartera}}+(1-\lambda)r_{t,\mathrm{rol}}^i,
@@ -136,27 +171,13 @@ r_t^i=\lambda r_t^{\mathrm{cartera}}+(1-\lambda)r_{t,\mathrm{rol}}^i,
 \label{eq:recompensa-hibrida}
 \end{equation}
 
-En la Ecuación~\ref{eq:recompensa-hibrida}, $r_t^{\mathrm{cartera}}$ es la recompensa común, $r_{t,\mathrm{rol}}^i$ mide la contribución del agente $i$ y $\lambda$ determina el peso de cada parte. La parte compartida debe tener un peso mayor para que todos los agentes mantengan como prioridad el resultado global de la cartera. Las ejecuciones descritas en este trabajo utilizan la recompensa compartida de la sección siguiente. La recompensa individual queda definida como una extensión que deberá evaluarse con datos suficientes.
+En la Ecuación~\ref{eq:recompensa-hibrida}, $r_t^{\mathrm{cartera}}$ es la recompensa común definida en la Ecuación~\ref{eq:recompensa-cooperativa}, $r_{t,\mathrm{rol}}^i$ es la señal individual del agente $i$ y $\lambda$ determina el peso de cada parte. La implementación utiliza $\lambda=0{,}70$. Por tanto, el 70\,\% de la recompensa de cada agente procede de la evolución global de la cartera y el 30\,\% de su responsabilidad individual. En el ejemplo anterior, si Scout marca el artículo, Trader propone la compra y Portfolio la aprueba, los tres reciben una señal individual de $0{,}218$. La recompensa híbrida de cada uno es $0{,}70\cdot0{,}213+0{,}30\cdot0{,}218=0{,}2145$.
 
-\subsection{Recompensa cooperativa}
-
-La recompensa cooperativa se vincula al valor total de la cartera simulada. Considera beneficio realizado, retorno de la operación ejecutada, inactividad ante una oportunidad permitida, restricciones de riesgo, \textit{drawdown}, capital bloqueado y volatilidad. La expresión implementada es:
-
-\[
-r_t = \frac{\Delta \Pi_t}{100}
-+ \rho_t\mathbb{I}_{\mathrm{operacion}}
-- 0{,}01\mathbb{I}_{\mathrm{oportunidad\ ignorada}}
-- 0{,}05v_t
-- 0{,}50DD_t
-- 0{,}05B_t
-- 0{,}10\sigma_t\mathbb{I}_{\mathrm{compra}}.
-\]
-
-Aquí, $\Delta \Pi_t$ es el cambio en beneficio realizado en euros, $\rho_t$ es el retorno de la compra o venta ejecutada, $v_t$ cuenta las restricciones incumplidas, $DD_t$ es el \textit{drawdown} relativo, $B_t$ es la fracción de cartera bloqueada y $\sigma_t$ representa la volatilidad disponible para el candidato. El divisor 100 evita que una ganancia expresada en euros domine al resto de términos. La misma recompensa se asigna a Scout, Trader y Portfolio, es decir, $r_t^S=r_t^T=r_t^P=r_t$, para que los tres roles persigan el estado global de la cartera.
+Después de cada transición, el entorno devuelve una recompensa híbrida a cada agente. Durante el entrenamiento, la sucesión de estas recompensas se utiliza para calcular el retorno acumulado de cada política, según la Ecuación~\ref{eq:retorno-rl}. Por tanto, las recompensas cooperativa e individual no se suman entre agentes. Primero se combinan para obtener $r_t^i$ y, después, el algoritmo de aprendizaje por refuerzo utiliza esa señal para actualizar la política del agente $i$.
 
 \section{Restricciones de riesgo}
 
-Las restricciones de riesgo se introducen antes de escalar el entrenamiento. Las más importantes son: no usar capital inexistente, limitar exposición por activo o plataforma, rechazar operaciones con un volumen de intercambios insuficiente, respetar el \textit{trade hold}, controlar el capital bloqueado y separar claramente simulación de operación. Estas restricciones de riesgo son sencillas, pero evitan que los agentes aprendan políticas imposibles de ejecutar en el mercado.
+Las restricciones de riesgo se introducen antes de escalar el entrenamiento. Las más importantes son: no usar capital inexistente, limitar exposición por activo o plataforma, rechazar operaciones con un volumen de intercambios insuficiente, respetar el periodo de bloqueo de intercambio, controlar el capital bloqueado y separar claramente simulación de operación. Estas restricciones de riesgo son sencillas, pero evitan que los agentes aprendan políticas imposibles de ejecutar en el mercado.
 
 La salida del sistema debe ser siempre auditable. Cada predicción, acción o decisión simulada debe poder relacionarse con su fuente de datos, versión de modelo, episodio y configuración de simulación. Esta trazabilidad es necesaria para interpretar resultados y para distinguir entre error de datos, error de modelo y mala política de decisión.
 

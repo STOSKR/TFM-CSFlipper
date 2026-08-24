@@ -3,6 +3,8 @@ from decimal import Decimal
 
 from packages.marl.rewards import (
     CooperativeRewardConfig,
+    HybridRewardConfig,
+    calculate_agent_reward_breakdowns,
     calculate_cooperative_reward,
     shared_reward_map,
 )
@@ -95,6 +97,57 @@ def test_shared_reward_map_returns_same_reward_for_every_agent() -> None:
         "trader": 0.2,
         "portfolio": 0.2,
     }
+
+
+def test_hybrid_reward_rewards_each_role_for_its_own_action() -> None:
+    shared_breakdown = calculate_cooperative_reward(
+        before_metrics=_metrics(),
+        after_metrics=_metrics(),
+        executed_trade=False,
+        opportunity_available=True,
+    )
+
+    rewards = calculate_agent_reward_breakdowns(
+        agents=("scout", "trader", "portfolio"),
+        shared_breakdown=shared_breakdown,
+        actions={"scout": 1, "trader": 0, "portfolio": 1},
+        executed_buy=False,
+        executed_sale=False,
+        opportunity_available=True,
+        candidate_return=Decimal("0.2"),
+        cooperative_config=CooperativeRewardConfig(inactivity_penalty=Decimal("0.01")),
+        hybrid_config=HybridRewardConfig(shared_weight=Decimal("0.70")),
+    )
+
+    assert rewards["scout"].individual_signal == Decimal("0.2")
+    assert rewards["trader"].individual_signal == Decimal("-0.01")
+    assert rewards["portfolio"].individual_signal == Decimal("0.2")
+    assert rewards["scout"].total == Decimal("0.053")
+    assert rewards["trader"].total == Decimal("-0.010")
+
+
+def test_hybrid_reward_penalizes_portfolio_approval_of_risk_violation() -> None:
+    shared_breakdown = calculate_cooperative_reward(
+        before_metrics=_metrics(),
+        after_metrics=_metrics(),
+        executed_trade=False,
+        opportunity_available=False,
+        risk_violations=("position_fraction",),
+    )
+
+    rewards = calculate_agent_reward_breakdowns(
+        agents=("scout", "trader", "portfolio"),
+        shared_breakdown=shared_breakdown,
+        actions={"scout": 1, "trader": 1, "portfolio": 1},
+        executed_buy=False,
+        executed_sale=False,
+        opportunity_available=False,
+        risk_violations=("position_fraction",),
+    )
+
+    assert rewards["portfolio"].individual_signal == Decimal("-0.05")
+    assert rewards["portfolio"].total == Decimal("-0.050")
+    assert rewards["scout"].total == Decimal("-0.035")
 
 
 def _metrics(

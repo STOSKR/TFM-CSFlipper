@@ -14,11 +14,15 @@ from decimal import Decimal
 from typing import Any
 
 from packages.marl.rewards import (
+    AgentRewardBreakdown,
     CooperativeRewardBreakdown,
     CooperativeRewardConfig,
+    HybridRewardConfig,
+    agent_reward_info,
+    agent_reward_map,
+    calculate_agent_reward_breakdowns,
     calculate_cooperative_reward,
     reward_info,
-    shared_reward_map,
 )
 from packages.simulation import (
     BUFF,
@@ -51,6 +55,11 @@ EMPTY_REWARD_BREAKDOWN = CooperativeRewardBreakdown(
     drawdown=Decimal("0"),
     blocked_capital=Decimal("0"),
     volatility=Decimal("0"),
+)
+EMPTY_AGENT_REWARD_BREAKDOWN = AgentRewardBreakdown(
+    shared_component=Decimal("0"),
+    individual_signal=Decimal("0"),
+    individual_component=Decimal("0"),
 )
 
 
@@ -271,6 +280,7 @@ class MarketMARLEnvironment:
         initial_cash_eur: Decimal = Decimal("1000"),
         risk_config: PortfolioRiskConfig | None = None,
         reward_config: CooperativeRewardConfig | None = None,
+        hybrid_reward_config: HybridRewardConfig | None = None,
         include_supervised_probability: bool = True,
     ) -> None:
         if not episode_steps:
@@ -279,6 +289,7 @@ class MarketMARLEnvironment:
         self._initial_cash_eur = initial_cash_eur
         self._risk_config = risk_config or default_portfolio_risk_config()
         self._reward_config = reward_config or CooperativeRewardConfig()
+        self._hybrid_reward_config = hybrid_reward_config or HybridRewardConfig()
         self._include_supervised_probability = include_supervised_probability
         self.agents = list(AGENT_IDS)
         self._simulator = PortfolioSimulator(initial_cash_eur=initial_cash_eur)
@@ -357,21 +368,35 @@ class MarketMARLEnvironment:
             execution_return = closed_position.realized_return
         executed_trade = executed_buy or executed_sale
         after_metrics = self._simulator.metrics(as_of=current.observed_day)
+        opportunity_available = current.current_return > 0 and risk.candidate_allowed
         reward_breakdown = calculate_cooperative_reward(
             before_metrics=before_metrics,
             after_metrics=after_metrics,
             executed_trade=executed_trade,
-            opportunity_available=current.current_return > 0 and risk.candidate_allowed,
+            opportunity_available=opportunity_available,
             risk_violations=risk.violations if wanted_buy else (),
             opportunity_return=execution_return,
             candidate_volatility=current.volatility if executed_buy else None,
             config=self._reward_config,
         )
+        agent_reward_breakdowns = calculate_agent_reward_breakdowns(
+            agents=AGENT_IDS,
+            shared_breakdown=reward_breakdown,
+            actions=normalized_actions,
+            executed_buy=executed_buy,
+            executed_sale=executed_sale,
+            opportunity_available=opportunity_available,
+            risk_violations=risk.violations if wanted_buy else (),
+            candidate_return=current.current_return,
+            executed_return=execution_return,
+            cooperative_config=self._reward_config,
+            hybrid_config=self._hybrid_reward_config,
+        )
 
         self._index += 1
         self._terminated = self._index >= len(self._episode_steps)
         observations = {} if self._terminated else self._observations()
-        rewards = shared_reward_map(AGENT_IDS, reward_breakdown)
+        rewards = agent_reward_map(agent_reward_breakdowns)
         terminations = {agent_id: self._terminated for agent_id in AGENT_IDS}
         truncations = {agent_id: False for agent_id in AGENT_IDS}
         infos = self._infos(
@@ -384,6 +409,7 @@ class MarketMARLEnvironment:
             matching_sellable_positions=len(sellable_positions),
             reward=reward_breakdown.total,
             reward_breakdown=reward_breakdown,
+            agent_reward_breakdowns=agent_reward_breakdowns,
             risk_violations=risk.violations,
         )
         if self._terminated:
@@ -450,6 +476,7 @@ class MarketMARLEnvironment:
         matching_sellable_positions: int = 0,
         reward: Decimal = Decimal("0"),
         reward_breakdown: CooperativeRewardBreakdown | None = None,
+        agent_reward_breakdowns: Mapping[str, AgentRewardBreakdown] | None = None,
         risk_violations: tuple[str, ...] = (),
     ) -> InfoMap:
         resolved_step = step or self._episode_steps[min(self._index, len(self._episode_steps) - 1)]
@@ -489,6 +516,20 @@ class MarketMARLEnvironment:
         return {
             agent_id: {
                 **payload,
+                "reward": float(
+                    (agent_reward_breakdowns or {}).get(
+                        agent_id,
+                        EMPTY_AGENT_REWARD_BREAKDOWN,
+                    ).total
+                    if agent_reward_breakdowns is not None
+                    else reward
+                ),
+                "individual_reward_breakdown": agent_reward_info(
+                    (agent_reward_breakdowns or {}).get(
+                        agent_id,
+                        EMPTY_AGENT_REWARD_BREAKDOWN,
+                    )
+                ),
                 "action_mask": resolved_action_masks.get(agent_id, ()),
             }
             for agent_id in AGENT_IDS
