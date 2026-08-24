@@ -285,20 +285,18 @@ Después de cada transición, el entorno devuelve una recompensa híbrida a cada
 
 \section{Restricciones de riesgo}
 
-Las restricciones se comprueban antes de ejecutar una compra simulada. Su finalidad es impedir que una recompensa positiva por el retorno previsto apruebe una operación que no respeta los límites de la cartera. La configuración inicial incluye los siguientes límites, que pueden modificarse en cada experimento:
+Las restricciones se comprueban antes de ejecutar una compra simulada. Su finalidad es impedir que una estimación favorable apruebe una operación que no respeta los límites de la cartera. La configuración inicial incluye los siguientes límites, que pueden modificarse en cada experimento:
 
 \begin{itemize}
-  \item \textbf{Tamaño de posición:} el importe de una compra no puede superar el 20\,\% del valor neto de la cartera.
+  \item \textbf{Tamaño de posición:} el importe de una sola compra no puede superar el 20\,\% del valor neto de la cartera.
   \item \textbf{Exposición por artículo:} la suma de las posiciones del mismo artículo, incluida la compra propuesta, no puede superar el 30\,\% del valor neto.
   \item \textbf{Exposición por plataforma:} las posiciones adquiridas en una misma plataforma no pueden superar el 70\,\% del valor neto.
-  \item \textbf{Capital bloqueado:} el capital que no puede reutilizarse después de la compra no puede superar el 60\,\% del valor neto.
   \item \textbf{Reserva de efectivo:} después de la compra debe permanecer disponible al menos el 10\,\% del valor neto de la cartera.
-  \item \textbf{Disponibilidad y volatilidad:} cuando esos datos están disponibles, la propuesta debe cumplir la cantidad mínima configurada y, si se establece, el límite máximo de volatilidad.
 \end{itemize}
 
-El periodo de bloqueo de intercambio no constituye un límite adicional, sino una condición de la posición simulada. Una compra puede estar permitida y, aun así, el artículo adquirido no puede venderse hasta que termine ese periodo. El simulador conserva esa información para que Trader y Portfolio no propongan una venta imposible.
+La banda flexible descrita en la Sección~4.4 se comprueba junto con estos límites. Una propuesta que supera su máximo efectivo, $u+d$, se considera un incumplimiento. Los límites enumerados anteriormente no incorporan tolerancia.
 
-La salida del sistema debe ser siempre auditable. Cada predicción, acción o decisión simulada debe poder relacionarse con su fuente de datos, versión de modelo, episodio y configuración de simulación. Esta trazabilidad es necesaria para interpretar resultados y para distinguir entre error de datos, error de modelo y mala política de decisión.
+El periodo de bloqueo de intercambio no constituye un límite adicional, sino una condición de la posición simulada. Una compra puede estar permitida y, aun así, el artículo adquirido no puede venderse hasta que termine ese periodo. El simulador conserva esa información para que Trader y Portfolio no propongan una venta imposible.
 
 \Needspace{32\baselineskip}
 \section{Síntesis de la arquitectura propuesta}
@@ -314,27 +312,41 @@ La arquitectura se organiza en cinco capas: adquisición, persistencia, predicci
       thick,
       rounded corners=3pt,
       fill=tfmSoft,
-      text width=8.8cm,
-      minimum height=0.82cm,
+      text width=7.2cm,
+      minimum height=0.65cm,
       align=center,
       inner sep=4pt,
       font=\small
     },
-    flujo/.style={-{Latex[length=2.3mm]}, thick, draw=tfmAccent}
+    flujo/.style={-{Latex[length=2.3mm]}, thick, draw=tfmAccent},
+    registro/.style={-{Latex[length=2.3mm]}, thick, dashed, draw=tfmMuted}
   ]
-    \node[capa] (adquisicion) {\textbf{1. Adquisición}\\{\footnotesize Steam Community Market, \acroref{BUFF}{BUFF}, SteamDT, \acroref{OCR}{OCR} e importaciones manuales generan observaciones.}};
-    \node[capa, below=of adquisicion] (persistencia) {\textbf{2. Persistencia}\\{\footnotesize Las observaciones normalizadas, los históricos, las predicciones y las decisiones simuladas quedan registrados.}};
-    \node[capa, below=of persistencia] (prediccion) {\textbf{3. Predicción}\\{\footnotesize El modelo supervisado estima la probabilidad de que un candidato cumpla el criterio económico definido.}};
-    \node[capa, below=of prediccion] (decision) {\textbf{4. Decisión MARL}\\{\footnotesize Scout, Trader y Portfolio combinan sus observaciones para proponer y validar una acción.}};
-    \node[capa, below=of decision] (simulacion) {\textbf{5. Simulación de cartera}\\{\footnotesize La acción aprobada actualiza la cartera simulada y produce métricas, restricciones y recompensas.}};
+    \node[capa] (adquisicion) {\textbf{1. Adquisición}};
+    \node[capa, below=of adquisicion] (persistencia) {\textbf{2. Persistencia}};
+    \node[capa, below=of persistencia] (prediccion) {\textbf{3. Predicción}};
+    \node[capa, below=of prediccion] (decision) {\textbf{4. Decisión MARL}};
+    \node[capa, below=of decision] (simulacion) {\textbf{5. Simulación de cartera}};
 
-    \draw[flujo] (adquisicion) -- node[right, font=\scriptsize] {datos normalizados} (persistencia);
-    \draw[flujo] (persistencia) -- node[right, font=\scriptsize] {histórico disponible} (prediccion);
-    \draw[flujo] (prediccion) -- node[right, font=\scriptsize] {señal estimada} (decision);
-    \draw[flujo] (decision) -- node[right, font=\scriptsize] {acción coordinada} (simulacion);
+    \draw[flujo] (adquisicion) -- (persistencia);
+    \draw[flujo] (persistencia) -- (prediccion);
+    \draw[flujo] (prediccion) -- (decision);
+    \draw[flujo] (decision) -- (simulacion);
+    \draw[registro] (simulacion.west) -- ++(-1.0,0) |- (persistencia.west);
   \end{tikzpicture}
-  \caption{Flujo vertical de la arquitectura propuesta.}
+  \caption{Flujo de la arquitectura propuesta.}
   \label{fig:arquitectura-propuesta}
 \end{figure}
 
-La decisión final siempre queda registrada como simulada. Esto permite evaluar el sistema con métricas de cartera sin exponer capital durante la investigación. La arquitectura puede generar recomendaciones, episodios y métricas, pero no envía órdenes a Steam, \acroref{BUFF}{BUFF} ni ninguna otra plataforma.
+La Figura~\ref{fig:arquitectura-propuesta} resume el recorrido principal. Las responsabilidades de las capas son las siguientes:
+
+\begin{itemize}
+  \item \textbf{Adquisición:} recopila observaciones de Steam Community Market, \acroref{BUFF}{BUFF}, SteamDT, \acroref{OCR}{OCR} e importaciones manuales.
+  \item \textbf{Persistencia:} conserva las observaciones normalizadas, los históricos, las predicciones y las decisiones simuladas.
+  \item \textbf{Predicción:} estima la probabilidad de que un candidato cumpla el criterio económico definido.
+  \item \textbf{Decisión MARL:} Scout, Trader y Portfolio proponen y validan una acción coordinada.
+  \item \textbf{Simulación de cartera:} actualiza la cartera simulada y produce métricas y recompensas. Sus resultados se registran de nuevo en la capa de persistencia.
+\end{itemize}
+
+La salida del sistema debe ser auditable. Cada predicción, acción y decisión simulada se relaciona con su fuente de datos, la versión del modelo, el episodio y la configuración de simulación. Esta trazabilidad permite distinguir un error de datos, un error del modelo y una decisión inadecuada de la política.
+
+La decisión final siempre queda registrada como simulada. Esto permite evaluar el sistema con métricas de cartera sin exponer capital durante la investigación. La arquitectura puede generar recomendaciones, registros de episodios y métricas, pero no envía órdenes a Steam, \acroref{BUFF}{BUFF} ni ninguna otra plataforma.

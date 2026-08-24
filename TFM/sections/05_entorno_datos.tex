@@ -149,7 +149,7 @@ Los conjuntos se separan por fecha y se elimina una franja de purga antes de cad
 
 \subsection{Variables de cartera}
 
-Las variables de cartera proceden del simulador. Incluyen saldo disponible, valor de posiciones abiertas, capital bloqueado por \textit{trade hold}, fecha de desbloqueo, exposición por activo, exposición por plataforma, beneficio realizado y drawdown. Estas variables son necesarias para que el agente Portfolio no decida únicamente por oportunidad local, sino por estado global de la cartera, coherentemente con la evaluación conjunta de rentabilidad y riesgo \cite{markowitz1952portfolio}.
+Las variables de cartera proceden del simulador. Incluyen saldo disponible, valor de posiciones abiertas, capital bloqueado por \textit{trade hold}, fecha de desbloqueo, exposición por activo, exposición por plataforma, beneficio neto obtenido al cerrar posiciones y drawdown. Estas variables son necesarias para que el agente Portfolio no decida únicamente por oportunidad local, sino por estado global de la cartera, coherentemente con la evaluación conjunta de rentabilidad y riesgo \cite{markowitz1952portfolio}.
 
 \section{Reglas económicas migradas}
 
@@ -180,7 +180,7 @@ El simulador representa las consecuencias de una decisión sobre el efectivo dis
 
 \subsection{Operaciones permitidas}
 
-Las operaciones básicas son comprar, vender y mantener. Una compra abre una posición con precio de compra, cantidad, plataforma y fecha de bloqueo. Una venta cierra una posición si está disponible y calcula el beneficio realizado. Mantener no modifica la posición, pero puede afectar al rendimiento si el mercado se mueve o si el capital sigue inmovilizado.
+Las operaciones básicas son comprar, vender y mantener. Una compra abre una posición con precio de compra, cantidad, plataforma y fecha de bloqueo. Una venta cierra una posición si está disponible y calcula el beneficio neto de esa operación. Mantener no modifica la posición, pero puede afectar al rendimiento si el mercado se mueve o si el capital sigue inmovilizado.
 
 \subsection{Comisiones y valoración}
 
