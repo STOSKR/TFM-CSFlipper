@@ -46,36 +46,67 @@ Cada paso registra la información utilizada, las acciones propuestas y el resul
 
 \section{Definición del entorno}
 
-El entorno representa una cartera simulada que evoluciona a partir de datos históricos. Cada episodio contiene una secuencia de observaciones de mercado y un estado interno formado por saldo disponible, posiciones abiertas, posiciones bloqueadas, fechas de desbloqueo y métricas de exposición.
+El entorno representa una cartera simulada que evoluciona a partir de datos históricos. Cada \textbf{\glosref{episodio}{episodio}} es una ejecución completa del simulador. Comienza con una cartera inicial, recorre una secuencia ordenada de instantes y termina cuando se han procesado todos los datos del periodo seleccionado. En cada instante, actualiza el saldo disponible, las posiciones abiertas, el capital bloqueado, las fechas de desbloqueo y las métricas de exposición.
 
-\subsection{Formulación como MDP}
-
-El problema se formula como un proceso de decisión de Markov, $\mathcal{M}=(\mathcal{S},\mathcal{A},\mathcal{P},\mathcal{R},\gamma)$, donde $\mathcal{S}$ representa los estados de la cartera simulada, $\mathcal{A}$ las acciones posibles, $\mathcal{P}$ la transición entre estados, $\mathcal{R}$ la recompensa y $\gamma$ el factor de descuento de las recompensas futuras.
-
-El objetivo del aprendizaje por refuerzo es obtener la política $\pi^*$ que maximiza la recompensa acumulada esperada durante un episodio:
+La propuesta concreta el proceso de decisión de Markov definido en la Sección~2.3. En este caso, puede expresarse como:
 
 \begin{equation}
-\pi^*=\arg\max_{\pi}\mathbb{E}_{\pi}\!\left[\sum_{t=0}^{T-1}\gamma^t r_{t+1}\right].
-\label{eq:objetivo-rl}
+\mathcal{M}_{\mathrm{cartera}}=(
+\mathcal{S}_{\mathrm{cartera}},
+\mathcal{A}_{\mathrm{coordinadas}},
+\mathcal{P}_{\mathrm{sim}},
+\mathcal{R}_{\mathrm{cartera}},
+\gamma).
+\label{eq:mdp-cartera}
 \end{equation}
 
-En la Ecuación~\ref{eq:objetivo-rl}, $\pi$ es la regla con la que el agente selecciona acciones, $r_{t+1}$ es la recompensa obtenida tras cada acción y $\mathbb{E}_{\pi}$ representa el promedio sobre las posibles evoluciones del episodio al seguir esa política. El factor $\gamma$ da menos peso a las recompensas más lejanas. En este trabajo, la recompensa se define a partir de la evolución de la cartera simulada y penaliza costes, riesgo, un volumen de intercambios bajo y capital bloqueado.
+En la Ecuación~\ref{eq:mdp-cartera}, $\mathcal{S}_{\mathrm{cartera}}$ describe la situación de la cartera y la información disponible sobre el artículo considerado. $\mathcal{A}_{\mathrm{coordinadas}}$ reúne las acciones propuestas por los agentes. $\mathcal{P}_{\mathrm{sim}}$ determina cómo cambia la cartera después de una acción y $\mathcal{R}_{\mathrm{cartera}}$ evalúa las consecuencias de ese cambio. El factor $\gamma$ indica cuánto peso reciben las recompensas futuras frente a las inmediatas. El objetivo de aprendizaje sigue el criterio general de la Ecuación~\ref{eq:objetivo-rl-general}: obtener una política que maximice el retorno esperado a lo largo del episodio.
 
-En este trabajo, el estado incluye la información del mercado, el saldo disponible, las posiciones abiertas y bloqueadas, las fechas de desbloqueo y la exposición acumulada. Las acciones permiten comprar, vender, mantener u observar una oportunidad, siempre sujetas a las restricciones de riesgo. La transición actualiza el saldo, las posiciones, el capital bloqueado y la exposición después de cada acción. La recompensa evalúa cómo cambia el valor neto de la cartera simulada, considerando beneficio, costes, volumen de intercambios y riesgo.
+Por ejemplo, en un instante concreto el estado puede incluir el saldo disponible, una posición bloqueada y los precios observados para un artículo. Si los agentes aprueban una compra, esa es la acción aplicada. La transición reduce el saldo, abre una posición y registra su fecha de desbloqueo. La recompensa evalúa cómo ha afectado esa decisión al valor neto y al riesgo de la cartera simulada.
 
-La exploración y el entrenamiento se realizan únicamente dentro del simulador y con datos históricos. Las acciones exploratorias modifican una cartera simulada, no una cuenta real ni los activos digitales asociados a ella. De este modo, el sistema puede probar decisiones de compra, venta o mantenimiento y observar sus consecuencias ---comisiones, \textit{trade hold}, volumen de intercambios y riesgo--- sin utilizar capital real.
+El estado global reúne toda la información disponible para el sistema. Una observación local es la parte del estado global que recibe un agente concreto para tomar su decisión. En el entorno se distinguen tres grupos de información:
 
-\subsection{Estado y observaciones}
+\begin{itemize}
+    \item \textbf{Información del artículo y de las publicaciones:} plataformas de compra y venta, tipo de publicación, precio de compra normalizado, precio de venta previsto, retorno previsto y cantidad disponible.
+    \item \textbf{Estado de cartera:} saldo disponible, saldo previsto después de la compra, capital bloqueado, exposición asociada al artículo y posiciones que ya pueden venderse o que siguen bloqueadas.
+    \item \textbf{Estimación supervisada:} probabilidad disponible para el artículo y un indicador que señala si esa estimación puede utilizarse en el episodio.
+\end{itemize}
 
-Las observaciones combinan variables de mercado y variables de cartera. Entre las variables de mercado se incluyen precios de Steam y \acroref{BUFF}{BUFF} normalizados a \acroref{EUR}{EUR}, precios originales en su moneda nativa, volumen de intercambios, spread bruto, spread neto, órdenes de compra (\textit{buy orders}), antigüedad del activo virtual y señales temporales como retornos, medias móviles, \acroref{RSI}{RSI} o desviaciones de ventas. Entre las variables de cartera se incluyen efectivo disponible, capital bloqueado, posiciones abiertas, exposición por activo y estado de desbloqueo.
+La estimación supervisada no obliga al sistema a comprar. Una probabilidad alta solo aporta una señal adicional sobre el artículo. Si la cartera supera alguno de sus límites o el capital disponible no permite una compra, la operación puede rechazarse o posponerse dentro del simulador.
 
-La salida del modelo supervisado se incorpora como una probabilidad calibrada de que una oportunidad mantenga un spread rentable en el horizonte definido. Esta señal permite aprovechar aprendizaje supervisado sin convertirlo en una decisión rígida. Si la probabilidad es alta pero la cartera está sobreexpuesta o el capital está bloqueado, el entorno puede rechazar o posponer la operación.
+El espacio de acciones es discreto y se limita a ignorar o marcar un artículo, mantener la cartera, comprar una unidad, vender una posición abierta, aprobar una propuesta o rechazarla. El entorno calcula antes de cada paso qué acciones pueden ejecutarse. Por ejemplo, no permite vender si no existe una posición desbloqueada del artículo, ni comprar si la operación supera los límites configurados.
 
-\subsection{Espacio de acciones}
+La exploración y el entrenamiento se realizan únicamente dentro del simulador y con datos históricos. Las acciones modifican una cartera simulada, no una cuenta ni artículos reales.
 
-El espacio de acciones se mantiene deliberadamente simple. Las acciones principales son comprar, vender, mantener y observar. En la parte de compra o venta puede añadirse un tamaño de posición discreto para limitar el número de combinaciones. Esta simplificación permite entrenar y depurar el entorno antes de introducir acciones continuas o reglas de asignación más complejas.
+\section{Agentes del sistema}
 
-En la versión implementada, Scout puede ignorar o marcar una oportunidad. Trader puede mantener, solicitar la compra de una unidad o solicitar la venta de una posición desbloqueada del artículo observado. Portfolio rechaza o aprueba la operación según las restricciones de cartera. Una compra requiere el acuerdo de los tres roles. Una venta requiere la solicitud de Trader, la aprobación de Portfolio, una posición abierta del mismo artículo y el fin del \textit{trade hold}.
+La arquitectura distingue entre componentes de adquisición y agentes \acroref{MARL}{MARL}. Los componentes de adquisición no se entrenan mediante aprendizaje por refuerzo ni deciden operaciones. Su trabajo es obtener datos desde Steam, \acroref{BUFF}{BUFF}, SteamDT, \acroref{OCR}{OCR} o \acroref{CSV}{CSV}/\acroref{API}{API} y transformarlos en observaciones persistidas. Los agentes \acroref{MARL}{MARL}, en cambio, operan dentro del entorno de simulación.
+
+\begin{table}[h]
+\centering
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{0.22\textwidth} >{\raggedright\arraybackslash}X}
+\toprule
+Componente o agente & Función \\
+\midrule
+\multicolumn{2}{l}{\textit{Adquisición de datos}} \\
+Steam y \acroref{BUFF}{BUFF} & Aportan precios, histórico, órdenes de compra y volumen de intercambios. \\
+SteamDT & Identifica artículos para priorizar la captura. \\
+\acroref{OCR}{OCR}, \acroref{CSV}{CSV} y \acroref{API}{API} & Incorporan capturas y archivos como observaciones. \\
+\addlinespace
+\multicolumn{2}{l}{\textit{Decisión multiagente}} \\
+Scout & Marca artículos según el retorno previsto, la disponibilidad y la señal supervisada. \\
+Trader & Propone comprar, vender o mantener. \\
+Portfolio & Valida exposición, capital bloqueado y riesgo. \\
+\bottomrule
+\end{tabularx}
+\caption{Roles del sistema.}
+\end{table}
+
+\noindent\textbf{Scout.} Scout se encarga de detectar oportunidades. Su observación está orientada a la plataforma, el tipo de publicación, el precio de compra, el retorno previsto, la disponibilidad y la probabilidad supervisada. Su papel no es decidir toda la operación, sino marcar qué artículos parecen merecer atención dentro del episodio.
+
+\noindent\textbf{Trader.} Trader decide la acción operativa principal: mantener, comprar una unidad o solicitar la venta de una posición desbloqueada. Para ello considera la señal de Scout, la información de compra y venta prevista, el retorno calculado, la probabilidad supervisada y las posiciones del mismo artículo ya presentes en la cartera.
+
+\noindent\textbf{Portfolio.} Portfolio controla la coherencia global de la cartera. Su observación incorpora saldo, capital bloqueado, exposición prevista, posiciones que pueden venderse y restricciones de riesgo. Este agente puede rechazar decisiones que parezcan favorables de forma aislada si exceden los límites configurados.
 
 \begin{algorithm}[H]
 \caption{Decisión cooperativa}
@@ -84,8 +115,8 @@ En la versión implementada, Scout puede ignorar o marcar una oportunidad. Trade
 \Require Candidato $c_t$, estado de cartera $s_t$ y observaciones locales
 \Ensure Transición de cartera y recompensa compartida $R_t$
 \State $a_t^{S} \gets \pi_S(o_t^{S})$
-\State $a_t^{T} \gets \pi_T(o_t^{T},m_t^{T})$
-\State $a_t^{P} \gets \pi_P(o_t^{P},m_t^{P})$
+\State $a_t^{T} \gets \pi_T(o_t^{T})$
+\State $a_t^{P} \gets \pi_P(o_t^{P})$
 \If{$a_t^{S}=\textit{marcar}$ \textbf{and} $a_t^{T}=\textit{comprar}$ \textbf{and} $a_t^{P}=\textit{aprobar}$ \textbf{and} $c_t$ cumple los límites}
   \State Abrir una posición simulada y bloquear su capital
 \ElsIf{$a_t^{T}=\textit{vender}$ \textbf{and} $a_t^{P}=\textit{aprobar}$ \textbf{and} existe una posición desbloqueada de $c_t$}
@@ -93,51 +124,12 @@ En la versión implementada, Scout puede ignorar o marcar una oportunidad. Trade
 \Else
   \State Mantener el saldo y registrar el motivo de no ejecución
 \EndIf
-\State Actualizar posiciones liquidables, saldo, exposición y \textit{drawdown}
-\State Calcular $R_t$ y devolver la misma recompensa a los tres agentes
+\State Actualizar el saldo, las posiciones, la exposición y las métricas de riesgo.
+\State Calcular $R_t$ y devolver la misma recompensa a los tres agentes.
 \end{algorithmic}
 \end{algorithm}
 
-Las tres primeras líneas recogen la acción propuesta por cada política: Scout marca o ignora, Trader mantiene, compra o solicita una venta y Portfolio aprueba o rechaza el riesgo. Las variables $m_t^T$ y $m_t^P$ incorporan las métricas de mercado y cartera que necesita cada rol para decidir. En una venta, Scout no necesita emitir una marca nueva porque la posición ya forma parte de la cartera.
-\subsection{Transición del entorno}
-
-Cuando se ejecuta una compra simulada, el saldo disponible disminuye y se abre una posición. Esa posición queda bloqueada durante el periodo de \textit{trade hold}. Mientras está bloqueada no puede venderse, pero sí afecta a la exposición y al capital inmovilizado. Cuando se ejecuta una venta simulada, el simulador calcula el ingreso neto aplicando comisiones, conversión de moneda y reglas de valoración. El estado de cartera se actualiza después de cada paso.
-
-\section{Agentes del sistema}
-
-La arquitectura distingue entre agentes extractores y agentes \acroref{MARL}{MARL}. Los extractores no se entrenan mediante aprendizaje por refuerzo y no deciden operaciones. Su trabajo es adquirir datos desde Steam, \acroref{BUFF}{BUFF}, SteamDT, \acroref{OCR}{OCR} o \acroref{CSV}{CSV}/\acroref{API}{API} y transformarlos en observaciones persistidas. Los agentes \acroref{MARL}{MARL}, en cambio, operan dentro del entorno de simulación.
-
-\begin{table}[h]
-\centering
-\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{0.22\textwidth} >{\raggedright\arraybackslash}X}
-\toprule
-Agente & Función \\
-\midrule
-\multicolumn{2}{l}{\textit{Adquisición de datos}} \\
-Steam y \acroref{BUFF}{BUFF} & Recogen precios, histórico, buy orders y volumen. \\
-SteamDT & Descubre candidatos para priorizar la captura. \\
-\acroref{OCR}{OCR} y \acroref{CSV}{CSV} & Convierten capturas y archivos en observaciones. \\
-\addlinespace
-\multicolumn{2}{l}{\textit{Decisión multiagente}} \\
-Scout & Filtra oportunidades por margen, volumen de intercambios y señal. \\
-Trader & Propone comprar, vender, mantener u observar. \\
-Portfolio & Valida exposición, capital bloqueado y riesgo. \\
-\bottomrule
-\end{tabularx}
-\caption{Roles del sistema.}
-\end{table}
-
-\subsection{Scout}
-
-Scout se encarga de detectar oportunidades. Su observación está orientada a señales de precio, spread, volumen de intercambios y probabilidad supervisada. Su papel no es decidir toda la operación, sino marcar qué activos parecen merecer atención dentro del episodio.
-
-\subsection{Trader}
-
-Trader decide la acción operativa principal: comprar, vender, mantener u observar. Para ello considera la señal de Scout, el estado de mercado, el posible beneficio neto y el tamaño de posición permitido. Su responsabilidad está más cerca de la ejecución de una oportunidad concreta.
-
-\subsection{Portfolio}
-
-Portfolio controla la coherencia global de la cartera. Su observación incorpora saldo, capital bloqueado, posiciones abiertas, exposición máxima y restricciones de riesgo. Este agente puede penalizar o bloquear decisiones que parezcan rentables de forma aislada pero que deterioren el perfil global de la cartera.
+Una compra simulada requiere que Scout marque el artículo, Trader solicite la compra y Portfolio la apruebe. Una venta simulada requiere la solicitud de Trader, la aprobación de Portfolio y una posición desbloqueada del mismo artículo. Scout no emite una marca nueva para vender porque la posición ya forma parte de la cartera. La recompensa compartida que recibe cada agente se explica en la Sección~4.4.
 
 \section{Función de recompensa}
 
