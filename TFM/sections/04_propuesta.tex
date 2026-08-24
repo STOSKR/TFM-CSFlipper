@@ -8,7 +8,16 @@ Por último, el capítulo define el entorno de cartera, las acciones disponibles
 
 \section{Formulación de la decisión simulada}
 
-A partir del planteamiento descrito en el Capítulo 1, la propuesta representa el caso de uso como una tarea de decisión secuencial sobre una cartera simulada, siguiendo la formulación general del aprendizaje por refuerzo \cite{sutton2018reinforcement}. En cada instante, el sistema recibe datos de los mercados secundarios, el estado de la cartera y una estimación supervisada calculada a partir de datos históricos. Los datos de mercado describen el artículo y las publicaciones disponibles, mientras que el estado de cartera recoge, entre otros elementos, el saldo disponible, las posiciones abiertas y el capital bloqueado.
+A partir del planteamiento descrito en el Capítulo 1, la propuesta representa el caso de uso como una tarea de decisión secuencial sobre una cartera simulada, siguiendo la formulación general del aprendizaje por refuerzo \cite{sutton2018reinforcement}. En cada instante, el sistema recibe datos de los mercados secundarios, el estado de la cartera y una estimación supervisada calculada a partir de datos históricos.
+
+La decisión es secuencial porque cada acción modifica las posibilidades disponibles en los instantes posteriores. Una compra reduce el saldo disponible, puede mantener capital bloqueado durante un periodo y genera una posición que condiciona una posible venta posterior. Por ello, el sistema no evalúa cada diferencia de precios de forma aislada, sino como parte de la evolución de la cartera simulada.
+
+La información utilizada para decidir se organiza en tres grupos:
+\begin{itemize}
+    \item \textbf{Datos de mercado:} artículo, precios publicados, moneda, comisiones y volumen de intercambios.
+    \item \textbf{Estado de cartera:} saldo disponible, posiciones abiertas, capital bloqueado y exposición acumulada.
+    \item \textbf{Estimación supervisada:} probabilidad obtenida a partir del histórico que orienta la decisión.
+\end{itemize}
 
 Con esta información, los agentes coordinan una propuesta de compra, venta o mantenimiento y comprueban si puede realizarse dentro del simulador. La compra requiere que el artículo, el precio de compra y el precio de venta previsto puedan compararse. La venta requiere que exista una posición del mismo artículo que no esté bloqueada y pueda venderse. Las restricciones de cartera pueden impedir que una propuesta se ejecute aunque la diferencia de precios parezca favorable.
 
