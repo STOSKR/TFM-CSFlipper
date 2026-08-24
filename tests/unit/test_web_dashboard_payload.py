@@ -61,7 +61,7 @@ def test_build_dashboard_payload_blocks_items_with_missing_prices(tmp_path: Path
                 "buff_price_eur": Decimal("22.5"),
             },
         ),
-        risk_config=PortfolioRiskConfig(min_liquidity_quantity=3),
+        risk_config=PortfolioRiskConfig(),
         backlog_root=tmp_path,
     )
 
@@ -75,7 +75,7 @@ def test_build_dashboard_payload_blocks_items_with_missing_prices(tmp_path: Path
     assert item["profitEur"] is None
     assert item["scrapedAt"] == "Sin fecha"
     assert payload["summary"] == {"total": 1, "review": 0, "observe": 0, "blocked": 1}
-    assert ["Liquidez minima", "3 unidad"] in payload["risk"]
+    assert ["Caja minima", "10.00%"] in payload["risk"]
 
 
 def test_market_items_query_reads_price_derivative_columns() -> None:

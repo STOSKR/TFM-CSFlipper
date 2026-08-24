@@ -44,7 +44,7 @@ def test_pettingzoo_market_env_runs_parallel_cycle() -> None:
     )
 
     assert next_observations == {}
-    assert rewards["trader"] == 0.1965
+    assert rewards["trader"] == 0.0
     assert terminations == {"scout": True, "trader": True, "portfolio": True}
     assert truncations == {"scout": False, "trader": False, "portfolio": False}
     assert step_infos["portfolio"]["executed_trade"] is True

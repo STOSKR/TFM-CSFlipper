@@ -203,10 +203,7 @@ def _risk_config(section: dict[str, Any]) -> PortfolioRiskConfig:
         ),
         max_item_fraction=_decimal(section, "max_item_fraction", Decimal("0.30")),
         max_platform_fraction=_decimal(section, "max_platform_fraction", Decimal("0.70")),
-        max_blocked_fraction=_decimal(section, "max_blocked_fraction", Decimal("0.60")),
         min_cash_fraction=_decimal(section, "min_cash_fraction", Decimal("0.10")),
-        min_liquidity_quantity=_int(section, "min_liquidity_quantity", 1),
-        max_volatility=_optional_decimal(section, "max_volatility", None),
         warning_usage_ratio=_decimal(section, "warning_usage_ratio", Decimal("0.80")),
     )
 

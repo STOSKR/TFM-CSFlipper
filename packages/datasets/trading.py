@@ -339,7 +339,9 @@ def trading_examples_from_history(
 
 def _daily_metrics(history: pd.DataFrame) -> pd.DataFrame:
     frame = history.copy()
-    frame["observed_at"] = pd.to_datetime(frame["observed_at"], utc=True)
+    # El archivo histórico mezcla marcas ISO con y sin microsegundos. Pedir el
+    # formato mixto evita que una variante válida descarte todo el conjunto.
+    frame["observed_at"] = pd.to_datetime(frame["observed_at"], utc=True, format="mixed")
     frame[TRADING_DATE_COLUMN] = frame["observed_at"].dt.floor("D").dt.tz_localize(None)
     frame["metric_value_numeric"] = pd.to_numeric(frame["metric_value"], errors="coerce")
     frame["price_eur_numeric"] = pd.to_numeric(frame["price_eur"], errors="coerce")

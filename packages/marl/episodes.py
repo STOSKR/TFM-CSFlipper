@@ -3,12 +3,60 @@
 from __future__ import annotations
 
 import json
+import random
+from dataclasses import dataclass
+from datetime import date, timedelta
 from pathlib import Path
 from typing import Any
 
 import pandas as pd  # type: ignore[import-untyped]
 
 from packages.marl.market_env import MarketEpisodeStep
+
+
+@dataclass(frozen=True, slots=True)
+class MarketEpisodeSource:
+    """Colección temporal de pasos desde la que se extraen episodios contiguos."""
+
+    steps: tuple[MarketEpisodeStep, ...]
+
+    def __post_init__(self) -> None:
+        if not self.steps:
+            raise ValueError("steps cannot be empty")
+
+    @property
+    def days(self) -> tuple[date, ...]:
+        return tuple(sorted({step.observed_day for step in self.steps}))
+
+    def sample_window(
+        self,
+        *,
+        days: int,
+        rng: random.Random,
+        max_steps: int | None = None,
+    ) -> tuple[MarketEpisodeStep, ...]:
+        """Selecciona una ventana de días consecutivos sin reordenar el tiempo."""
+
+        if days <= 0:
+            raise ValueError("days must be positive")
+        available_days = self.days
+        latest_full_start = available_days[-1] - timedelta(days=days - 1)
+        eligible_indices = [
+            index for index, observed_day in enumerate(available_days) if observed_day <= latest_full_start
+        ]
+        start_index = rng.choice(eligible_indices or list(range(len(available_days))))
+        start_day = available_days[start_index]
+        end_day = start_day + timedelta(days=days - 1)
+        window = tuple(
+            step for step in self.steps if start_day <= step.observed_day <= end_day
+        )
+        if not window:
+            window = (self.steps[start_index % len(self.steps)],)
+        if max_steps is not None:
+            if max_steps <= 0:
+                raise ValueError("max_steps must be positive when supplied")
+            window = window[:max_steps]
+        return window
 
 
 def load_market_episode_steps(
@@ -28,6 +76,16 @@ def load_market_episode_steps(
         for row in frame.sort_values(["observed_day", "item_id"]).to_dict(orient="records")
     )
     return tuple(MarketEpisodeStep.from_mapping(row) for row in rows)
+
+
+def load_market_episode_source(
+    path: Path | str,
+    *,
+    split: str = "train",
+) -> MarketEpisodeSource:
+    """Carga un corte temporal completo para muestrear episodios de entrenamiento."""
+
+    return MarketEpisodeSource(load_market_episode_steps(path, split=split))
 
 
 def _parquet_path(path: Path, *, split: str) -> Path:

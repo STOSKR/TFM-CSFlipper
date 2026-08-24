@@ -16,23 +16,15 @@ class PortfolioRiskConfig:
     max_position_fraction: Decimal = Decimal("0.20")
     max_item_fraction: Decimal = Decimal("0.30")
     max_platform_fraction: Decimal = Decimal("0.70")
-    max_blocked_fraction: Decimal = Decimal("0.60")
     min_cash_fraction: Decimal = Decimal("0.10")
-    min_liquidity_quantity: int = 1
-    max_volatility: Decimal | None = None
     warning_usage_ratio: Decimal = Decimal("0.80")
 
     def __post_init__(self) -> None:
         _require_unit_interval(self.max_position_fraction, "max_position_fraction")
         _require_unit_interval(self.max_item_fraction, "max_item_fraction")
         _require_unit_interval(self.max_platform_fraction, "max_platform_fraction")
-        _require_unit_interval(self.max_blocked_fraction, "max_blocked_fraction")
         _require_unit_interval(self.min_cash_fraction, "min_cash_fraction")
         _require_unit_interval(self.warning_usage_ratio, "warning_usage_ratio")
-        if self.min_liquidity_quantity < 0:
-            raise ValueError("min_liquidity_quantity must be non-negative")
-        if self.max_volatility is not None and self.max_volatility < 0:
-            raise ValueError("max_volatility must be non-negative")
 
 
 @dataclass(frozen=True, slots=True)
@@ -101,7 +93,6 @@ def evaluate_portfolio_risk(
     candidate_value = candidate.buy_value_eur if candidate else Decimal("0")
     item_exposure = _item_exposure(simulator, candidate)
     platform_exposure = _platform_exposure(simulator, candidate)
-    blocked_capital = metrics.capital_blocked_eur + candidate_value
     cash_after_candidate = metrics.cash_available_eur - candidate_value
 
     limits: dict[str, RiskLimitMetric] = {
@@ -123,12 +114,6 @@ def evaluate_portfolio_risk(
             denominator * risk_config.max_platform_fraction,
             risk_config,
         ),
-        "blocked_fraction": _max_limit(
-            "blocked_fraction",
-            blocked_capital,
-            denominator * risk_config.max_blocked_fraction,
-            risk_config,
-        ),
         "cash_floor": _min_limit(
             "cash_floor",
             cash_after_candidate,
@@ -136,25 +121,6 @@ def evaluate_portfolio_risk(
             risk_config,
         ),
     }
-    if candidate is not None and candidate.available_quantity is not None:
-        limits["liquidity"] = _min_limit(
-            "liquidity",
-            Decimal(candidate.available_quantity),
-            Decimal(risk_config.min_liquidity_quantity),
-            risk_config,
-        )
-    if (
-        candidate is not None
-        and candidate.volatility is not None
-        and risk_config.max_volatility is not None
-    ):
-        limits["volatility"] = _max_limit(
-            "volatility",
-            candidate.volatility,
-            risk_config.max_volatility,
-            risk_config,
-        )
-
     violations = tuple(name for name, metric in limits.items() if metric.breached)
     warnings = tuple(
         name for name, metric in limits.items() if metric.warning and not metric.breached
@@ -162,7 +128,7 @@ def evaluate_portfolio_risk(
     observation = {
         "cash_available_ratio": _ratio(metrics.cash_available_eur, denominator),
         "cash_after_candidate_ratio": _ratio(cash_after_candidate, denominator),
-        "blocked_capital_ratio": _ratio(blocked_capital, denominator),
+        "blocked_capital_ratio": _ratio(metrics.capital_blocked_eur, denominator),
         "open_exposure_ratio": _ratio(metrics.open_invested_eur + candidate_value, denominator),
         "drawdown_ratio": metrics.drawdown_ratio,
         "item_exposure_ratio": _ratio(item_exposure, denominator),

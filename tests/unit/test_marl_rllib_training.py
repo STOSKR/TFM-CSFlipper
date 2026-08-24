@@ -33,9 +33,13 @@ def test_rllib_market_env_exposes_vector_spaces_and_steps() -> None:
     assert step_infos["__common__"]["central_state"].shape == env.central_state_space().shape
     assert next_observations
 
-    final_observations, _rewards, final_terminations, _truncations, final_infos = env.step(
-        {"scout": 0, "trader": 0, "portfolio": 0}
-    )
+    final_observations = next_observations
+    final_terminations = terminations
+    final_infos = step_infos
+    while final_observations:
+        final_observations, _rewards, final_terminations, _truncations, final_infos = env.step(
+            {"scout": 0, "trader": 0, "portfolio": 0}
+        )
 
     assert final_observations == {}
     assert final_terminations["__all__"] is True

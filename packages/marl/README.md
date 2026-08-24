@@ -1,126 +1,69 @@
-# MARL Package
+# MARL
 
-Primer andamiaje del entorno multiagente.
+El paquete contiene el entorno de cartera, las recompensas y el entrenamiento
+CTDE de CSFlipper. Scout, Trader y Portfolio reciben observaciones locales. Un
+modelo evaluador central recibe el estado compartido únicamente durante el
+entrenamiento.
 
-`packages.marl.market_env` define un entorno paralelo minimo para Scout, Trader y Portfolio:
+## Datos y episodios
 
-- `reset()` devuelve observaciones locales por agente;
-- `step(actions)` acepta acciones simultaneas;
-- `AGENT_SPECS` declara rol, campos locales, acciones y si el agente ejecuta operaciones;
-- `action_masks()` expone acciones validas para el candidato actual;
-- solo se ejecuta una compra si Scout marca, Trader compra y Portfolio aprueba;
-- la compra usa `PortfolioSimulator` y respeta `buy_platform` del candidato;
-- la validacion usa `evaluate_portfolio_risk`;
-- la recompensa compartida usa `calculate_cooperative_reward()` y deja desglose en `info`;
-- `market_env_creator()` y `register_market_env()` preparan una fabrica registrable desde RLlib.
+`load_market_episode_steps()` carga un corte temporal de un conjunto Parquet.
+`MarketEpisodeSource` extrae ventanas de días contiguos. Nunca mezcla los
+cortes `train`, `validation` y `test`.
 
-Todavia no anade Ray/PettingZoo como dependencia obligatoria. La integracion formal de entrenamiento
-queda para la tarea MAPPO/RLlib.
-
-## Episodios
-
-`load_market_episode_steps()` carga pasos desde un parquet directo o desde un directorio de
-dataset con `train.parquet`, `validation.parquet` o `test.parquet`.
-
-Cada paso representa una oportunidad concreta de entrada/salida. `buy_platform` y `sell_platform`
-son opcionales y por compatibilidad asumen `STEAM`; cuando el candidato venga de BUFF debe usar
-`BUFF`. `buy_price_type` y `sell_price_type` distinguen `listing` de `buy_order`, porque no es lo
-mismo comprar/vender al precio normal que contra una orden.
-
-La ruta es parte del candidato, no una accion aprendida todavia. Trader decide `hold` o `buy_one`
-sobre esa ruta preconstruida. El `info` de cada agente expone `route_label`, `route_selection` y
-`cashflow`, con valor neto de salida, plataforma donde queda el saldo y valor efectivo si se modela
-cash-out.
-
-La probabilidad supervisada calibrada se expone como feature local para Scout, Trader y Portfolio
-con shape estable: `supervised_probability` y `supervised_probability_available`. Si la feature se
-desactiva para ablation, o falta prediccion en el candidato, ambos agentes mantienen los campos y
-reciben valor `0`.
-
-Para CTDE, el entorno mantiene un contrato separado de estado central en
-`MarketMARLEnvironment.central_state_fields` y `central_state()`. Ese estado combina ruta,
-cashflow, senal supervisada y riesgo de cartera. Las observaciones locales de los actores no cambian;
-el estado central queda reservado para el critico durante entrenamiento.
-
-Ejemplo:
-
-```python
-from packages.marl import MarketMARLEnvironment, load_market_episode_steps
-
-steps = load_market_episode_steps("data/datasets/trading_profit_v1", split="train", limit=100)
-env = MarketMARLEnvironment(steps)
-```
-
-## RLlib
-
-`register_market_env()` recibe la funcion `register_env` de RLlib/Ray Tune por parametro:
-
-```python
-from ray.tune.registry import register_env
-
-from packages.marl import load_market_episode_steps, register_market_env
-
-steps = load_market_episode_steps("data/datasets/trading_profit_v1", split="train", limit=100)
-register_market_env("csflipper-market", register_env, steps)
-```
-
-Con el extra `marl` instalado tambien existe un wrapper PettingZoo paralelo:
-
-```python
-from packages.marl.pettingzoo_env import PettingZooMarketEnv
-```
-
-Y un smoke de entrenamiento RLlib con PPO multiagente:
-
-```powershell
-python -m apps.cli.train_marl_rllib --dataset-dir data/datasets/trading_profit_v1 --split train --limit 8 --iterations 1
-```
-
-El smoke guarda checkpoint y reporta metricas operativas basicas. Aun no implementa critico
-centralizado MAPPO completo; esa parte queda marcada como siguiente paso de CTDE.
+Cada paso representa un candidato de compra y una posible venta posterior. El
+simulador registra las posiciones, aplica las comisiones y respeta los ocho
+días de bloqueo de intercambio antes de permitir una venta.
 
 ## Recompensas
 
-La función calculate_cooperative_reward() calcula la recompensa común vinculada a la cartera.
-La versión actual es interpretable y configurable:
+`calculate_cooperative_reward()` calcula una recompensa común solamente cuando
+se puede comprobar un resultado:
 
-- beneficio realizado neto normalizado;
-- retorno inmediato del candidato comprado como senal provisional;
-- penalizacion por oportunidad accionable ignorada;
-- penalizacion por intentar compras que violan riesgo;
-- penalización por drawdown, capital bloqueado y volatilidad si está disponible.
+- ROI neto al cerrar una posición, limitado al intervalo `[-1, 1]`.
+- Penalización por cada día posterior al bloqueo de intercambio habitual.
+- Penalización proporcional a los límites incumplidos en una compra propuesta.
 
-La función calculate_agent_reward_breakdowns() combina esa recompensa con una señal individual
-por agente. Por defecto, cada agente recibe el 70 % de la recompensa común y el 30 % de su
-señal individual:
+La recompensa híbrida combina por defecto el 70 % de la señal común con el
+30 % de una señal individual:
 
-- Scout recibe señal por marcar o ignorar una oportunidad permitida;
-- Trader recibe señal por la compra, venta o mantenimiento que propone;
-- Portfolio recibe señal por aprobar o rechazar una propuesta y por respetar los límites.
+- Scout recibe una penalización adicional si ignora una oportunidad que acaba
+  siendo rentable con saldo suficiente, o si marca una posición que se cierra
+  con ROI negativo.
+- Trader se penaliza si no propone una compra viable, propone una compra no
+  válida o termina el día por debajo del objetivo flexible pese a disponer de
+  candidatos suficientes.
+- Portfolio se penaliza si aprueba una compra que incumple límites.
 
-El entorno devuelve una recompensa distinta por agente y copia el desglose común en
-info["reward_breakdown"] y el desglose individual en info["individual_reward_breakdown"]
-para poder auditar entrenamientos.
+El entorno deja ambos desgloses en `info` para auditar una ejecución.
 
-## Prueba local
+## Entrenamiento CTDE
 
-Sin RLlib ni entrenamiento se puede ejecutar un episodio smoke con una politica fija:
-
-```powershell
-python -m apps.cli.run_marl_episode
-```
-
-Tambien puede cargar un dataset parquet versionado:
+Primero se crea el conjunto con cortes temporales:
 
 ```powershell
-python -m apps.cli.run_marl_episode --dataset-dir data/datasets/trading_profit_v1 --split train --limit 5
+python -m apps.cli.build_trading_dataset `
+  --input-parquet data/history/market_history_v1 `
+  --output data/datasets/trading_profit_v1 `
+  --horizon-days 8 --future-tolerance-days 7 --purge-gap-days 15 `
+  --validation-start 2026-01-01 --test-start 2026-03-01
 ```
 
-Esto solo valida el entorno, observaciones, acciones, recompensa y simulador de cartera. No entrena
-una politica MARL.
-
-Para probar una ablation sin senal supervisada:
+Después se entrena y se guarda el mejor checkpoint según validación:
 
 ```powershell
-python -m apps.cli.run_marl_episode --no-supervised-probability
+python -m apps.cli.train_marl_ctde `
+  --dataset-dir data/datasets/trading_profit_v1 `
+  --output-dir model-runs/marl_ctde/primera_sesion `
+  --iterations 50 --episodes-per-iteration 8 --episode-days 14
 ```
+
+El comando admite `--shared-weight`, `--roi-weight`,
+`--extra-hold-day-penalty`, `--constraint-violation-penalty`,
+`--target-investment-fraction` y `--target-investment-tolerance` para repetir
+la validación con configuraciones distintas. El checkpoint guarda los tres
+actores locales y el evaluador central. `load_ctde_policy()` permite cargar los
+actores para una recomendación posterior sin necesitar el estado central.
+
+`apps.cli.run_marl_episode` se conserva solo como comprobación manual del
+simulador. No entrena ninguna política.

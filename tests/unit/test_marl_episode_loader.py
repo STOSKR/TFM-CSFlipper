@@ -61,7 +61,7 @@ def test_load_market_episode_steps_from_dataset_split(tmp_path: Path) -> None:
         {"scout": 1, "trader": 1, "portfolio": 1}
     )
 
-    assert rewards["trader"] == 0.1965
+    assert rewards["trader"] == 0.0
     assert terminations["portfolio"] is False
     assert infos["scout"]["executed_trade"] is True
     assert infos["scout"]["sell_platform"] == "BUFF"

@@ -243,9 +243,7 @@ def _risk(config: PortfolioRiskConfig) -> list[list[str]]:
         ["Max posicion", _percent(config.max_position_fraction)],
         ["Max articulo", _percent(config.max_item_fraction)],
         ["Max plataforma", _percent(config.max_platform_fraction)],
-        ["Capital bloqueado", _percent(config.max_blocked_fraction)],
         ["Caja minima", _percent(config.min_cash_fraction)],
-        ["Liquidez minima", f"{config.min_liquidity_quantity} unidad"],
     ]
 
 

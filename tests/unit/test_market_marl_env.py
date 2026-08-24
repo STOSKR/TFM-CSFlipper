@@ -101,14 +101,13 @@ def test_market_marl_env_executes_buy_when_all_agents_accept() -> None:
     assert len(env.simulator.positions) == 1
     assert env.simulator.positions[0].buy_platform == "STEAM"
     assert env.simulator.cash_available_eur == Decimal("90")
-    assert rewards == {"scout": 0.1965, "trader": 0.1965, "portfolio": 0.1965}
+    assert rewards == {"scout": 0.0, "trader": 0.0, "portfolio": 0.0}
     assert observations["scout"]["buy_price_eur"] == 20.0
     assert env.central_state()["current_return"] == -0.05
     assert terminations == {"scout": False, "trader": False, "portfolio": False}
     assert truncations == {"scout": False, "trader": False, "portfolio": False}
     assert infos["portfolio"]["executed_trade"] is True
-    assert infos["portfolio"]["reward_breakdown"]["executed_return"] == 0.2
-    assert infos["portfolio"]["reward_breakdown"]["blocked_capital"] == -0.005
+    assert infos["portfolio"]["reward_breakdown"]["total"] == 0.0
 
 
 def test_market_marl_env_step_info_describes_processed_item() -> None:
@@ -123,12 +122,12 @@ def test_market_marl_env_step_info_describes_processed_item() -> None:
     assert infos["trader"]["item_id"] == "item-1"
     assert infos["trader"]["observed_day"] == "2026-01-01"
     assert infos["trader"]["central_state"]["current_return"] == 0.2
-    assert infos["trader"]["reward"] == 0.1965
+    assert infos["trader"]["reward"] == 0.0
     assert infos["trader"]["individual_reward_breakdown"] == {
-        "total": 0.1965,
-        "shared_component": 0.1365,
-        "individual_signal": 0.2,
-        "individual_component": 0.06,
+        "total": 0.0,
+        "shared_component": 0.0,
+        "individual_signal": 0.0,
+        "individual_component": 0.0,
     }
 
 
@@ -189,15 +188,15 @@ def test_market_marl_env_can_execute_buy_from_buff_candidate() -> None:
     [
         (
             {"scout": 1, "trader": 0, "portfolio": 1},
-            {"scout": 0.053, "trader": -0.01, "portfolio": 0.053},
+            {"scout": 0.0, "trader": 0.0, "portfolio": 0.0},
         ),
         (
             {"scout": 0, "trader": 1, "portfolio": 1},
-            {"scout": -0.01, "trader": 0.053, "portfolio": 0.053},
+            {"scout": 0.0, "trader": 0.0, "portfolio": 0.0},
         ),
         (
             {"scout": 1, "trader": 1, "portfolio": 0},
-            {"scout": 0.053, "trader": 0.053, "portfolio": -0.01},
+            {"scout": 0.0, "trader": 0.0, "portfolio": 0.0},
         ),
     ],
 )
@@ -213,7 +212,7 @@ def test_market_marl_env_requires_all_agents_to_accept_before_buy(
     assert env.simulator.positions == ()
     assert rewards == expected_rewards
     assert infos["trader"]["executed_trade"] is False
-    assert infos["trader"]["reward_breakdown"]["inactivity"] == -0.01
+    assert infos["trader"]["reward_breakdown"]["total"] == 0.0
 
 
 def test_market_marl_env_blocks_buy_when_portfolio_risk_rejects() -> None:
@@ -229,10 +228,10 @@ def test_market_marl_env_blocks_buy_when_portfolio_risk_rejects() -> None:
     )
 
     assert env.simulator.positions == ()
-    assert rewards == {"scout": -0.035, "trader": -0.035, "portfolio": -0.05}
+    assert rewards == {"scout": -0.112, "trader": -0.172, "portfolio": -0.172}
     assert infos["portfolio"]["executed_trade"] is False
     assert infos["portfolio"]["risk_violations"] == ("position_fraction",)
-    assert infos["portfolio"]["reward_breakdown"]["risk_violation"] == -0.05
+    assert infos["portfolio"]["reward_breakdown"]["invalid_purchase"] == -0.16
 
 
 def test_market_marl_env_masks_buy_when_risk_rejects_candidate() -> None:
@@ -412,8 +411,23 @@ def test_market_marl_env_sells_matching_position_after_trade_hold() -> None:
     assert infos["trader"]["executed_buy"] is False
     assert infos["trader"]["executed_sale"] is True
     assert infos["trader"]["sold_position_id"] == "pos-1"
-    assert rewards["trader"] == pytest.approx(0.23326)
+    assert rewards["trader"] == pytest.approx(0.09156)
     assert terminations["trader"] is True
+
+
+def test_market_marl_env_penalizes_scout_after_an_affordable_missed_opportunity() -> None:
+    env = MarketMARLEnvironment(_sale_episode(), initial_cash_eur=Decimal("100"))
+    _observations, _infos = env.reset()
+
+    env.step({"scout": 0, "trader": 0, "portfolio": 0})
+    env.step({"scout": 0, "trader": 0, "portfolio": 0})
+    _observations, rewards, _terminations, _truncations, infos = env.step(
+        {"scout": 0, "trader": 0, "portfolio": 0}
+    )
+
+    assert infos["scout"]["reward_breakdown"]["total"] == 0.0
+    assert rewards["scout"] == pytest.approx(-0.0654)
+    assert rewards["trader"] == 0.0
 
 
 def test_market_marl_env_keeps_supervised_observation_shape_when_prediction_is_missing() -> None:

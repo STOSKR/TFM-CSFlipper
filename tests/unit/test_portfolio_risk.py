@@ -29,7 +29,6 @@ def test_portfolio_risk_allows_candidate_inside_limits() -> None:
             max_position_fraction=Decimal("0.20"),
             max_item_fraction=Decimal("0.30"),
             max_platform_fraction=Decimal("0.70"),
-            max_blocked_fraction=Decimal("0.60"),
             min_cash_fraction=Decimal("0.10"),
         ),
         candidate=RiskCandidate(
@@ -43,7 +42,7 @@ def test_portfolio_risk_allows_candidate_inside_limits() -> None:
     assert snapshot.candidate_allowed is True
     assert snapshot.violations == ()
     assert snapshot.observation["candidate_position_ratio"] == Decimal("0.15")
-    assert snapshot.observation["blocked_capital_ratio"] == Decimal("0.25")
+    assert snapshot.observation["blocked_capital_ratio"] == Decimal("0.10")
 
 
 def test_portfolio_risk_blocks_candidate_that_breaks_exposure_limits() -> None:
@@ -64,7 +63,6 @@ def test_portfolio_risk_blocks_candidate_that_breaks_exposure_limits() -> None:
             max_position_fraction=Decimal("0.20"),
             max_item_fraction=Decimal("0.30"),
             max_platform_fraction=Decimal("0.70"),
-            max_blocked_fraction=Decimal("0.60"),
             min_cash_fraction=Decimal("0.10"),
         ),
         candidate=RiskCandidate(
@@ -81,16 +79,13 @@ def test_portfolio_risk_blocks_candidate_that_breaks_exposure_limits() -> None:
     assert snapshot.limits["item_fraction"].value == Decimal("45")
 
 
-def test_portfolio_risk_reports_liquidity_and_volatility_violations() -> None:
+def test_portfolio_risk_keeps_market_observations_outside_hard_limits() -> None:
     simulator = PortfolioSimulator(initial_cash_eur=Decimal("100"))
 
     snapshot = evaluate_portfolio_risk(
         simulator,
         as_of=date(2026, 1, 2),
-        config=PortfolioRiskConfig(
-            min_liquidity_quantity=2,
-            max_volatility=Decimal("0.25"),
-        ),
+        config=PortfolioRiskConfig(),
         candidate=RiskCandidate(
             item_id="item-1",
             buy_platform=STEAM,
@@ -100,10 +95,10 @@ def test_portfolio_risk_reports_liquidity_and_volatility_violations() -> None:
         ),
     )
 
-    assert snapshot.candidate_allowed is False
-    assert snapshot.violations == ("liquidity", "volatility")
-    assert snapshot.limits["liquidity"].breached is True
-    assert snapshot.limits["volatility"].usage_ratio == Decimal("1.2")
+    assert snapshot.candidate_allowed is True
+    assert snapshot.violations == ()
+    assert "liquidity" not in snapshot.limits
+    assert "volatility" not in snapshot.limits
 
 
 def test_portfolio_risk_without_candidate_observes_existing_max_exposures() -> None:

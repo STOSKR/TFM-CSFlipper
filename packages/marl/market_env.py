@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from typing import Any
 
@@ -48,13 +48,9 @@ CentralStateMap = dict[str, float]
 InfoMap = dict[str, dict[str, Any]]
 ActionMaskMap = dict[str, tuple[int, ...]]
 EMPTY_REWARD_BREAKDOWN = CooperativeRewardBreakdown(
-    realized_profit=Decimal("0"),
-    executed_return=Decimal("0"),
-    inactivity=Decimal("0"),
-    risk_violation=Decimal("0"),
-    drawdown=Decimal("0"),
-    blocked_capital=Decimal("0"),
-    volatility=Decimal("0"),
+    closed_operation_roi=Decimal("0"),
+    extra_hold_days=Decimal("0"),
+    invalid_purchase=Decimal("0"),
 )
 EMPTY_AGENT_REWARD_BREAKDOWN = AgentRewardBreakdown(
     shared_component=Decimal("0"),
@@ -70,6 +66,30 @@ class AgentSpec:
     observation_fields: tuple[str, ...]
     action_space: dict[int, str]
     executes_trades: bool
+
+
+@dataclass(frozen=True, slots=True)
+class AllocationTargetConfig:
+    """Objetivo flexible de capital destinado a compras en cada día simulado."""
+
+    target_fraction: Decimal = Decimal("0.50")
+    tolerance: Decimal = Decimal("0.05")
+
+    def __post_init__(self) -> None:
+        if not Decimal("0") <= self.target_fraction <= Decimal("1"):
+            raise ValueError("target_fraction must be in [0, 1]")
+        if self.tolerance < 0:
+            raise ValueError("tolerance must be non-negative")
+        if self.target_fraction + self.tolerance > Decimal("1"):
+            raise ValueError("target_fraction plus tolerance must not exceed one")
+
+    @property
+    def lower_bound(self) -> Decimal:
+        return max(Decimal("0"), self.target_fraction - self.tolerance)
+
+    @property
+    def upper_bound(self) -> Decimal:
+        return self.target_fraction + self.tolerance
 
 
 AGENT_SPECS = {
@@ -128,7 +148,7 @@ AGENT_SPECS = {
     ),
     "portfolio": AgentSpec(
         agent_id="portfolio",
-        role="Aprueba o rechaza candidatos usando exposicion, liquidez y capital bloqueado.",
+        role="Aprueba o rechaza candidatos con los límites de cartera configurados.",
         observation_fields=(
             "cash_available_ratio",
             "cash_after_candidate_ratio",
@@ -263,6 +283,17 @@ class MarketEpisodeStep:
         return None
 
 
+@dataclass(frozen=True, slots=True)
+class _MissedCandidate:
+    item_id: str
+    buy_price_eur: Decimal
+    available_cash_eur: Decimal
+    observed_day: date
+    due_day: date
+    scout_ignored: bool
+    trader_declined: bool
+
+
 class MarketMARLEnvironment:
     """Small deterministic parallel environment for the first MARL integration tests."""
 
@@ -281,6 +312,7 @@ class MarketMARLEnvironment:
         risk_config: PortfolioRiskConfig | None = None,
         reward_config: CooperativeRewardConfig | None = None,
         hybrid_reward_config: HybridRewardConfig | None = None,
+        allocation_config: AllocationTargetConfig | None = None,
         include_supervised_probability: bool = True,
     ) -> None:
         if not episode_steps:
@@ -290,11 +322,17 @@ class MarketMARLEnvironment:
         self._risk_config = risk_config or default_portfolio_risk_config()
         self._reward_config = reward_config or CooperativeRewardConfig()
         self._hybrid_reward_config = hybrid_reward_config or HybridRewardConfig()
+        self._allocation_config = allocation_config or AllocationTargetConfig()
         self._include_supervised_probability = include_supervised_probability
         self.agents = list(AGENT_IDS)
         self._simulator = PortfolioSimulator(initial_cash_eur=initial_cash_eur)
         self._index = 0
         self._terminated = False
+        self._pending_missed: list[_MissedCandidate] = []
+        self._allocation_day: date | None = None
+        self._allocation_value_eur = initial_cash_eur
+        self._allocated_eur = Decimal("0")
+        self._viable_candidate_seen = False
 
     @property
     def simulator(self) -> PortfolioSimulator:
@@ -305,6 +343,11 @@ class MarketMARLEnvironment:
         self._simulator = PortfolioSimulator(initial_cash_eur=self._initial_cash_eur)
         self._index = 0
         self._terminated = False
+        self._pending_missed = []
+        self._allocation_day = None
+        self._allocation_value_eur = self._initial_cash_eur
+        self._allocated_eur = Decimal("0")
+        self._viable_candidate_seen = False
         return self._observations(), self._infos(executed_trade=False, reward=Decimal("0"))
 
     def step(
@@ -316,6 +359,8 @@ class MarketMARLEnvironment:
 
         normalized_actions = _validated_actions(actions)
         current = self._current_step()
+        self._prepare_allocation_day(current.observed_day)
+        missed = self._resolve_missed_candidate(current)
         candidate = _risk_candidate(current)
         risk = evaluate_portfolio_risk(
             self._simulator,
@@ -332,11 +377,27 @@ class MarketMARLEnvironment:
         )
         wanted_buy = _wants_buy(normalized_actions)
         wanted_sale = _wants_sale(normalized_actions)
-        executed_buy = wanted_buy and risk.candidate_allowed
+        self._viable_candidate_seen = self._viable_candidate_seen or (
+            risk.candidate_allowed and current.current_return > 0
+        )
+        allocation_limit_breached = wanted_buy and self._would_exceed_allocation_limit(
+            current.buy_price_eur
+        )
+        risk_violations = (
+            (*risk.violations, "allocation_target")
+            if allocation_limit_breached
+            else risk.violations
+        )
+        proposed_invalid_purchase = wanted_buy and bool(risk_violations)
+        executed_buy = wanted_buy and not risk_violations
         executed_sale = False
         sold_position_id: str | None = None
-        before_metrics = self._simulator.metrics(as_of=current.observed_day)
-        execution_return: Decimal | None = None
+        closed_position: Any | None = None
+        self._record_missed_candidate(
+            current=current,
+            actions=normalized_actions,
+            risk_allowed=risk.candidate_allowed,
+        )
         if executed_buy:
             self._simulator.buy(
                 item_id=current.item_id,
@@ -351,9 +412,12 @@ class MarketMARLEnvironment:
                     "sell_platform": current.sell_platform,
                     "sell_price_type": current.sell_price_type,
                     "cash_destination": current.cash_destination,
+                    "scout_marked": normalized_actions["scout"] == 1,
+                    "trader_proposed_buy": normalized_actions["trader"] == 1,
+                    "portfolio_approved": normalized_actions["portfolio"] == 1,
                 },
             )
-            execution_return = current.current_return
+            self._allocated_eur += current.buy_price_eur
         elif wanted_sale and sale_allowed and sale_price_eur is not None:
             closed_position = self._simulator.sell(
                 sellable_positions[0].position_id,
@@ -365,31 +429,51 @@ class MarketMARLEnvironment:
             )
             executed_sale = True
             sold_position_id = closed_position.position_id
-            execution_return = closed_position.realized_return
-        executed_trade = executed_buy or executed_sale
-        after_metrics = self._simulator.metrics(as_of=current.observed_day)
-        opportunity_available = current.current_return > 0 and risk.candidate_allowed
+        closed_roi = closed_position.realized_return if closed_position is not None else None
+        extra_hold_days = (
+            max(
+                0,
+                (current.observed_day - closed_position.unlock_at).days,
+            )
+            if closed_position is not None
+            else 0
+        )
+        underinvestment_ratio = (
+            self._underinvestment_ratio(current.observed_day)
+            if self._is_end_of_allocation_day(current.observed_day)
+            else Decimal("0")
+        )
+        violation_ratio = (
+            _violation_ratio(risk, extra_limit=True) if proposed_invalid_purchase else Decimal("0")
+        )
         reward_breakdown = calculate_cooperative_reward(
-            before_metrics=before_metrics,
-            after_metrics=after_metrics,
-            executed_trade=executed_trade,
-            opportunity_available=opportunity_available,
-            risk_violations=risk.violations if wanted_buy else (),
-            opportunity_return=execution_return,
-            candidate_volatility=current.volatility if executed_buy else None,
+            closed_operation_roi=closed_roi,
+            extra_hold_days=extra_hold_days,
+            constraint_violation_ratio=violation_ratio,
             config=self._reward_config,
         )
         agent_reward_breakdowns = calculate_agent_reward_breakdowns(
             agents=AGENT_IDS,
             shared_breakdown=reward_breakdown,
-            actions=normalized_actions,
-            executed_buy=executed_buy,
-            executed_sale=executed_sale,
-            opportunity_available=opportunity_available,
-            risk_violations=risk.violations if wanted_buy else (),
-            candidate_return=current.current_return,
-            executed_return=execution_return,
-            cooperative_config=self._reward_config,
+            closed_operation_roi=closed_roi,
+            scout_marked_closed_item=bool(
+                closed_position is not None and closed_position.metadata.get("scout_marked")
+            ),
+            missed_opportunity_roi=None if missed is None else missed[0],
+            missed_opportunity_affordable=bool(
+                missed is not None
+                and missed[1].scout_ignored
+                and missed[1].available_cash_eur >= missed[1].buy_price_eur
+            ),
+            trader_declined_viable_purchase=bool(
+                missed is not None and missed[1].trader_declined
+            ),
+            trader_proposed_invalid_purchase=proposed_invalid_purchase,
+            trader_underinvestment_ratio=underinvestment_ratio,
+            portfolio_approved_invalid_purchase=(
+                proposed_invalid_purchase and normalized_actions["portfolio"] == 1
+            ),
+            constraint_violation_ratio=violation_ratio,
             hybrid_config=self._hybrid_reward_config,
         )
 
@@ -402,7 +486,7 @@ class MarketMARLEnvironment:
         infos = self._infos(
             step=current,
             action_masks=action_masks,
-            executed_trade=executed_trade,
+            executed_trade=executed_buy or executed_sale,
             executed_buy=executed_buy,
             executed_sale=executed_sale,
             sold_position_id=sold_position_id,
@@ -410,7 +494,7 @@ class MarketMARLEnvironment:
             reward=reward_breakdown.total,
             reward_breakdown=reward_breakdown,
             agent_reward_breakdowns=agent_reward_breakdowns,
-            risk_violations=risk.violations,
+            risk_violations=risk_violations,
         )
         if self._terminated:
             self.agents = []
@@ -557,6 +641,96 @@ class MarketMARLEnvironment:
             )
         )
 
+    def _record_missed_candidate(
+        self,
+        *,
+        current: MarketEpisodeStep,
+        actions: Mapping[str, int],
+        risk_allowed: bool,
+    ) -> None:
+        """Retiene una oportunidad no comprada hasta poder observar su resultado.
+
+        Este resultado contrafactual se usa exclusivamente al entrenar. No se
+        expone como información futura al actor cuando toma la decisión.
+        """
+
+        if not risk_allowed or actions["trader"] == 2:
+            return
+        scout_ignored = actions["scout"] == 0
+        trader_declined = actions["scout"] == 1 and actions["trader"] != 1
+        if not scout_ignored and not trader_declined:
+            return
+        self._pending_missed.append(
+            _MissedCandidate(
+                item_id=current.item_id,
+                buy_price_eur=current.buy_price_eur,
+                available_cash_eur=self._simulator.cash_available_eur,
+                observed_day=current.observed_day,
+                due_day=current.observed_day + self._hold_duration(),
+                scout_ignored=scout_ignored,
+                trader_declined=trader_declined,
+            )
+        )
+
+    def _resolve_missed_candidate(
+        self,
+        current: MarketEpisodeStep,
+    ) -> tuple[Decimal, _MissedCandidate] | None:
+        for index, candidate in enumerate(self._pending_missed):
+            if candidate.item_id != current.item_id or current.observed_day < candidate.due_day:
+                continue
+            self._pending_missed.pop(index)
+            roi = return_ratio(
+                current.current_exit_net_eur - candidate.buy_price_eur,
+                candidate.buy_price_eur,
+            )
+            return roi, candidate
+        return None
+
+    def _hold_duration(self) -> timedelta:
+        return timedelta(days=self._simulator.config.trade_hold_days)
+
+    def _prepare_allocation_day(self, observed_day: date) -> None:
+        if self._allocation_day == observed_day:
+            return
+        metrics = self._simulator.metrics(as_of=observed_day)
+        self._allocation_day = observed_day
+        self._allocation_value_eur = max(metrics.equity_eur, Decimal("1"))
+        self._allocated_eur = Decimal("0")
+        self._viable_candidate_seen = False
+
+    def _would_exceed_allocation_limit(self, buy_price_eur: Decimal) -> bool:
+        proposed_fraction = (self._allocated_eur + buy_price_eur) / self._allocation_value_eur
+        return proposed_fraction > self._allocation_config.upper_bound
+
+    def _underinvestment_ratio(self, observed_day: date) -> Decimal:
+        if not self._viable_candidate_seen:
+            return Decimal("0")
+        lower_bound = self._allocation_config.lower_bound
+        if lower_bound <= 0:
+            return Decimal("0")
+        available_capacity = sum(
+            (
+                step.buy_price_eur
+                for step in self._episode_steps
+                if step.observed_day == observed_day and step.current_return > 0
+            ),
+            Decimal("0"),
+        )
+        if available_capacity < lower_bound * self._allocation_value_eur:
+            return Decimal("0")
+        allocated_fraction = self._allocated_eur / self._allocation_value_eur
+        if allocated_fraction >= lower_bound:
+            return Decimal("0")
+        return (lower_bound - allocated_fraction) / lower_bound
+
+    def _is_end_of_allocation_day(self, observed_day: date) -> bool:
+        next_index = self._index + 1
+        return (
+            next_index >= len(self._episode_steps)
+            or self._episode_steps[next_index].observed_day != observed_day
+        )
+
     def _position_state_for(self, step: MarketEpisodeStep) -> dict[str, float]:
         matching_positions = tuple(
             position
@@ -631,6 +805,15 @@ def _risk_candidate(step: MarketEpisodeStep) -> RiskCandidate:
         available_quantity=step.available_quantity,
         volatility=step.volatility,
     )
+
+
+def _violation_ratio(risk: Any, *, extra_limit: bool = False) -> Decimal:
+    """Return the violated share of the limits checked for one proposal."""
+
+    total_limits = len(risk.limits) + int(extra_limit)
+    if total_limits == 0:
+        return Decimal("0")
+    return Decimal(len(risk.violations)) / Decimal(total_limits)
 
 
 def _state_features(
