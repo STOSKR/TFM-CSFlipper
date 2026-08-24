@@ -1,6 +1,10 @@
 \chapter{Arquitectura multiagente propuesta}
 
-\noindent En este capítulo se describe la arquitectura planteada para convertir datos de mercado en decisiones simuladas. La arquitectura establece una coordinación cooperativa entre roles diferenciados que comparten el objetivo de evaluar la cartera simulada. Se presentan sus capas, el flujo de información, el entorno de cartera y la distribución de responsabilidades entre los agentes Scout, Trader y Portfolio.
+\noindent Este capítulo presenta la arquitectura multiagente propuesta para transformar datos de mercados secundarios en decisiones de compraventa simuladas. Una arquitectura define cómo se organizan y se comunican los componentes de un sistema para alcanzar un objetivo. En este trabajo, esos componentes reciben datos de los mercados secundarios, preparan la información necesaria y evalúan decisiones sobre una cartera simulada.
+
+La propuesta separa las responsabilidades de adquisición de datos, persistencia, predicción, decisión multiagente y simulación. Esta separación permite distinguir la obtención y preparación de los datos de la decisión posterior. También facilita comprobar cada componente sin confundir una estimación de mercado con una decisión de compra o venta.
+
+Por último, el capítulo define el entorno de cartera, las acciones disponibles, la evolución del estado y la distribución de responsabilidades entre los agentes. Asimismo, presenta las recompensas individuales y cooperativas que orientan el aprendizaje, junto con las restricciones de riesgo que limitan las decisiones. La evaluación se realiza dentro del simulador, sin ejecutar operaciones en los mercados secundarios.
 
 \section{Formulación técnica del sistema}
 
