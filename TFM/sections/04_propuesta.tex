@@ -6,7 +6,7 @@ La propuesta separa las responsabilidades de adquisición de datos, persistencia
 
 Por último, el capítulo define el entorno de cartera, las acciones disponibles, la evolución del estado y la distribución de responsabilidades entre los agentes. Asimismo, presenta las recompensas individuales y cooperativas que orientan el aprendizaje, junto con las restricciones de riesgo que limitan las decisiones. La evaluación se realiza dentro del simulador, sin ejecutar operaciones en los mercados secundarios.
 
-\section{Formulación de la decisión simulada}
+\section{Proceso de decisión simulado}
 
 A partir del planteamiento descrito en el Capítulo 1, la propuesta representa el caso de uso como una tarea de decisión secuencial sobre una cartera simulada, siguiendo la formulación general del aprendizaje por refuerzo \cite{sutton2018reinforcement}. En cada instante, el sistema recibe datos de los mercados secundarios, el estado de la cartera y una estimación supervisada calculada a partir de datos históricos.
 
@@ -19,64 +19,30 @@ La información utilizada para decidir se organiza en tres grupos:
     \item \textbf{Estimación supervisada:} probabilidad obtenida a partir del histórico que orienta la decisión.
 \end{itemize}
 
-Con esta información, los agentes coordinan una propuesta de compra, venta o mantenimiento y comprueban si puede realizarse dentro del simulador. La compra requiere que el artículo, el precio de compra y el precio de venta previsto puedan compararse. La venta requiere que exista una posición del mismo artículo que no esté bloqueada y pueda venderse. Las restricciones de cartera pueden impedir que una propuesta se ejecute aunque la diferencia de precios parezca favorable.
+Con esta información, los agentes coordinan una propuesta de compra, venta o mantenimiento y comprueban si puede realizarse dentro del simulador. Para simular una compra, la publicación empleada para obtener el precio de compra y la publicación utilizada para estimar el precio de venta deben corresponder al mismo artículo y sus precios deben expresarse en una moneda común. Para simular una venta, debe existir una posición del mismo artículo que no esté bloqueada. Las restricciones de cartera pueden impedir que una propuesta se ejecute aunque la diferencia de precios parezca favorable.
 
 El simulador evalúa cada decisión considerando las condiciones de intercambio descritas en el Capítulo 3: conversión de moneda, comisiones, volumen de intercambios, periodo de bloqueo de intercambio y exposición acumulada a un artículo o a una plataforma. El objetivo es incrementar el valor neto de la cartera simulada sin superar los límites de riesgo ni comprometer más capital del permitido.
 
-La arquitectura organiza esta tarea en cinco capas: adquisición, persistencia, predicción, decisión multiagente y simulación. Las tres primeras obtienen, normalizan, conservan y transforman los datos en estimaciones a partir del histórico disponible. Las dos últimas utilizan esa información para coordinar decisiones y calcular sus consecuencias dentro del simulador. Esta separación evita confundir una estimación de mercado con una decisión de compraventa.
+El flujo comienza cuando los componentes de adquisición recopilan datos de los mercados secundarios y de las fuentes auxiliares. Antes de utilizar los datos extraídos, se normalizan y se conservan junto con su instante de captura para construir un histórico trazable.
 
-\section{Visión general del sistema}
-
-La arquitectura se organiza en cinco capas: adquisición, persistencia, predicción, decisión multiagente y simulación. Cada capa tiene una responsabilidad concreta y se comunica con la siguiente mediante datos normalizados. Esta decisión de diseño reduce el acoplamiento y permite validar cada parte por separado, una práctica habitual en entornos de trading reproducibles y backtesting \cite{liu2021finrl}.
-
-\begin{figure}[h]
-\centering
-\fbox{
-\begin{minipage}{0.92\textwidth}
-\centering
-\begin{tabularx}{0.95\textwidth}{>{\bfseries}l X}
-1. Adquisición & Steam, \acroref{BUFF}{BUFF}, SteamDT, \acroref{OCR}{OCR} e importaciones manuales capturan observaciones. \\
-2. Persistencia & Postgres/Supabase guarda artículos, históricos, snapshots, predicciones y decisiones simuladas. \\
-3. Predicción & El modelo supervisado genera probabilidades calibradas y señales de mercado. \\
-4. Decisión \acroref{MARL}{MARL} & Scout, Trader y Portfolio deciden dentro del entorno PettingZoo/\acroref{RLlib}{RLlib}. \\
-5. Simulación & La cartera aplica comisiones, divisas, \textit{trade hold}, riesgo y métricas. \\
-\end{tabularx}
-\end{minipage}
-}
-\caption{Capas del sistema.}
-\end{figure}
-
-La decisión final siempre queda registrada como simulada. Esto permite evaluar el sistema con métricas de cartera sin exponer capital durante la investigación. La arquitectura puede generar recomendaciones, episodios y métricas, pero no envía órdenes a Steam, \acroref{BUFF}{BUFF} ni ninguna otra plataforma.
-
-\section{Flujo operativo}
-
-El flujo operativo comienza con artículos localizados mediante una búsqueda de mercado o una fuente de descubrimiento. Los agentes extractores consultan las fuentes disponibles, capturan precios, buy orders, volumen y metadatos, y construyen observaciones normalizadas. Después, la persistencia conserva el histórico en formato auditable para que el dataset pueda reconstruirse sin depender de una sesión concreta de scraping.
-
-Sobre ese histórico se construyen características de mercado. El modelo supervisado produce una probabilidad calibrada de oportunidad rentable en un horizonte determinado. Esa probabilidad no se interpreta como una orden de compra, sino como una característica adicional que los agentes \acroref{MARL}{MARL} pueden utilizar. Finalmente, el entorno multiagente genera una observación para cada política, recoge sus acciones y aplica las reglas del simulador.
+Sobre el histórico se calculan las variables necesarias para obtener una estimación supervisada. Una probabilidad alta indica que una posible operación merece pasar a la fase de decisión, pero los agentes todavía deben comprobar el estado de la cartera y las restricciones antes de aprobar una compra simulada. El entorno de cartera combina esa información con el estado de la cartera, genera una observación local para cada agente multiagente y coordina sus acciones dentro del simulador.
 
 \begin{algorithm}
-\caption{Ciclo de decisión}
+\caption{Flujo de información y decisión simulada}
 \begin{algorithmic}[1]
-\State Recoger observaciones recientes del mercado.
-    \State Normalizar precios, moneda, volumen de intercambios y metadatos de plataforma.
-\State Actualizar el estado de cartera y las variables de riesgo.
-\State Calcular señales supervisadas disponibles para el episodio.
-\State Generar una observación local para Scout, Trader y Portfolio.
-\State Obtener acciones de los agentes y aplicar restricciones de riesgo.
-\State Simular la decisión final sobre la cartera.
+\Require Datos de mercado, estado de cartera y estimación supervisada opcional
+\Ensure Cartera actualizada, recompensa y registro trazable
+\State Normalizar los datos de mercado y conservar la captura.
+\State Consultar el estado de cartera y calcular las restricciones aplicables.
+\State Incorporar la estimación supervisada cuando esté disponible.
+\State Generar una observación local para cada agente multiagente.
+\State Obtener las acciones coordinadas y aplicar las restricciones de riesgo.
+\State Simular la transición y actualizar saldo, posiciones y capital bloqueado.
 \State Calcular recompensa, métricas y trazabilidad del episodio.
 \end{algorithmic}
 \end{algorithm}
 
-\subsection{Clasificación de oportunidades}
-
-Después de recopilar los precios y las condiciones de un activo digital, el sistema clasifica la posible operación en uno de tres estados. Esta clasificación no sustituye la decisión de la persona usuaria, sino que organiza las posibles operaciones que conviene atender antes.
-
-\begin{description}
-    \item[\emph{Revisar}] La información disponible y el resultado económico estimado justifican una comprobación manual.
-    \item[\emph{Observar}] Faltan datos o conviene esperar una nueva captura antes de evaluar la posible operación.
-    \item[\emph{Bloquear}] Los costes, el riesgo o las restricciones de cartera impiden continuar con la posible operación.
-\end{description}
+Cada paso registra la información utilizada, las acciones propuestas y el resultado de la simulación. Este registro permite reconstruir cómo se obtuvo una recomendación y diferenciar la información de partida de las consecuencias que calcula el simulador.
 
 \section{Definición del entorno}
 
@@ -212,3 +178,26 @@ Aquí, $\Delta \Pi_t$ es el cambio en beneficio realizado en euros, $\rho_t$ es 
 Las restricciones de riesgo se introducen antes de escalar el entrenamiento. Las más importantes son: no usar capital inexistente, limitar exposición por activo o plataforma, rechazar operaciones con un volumen de intercambios insuficiente, respetar el \textit{trade hold}, controlar el capital bloqueado y separar claramente simulación de operación. Estas restricciones de riesgo son sencillas, pero evitan que los agentes aprendan políticas imposibles de ejecutar en el mercado.
 
 La salida del sistema debe ser siempre auditable. Cada predicción, acción o decisión simulada debe poder relacionarse con su fuente de datos, versión de modelo, episodio y configuración de simulación. Esta trazabilidad es necesaria para interpretar resultados y para distinguir entre error de datos, error de modelo y mala política de decisión.
+
+\section{Síntesis de la arquitectura propuesta}
+
+La arquitectura se organiza en cinco capas: adquisición, persistencia, predicción, decisión multiagente y simulación. Cada capa tiene una responsabilidad concreta y se comunica con la siguiente mediante datos normalizados. Esta decisión de diseño reduce el acoplamiento y permite validar cada parte por separado, una práctica habitual en entornos de trading reproducibles y backtesting \cite{liu2021finrl}.
+
+\begin{figure}[h]
+\centering
+\fbox{
+\begin{minipage}{0.92\textwidth}
+\centering
+\begin{tabularx}{0.95\textwidth}{>{\bfseries}l X}
+1. Adquisición & Steam, \acroref{BUFF}{BUFF}, SteamDT, \acroref{OCR}{OCR} e importaciones manuales capturan observaciones. \\
+2. Persistencia & Postgres/Supabase guarda artículos, históricos, snapshots, predicciones y decisiones simuladas. \\
+3. Predicción & El modelo supervisado genera probabilidades calibradas y señales de mercado. \\
+4. Decisión \acroref{MARL}{MARL} & Scout, Trader y Portfolio deciden dentro del entorno PettingZoo/\acroref{RLlib}{RLlib}. \\
+5. Simulación & La cartera aplica comisiones, divisas, \textit{trade hold}, riesgo y métricas. \\
+\end{tabularx}
+\end{minipage}
+}
+\caption{Capas del sistema.}
+\end{figure}
+
+La decisión final siempre queda registrada como simulada. Esto permite evaluar el sistema con métricas de cartera sin exponer capital durante la investigación. La arquitectura puede generar recomendaciones, episodios y métricas, pero no envía órdenes a Steam, \acroref{BUFF}{BUFF} ni ninguna otra plataforma.
