@@ -109,7 +109,7 @@ def _training_config(values: dict[str, Any], *, output_dir: Path) -> CTDETrainin
             ),
         ),
         hybrid_reward_config=HybridRewardConfig(
-            shared_weight=Decimal(str(values.get("shared_weight", "0.90")))
+            shared_weight=Decimal(str(values.get("shared_weight", "0.70")))
         ),
         allocation_config=AllocationTargetConfig(
             target_fraction=Decimal(str(values.get("target_investment_fraction", "0.50"))),

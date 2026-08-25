@@ -74,7 +74,7 @@ def _training_args(
 
 def _default_model_output_dir(now: datetime) -> Path:
     run_id = now.strftime("%Y%m%d_%H%M%S")
-    return Path("model-runs") / "trading_profit_v1" / run_id
+    return Path("model-runs") / "trading_profit_v2" / run_id
 
 
 def _midnight_utc(value: datetime) -> datetime:
@@ -86,7 +86,7 @@ def main() -> None:
         description="Rebuild trading features and train a supervised model."
     )
     parser.add_argument("--config", type=Path, default=Path("csflipper_config.toml"))
-    parser.add_argument("--dataset-dir", type=Path, default=Path("data/datasets/trading_profit_v1"))
+    parser.add_argument("--dataset-dir", type=Path, default=Path("data/datasets/trading_profit_v2"))
     parser.add_argument("--model-output-dir", type=Path)
     parser.add_argument(
         "--trade-direction",
@@ -96,7 +96,7 @@ def main() -> None:
     parser.add_argument("--horizon-days", type=int, default=8)
     parser.add_argument("--future-tolerance-days", type=int, default=7)
     parser.add_argument("--min-profit-eur", type=str, default="0")
-    parser.add_argument("--min-return", type=str, default="0")
+    parser.add_argument("--min-return", type=str, default="0.10")
     parser.add_argument("--cny-per-eur", type=str, default="8")
     parser.add_argument("--buff-sale-factor", type=str, default="0.975")
     parser.add_argument("--start-date", type=_date_arg)

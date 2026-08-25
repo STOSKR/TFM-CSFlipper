@@ -55,6 +55,6 @@ def test_retrain_trading_model_defaults_use_timestamped_model_run() -> None:
     now = datetime(2026, 7, 6, 1, 2, 3, tzinfo=UTC)
 
     assert _default_model_output_dir(now) == Path(
-        "model-runs/trading_profit_v1/20260706_010203"
+        "model-runs/trading_profit_v2/20260706_010203"
     )
     assert _midnight_utc(now) == datetime(2026, 7, 6, tzinfo=UTC)

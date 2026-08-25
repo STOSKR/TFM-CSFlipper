@@ -281,7 +281,7 @@ def main() -> None:
     parser.add_argument("--horizon-days", type=int, default=8)
     parser.add_argument("--cny-per-eur", type=str, default="8")
     parser.add_argument("--min-profit-eur", type=str, default="0")
-    parser.add_argument("--min-return", type=str, default="0")
+    parser.add_argument("--min-return", type=str, default="0.10")
     parser.add_argument("--persist", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--verbose", action="store_true")

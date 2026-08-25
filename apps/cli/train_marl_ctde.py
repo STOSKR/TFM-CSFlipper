@@ -20,7 +20,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description="Train decentralized MARL actors with a centralized evaluator."
     )
-    parser.add_argument("--dataset-dir", type=Path, default=Path("data/datasets/trading_profit_v1"))
+    parser.add_argument("--dataset-dir", type=Path, default=Path("data/datasets/trading_profit_v2"))
     parser.add_argument("--output-dir", type=Path, default=Path("model-runs/marl_ctde"))
     parser.add_argument("--cash", type=str, default="1000")
     parser.add_argument("--iterations", type=int, default=50)

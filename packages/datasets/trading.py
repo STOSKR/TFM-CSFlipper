@@ -70,7 +70,7 @@ class TradingDatasetBuildConfig:
     horizon_days: int = 8
     future_tolerance_days: int = 0
     min_profit_eur: Decimal = Decimal("0")
-    min_return: Decimal = Decimal("0")
+    min_return: Decimal = Decimal("0.10")
     cny_per_eur: Decimal = Decimal("8")
     steam_sale_factor: Decimal = Decimal("0.87")
     buff_sale_factor: Decimal = Decimal("0.975")

@@ -118,7 +118,7 @@ def main() -> None:
         type=Path,
         help="Archivo Parquet o directorio de histórico particionado creado por el refresco.",
     )
-    parser.add_argument("--output", type=Path, default=Path("data/datasets/trading_profit_v1"))
+    parser.add_argument("--output", type=Path, default=Path("data/datasets/trading_profit_v2"))
     parser.add_argument(
         "--trade-direction",
         choices=("buff_to_steam_sell", "steam_to_buff_buy_order"),
@@ -133,7 +133,7 @@ def main() -> None:
         help="Days excluded before each split boundary to prevent outcome overlap.",
     )
     parser.add_argument("--min-profit-eur", type=str, default="0")
-    parser.add_argument("--min-return", type=str, default="0")
+    parser.add_argument("--min-return", type=str, default="0.10")
     parser.add_argument("--cny-per-eur", type=str, default="8")
     parser.add_argument("--buff-sale-factor", type=str, default="0.975")
     parser.add_argument("--start-date", type=_date_arg)
