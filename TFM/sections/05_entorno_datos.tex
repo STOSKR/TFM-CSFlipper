@@ -6,18 +6,16 @@ El capítulo presenta después las variables construidas a partir del histórico
 
 \section{Fuentes de datos}
 
-El flujo principal comienza con SteamDT, que permite descubrir artículos candidatos a partir de una visión general del mercado de \acroref{CS2}{CS2} \cite{steamDT}. Los candidatos se contrastan después con Steam Community Market, el mercado integrado de Steam, y con \acroref{BUFF}{BUFF}, una plataforma externa. Cada fuente desempeña una función concreta:
+El Capítulo~\ref{chap:caso-estudio} describe los mercados secundarios que delimitan el caso de estudio. Este apartado no vuelve a definirlos, sino que concreta el uso de cada fuente dentro del flujo de datos. El flujo principal comienza con SteamDT y continúa con la consulta de Steam Community Market y \acroref{BUFF}{BUFF} para los artículos seleccionados:
 
 \begin{itemize}
-  \item \textbf{SteamDT} localiza artículos que conviene observar con mayor detalle. No proporciona por sí solo una decisión de compra o venta.
-  \item \textbf{Steam Community Market} aporta precios actuales, órdenes de compra, volumen de intercambios y series históricas \cite{steamMarketFAQ}. Su histórico constituye la fuente principal para construir el dataset temporal.
-  \item \textbf{\acroref{BUFF}{BUFF}} aporta precios actuales en una plataforma externa y órdenes de compra que permiten contrastar una posible operación de compraventa entre plataformas \cite{buffMarketplace}.
-  \item \textbf{\acroref{OCR}{OCR}} e \textbf{importación manual} son alternativas complementarias cuando no se dispone de una observación estructurada. Permiten incorporar capturas, tablas o muestras controladas sin alterar el flujo principal.
+  \item \textbf{SteamDT} genera una lista inicial de artículos candidatos \cite{steamDT}. Esta lista reduce el número de artículos que deben consultarse en las fuentes de precio.
+  \item \textbf{Steam Community Market} proporciona observaciones actuales e históricas de precio, órdenes de compra y volumen de intercambios \cite{steamMarketFAQ}. Su histórico se utiliza para construir el dataset temporal.
+  \item \textbf{\acroref{BUFF}{BUFF}} proporciona el precio actual de compra y las órdenes de compra con los que se contrasta una operación de compraventa entre plataformas \cite{buffMarketplace}. No se utiliza como fuente histórica principal del entrenamiento.
+  \item \textbf{\acroref{OCR}{OCR}} e \textbf{importación manual} son alternativas complementarias cuando falta una observación estructurada. Permiten incorporar capturas, tablas o muestras controladas sin modificar el flujo principal.
 \end{itemize}
 
-Steam aporta una serie temporal de precios y volumen de intercambios. A partir de esa serie se construyen variables que describen la evolución de cada artículo, como retornos, medias móviles y volatilidad. \acroref{BUFF}{BUFF} se utiliza para contrastar el precio actual de compra de una operación concreta, pero no constituye la fuente histórica principal del entrenamiento. Esta separación evita que el entrenamiento dependa de capturas recurrentes de \acroref{BUFF}{BUFF}.
-
-Cada observación conserva la fuente, la fecha de captura, la moneda original y los atributos que identifican el artículo. La normalización de estos campos y los controles aplicados antes de aceptar una observación se describen en la siguiente sección. Los procedimientos técnicos de captura, incluido el \acroref{OCR}{OCR}, se presentan en el Capítulo 6.
+Cada observación conserva la fuente, la fecha de captura, la moneda original y los atributos que identifican el artículo. La siguiente sección describe cómo se normalizan y validan estos campos. Los procedimientos técnicos de captura se presentan en el Capítulo 6.
 
 \section{Adquisición y persistencia}
 
