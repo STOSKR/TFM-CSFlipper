@@ -1,20 +1,24 @@
 \chapter{Implementación y operación}
 
-\noindent Este capítulo traslada la propuesta a componentes de software. Describe cómo se conectan los flujos de adquisición, persistencia y consulta local para mantener la trazabilidad de las oportunidades. La estructura detallada del código se incluye en el Anexo~\ref{anx:repositorio}.
+\noindent Este capítulo describe la implementación del sistema propuesto. Explica cómo se obtienen y almacenan los datos de los mercados, cómo se construyen los conjuntos temporales para los modelos y cómo se conectan la predicción supervisada, el simulador de cartera y el entorno multiagente. También presenta la consola local utilizada para consultar oportunidades, ejecutar tareas de captura y revisar el estado de los componentes.
 
-\section{Organización del sistema}
+La implementación mantiene separadas la adquisición de datos, la persistencia, la preparación de conjuntos, los modelos y la interfaz de consulta. Esta separación permite repetir un experimento, localizar el origen de un dato y revisar una oportunidad sin ejecutar compras ni ventas reales. La estructura detallada del código se incluye en el Anexo~\ref{anx:repositorio}.
 
-La implementación separa las responsabilidades de adquisición, persistencia, simulación, predicción y operación local. Esta separación permite ejecutar un scraper, repetir un entrenamiento o consultar el panel sin mezclar esas tareas con las reglas económicas y los contratos de datos.
+\section{Componentes y responsabilidades}
 
-La predicción tabular se ejecuta con scikit-learn y los modelos entrenados se conservan con Joblib. El entorno multiagente se implementa con PettingZoo y se conecta con Ray/\acroref{RLlib}{RLlib}; Gymnasium y PyTorch forman parte de ese ecosistema de entrenamiento. Las pruebas unitarias y de integración se ejecutan con Pytest y pytest-asyncio, mientras que Ruff y Mypy se emplean para revisar estilo y tipos. Cada herramienta se utiliza en el componente que corresponde, de modo que el código no sustituye a la explicación metodológica de los capítulos anteriores.
+La implementación se organiza en componentes que intercambian datos mediante contratos explícitos. Un extractor no entrega directamente una recomendación. Entrega un registro de mercado con el artículo, la fuente, la fecha de captura, el precio, la moneda, el volumen, el origen y la calidad de la lectura. La persistencia conserva esa información y los módulos posteriores construyen las variables o ejecutan los modelos que correspondan. Esta secuencia permite localizar un error sin repetir todo el flujo.
 
-Las capas se comunican mediante contratos explícitos. Por ejemplo, un extractor no entrega directamente una recomendación. Entrega una observación con artículo, plataforma, fecha, precio, moneda, volumen, origen y calidad. La persistencia conserva esta información y los módulos de datos construyen después las variables necesarias para cada experimento. Esta secuencia facilita localizar un error sin tener que rehacer todo el flujo.
+\begin{itemize}
+  \item \textbf{Adquisición:} localiza artículos, consulta las fuentes y convierte cada resultado en un registro de mercado trazable.
+  \item \textbf{Persistencia y preparación:} conserva el estado más reciente y el histórico incremental. A partir de este último crea los conjuntos temporales descritos en el Capítulo~5.
+  \item \textbf{Predicción y simulación:} calcula las variables de entrada, carga modelos supervisados y reproduce compras y ventas dentro del simulador definido en el Capítulo~\ref{chap:propuesta}.
+  \item \textbf{Entorno multiagente:} utiliza el simulador como motor de contabilidad y entrega observaciones, acciones, recompensas y resultados para el entrenamiento.
+  \item \textbf{Consola local:} permite ejecutar tareas controladas y revisar oportunidades, sesiones y resultados sin enviar órdenes a los mercados.
+\end{itemize}
 
-\section{Flujo operativo de adquisición}
+La predicción tabular se implementa con scikit-learn y los artefactos entrenados se conservan con Joblib junto con sus metadatos. El entorno multiagente dispone de una interfaz PettingZoo y de una integración con Ray/\acroref{RLlib}{RLlib}; Gymnasium y PyTorch proporcionan los componentes de apoyo para estas ejecuciones. Las pruebas unitarias y de integración se ejecutan con Pytest y pytest-asyncio, mientras que Ruff y Mypy revisan estilo y tipos. Estas herramientas materializan la propuesta, pero no sustituyen la justificación metodológica de los capítulos anteriores.
 
-Esta sección explica cómo se ejecuta la recogida de datos y cómo se mantiene su trazabilidad. Se describen las sesiones necesarias para acceder a las fuentes, el proceso de scraping y el almacenamiento incremental de las observaciones.
-
-\subsection{Sesiones, scraping y trazabilidad}
+\section{Adquisición y persistencia de datos}
 
 Las fuentes que necesitan navegación se ejecutan con Playwright en un navegador visible cuando es necesario iniciar sesión. La sesión no se guarda en el repositorio ni en el archivo de configuración. Se almacena localmente como estado de navegador y se renueva desde la pantalla de sesiones. Esto evita que las credenciales formen parte de los experimentos o de los commits.
 
@@ -39,15 +43,11 @@ Cada trabajo de scraping registra inicio, conectores utilizados, reintentos, pro
 \end{algorithmic}
 \end{algorithm}
 
-\subsection{Persistencia incremental}
-
 El modelo operativo almacena el estado actual en \texttt{market\_items} y las series en \texttt{market\_history\_points}. Guardar el histórico en formato largo permite incorporar nuevas métricas sin alterar el esquema de una tabla ancha. Una observación incluye el origen y la fecha, por lo que una variación de precio puede relacionarse con la fuente y con la ejecución que la recogió.
 
 La deduplicación se realiza antes de persistir y las actualizaciones de estado se comprueban con pruebas de integración. En la validación ejecutada se insertó un snapshot, se actualizó una cotización y se guardó una señal vinculada a un artículo. Cada prueba revierte su transacción al terminar, de modo que las comprobaciones no contaminan el histórico de experimentación.
 
-\subsection{OCR e importación manual}
-
-El \acroref{OCR}{OCR} se incorpora como vía secundaria de adquisición. Convierte capturas, tablas o interfaces no estructuradas en observaciones equivalentes a las obtenidas mediante una consulta estructurada. Aunque esta vía es más frágil que una fuente estructurada, permite incorporar datos cuando una plataforma no ofrece un acceso automatizable o cuando se dispone de material histórico en forma de imagen.
+El \acroref{OCR}{OCR} se incorpora como vía complementaria de adquisición. Convierte capturas, tablas o interfaces no estructuradas en registros de mercado equivalentes a los obtenidos mediante una consulta estructurada. Aunque esta vía es más frágil que una fuente estructurada, permite incorporar datos cuando una plataforma no ofrece un acceso automatizable o cuando se dispone de material histórico en forma de imagen.
 
 La implementación actual se centra en tablas y mensajes de mercado, cuyas filas presentan una estructura regular. OpenCV amplía la imagen por un factor dos, la convierte a escala de grises, mejora el contraste local con \acroref{CLAHE}{CLAHE}, reduce ruido y aplica una binarización adaptativa. CLAHE divide la imagen en zonas, ajusta el contraste de cada una y limita ese refuerzo para no amplificar el ruido. Tesseract devuelve las palabras reconocidas y una confianza para cada palabra \cite{smith2007tesseract}. La confianza agregada es la media de las $n$ palabras cuya confianza es válida, donde $c_j$ representa la confianza de la palabra $j$:
 
@@ -96,7 +96,17 @@ Validación & Observación o rechazo & Confianza mínima, precio positivo y rang
 
 Las importaciones manuales y \acroref{CSV}{CSV} complementan el flujo cuando se necesitan muestras controladas, fixtures o históricos parciales sin depender de una sesión de navegador. Esta vía se utiliza para validar parsers, modelos de persistencia y reglas económicas antes de automatizar el proceso completo.
 
-\section{Consola de consulta}
+\section{Construcción y ejecución de modelos}
+
+La construcción de los conjuntos temporales parte exclusivamente del histórico persistido. El proceso exporta una versión identificable del conjunto de datos y conserva sus fechas de corte, columnas, tamaños y tasas de clase. La normalización de los registros y el método de separación temporal se describen en el Capítulo~5, por lo que esta sección se limita a explicar cómo se conectan esos conjuntos con los componentes ejecutables.
+
+El módulo supervisado entrena modelos tabulares y guarda el artefacto seleccionado, el listado de variables de entrada, la configuración empleada y un informe de entrenamiento. En una consulta posterior, el servicio de inferencia comprueba que recibe esas mismas variables y devuelve una probabilidad junto con la versión del modelo. Esa probabilidad se utiliza como señal de entrada y no constituye una orden de compra.
+
+El simulador de cartera se mantiene separado de los modelos de aprendizaje. Implementa las comisiones, el bloqueo de intercambio, las posiciones y las restricciones explicadas en el Capítulo~\ref{chap:propuesta}. El entorno multiagente reutiliza ese simulador para ejecutar episodios y conserva, para cada paso, las observaciones locales, las acciones propuestas, el resultado de la transición y el desglose de las recompensas. De este modo, el entrenamiento puede revisar por qué una política recibe una recompensa sin alterar los datos de mercado ni enviar una orden real.
+
+Los comandos de entrenamiento guardan los parámetros de cada ejecución y el mejor modelo seleccionado mediante validación. La evaluación final sobre el conjunto de prueba y la comparación entre configuraciones se presentan en el capítulo de experimentación.
+
+\section{Consola local de consulta}
 
 La consola local convierte el estado técnico en una interfaz de revisión. Su pantalla principal separa la bandeja de oportunidades del detalle de la oportunidad seleccionada. La bandeja concentra el nombre del artículo, la ruta, el margen y los precios Steam y BUFF. El detalle explica qué señal la ha producido, qué datos faltan y qué restricciones de cartera intervienen.
 

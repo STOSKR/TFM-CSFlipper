@@ -1,133 +1,66 @@
-\chapter{Configuración del entorno y datos}
+\chapter{Entorno y preparación de datos}
 
-\noindent Este capítulo describe el entorno de datos empleado en los experimentos. En primer lugar, identifica las fuentes de información disponibles y el papel que desempeña cada una en la observación de los mercados secundarios de artículos de \acroref{CS2}{CS2}. A continuación, explica cómo se normalizan y validan las observaciones para conservar su procedencia, su fecha de captura y los atributos que identifican cada artículo.
+\noindent Este capítulo describe el entorno de datos empleado en los experimentos. En primer lugar, identifica las fuentes de información disponibles y el papel que desempeña cada una en la recogida de datos de los mercados secundarios de artículos de \acroref{CS2}{CS2}. A continuación, explica cómo se normalizan y validan los registros para conservar su procedencia, su fecha de captura y los atributos que identifican cada artículo.
 
 El capítulo presenta después las variables construidas a partir del histórico y el procedimiento temporal con el que se forman los conjuntos de entrenamiento, validación y prueba. Esta preparación permite que los modelos utilicen únicamente la información disponible en cada fecha y que sus resultados se evalúen sin incorporar información futura.
 
 \section{Fuentes de datos}
 
-El Capítulo~\ref{chap:caso-estudio} describe los mercados secundarios que delimitan el caso de estudio. Este apartado no vuelve a definirlos, sino que concreta el uso de cada fuente dentro del flujo de datos. El flujo principal comienza con SteamDT y continúa con la consulta de Steam Community Market y \acroref{BUFF}{BUFF} para los artículos seleccionados:
+El Capítulo~\ref{chap:caso-estudio} describe los mercados secundarios que delimitan el caso de estudio. Este apartado concreta el uso de cada fuente dentro del flujo de datos. El flujo principal comienza con SteamDT y continúa con la consulta de Steam Community Market y \acroref{BUFF}{BUFF} para los artículos seleccionados:
 
 \begin{itemize}
   \item \textbf{SteamDT} genera una lista inicial de artículos candidatos \cite{steamDT}. Esta lista reduce el número de artículos que deben consultarse en las fuentes de precio.
-  \item \textbf{Steam Community Market} proporciona observaciones actuales e históricas de precio, órdenes de compra y volumen de intercambios \cite{steamMarketFAQ}. Su histórico se utiliza para construir el dataset temporal.
+  \item \textbf{Steam Community Market} proporciona datos actuales e históricos de precio, órdenes de compra y volumen de intercambios \cite{steamMarketFAQ}. Su histórico se utiliza para construir el dataset temporal.
   \item \textbf{\acroref{BUFF}{BUFF}} proporciona el precio actual de compra y las órdenes de compra con los que se contrasta una operación de compraventa entre plataformas \cite{buffMarketplace}. No se utiliza como fuente histórica principal del entrenamiento.
-  \item \textbf{\acroref{OCR}{OCR}} e \textbf{importación manual} son alternativas complementarias cuando falta una observación estructurada. Permiten incorporar capturas, tablas o muestras controladas sin modificar el flujo principal.
+  \item \textbf{Reconocimiento óptico de caracteres (\acroref{OCR}{OCR}) e importación manual:} son dos vías complementarias al flujo principal. El OCR extrae texto y cifras de una captura de pantalla. La importación manual permite cargar una tabla o un fichero preparado previamente. Ambas vías se emplean cuando los datos no están disponibles mediante una consulta automatizada.
 \end{itemize}
 
-Cada observación conserva la fuente, la fecha de captura, la moneda original y los atributos que identifican el artículo. La siguiente sección describe cómo se normalizan y validan estos campos. Los procedimientos técnicos de captura se presentan en el Capítulo 6.
+Cada registro almacenado conserva la fuente, la fecha de captura, la moneda original y los atributos que identifican el artículo. La siguiente sección describe cómo se normalizan y validan estos campos. Los procedimientos técnicos de captura se presentan en el Capítulo 6.
 
-\section{Adquisición y persistencia}
+\section{Normalización y validación de los datos}
 
-Esta sección describe el recorrido de un dato desde su captura hasta su almacenamiento. El objetivo es conservar observaciones comparables y trazables, de modo que puedan utilizarse más adelante en la preparación de variables y en los experimentos.
+Una fuente puede expresar los mismos datos con nombres, monedas, fechas o formatos distintos. Para evitar que esas diferencias se interpreten como diferencias de mercado, cada captura se transforma en un \textbf{registro de mercado}: una fila de dato que junta un artículo, la fuente de la que procede, la fecha de captura de datos y los valores publicados en ese momento. Este registro es la unidad que se utiliza después para construir variables temporales.
 
-\subsection{Pipeline de adquisición}
+La normalización conserva el nombre y los atributos que identifican el artículo, como su acabado, nivel de desgaste, \textit{float} o StatTrak, y los asocia a una misma identificación interna. También permite comparar precios publicados en monedas distintas. Por ejemplo, si Steam Community Market muestra el precio de un artículo en euros y \acroref{BUFF}{BUFF} lo muestra en yuanes, el sistema convierte ambos precios a una moneda de comparación. Al mismo tiempo, conserva el precio y la moneda publicados por cada fuente para poder comprobar posteriormente de dónde procede cada valor. Esta conversión solo permite comparar precios. Las comisiones, el beneficio neto y la rentabilidad se calculan después mediante las reglas económicas definidas en el Capítulo~\ref{chap:propuesta}.
 
-La adquisición se organiza como una capa de agentes extractores. Estos procesos pueden ejecutarse como comandos \acroref{CLI}{CLI}, jobs o servicios programados. Su función es capturar datos, normalizarlos, validar errores y guardarlos con trazabilidad. El flujo incluye scraping, refresco de históricos, \acroref{OCR}{OCR}, importación manual y un bucle operativo local que puede ejecutar scraping y actualización periódica.
+La fecha es igualmente necesaria. Los registros se ordenan por fecha de captura para que una variable calculada en un día solo emplee datos disponibles hasta ese día. Si una fuente proporciona históricos, cada punto histórico mantiene su propia fecha en lugar de recibir la fecha de descarga. De este modo, el conjunto temporal distingue cuándo se publicó un dato de cuándo el sistema lo incorporó.
 
-La adquisición periódica contempla cookies o sesiones, delays configurables, límites de concurrencia, reintentos, deduplicación y registro de anomalías. Esta parte es importante porque las fuentes no siempre son estables: pueden cambiar el formato, limitar el ritmo de acceso o devolver información incompleta.
+Antes de almacenar un registro, el sistema comprueba que el artículo pueda identificarse y que los campos necesarios para su tipo de dato estén presentes. Por ejemplo, un precio histórico sin fecha o sin valor numérico no forma parte de la serie temporal. Asimismo, un mismo artículo, fuente, fecha y tipo de dato, como precio, orden de compra o volumen de intercambios, no se incorpora dos veces. Los datos obtenidos mediante \acroref{OCR}{OCR} deben superar además sus controles específicos de lectura y confianza, explicados en el Capítulo 6. Los detalles de captura, persistencia y deduplicación se describen también en ese capítulo.
 
-\subsection{Modelo de persistencia}
+\section{Variables y conjunto temporal}
 
-La persistencia se apoya en Supabase/Postgres. La decisión de diseño es tratar la base de datos como fuente de verdad y mantener el histórico de forma append-only siempre que sea posible. Las tablas operativas principales son \texttt{market\_items} y \texttt{market\_history\_points}. La primera mantiene una fila por artículo identificado por sus atributos y estado actual por plataforma. La segunda guarda series temporales en formato largo por artículo, plataforma, fecha y métrica.
+Los registros normalizados no se emplean directamente para entrenar los modelos. A partir de ellos se construyen \textbf{variables de entrada}, es decir, valores numéricos que resumen la situación de un artículo en una fecha determinada. Todas las variables de una fila se calculan únicamente con los datos disponibles hasta esa fecha. Por tanto, el resultado posterior de una posible operación no forma parte de la información utilizada para predecirla.
 
-También se define un esquema canónico más amplio con entidades como \texttt{assets}, \texttt{platforms}, \texttt{market\_observations}, \texttt{predictions}, \texttt{investment\_decisions} y \texttt{simulated\_positions}. Esta separación permite evolucionar desde el esquema operativo actual hacia una representación más trazable y auditable.
+Las variables de mercado se agrupan en los siguientes bloques:
 
-\begin{table}[h]
-\centering
-\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{0.31\textwidth} >{\raggedright\arraybackslash}X}
-\toprule
-Entidad & Uso dentro del \acroref{TFM}{TFM} \\
-\midrule
-\texttt{market\_items} & Estado actual de cada artículo identificado por sus atributos, por plataforma. \\
-\texttt{market\_history\_points} & Serie temporal en formato largo para precios, buy orders y métricas. \\
-\texttt{predictions} & Salidas versionadas del modelo supervisado. \\
-\texttt{investment\_decisions} & Decisiones simuladas y razones asociadas. \\
-\texttt{simulated\_positions} & Posiciones abiertas, bloqueadas o cerradas por el simulador. \\
-\bottomrule
-\end{tabularx}
-\caption{Modelo de datos.}
-\end{table}
+\begin{itemize}
+  \item \textbf{Precios y comparación entre mercados:} precio de venta publicado en Steam Community Market y en \acroref{BUFF}{BUFF}, precio de las órdenes de compra de \acroref{BUFF}{BUFF} y diferencias entre esos precios antes y después de aplicar las comisiones correspondientes.
+  \item \textbf{Actividad del mercado:} volumen de intercambios registrado en Steam Community Market y número de ofertas publicadas en \acroref{BUFF}{BUFF}. Estos valores indican cuánta actividad se ha producido alrededor del artículo.
+  \item \textbf{Evolución temporal:} cambios y retornos de precio a 1, 3 y 7 días, así como la media y la desviación de los últimos 7 días. También se incorporan el día de la semana, el mes y un indicador de fin de semana.
+\end{itemize}
 
-\section{Preparación de características}
+Los valores derivados de la comparación de precios en la fecha inicial, como el beneficio neto y el ROI calculados con los precios disponibles en esa fecha, pueden utilizarse como variables de entrada. No se incorporan al conjunto de datos las variables de cartera, porque el simulador las crea y actualiza durante cada episodio, tal como se describe en el Capítulo~\ref{chap:propuesta}.
 
-Los datos normalizados se preparan con Pandas y NumPy. PyArrow permite conservar los datasets derivados en un formato reproducible. Estas herramientas se usan aquí para construir variables temporales y cortes de evaluación, no como parte del marco teórico.
+Para formar el conjunto temporal, se toma un artículo $i$ y una fecha $t$. El sistema calcula sus variables con los registros disponibles hasta $t$ y busca después el primer registro futuro de precio dentro del intervalo comprendido entre $t+8$ y $t+15$ días. El primer límite representa el periodo de bloqueo de intercambio utilizado en la simulación. Los siete días adicionales permiten conservar el ejemplo cuando la fuente no publica un registro exactamente en el octavo día.
 
-Antes de entrenar un modelo o simular una cartera, las observaciones se transforman en variables que resumen precios, volumen de intercambios, evolución temporal y estado de la cartera. A continuación se explican las variables empleadas y la construcción temporal de las etiquetas.
-
-\subsection{Variables de mercado}
-
-Las características de mercado incluyen precios Steam y \acroref{BUFF}{BUFF} normalizados, precios originales, spread bruto, spread neto, buy orders, volumen de intercambios, número de listings, antigüedad del activo virtual y señales temporales. En la fase supervisada se han explorado variables de momentum y reversión como retornos a 1, 3 y 7 días, distancia a medias móviles, \acroref{RSI}{RSI}, volatilidad y desviaciones de ventas. Esta combinación de señales temporales y restricciones operativas sigue la misma lógica que los entornos de trading con control de fricciones \cite{liu2021finrl}.
-
-La exploración inicial detectó que algunas señales temporales aportan información moderada, mientras que ciertas variables categóricas de alta cardinalidad, como identificadores concretos de skins, deben tratarse con cuidado para evitar sobreajuste. Por ello, el entrenamiento separa variables de evaluación y variables de entrenamiento, y permite realizar ablations sin reconstruir todo el dataset.
-
-\subsection{Dataset temporal de trading}
-
-Para cada observación de un artículo en el día $t$, el constructor busca la primera salida disponible a partir de $t+h$, donde $h=8$ días representa el bloqueo aplicado por el simulador. La etiqueta no representa una subida de precio aislada, sino una operación que supera los umbrales económicos tras aplicar comisiones y conversión:
+La etiqueta $y_{i,t}$ vale 1 cuando la operación simulada con ese registro futuro produce un beneficio neto no negativo y un ROI de al menos el 10\%. En cualquier otro caso, vale 0. Si $d$ representa la fecha del primer registro futuro encontrado, $B_{i,d}$ el beneficio neto calculado y $R_{i,d}$ el ROI, la etiqueta se define como:
 
 \[
-y_t = 1 \Longleftrightarrow \pi_{t+h} \geq \pi_{\min}
-\ \land\ \rho_{t+h} \geq \rho_{\min}.
+y_{i,t} = 1
+\Longleftrightarrow
+B_{i,d} \geq 0
+\quad \land \quad
+R_{i,d} \geq 0{,}10.
 \]
 
-Los conjuntos se separan por fecha y se elimina una franja de purga antes de cada frontera para que una salida futura no coincida con el entrenamiento de un periodo anterior.
+Esta etiqueta no predice una simple subida de precio. Indica si, bajo las reglas económicas del Capítulo~\ref{chap:propuesta}, una compra en la fecha $t$ habría alcanzado el criterio económico definido al llegar la fecha $d$.
 
-\begin{algorithm}[H]
-\caption{Dataset temporal.}
-\label{alg:dataset-temporal}
-\begin{algorithmic}[1]
-\Require Históricos Steam/BUFF, horizonte $h$, fechas de corte y purga $g$
-\Ensure Conjuntos de entrenamiento, validación y prueba trazables
-\ForAll{observaciones $(i,t)$ ordenadas por artículo y fecha}
-  \State Calcular variables disponibles hasta $t$
-  \State Buscar la primera salida del artículo $i$ a partir de $t+h$
-  \If{la salida es válida}
-    \State Calcular $\pi_{t+h}$, $\rho_{t+h}$ y la etiqueta $y_t$
-    \State Conservar $(i,t)$, sus variables y la fecha de salida
-  \EndIf
-\EndFor
-\State Excluir $g$ días antes de cada frontera temporal
-\State Separar por fecha y guardar filas, artículos y rango de cada conjunto
-\end{algorithmic}
-\end{algorithm}
+El conjunto actual separa los datos por fecha para evitar que los modelos conozcan información futura:
 
-\subsection{Variables de cartera}
+\begin{itemize}
+  \item \textbf{Entrenamiento:} desde el 2 de julio de 2025 hasta el 16 de diciembre de 2025.
+  \item \textbf{Validación:} desde el 1 de enero de 2026 hasta el 13 de febrero de 2026.
+  \item \textbf{Prueba:} desde el 1 de marzo de 2026 hasta el 30 de junio de 2026.
+\end{itemize}
 
-Las variables de cartera proceden del simulador. Incluyen saldo disponible, valor de posiciones abiertas, capital bloqueado por \textit{trade hold}, fecha de desbloqueo, exposición por activo, exposición por plataforma, beneficio neto obtenido al cerrar posiciones y drawdown. Estas variables son necesarias para que el agente Portfolio no decida únicamente por oportunidad local, sino por estado global de la cartera, coherentemente con la evaluación conjunta de rentabilidad y riesgo \cite{markowitz1952portfolio}.
-
-\section{Reglas económicas migradas}
-
-El simulador formaliza las reglas económicas identificadas en el procedimiento manual de seguimiento. Incluye conversión \acroref{EUR}{EUR}/\acroref{CNY}{CNY}, comisiones, beneficio neto, rentabilidad porcentual, fecha de desbloqueo y capital bloqueado.
-
-\begin{table}[h]
-\centering
-\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{0.28\textwidth} >{\raggedright\arraybackslash}X}
-\toprule
-Regla & Uso en la simulación \\
-\midrule
-Conversión \acroref{EUR}{EUR}/\acroref{CNY}{CNY} & Normaliza precios de Steam y \acroref{BUFF}{BUFF} para compararlos en una moneda común. \\
-Fee \acroref{BUFF}{BUFF} 0,975 & Estima el ingreso neto al vender en \acroref{BUFF}{BUFF}. \\
-Fee Steam 0,87 & Representa la comisión de mercado en ventas Steam. \\
-Cash-out conservador & Permite simular pérdida adicional al convertir saldo Steam en saldo externo. \\
-\textit{Trade hold} & Bloquea posiciones durante un horizonte conservador de ocho días. \\
-Beneficio neto & Calcula diferencia entre ingreso neto de venta y coste de entrada. \\
-\bottomrule
-\end{tabularx}
-\caption{Reglas de simulación.}
-\end{table}
-
-\section{Simulador de cartera}
-
-El simulador se ha implementado con módulos propios, ya que debe representar reglas específicas del dominio, como comisiones, conversión de moneda, capital bloqueado y \textit{trade hold}. Esta capa recibe observaciones ya normalizadas y produce transiciones de cartera que pueden evaluarse de forma repetible.
-
-El simulador representa las consecuencias de una decisión sobre el efectivo disponible, las posiciones abiertas y el riesgo. Sus reglas permiten comparar alternativas con las mismas comisiones, bloqueos y límites de exposición.
-
-\subsection{Operaciones permitidas}
-
-Las operaciones básicas son comprar, vender y mantener. Una compra abre una posición con precio de compra, cantidad, plataforma y fecha de bloqueo. Una venta cierra una posición si está disponible y calcula el beneficio neto de esa operación. Mantener no modifica la posición, pero puede afectar al rendimiento si el mercado se mueve o si el capital sigue inmovilizado.
-
-\subsection{Comisiones y valoración}
-
-El procedimiento manual aportó reglas de referencia que se han convertido en hipótesis de simulación. \acroref{BUFF}{BUFF} se modela con un factor neto de venta de 0,975. Steam usa una comisión de mercado del 0,87 y, en escenarios conservadores de salida a banco, puede aplicarse una pérdida adicional del 20\%. La conversión inicial simplificada usa 1 \acroref{EUR}{EUR} = 8 \acroref{CNY}{CNY}, aunque queda pendiente versionar tipos de cambio por fecha si se incorporan fuentes externas.
-
-El \textit{trade hold} se modela de forma conservadora como ocho días desde la compra, equivalente a siete días más una ventana de desbloqueo. Esta simplificación evita declarar vendible una posición demasiado pronto.
+Los quince días anteriores a cada frontera se excluyen del conjunto. Esta franja de purga impide que un registro de entrenamiento o validación utilice como resultado un precio perteneciente al periodo siguiente. Con este procedimiento, cada conjunto conserva únicamente la información disponible en su periodo y permite evaluar los modelos sin incorporar datos futuros.
