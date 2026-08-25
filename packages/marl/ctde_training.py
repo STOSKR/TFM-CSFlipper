@@ -189,12 +189,11 @@ def train_ctde(config: CTDETrainingConfig) -> dict[str, Any]:
     # La validación y la prueba deben recorrer las mismas ventanas históricas
     # en todas las ejecuciones. Solo la semilla de entrenamiento varía entre
     # modelos para poder atribuir sus diferencias a la política entrenada.
-    validation_rng = random.Random(config.validation_seed)
     baseline_validation = _evaluate_source(
         validation_source,
         actors,
         config=config,
-        rng=validation_rng,
+        rng=random.Random(config.validation_seed),
         episodes=max(1, min(4, config.episodes_per_iteration)),
     )
     best_validation = float(baseline_validation["equity_return"])
@@ -221,7 +220,7 @@ def train_ctde(config: CTDETrainingConfig) -> dict[str, Any]:
             validation_source,
             actors,
             config=config,
-            rng=validation_rng,
+            rng=random.Random(config.validation_seed),
             episodes=max(1, min(4, config.episodes_per_iteration)),
         )
         training = _rollout_metrics(rollouts)
