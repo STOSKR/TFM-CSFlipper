@@ -254,20 +254,23 @@ Trader recibe una penalización por los días adicionales que tarda en cerrar la
 
 La última penalización evita que Trader invierta una cantidad mínima cuando existen oportunidades adecuadas. Por ejemplo, con $u=0{,}50$ y $d=0{,}05$, una cartera de 1.000~EUR puede invertir entre 450~EUR y 550~EUR sin que este límite genere penalización. Si solo se invierten 400~EUR y había artículos marcados, rentables y viables para alcanzar 450~EUR, entonces $h_t=\frac{0{,}45-0{,}40}{0{,}45}\simeq0{,}11$ y la señal individual de Trader es $-0{,}11$. Una proporción de 560~EUR sobre 1.000~EUR supera el máximo efectivo del 55\,\% y se incorpora en $l_t$.
 
-La señal individual de Portfolio evalúa exclusivamente el cumplimiento de los límites:
+La señal individual de Portfolio evalúa el cumplimiento de los límites y el rechazo de oportunidades viables:
 
 \begin{equation}
 r_{P,t}=
 \begin{cases}
 -l_t,
 & \text{si Portfolio aprueba una compra que incumple límites}, \\
+-R_j,
+& \text{si Scout y Trader propusieron comprar } j \text{, Portfolio la rechazó, } R_j>0 \\
+& \text{y la compra era viable}, \\
 0,
 & \text{en cualquier otro caso}.
 \end{cases}
 \label{eq:recompensa-portfolio}
 \end{equation}
 
-Portfolio no recibe una recompensa individual positiva por aprobar una compra permitida. Su incentivo para aprobar operaciones rentables procede de la recompensa cooperativa. Su señal individual solo castiga una validación que no respeta los límites de la cartera.
+Portfolio no recibe una recompensa individual positiva por aprobar una compra permitida. Su incentivo para aprobar operaciones rentables procede de la recompensa cooperativa. Sin embargo, si rechaza una compra que respetaba los límites, existía saldo suficiente y habría terminado con un ROI positivo, recibe una penalización igual a ese ROI. Esta comprobación se realiza únicamente durante el entrenamiento con los datos históricos posteriores. Así, rechazar una operación sigue siendo neutro cuando protege la cartera, pero no se convierte en una forma gratuita de evitar cualquier compra.
 
 La recompensa que recibe cada agente combina la recompensa común, vinculada al resultado de las operaciones y al cumplimiento de los límites, y la señal individual asociada a su responsabilidad concreta:
 

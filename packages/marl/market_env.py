@@ -292,6 +292,7 @@ class _MissedCandidate:
     due_day: date
     scout_ignored: bool
     trader_declined: bool
+    portfolio_rejected: bool
 
 
 class MarketMARLEnvironment:
@@ -396,7 +397,7 @@ class MarketMARLEnvironment:
         self._record_missed_candidate(
             current=current,
             actions=normalized_actions,
-            risk_allowed=risk.candidate_allowed,
+            purchase_allowed=risk.candidate_allowed and not allocation_limit_breached,
         )
         if executed_buy:
             self._simulator.buy(
@@ -467,6 +468,9 @@ class MarketMARLEnvironment:
             ),
             trader_declined_viable_purchase=bool(
                 missed is not None and missed[1].trader_declined
+            ),
+            portfolio_rejected_viable_purchase=bool(
+                missed is not None and missed[1].portfolio_rejected
             ),
             trader_proposed_invalid_purchase=proposed_invalid_purchase,
             trader_underinvestment_ratio=underinvestment_ratio,
@@ -646,7 +650,7 @@ class MarketMARLEnvironment:
         *,
         current: MarketEpisodeStep,
         actions: Mapping[str, int],
-        risk_allowed: bool,
+        purchase_allowed: bool,
     ) -> None:
         """Retiene una oportunidad no comprada hasta poder observar su resultado.
 
@@ -654,11 +658,16 @@ class MarketMARLEnvironment:
         expone como información futura al actor cuando toma la decisión.
         """
 
-        if not risk_allowed or actions["trader"] == 2:
+        if not purchase_allowed:
             return
         scout_ignored = actions["scout"] == 0
         trader_declined = actions["scout"] == 1 and actions["trader"] != 1
-        if not scout_ignored and not trader_declined:
+        portfolio_rejected = (
+            actions["scout"] == 1
+            and actions["trader"] == 1
+            and actions["portfolio"] == 0
+        )
+        if not scout_ignored and not trader_declined and not portfolio_rejected:
             return
         self._pending_missed.append(
             _MissedCandidate(
@@ -669,6 +678,7 @@ class MarketMARLEnvironment:
                 due_day=current.observed_day + self._hold_duration(),
                 scout_ignored=scout_ignored,
                 trader_declined=trader_declined,
+                portfolio_rejected=portfolio_rejected,
             )
         )
 

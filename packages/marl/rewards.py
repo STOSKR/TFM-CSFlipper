@@ -133,6 +133,7 @@ def calculate_agent_reward_breakdowns(
     missed_opportunity_roi: Decimal | None = None,
     missed_opportunity_affordable: bool = False,
     trader_declined_viable_purchase: bool = False,
+    portfolio_rejected_viable_purchase: bool = False,
     trader_underinvestment_ratio: Decimal = Decimal("0"),
     trader_proposed_invalid_purchase: bool = False,
     portfolio_approved_invalid_purchase: bool = False,
@@ -175,6 +176,8 @@ def calculate_agent_reward_breakdowns(
         ),
         "portfolio": _portfolio_signal(
             portfolio_approved_invalid_purchase=portfolio_approved_invalid_purchase,
+            missed_opportunity_roi=missed_opportunity_roi,
+            portfolio_rejected_viable_purchase=portfolio_rejected_viable_purchase,
             constraint_violation_ratio=violation_ratio,
         ),
     }
@@ -259,10 +262,18 @@ def _trader_signal(
 def _portfolio_signal(
     *,
     portfolio_approved_invalid_purchase: bool,
+    missed_opportunity_roi: Decimal | None,
+    portfolio_rejected_viable_purchase: bool,
     constraint_violation_ratio: Decimal,
 ) -> Decimal:
     if portfolio_approved_invalid_purchase:
         return -constraint_violation_ratio
+    if (
+        portfolio_rejected_viable_purchase
+        and missed_opportunity_roi is not None
+        and missed_opportunity_roi > 0
+    ):
+        return -_clip(missed_opportunity_roi, lower=Decimal("0"), upper=Decimal("1"))
     return Decimal("0")
 
 

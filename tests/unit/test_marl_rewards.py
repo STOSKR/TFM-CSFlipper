@@ -92,6 +92,19 @@ def test_hybrid_reward_penalizes_missed_profitable_opportunity_when_affordable()
     assert rewards["portfolio"].individual_signal == Decimal("0")
 
 
+def test_hybrid_reward_penalizes_portfolio_for_rejecting_a_viable_opportunity() -> None:
+    rewards = calculate_agent_reward_breakdowns(
+        agents=("scout", "trader", "portfolio"),
+        shared_breakdown=calculate_cooperative_reward(),
+        missed_opportunity_roi=Decimal("0.25"),
+        portfolio_rejected_viable_purchase=True,
+    )
+
+    assert rewards["scout"].individual_signal == Decimal("0")
+    assert rewards["trader"].individual_signal == Decimal("0")
+    assert rewards["portfolio"].individual_signal == Decimal("-0.25")
+
+
 def test_hybrid_reward_penalizes_roles_that_propose_or_approve_invalid_purchase() -> None:
     shared_breakdown = calculate_cooperative_reward(constraint_violation_ratio=Decimal("0.25"))
 

@@ -123,6 +123,7 @@ class _Rollout:
     observations: dict[str, list[np.ndarray[Any, Any]]]
     states: list[np.ndarray[Any, Any]]
     actions: dict[str, list[int]]
+    action_masks: dict[str, list[np.ndarray[Any, Any]]]
     log_probabilities: dict[str, list[float]]
     rewards: dict[str, list[float]]
     mean_common_reward: float
@@ -138,13 +139,21 @@ class CTDEPolicy:
         for actor in self._actors.values():
             actor.eval()
 
-    def select_actions(self, observations: dict[str, dict[str, float]]) -> dict[str, int]:
+    def select_actions(
+        self,
+        observations: dict[str, dict[str, float]],
+        *,
+        action_masks: dict[str, tuple[int, ...]] | None = None,
+    ) -> dict[str, int]:
         with torch.no_grad():
             return {
                 agent_id: int(
                     torch.argmax(
-                        self._actors[agent_id](
-                            _observation_tensor(agent_id, observations[agent_id])
+                        _masked_logits(
+                            self._actors[agent_id](
+                                _observation_tensor(agent_id, observations[agent_id])
+                            ),
+                            None if action_masks is None else action_masks[agent_id],
                         )
                     ).item()
                 )
@@ -300,14 +309,17 @@ def _sample_rollout(
     common_rewards: list[float] = []
     while env.agents:
         central_state = _central_state_tensor(env.central_state())
+        action_masks = env.action_masks()
         actions: dict[str, int] = {}
         for agent_id in AGENT_IDS:
             observation = _observation_tensor(agent_id, observations[agent_id])
-            logits = actors[agent_id](observation)
+            mask = action_masks[agent_id]
+            logits = _masked_logits(actors[agent_id](observation), mask)
             distribution = Categorical(logits=logits)
             action = distribution.sample() if explore else torch.argmax(logits)
             rollout.observations[agent_id].append(observation.detach().numpy())
             rollout.actions[agent_id].append(int(action.item()))
+            rollout.action_masks[agent_id].append(np.asarray(mask, dtype=np.bool_))
             rollout.log_probabilities[agent_id].append(float(distribution.log_prob(action).item()))
             actions[agent_id] = int(action.item())
         rollout.states.append(central_state.detach().numpy())
@@ -331,6 +343,7 @@ def _empty_rollout() -> _Rollout:
         observations={agent_id: [] for agent_id in AGENT_IDS},
         states=[],
         actions={agent_id: [] for agent_id in AGENT_IDS},
+        action_masks={agent_id: [] for agent_id in AGENT_IDS},
         log_probabilities={agent_id: [] for agent_id in AGENT_IDS},
         rewards={agent_id: [] for agent_id in AGENT_IDS},
         mean_common_reward=0.0,
@@ -370,6 +383,13 @@ def _update_models(
         )
         for agent_id in AGENT_IDS
     }
+    action_masks = {
+        agent_id: torch.as_tensor(
+            np.concatenate([rollout.action_masks[agent_id] for rollout in rollouts]),
+            dtype=torch.bool,
+        )
+        for agent_id in AGENT_IDS
+    }
     old_log_probabilities = {
         agent_id: torch.as_tensor(
             np.concatenate([rollout.log_probabilities[agent_id] for rollout in rollouts]),
@@ -390,7 +410,9 @@ def _update_models(
         actor_losses: list[Tensor] = []
         entropies: list[Tensor] = []
         for agent_id in AGENT_IDS:
-            distribution = Categorical(logits=actors[agent_id](observations[agent_id]))
+            distribution = Categorical(
+                logits=_masked_logits(actors[agent_id](observations[agent_id]), action_masks[agent_id])
+            )
             log_probability = distribution.log_prob(actions[agent_id])
             ratio = torch.exp(log_probability - old_log_probabilities[agent_id])
             unclipped = ratio * advantages[agent_id]
@@ -474,6 +496,15 @@ def _central_state_tensor(state: dict[str, float]) -> Tensor:
         [state[field] for field in MarketMARLEnvironment.central_state_fields],
         dtype=torch.float32,
     )
+
+
+def _masked_logits(logits: Tensor, action_mask: Tensor | tuple[int, ...] | None) -> Tensor:
+    """Elimina acciones imposibles antes de muestrear o actualizar una política."""
+
+    if action_mask is None:
+        return logits
+    mask = torch.as_tensor(action_mask, dtype=torch.bool, device=logits.device)
+    return logits.masked_fill(~mask, torch.finfo(logits.dtype).min)
 
 
 def _save_checkpoint(
