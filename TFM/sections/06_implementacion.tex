@@ -6,21 +6,25 @@ La implementación mantiene separadas la adquisición de datos, la persistencia,
 
 \section{Componentes y responsabilidades}
 
-La implementación se organiza en componentes que intercambian datos mediante contratos explícitos. Un extractor no entrega directamente una recomendación. Entrega un registro de mercado con el artículo, la fuente, la fecha de captura, el precio, la moneda, el volumen, el origen y la calidad de la lectura. La persistencia conserva esa información y los módulos posteriores construyen las variables o ejecutan los modelos que correspondan. Esta secuencia permite localizar un error sin repetir todo el flujo.
+La implementación se organiza en componentes que intercambian datos mediante formatos definidos. Cada componente recibe campos concretos y produce un resultado con campos conocidos por el componente siguiente. Por ejemplo, un extractor no entrega directamente una recomendación, entrega un registro de mercado con el artículo, la fuente, la fecha de captura, el precio, la moneda, el volumen, el origen y la calidad de la lectura. La persistencia conserva esa información y los módulos posteriores construyen las variables o ejecutan los modelos que correspondan. Esta secuencia permite localizar un error sin repetir todo el flujo.
 
 \begin{itemize}
   \item \textbf{Adquisición:} localiza artículos, consulta las fuentes y convierte cada resultado en un registro de mercado trazable.
-  \item \textbf{Persistencia y preparación:} conserva el estado más reciente y el histórico incremental. A partir de este último crea los conjuntos temporales descritos en el Capítulo~5.
-  \item \textbf{Predicción y simulación:} calcula las variables de entrada, carga modelos supervisados y reproduce compras y ventas dentro del simulador definido en el Capítulo~\ref{chap:propuesta}.
-  \item \textbf{Entorno multiagente:} utiliza el simulador como motor de contabilidad y entrega observaciones, acciones, recompensas y resultados para el entrenamiento.
+  \item \textbf{Preparación y persistencia:} conserva el estado más reciente y el histórico incremental. A partir de este último crea los conjuntos temporales descritos en el Capítulo~5.
+  \item \textbf{Predicción supervisada:} recibe las variables preparadas a partir del histórico y calcula una probabilidad para cada posible operación. Esta probabilidad es una señal de entrada, no una decisión.
+  \item \textbf{Simulación y entorno multiagente:} recibe los datos de mercado, el estado de cartera y la señal supervisada. Los roles proponen y validan acciones, mientras el simulador aplica las reglas económicas y calcula las consecuencias de cada decisión simulada.
   \item \textbf{Consola local:} permite ejecutar tareas controladas y revisar oportunidades, sesiones y resultados sin enviar órdenes a los mercados.
 \end{itemize}
 
-La predicción tabular se implementa con scikit-learn y los artefactos entrenados se conservan con Joblib junto con sus metadatos. El entorno multiagente dispone de una interfaz PettingZoo y de una integración con Ray/\acroref{RLlib}{RLlib}; Gymnasium y PyTorch proporcionan los componentes de apoyo para estas ejecuciones. Las pruebas unitarias y de integración se ejecutan con Pytest y pytest-asyncio, mientras que Ruff y Mypy revisan estilo y tipos. Estas herramientas materializan la propuesta, pero no sustituyen la justificación metodológica de los capítulos anteriores.
+\clearpage
+
+La predicción tabular se implementa con scikit-learn \cite{pedregosa2011scikit}. Cada modelo entrenado se guarda con Joblib junto con un fichero que identifica sus variables de entrada, su configuración y las métricas obtenidas durante el entrenamiento. El entorno multiagente dispone de una interfaz PettingZoo \cite{terry2021pettingzoo} y de una integración con Ray/\acroref{RLlib}{RLlib} \cite{ray2018rllib}. PyTorch proporciona los componentes de cálculo empleados durante el entrenamiento \cite{paszke2019pytorch}. Las pruebas unitarias y de integración se ejecutan con Pytest y pytest-asyncio. Ruff y Mypy revisan, respectivamente, el estilo y los tipos empleados en el código. Estas herramientas materializan la propuesta, pero no sustituyen la justificación metodológica de los capítulos anteriores.
 
 \section{Adquisición y persistencia de datos}
 
-Las fuentes que necesitan navegación se ejecutan con Playwright en un navegador visible cuando es necesario iniciar sesión. La sesión no se guarda en el repositorio ni en el archivo de configuración. Se almacena localmente como estado de navegador y se renueva desde la pantalla de sesiones. Esto evita que las credenciales formen parte de los experimentos o de los commits.
+Antes de capturar datos de una fuente que exige autenticación, la persona usuaria debe iniciar sesión desde la pantalla de sesiones del navegador. Se ha desarrollado un proceso que abre un navegador visible para que el usuario pueda completar ese paso y conserva localmente el estado de la sesión una vez finalizado. Así, las ejecuciones posteriores pueden reutilizar la sesión mientras siga vigente. Las credenciales y el estado de navegador no se guardan en el repositorio ni en el archivo de configuración.
+
+Playwright \cite{microsoft2026playwright} es la biblioteca que controla ese navegador y permite consultar las fuentes que necesitan navegación. Se utiliza tanto para abrir el navegador durante el inicio de sesión como para realizar las capturas posteriores con la sesión local disponible.
 
 Cada trabajo de scraping registra inicio, conectores utilizados, reintentos, progreso, fichero de log y resultado final. Los límites de concurrencia, el tamaño de lote y el tiempo de espera son configurables. El objetivo no es ejecutar el mayor número de peticiones posible, sino mantener un proceso que pueda detenerse, reanudarse y auditarse si una fuente cambia su interfaz.
 
@@ -29,70 +33,42 @@ Cada trabajo de scraping registra inicio, conectores utilizados, reintentos, pro
 \label{alg:scraping-trazable}
 \begin{algorithmic}[1]
 \Require Artículos localizados, conectores activos y configuración de trabajo
-\Ensure Observaciones persistidas y estado de ejecución
+\Ensure Registros de mercado persistidos y estado de ejecución
 \State Crear identificador de trabajo y registrar el inicio
 \ForAll{lotes de candidatos}
   \ForAll{conectores habilitados}
     \State Consultar la fuente con sesión, límite y espera configurados
-    \State Normalizar precio, moneda, disponibilidad y fecha de observación
+    \State Normalizar precio, moneda, volumen y fecha de captura
     \State Validar el resultado y registrar anomalías o reintentos
   \EndFor
-  \State Persistir observaciones válidas y actualizar el progreso
+  \State Persistir registros de mercado válidos y actualizar el progreso
 \EndFor
 \State Registrar resultado, cobertura y referencia del log
 \end{algorithmic}
 \end{algorithm}
 
-El modelo operativo almacena el estado actual en \texttt{market\_items} y las series en \texttt{market\_history\_points}. Guardar el histórico en formato largo permite incorporar nuevas métricas sin alterar el esquema de una tabla ancha. Una observación incluye el origen y la fecha, por lo que una variación de precio puede relacionarse con la fuente y con la ejecución que la recogió.
+La base de datos almacena el estado actual en \texttt{market\_items} y las series en \texttt{market\_history\_points}. Guardar el histórico en formato largo permite incorporar nuevas métricas sin alterar el esquema de una tabla ancha. Cada registro de mercado incluye el origen y la fecha, por lo que una variación de precio puede relacionarse con la fuente y con la ejecución que la recogió.
 
-La deduplicación se realiza antes de persistir y las actualizaciones de estado se comprueban con pruebas de integración. En la validación ejecutada se insertó un snapshot, se actualizó una cotización y se guardó una señal vinculada a un artículo. Cada prueba revierte su transacción al terminar, de modo que las comprobaciones no contaminan el histórico de experimentación.
+La deduplicación se realiza antes de persistir y las pruebas de integración verifican inserciones, actualizaciones y registros repetidos. Cada prueba revierte su transacción al terminar, de modo que las comprobaciones no alteran el histórico utilizado en los experimentos.
 
 El \acroref{OCR}{OCR} se incorpora como vía complementaria de adquisición. Convierte capturas, tablas o interfaces no estructuradas en registros de mercado equivalentes a los obtenidos mediante una consulta estructurada. Aunque esta vía es más frágil que una fuente estructurada, permite incorporar datos cuando una plataforma no ofrece un acceso automatizable o cuando se dispone de material histórico en forma de imagen.
 
-La implementación actual se centra en tablas y mensajes de mercado, cuyas filas presentan una estructura regular. OpenCV amplía la imagen por un factor dos, la convierte a escala de grises, mejora el contraste local con \acroref{CLAHE}{CLAHE}, reduce ruido y aplica una binarización adaptativa. CLAHE divide la imagen en zonas, ajusta el contraste de cada una y limita ese refuerzo para no amplificar el ruido. Tesseract devuelve las palabras reconocidas y una confianza para cada palabra \cite{smith2007tesseract}. La confianza agregada es la media de las $n$ palabras cuya confianza es válida, donde $c_j$ representa la confianza de la palabra $j$:
+La implementación actual se centra en tablas y mensajes de mercado, cuyas filas presentan una estructura regular. El flujo aplica cuatro controles:
+
+\begin{itemize}
+  \item \textbf{Preprocesado:} OpenCV \cite{bradski2000opencv} amplía la imagen por un factor dos, la convierte a escala de grises, mejora el contraste local con \acroref{CLAHE}{CLAHE} \cite{zuiderveld1994clahe}, reduce ruido y aplica una binarización adaptativa. CLAHE divide la imagen en zonas, ajusta el contraste de cada una y limita ese refuerzo para no amplificar el ruido.
+  \item \textbf{Reconocimiento:} Tesseract identifica las palabras de la captura y proporciona una confianza para cada una \cite{smith2007tesseract}.
+  \item \textbf{Interpretación:} el parser normaliza espacios y separadores decimales, e identifica el artículo, su calidad, la plataforma, el precio, la moneda y el volumen cuando aparecen en una fila.
+  \item \textbf{Validación:} solo se conserva un registro de mercado cuando su confianza es suficiente y el precio es positivo y menor de un millón de unidades monetarias.
+\end{itemize}
+
+La confianza agregada es la media de las $n$ palabras cuya confianza es válida, donde $c_j$ representa la confianza de la palabra $j$:
 
 \[
 c_{\mathrm{OCR}}=\frac{1}{100n}\sum_{j=1}^{n} c_j.
 \]
 
-El parser normaliza espacios y separadores decimales, e identifica precio, moneda, calidad, plataforma y volumen cuando aparecen en una fila. Solo se convierten en observaciones las extracciones con $c_{\mathrm{OCR}}\geq 0{,}5$ y con un precio positivo menor de un millón de unidades monetarias. Esta regla evita que una captura dudosa entre en el histórico sin quedar identificada.
-
-\begin{algorithm}[H]
-\caption{Extracción OCR.}
-\label{alg:ocr-validado}
-\begin{algorithmic}[1]
-\Require Captura $I$, confianza mínima $\tau$ y contexto de fuente
-\Ensure Observaciones normalizadas o rechazo trazable
-\State Cargar $I$ y aplicar escala, contraste, reducción de ruido y binarización
-\State Ejecutar Tesseract y calcular $c_{\mathrm{OCR}}$
-\If{$c_{\mathrm{OCR}} < \tau$}
-  \State Rechazar la captura y conservar su referencia para revisión
-\Else
-  \ForAll{filas reconocidas}
-    \State Extraer artículo, calidad, plataforma, precio, moneda y volumen
-    \If{precio y moneda son válidos}
-      \State Construir identificador canónico y observación con la confianza obtenida
-    \EndIf
-  \EndFor
-\EndIf
-\end{algorithmic}
-\end{algorithm}
-
-\begin{table}[h]
-\centering
-\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{0.20\textwidth} >{\raggedright\arraybackslash}p{0.38\textwidth} >{\raggedright\arraybackslash}X}
-\toprule
-Etapa & Salida & Control aplicado \\
-\midrule
-Preprocesado & Imagen binaria ampliada & CLAHE, reducción de ruido y umbral adaptativo. \\
-Reconocimiento & Texto y confianza por palabra & Media de confidencias válidas de Tesseract. \\
-Parsing & Campos de mercado normalizados & Precio, moneda, calidad, plataforma y volumen. \\
-Validación & Observación o rechazo & Confianza mínima, precio positivo y rango máximo. \\
-\bottomrule
-\end{tabularx}
-\caption{Controles del pipeline OCR.}
-\label{tab:ocr-controles}
-\end{table}
+Solo se conserva un registro de mercado cuando $c_{\mathrm{OCR}}\geq 0{,}5$ y el precio supera los controles descritos. Esta regla evita que una captura dudosa entre en el histórico sin quedar identificada.
 
 Las importaciones manuales y \acroref{CSV}{CSV} complementan el flujo cuando se necesitan muestras controladas, fixtures o históricos parciales sin depender de una sesión de navegador. Esta vía se utiliza para validar parsers, modelos de persistencia y reglas económicas antes de automatizar el proceso completo.
 
