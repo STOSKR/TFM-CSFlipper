@@ -45,6 +45,57 @@ El modelo operativo almacena el estado actual en \texttt{market\_items} y las se
 
 La deduplicación se realiza antes de persistir y las actualizaciones de estado se comprueban con pruebas de integración. En la validación ejecutada se insertó un snapshot, se actualizó una cotización y se guardó una señal vinculada a un artículo. Cada prueba revierte su transacción al terminar, de modo que las comprobaciones no contaminan el histórico de experimentación.
 
+\subsection{OCR e importación manual}
+
+El \acroref{OCR}{OCR} se incorpora como vía secundaria de adquisición. Convierte capturas, tablas o interfaces no estructuradas en observaciones equivalentes a las obtenidas mediante una consulta estructurada. Aunque esta vía es más frágil que una fuente estructurada, permite incorporar datos cuando una plataforma no ofrece un acceso automatizable o cuando se dispone de material histórico en forma de imagen.
+
+La implementación actual se centra en tablas y mensajes de mercado, cuyas filas presentan una estructura regular. OpenCV amplía la imagen por un factor dos, la convierte a escala de grises, mejora el contraste local con \acroref{CLAHE}{CLAHE}, reduce ruido y aplica una binarización adaptativa. CLAHE divide la imagen en zonas, ajusta el contraste de cada una y limita ese refuerzo para no amplificar el ruido. Tesseract devuelve las palabras reconocidas y una confianza para cada palabra \cite{smith2007tesseract}. La confianza agregada es la media de las $n$ palabras cuya confianza es válida, donde $c_j$ representa la confianza de la palabra $j$:
+
+\[
+c_{\mathrm{OCR}}=\frac{1}{100n}\sum_{j=1}^{n} c_j.
+\]
+
+El parser normaliza espacios y separadores decimales, e identifica precio, moneda, calidad, plataforma y volumen cuando aparecen en una fila. Solo se convierten en observaciones las extracciones con $c_{\mathrm{OCR}}\geq 0{,}5$ y con un precio positivo menor de un millón de unidades monetarias. Esta regla evita que una captura dudosa entre en el histórico sin quedar identificada.
+
+\begin{algorithm}[H]
+\caption{Extracción OCR.}
+\label{alg:ocr-validado}
+\begin{algorithmic}[1]
+\Require Captura $I$, confianza mínima $\tau$ y contexto de fuente
+\Ensure Observaciones normalizadas o rechazo trazable
+\State Cargar $I$ y aplicar escala, contraste, reducción de ruido y binarización
+\State Ejecutar Tesseract y calcular $c_{\mathrm{OCR}}$
+\If{$c_{\mathrm{OCR}} < \tau$}
+  \State Rechazar la captura y conservar su referencia para revisión
+\Else
+  \ForAll{filas reconocidas}
+    \State Extraer artículo, calidad, plataforma, precio, moneda y volumen
+    \If{precio y moneda son válidos}
+      \State Construir identificador canónico y observación con la confianza obtenida
+    \EndIf
+  \EndFor
+\EndIf
+\end{algorithmic}
+\end{algorithm}
+
+\begin{table}[h]
+\centering
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{0.20\textwidth} >{\raggedright\arraybackslash}p{0.38\textwidth} >{\raggedright\arraybackslash}X}
+\toprule
+Etapa & Salida & Control aplicado \\
+\midrule
+Preprocesado & Imagen binaria ampliada & CLAHE, reducción de ruido y umbral adaptativo. \\
+Reconocimiento & Texto y confianza por palabra & Media de confidencias válidas de Tesseract. \\
+Parsing & Campos de mercado normalizados & Precio, moneda, calidad, plataforma y volumen. \\
+Validación & Observación o rechazo & Confianza mínima, precio positivo y rango máximo. \\
+\bottomrule
+\end{tabularx}
+\caption{Controles del pipeline OCR.}
+\label{tab:ocr-controles}
+\end{table}
+
+Las importaciones manuales y \acroref{CSV}{CSV} complementan el flujo cuando se necesitan muestras controladas, fixtures o históricos parciales sin depender de una sesión de navegador. Esta vía se utiliza para validar parsers, modelos de persistencia y reglas económicas antes de automatizar el proceso completo.
+
 \section{Consola de consulta}
 
 La consola local convierte el estado técnico en una interfaz de revisión. Su pantalla principal separa la bandeja de oportunidades del detalle de la oportunidad seleccionada. La bandeja concentra el nombre del artículo, la ruta, el margen y los precios Steam y BUFF. El detalle explica qué señal la ha producido, qué datos faltan y qué restricciones de cartera intervienen.

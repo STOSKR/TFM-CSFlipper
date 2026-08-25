@@ -1,77 +1,23 @@
 \chapter{Configuración del entorno y datos}
 
-\noindent Este capítulo explica qué datos utiliza el sistema, cómo se obtienen y cómo se preparan antes de emplearlos en la simulación o en los modelos. También presenta las reglas económicas y las variables que describen el estado de una cartera.
+\noindent Este capítulo describe el entorno de datos empleado en los experimentos. En primer lugar, identifica las fuentes de información disponibles y el papel que desempeña cada una en la observación de los mercados secundarios de artículos de \acroref{CS2}{CS2}. A continuación, explica cómo se normalizan y validan las observaciones para conservar su procedencia, su fecha de captura y los atributos que identifican cada artículo.
+
+El capítulo presenta después las variables construidas a partir del histórico y el procedimiento temporal con el que se forman los conjuntos de entrenamiento, validación y prueba. Esta preparación permite que los modelos utilicen únicamente la información disponible en cada fecha y que sus resultados se evalúen sin incorporar información futura.
 
 \section{Fuentes de datos}
 
-El sistema trabaja con varias fuentes porque el mercado de \acroref{CS2}{CS2} está fragmentado. Ninguna fuente aislada contiene toda la información necesaria para decidir. Steam aporta precio, histórico y señales del mercado principal. \acroref{BUFF}{BUFF} permite comparar oportunidades y buy orders. SteamDT ayuda a descubrir candidatos. El \acroref{OCR}{OCR} permite capturar datos cuando no existe una \acroref{API}{API} cómoda. Los \acroref{CSV}{CSV} o importaciones manuales sirven para integrar muestras controladas o material histórico.
+El flujo principal comienza con SteamDT, que permite descubrir artículos candidatos a partir de una visión general del mercado de \acroref{CS2}{CS2} \cite{steamDT}. Los candidatos se contrastan después con Steam Community Market, el mercado integrado de Steam, y con \acroref{BUFF}{BUFF}, una plataforma externa. Cada fuente desempeña una función concreta:
 
-La capa de adquisición se ha desarrollado en Python 3.11. HTTPX se emplea cuando una fuente admite una consulta HTTP estable y Playwright cuando exige navegación o renderizado de página. Las observaciones se guardan en PostgreSQL, desplegado mediante Supabase, y el acceso se organiza con SQLAlchemy y AsyncPG. Así, cada dato conserva su fuente, instante de captura y formato original antes de incorporarse al análisis.
+\begin{itemize}
+  \item \textbf{SteamDT} localiza artículos que conviene observar con mayor detalle. No proporciona por sí solo una decisión de compra o venta.
+  \item \textbf{Steam Community Market} aporta precios actuales, órdenes de compra, volumen de intercambios y series históricas \cite{steamMarketFAQ}. Su histórico constituye la fuente principal para construir el dataset temporal.
+  \item \textbf{\acroref{BUFF}{BUFF}} aporta precios actuales en una plataforma externa y órdenes de compra que permiten contrastar una posible operación de compraventa entre plataformas \cite{buffMarketplace}.
+  \item \textbf{\acroref{OCR}{OCR}} e \textbf{importación manual} son alternativas complementarias cuando no se dispone de una observación estructurada. Permiten incorporar capturas, tablas o muestras controladas sin alterar el flujo principal.
+\end{itemize}
 
-\subsection{Mercado de Steam}
+Steam aporta una serie temporal de precios y volumen de intercambios. A partir de esa serie se construyen variables que describen la evolución de cada artículo, como retornos, medias móviles y volatilidad. \acroref{BUFF}{BUFF} se utiliza para contrastar el precio actual de compra de una operación concreta, pero no constituye la fuente histórica principal del entrenamiento. Esta separación evita que el entrenamiento dependa de capturas recurrentes de \acroref{BUFF}{BUFF}.
 
-Steam actúa como una de las fuentes principales de precio e histórico. En el proyecto se capturan artículos identificados por sus atributos, precios actuales, moneda, buy orders y puntos históricos cuando están disponibles. La información se normaliza para que pueda combinarse con otras plataformas y para evitar que las decisiones dependan de nombres o formatos propios de una fuente.
-
-En la práctica, Steam no se usa solo como una tabla de precios. También aporta señales de volumen de intercambios y de comportamiento temporal. El histórico permite construir retornos, medias móviles, volatilidad y desviaciones frente a ventas recientes. Estas variables son necesarias para que el modelo no mire únicamente una fotografía puntual del mercado.
-
-\subsection{BUFF y mercados externos}
-
-\acroref{BUFF}{BUFF} se utiliza como mercado externo de comparación. Sus precios se reciben principalmente en \acroref{CNY}{CNY}, por lo que el sistema conserva tanto el valor original como su conversión a \acroref{EUR}{EUR}. Esta doble representación permite auditar el dato original y, al mismo tiempo, entrenar modelos sobre una moneda canónica. Las buy orders de \acroref{BUFF}{BUFF} son especialmente útiles porque ayudan a estimar si una salida tiene demanda o si el precio observado es poco ejecutable.
-
-SteamDT se utiliza como apoyo para descubrir candidatos y estrategias de búsqueda, no como fuente única de decisión. Su función dentro del sistema es reducir el espacio de búsqueda inicial y ayudar a priorizar qué artículos merece la pena observar con más profundidad.
-
-Tras las primeras pruebas, \acroref{BUFF}{BUFF} se separa del entrenamiento principal. El histórico masivo se apoya en Steam, mientras que \acroref{BUFF}{BUFF} se usa como precio vivo de entrada cuando se evalúa un flip concreto hacia Steam. De este modo el modelo no intenta predecir el precio de \acroref{BUFF}{BUFF} ni depende de scraping recurrente de \acroref{BUFF}{BUFF} para aprender patrones temporales.
-
-\subsection{OCR e importación manual}
-
-El \acroref{OCR}{OCR} se incorpora como vía secundaria de adquisición. Su objetivo es convertir capturas, tablas o interfaces no estructuradas en observaciones equivalentes a las obtenidas por scraping o \acroref{API}{API}. El flujo incluye preprocesado de imagen, reconocimiento de texto, parsing estructurado, validación y persistencia. Aunque es más frágil que una fuente estructurada, resulta útil cuando una plataforma no expone datos cómodamente o cuando se quiere incorporar material histórico procedente de capturas.
-
-La implementación actual se centra en tablas y mensajes de mercado, que son las capturas con una estructura suficientemente regular para poder validarse. OpenCV amplía la imagen por un factor dos, la convierte a escala de grises, mejora el contraste local con \acroref{CLAHE}{CLAHE}, reduce ruido y aplica una binarización adaptativa. CLAHE divide la imagen en zonas, ajusta el contraste de cada una y limita ese refuerzo para no amplificar el ruido. Tesseract devuelve las palabras y una confianza por palabra. La confianza agregada utilizada por el pipeline es la media de las $n$ palabras reconocidas con confianza válida:
-
-\[
-c_{\mathrm{OCR}}=\frac{1}{100n}\sum_{j=1}^{n} c_j.
-\]
-
-El parser normaliza espacios y separadores decimales, identifica precio, moneda, calidad, plataforma y volumen cuando aparecen en la línea. Solo se convierten en observaciones las extracciones con $c_{\mathrm{OCR}}\geq 0{,}5$ y con un precio positivo menor de un millón de unidades monetarias. Esta regla evita que una captura dudosa entre silenciosamente al histórico.
-
-\begin{algorithm}[H]
-\caption{Extracción OCR.}
-\label{alg:ocr-validado}
-\begin{algorithmic}[1]
-\Require Captura $I$, confianza mínima $\tau$ y contexto de fuente
-\Ensure Observaciones normalizadas o rechazo trazable
-\State Cargar $I$ y aplicar escala, contraste, reducción de ruido y binarización
-\State Ejecutar Tesseract y calcular $c_{\mathrm{OCR}}$
-\If{$c_{\mathrm{OCR}} < \tau$}
-  \State Rechazar la captura y conservar su referencia para revisión
-\Else
-  \ForAll{líneas reconocidas}
-    \State Extraer artículo, calidad, plataforma, precio, moneda y volumen
-    \If{precio y moneda son válidos}
-      \State Construir identificador canónico y observación con la confianza obtenida
-    \EndIf
-  \EndFor
-\EndIf
-\end{algorithmic}
-\end{algorithm}
-
-\begin{table}[h]
-\centering
-\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{0.20\textwidth} >{\raggedright\arraybackslash}p{0.38\textwidth} >{\raggedright\arraybackslash}X}
-\toprule
-Etapa & Salida & Control aplicado \\
-\midrule
-Preprocesado & Imagen binaria ampliada & CLAHE, reducción de ruido y umbral adaptativo. \\
-Reconocimiento & Texto y confianza por palabra & Media de confidencias válidas de Tesseract. \\
-Parsing & Campos de mercado normalizados & Precio, moneda, calidad, plataforma y volumen. \\
-Validación & Observación o rechazo & Confianza mínima, precio positivo y rango máximo. \\
-\bottomrule
-\end{tabularx}
-\caption{Controles del pipeline OCR.}
-\label{tab:ocr-controles}
-\end{table}
-
-Las importaciones manuales y \acroref{CSV}{CSV} cumplen una función complementaria. Permiten introducir muestras controladas, fixtures o históricos parciales sin depender de una sesión de navegador. Esta vía ha sido útil para validar parsers, modelos de persistencia y reglas económicas antes de automatizar el flujo completo.
+Cada observación conserva la fuente, la fecha de captura, la moneda original y los atributos que identifican el artículo. La normalización de estos campos y los controles aplicados antes de aceptar una observación se describen en la siguiente sección. Los procedimientos técnicos de captura, incluido el \acroref{OCR}{OCR}, se presentan en el Capítulo 6.
 
 \section{Adquisición y persistencia}
 
