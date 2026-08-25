@@ -51,6 +51,7 @@ class CTDETrainingConfig:
     value_weight: float = 0.50
     seed: int = 7
     include_supervised_probability: bool = True
+    evaluate_test: bool = True
     reward_config: CooperativeRewardConfig = CooperativeRewardConfig()
     hybrid_reward_config: HybridRewardConfig = HybridRewardConfig()
     allocation_config: AllocationTargetConfig = AllocationTargetConfig()
@@ -228,12 +229,16 @@ def train_ctde(config: CTDETrainingConfig) -> dict[str, Any]:
             )
 
     _load_checkpoint_weights(checkpoint_path, actors, evaluator)
-    test = _evaluate_source(
-        test_source,
-        actors,
-        config=config,
-        rng=random.Random(config.seed + 2),
-        episodes=max(1, min(8, config.episodes_per_iteration)),
+    test = (
+        _evaluate_source(
+            test_source,
+            actors,
+            config=config,
+            rng=random.Random(config.seed + 2),
+            episodes=max(1, min(8, config.episodes_per_iteration)),
+        )
+        if config.evaluate_test
+        else None
     )
     report = {
         "algorithm": "CTDE actor-critic multiagente",

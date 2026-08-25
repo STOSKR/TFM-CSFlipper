@@ -37,6 +37,11 @@ def main() -> None:
     parser.add_argument("--target-investment-tolerance", type=str, default="0.05")
     parser.add_argument("--seed", type=int, default=7)
     parser.add_argument(
+        "--skip-test",
+        action="store_true",
+        help="Use only training and validation. Do not inspect the independent test split.",
+    )
+    parser.add_argument(
         "--no-supervised-probability",
         action="store_true",
         help="Run the ablation without the supervised prediction feature.",
@@ -55,6 +60,7 @@ def main() -> None:
             gamma=args.gamma,
             seed=args.seed,
             include_supervised_probability=not args.no_supervised_probability,
+            evaluate_test=not args.skip_test,
             reward_config=CooperativeRewardConfig(
                 roi_weight=Decimal(args.roi_weight),
                 extra_hold_day_penalty=Decimal(args.extra_hold_day_penalty),
