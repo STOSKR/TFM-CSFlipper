@@ -51,6 +51,8 @@ class CTDETrainingConfig:
     value_weight: float = 0.50
     early_stopping_patience: int | None = None
     seed: int = 7
+    validation_seed: int = 10_007
+    test_seed: int = 20_007
     include_supervised_probability: bool = True
     evaluate_test: bool = True
     reward_config: CooperativeRewardConfig = CooperativeRewardConfig()
@@ -184,7 +186,10 @@ def train_ctde(config: CTDETrainingConfig) -> dict[str, Any]:
         lr=config.learning_rate,
     )
     train_rng = random.Random(config.seed)
-    validation_rng = random.Random(config.seed + 1)
+    # La validación y la prueba deben recorrer las mismas ventanas históricas
+    # en todas las ejecuciones. Solo la semilla de entrenamiento varía entre
+    # modelos para poder atribuir sus diferencias a la política entrenada.
+    validation_rng = random.Random(config.validation_seed)
     baseline_validation = _evaluate_source(
         validation_source,
         actors,
@@ -253,7 +258,7 @@ def train_ctde(config: CTDETrainingConfig) -> dict[str, Any]:
             test_source,
             actors,
             config=config,
-            rng=random.Random(config.seed + 2),
+            rng=random.Random(config.test_seed),
             episodes=max(1, min(8, config.episodes_per_iteration)),
         )
         if config.evaluate_test

@@ -46,6 +46,8 @@ def main() -> None:
     parser.add_argument("--target-investment-fraction", type=str, default="0.50")
     parser.add_argument("--target-investment-tolerance", type=str, default="0.05")
     parser.add_argument("--seed", type=int, default=7)
+    parser.add_argument("--validation-seed", type=int, default=10007)
+    parser.add_argument("--test-seed", type=int, default=20007)
     parser.add_argument(
         "--skip-test",
         action="store_true",
@@ -74,6 +76,8 @@ def main() -> None:
             value_weight=args.value_weight,
             early_stopping_patience=args.early_stopping_patience,
             seed=args.seed,
+            validation_seed=args.validation_seed,
+            test_seed=args.test_seed,
             include_supervised_probability=not args.no_supervised_probability,
             evaluate_test=not args.skip_test,
             reward_config=CooperativeRewardConfig(
