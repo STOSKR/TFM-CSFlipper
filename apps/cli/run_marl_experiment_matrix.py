@@ -11,8 +11,8 @@ from typing import Any
 
 from packages.marl import (
     AllocationTargetConfig,
-    CTDETrainingConfig,
     CooperativeRewardConfig,
+    CTDETrainingConfig,
     HybridRewardConfig,
     train_ctde,
 )
@@ -85,6 +85,10 @@ def _training_config(values: dict[str, Any], *, output_dir: Path) -> CTDETrainin
         max_steps_per_episode=int(values.get("max_steps_per_episode", 2000)),
         learning_rate=float(values.get("learning_rate", 0.0003)),
         gamma=float(values.get("gamma", 0.99)),
+        ppo_clip=float(values.get("ppo_clip", 0.20)),
+        update_epochs=int(values.get("update_epochs", 4)),
+        entropy_weight=float(values.get("entropy_weight", 0.01)),
+        value_weight=float(values.get("value_weight", 0.50)),
         seed=int(values.get("seed", 7)),
         include_supervised_probability=bool(values.get("include_supervised_probability", True)),
         evaluate_test=False,
@@ -117,6 +121,12 @@ def _parameter_summary(config: CTDETrainingConfig) -> dict[str, str | int]:
         "target_investment_tolerance": str(config.allocation_config.tolerance),
         "iterations": config.iterations,
         "episodes_per_iteration": config.episodes_per_iteration,
+        "learning_rate": config.learning_rate,
+        "gamma": config.gamma,
+        "ppo_clip": config.ppo_clip,
+        "update_epochs": config.update_epochs,
+        "entropy_weight": config.entropy_weight,
+        "value_weight": config.value_weight,
     }
 
 

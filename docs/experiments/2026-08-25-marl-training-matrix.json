@@ -1,0 +1,33 @@
+{
+  "base": {
+    "dataset_dir": "data/datasets/trading_profit_v1",
+    "cash": "1000",
+    "iterations": 10,
+    "episodes_per_iteration": 5,
+    "episode_days": 14,
+    "max_steps_per_episode": 2000,
+    "learning_rate": 0.0003,
+    "gamma": 0.99,
+    "ppo_clip": 0.20,
+    "update_epochs": 4,
+    "entropy_weight": 0.01,
+    "value_weight": 0.50,
+    "seed": 7,
+    "roi_weight": "0.60",
+    "extra_hold_day_penalty": "0.01",
+    "constraint_violation_penalty": "0.80",
+    "shared_weight": "0.90",
+    "target_investment_fraction": "0.50",
+    "target_investment_tolerance": "0.05"
+  },
+  "experiments": [
+    {"name": "base", "description": "Configuración de referencia tras el cribado de recompensa."},
+    {"name": "lr_00010", "learning_rate": 0.0001},
+    {"name": "lr_00050", "learning_rate": 0.0005},
+    {"name": "gamma_095", "gamma": 0.95},
+    {"name": "entropy_000", "entropy_weight": 0.0},
+    {"name": "entropy_020", "entropy_weight": 0.02},
+    {"name": "clip_010", "ppo_clip": 0.10},
+    {"name": "epochs_2", "update_epochs": 2}
+  ]
+}

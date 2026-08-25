@@ -129,6 +129,11 @@ class _Rollout:
     rewards: dict[str, list[float]]
     mean_common_reward: float
     final_equity_return: float
+    final_equity_eur: float
+    final_cash_available_eur: float
+    realized_profit_eur: float
+    open_invested_eur: float
+    open_positions: int
     closed_operations: int
 
 
@@ -340,6 +345,11 @@ def _sample_rollout(
     rollout.final_equity_return = float(
         (metrics.equity_eur - config.initial_cash_eur) / config.initial_cash_eur
     )
+    rollout.final_equity_eur = float(metrics.equity_eur)
+    rollout.final_cash_available_eur = float(metrics.cash_available_eur)
+    rollout.realized_profit_eur = float(metrics.realized_profit_eur)
+    rollout.open_invested_eur = float(metrics.open_invested_eur)
+    rollout.open_positions = metrics.open_positions
     return rollout
 
 
@@ -353,6 +363,11 @@ def _empty_rollout() -> _Rollout:
         rewards={agent_id: [] for agent_id in AGENT_IDS},
         mean_common_reward=0.0,
         final_equity_return=0.0,
+        final_equity_eur=0.0,
+        final_cash_available_eur=0.0,
+        realized_profit_eur=0.0,
+        open_invested_eur=0.0,
+        open_positions=0,
         closed_operations=0,
     )
 
@@ -471,6 +486,17 @@ def _rollout_metrics(rollouts: list[_Rollout]) -> dict[str, float | int]:
     return {
         "episodes": len(rollouts),
         "equity_return": float(np.mean([rollout.final_equity_return for rollout in rollouts])),
+        "final_equity_eur": float(np.mean([rollout.final_equity_eur for rollout in rollouts])),
+        "final_cash_available_eur": float(
+            np.mean([rollout.final_cash_available_eur for rollout in rollouts])
+        ),
+        "realized_profit_eur": float(
+            np.mean([rollout.realized_profit_eur for rollout in rollouts])
+        ),
+        "open_invested_eur": float(
+            np.mean([rollout.open_invested_eur for rollout in rollouts])
+        ),
+        "open_positions": float(np.mean([rollout.open_positions for rollout in rollouts])),
         "mean_common_reward": float(np.mean([rollout.mean_common_reward for rollout in rollouts])),
         "closed_operations": int(sum(rollout.closed_operations for rollout in rollouts)),
     }

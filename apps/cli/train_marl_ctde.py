@@ -9,8 +9,8 @@ from pathlib import Path
 
 from packages.marl import (
     AllocationTargetConfig,
-    CTDETrainingConfig,
     CooperativeRewardConfig,
+    CTDETrainingConfig,
     HybridRewardConfig,
     train_ctde,
 )
@@ -29,6 +29,10 @@ def main() -> None:
     parser.add_argument("--max-steps-per-episode", type=int, default=2000)
     parser.add_argument("--learning-rate", type=float, default=0.0003)
     parser.add_argument("--gamma", type=float, default=0.99)
+    parser.add_argument("--ppo-clip", type=float, default=0.20)
+    parser.add_argument("--update-epochs", type=int, default=4)
+    parser.add_argument("--entropy-weight", type=float, default=0.01)
+    parser.add_argument("--value-weight", type=float, default=0.50)
     parser.add_argument("--shared-weight", type=str, default="0.70")
     parser.add_argument("--roi-weight", type=str, default="0.60")
     parser.add_argument("--extra-hold-day-penalty", type=str, default="0.01")
@@ -58,6 +62,10 @@ def main() -> None:
             max_steps_per_episode=args.max_steps_per_episode,
             learning_rate=args.learning_rate,
             gamma=args.gamma,
+            ppo_clip=args.ppo_clip,
+            update_epochs=args.update_epochs,
+            entropy_weight=args.entropy_weight,
+            value_weight=args.value_weight,
             seed=args.seed,
             include_supervised_probability=not args.no_supervised_probability,
             evaluate_test=not args.skip_test,
