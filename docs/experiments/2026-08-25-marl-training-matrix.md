@@ -16,7 +16,7 @@ complemento porque una parte del capital puede seguir invertida al finalizar un
 episodio.
 
 Se estudian la tasa de aprendizaje, el factor de descuento, la entropía de
-exploración, el límite PPO y el número de épocas de actualización. Tras el
-cribado, las dos configuraciones con mejor validación se repetirán con varias
-semillas y un número mayor de episodios antes de realizar una única evaluación
-en el conjunto de prueba.
+exploración y el límite PPO. Cada una de las seis configuraciones se ejecuta
+con las semillas 7, 19 y 31, por lo que la cola nocturna contiene 18 modelos.
+Después se calculará la media y la dispersión de validación por configuración.
+Solo las dos mejores pasarán a una única evaluación en el conjunto de prueba.

@@ -22,11 +22,23 @@
     "target_investment_tolerance": "0.05"
   },
   "experiments": [
-    {"name": "base_largo", "description": "Configuración de referencia con entrenamiento largo."},
-    {"name": "lr_00010", "learning_rate": 0.0001},
-    {"name": "lr_00015", "learning_rate": 0.00015},
-    {"name": "gamma_095", "gamma": 0.95},
-    {"name": "entropy_000", "entropy_weight": 0.0},
-    {"name": "clip_010", "ppo_clip": 0.10}
+    {"name": "base_s07", "seed": 7},
+    {"name": "base_s19", "seed": 19},
+    {"name": "base_s31", "seed": 31},
+    {"name": "lr_00010_s07", "learning_rate": 0.0001, "seed": 7},
+    {"name": "lr_00010_s19", "learning_rate": 0.0001, "seed": 19},
+    {"name": "lr_00010_s31", "learning_rate": 0.0001, "seed": 31},
+    {"name": "lr_00015_s07", "learning_rate": 0.00015, "seed": 7},
+    {"name": "lr_00015_s19", "learning_rate": 0.00015, "seed": 19},
+    {"name": "lr_00015_s31", "learning_rate": 0.00015, "seed": 31},
+    {"name": "gamma_095_s07", "gamma": 0.95, "seed": 7},
+    {"name": "gamma_095_s19", "gamma": 0.95, "seed": 19},
+    {"name": "gamma_095_s31", "gamma": 0.95, "seed": 31},
+    {"name": "entropy_000_s07", "entropy_weight": 0.0, "seed": 7},
+    {"name": "entropy_000_s19", "entropy_weight": 0.0, "seed": 19},
+    {"name": "entropy_000_s31", "entropy_weight": 0.0, "seed": 31},
+    {"name": "clip_010_s07", "ppo_clip": 0.10, "seed": 7},
+    {"name": "clip_010_s19", "ppo_clip": 0.10, "seed": 19},
+    {"name": "clip_010_s31", "ppo_clip": 0.10, "seed": 31}
   ]
 }
