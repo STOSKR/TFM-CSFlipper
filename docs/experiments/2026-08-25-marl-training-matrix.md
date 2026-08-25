@@ -2,8 +2,10 @@
 
 Este experimento compara configuraciones de entrenamiento después de fijar la
 estructura de recompensa. Todas las ejecuciones usan los mismos cortes
-temporales y se seleccionan exclusivamente con validación. El corte de prueba
-permanece sin consultar.
+temporales y se seleccionan exclusivamente con validación. Cada modelo admite
+un máximo de 50 iteraciones de ocho episodios y se detiene antes si durante 12
+iteraciones consecutivas no mejora la validación. El corte de prueba permanece
+sin consultar.
 
 Cada ejecución parte de 1.000 EUR y guarda, para cada iteración, el retorno
 del valor de la cartera, el valor final de la cartera, el efectivo disponible,

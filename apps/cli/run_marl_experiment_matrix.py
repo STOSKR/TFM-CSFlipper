@@ -89,6 +89,11 @@ def _training_config(values: dict[str, Any], *, output_dir: Path) -> CTDETrainin
         update_epochs=int(values.get("update_epochs", 4)),
         entropy_weight=float(values.get("entropy_weight", 0.01)),
         value_weight=float(values.get("value_weight", 0.50)),
+        early_stopping_patience=(
+            int(values["early_stopping_patience"])
+            if values.get("early_stopping_patience") is not None
+            else None
+        ),
         seed=int(values.get("seed", 7)),
         include_supervised_probability=bool(values.get("include_supervised_probability", True)),
         evaluate_test=False,
@@ -127,6 +132,7 @@ def _parameter_summary(config: CTDETrainingConfig) -> dict[str, str | int]:
         "update_epochs": config.update_epochs,
         "entropy_weight": config.entropy_weight,
         "value_weight": config.value_weight,
+        "early_stopping_patience": config.early_stopping_patience,
     }
 
 

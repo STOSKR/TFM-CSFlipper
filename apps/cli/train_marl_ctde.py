@@ -33,6 +33,12 @@ def main() -> None:
     parser.add_argument("--update-epochs", type=int, default=4)
     parser.add_argument("--entropy-weight", type=float, default=0.01)
     parser.add_argument("--value-weight", type=float, default=0.50)
+    parser.add_argument(
+        "--early-stopping-patience",
+        type=int,
+        default=None,
+        help="Detiene tras este número de iteraciones sin mejorar la validación.",
+    )
     parser.add_argument("--shared-weight", type=str, default="0.70")
     parser.add_argument("--roi-weight", type=str, default="0.60")
     parser.add_argument("--extra-hold-day-penalty", type=str, default="0.01")
@@ -66,6 +72,7 @@ def main() -> None:
             update_epochs=args.update_epochs,
             entropy_weight=args.entropy_weight,
             value_weight=args.value_weight,
+            early_stopping_patience=args.early_stopping_patience,
             seed=args.seed,
             include_supervised_probability=not args.no_supervised_probability,
             evaluate_test=not args.skip_test,

@@ -49,6 +49,7 @@ class CTDETrainingConfig:
     update_epochs: int = 4
     entropy_weight: float = 0.01
     value_weight: float = 0.50
+    early_stopping_patience: int | None = None
     seed: int = 7
     include_supervised_probability: bool = True
     evaluate_test: bool = True
@@ -65,6 +66,8 @@ class CTDETrainingConfig:
             raise ValueError("learning_rate must be positive")
         if not 0 < self.gamma <= 1:
             raise ValueError("gamma must be in (0, 1]")
+        if self.early_stopping_patience is not None and self.early_stopping_patience <= 0:
+            raise ValueError("early_stopping_patience must be positive when provided")
 
 
 class _Actor(nn.Module):
@@ -190,6 +193,8 @@ def train_ctde(config: CTDETrainingConfig) -> dict[str, Any]:
         episodes=max(1, min(4, config.episodes_per_iteration)),
     )
     best_validation = float(baseline_validation["equity_return"])
+    iterations_without_improvement = 0
+    stopped_early = False
     history: list[dict[str, float | int]] = []
     checkpoint_path = config.output_dir / "best_checkpoint.pt"
     _save_checkpoint(
@@ -224,6 +229,7 @@ def train_ctde(config: CTDETrainingConfig) -> dict[str, Any]:
         history.append(row)
         if validation["equity_return"] > best_validation:
             best_validation = validation["equity_return"]
+            iterations_without_improvement = 0
             _save_checkpoint(
                 checkpoint_path,
                 actors=actors,
@@ -232,6 +238,14 @@ def train_ctde(config: CTDETrainingConfig) -> dict[str, Any]:
                 iteration=iteration,
                 validation=validation,
             )
+        else:
+            iterations_without_improvement += 1
+        if (
+            config.early_stopping_patience is not None
+            and iterations_without_improvement >= config.early_stopping_patience
+        ):
+            stopped_early = True
+            break
 
     _load_checkpoint_weights(checkpoint_path, actors, evaluator)
     test = (
@@ -257,6 +271,8 @@ def train_ctde(config: CTDETrainingConfig) -> dict[str, Any]:
         },
         "checkpoint": str(checkpoint_path),
         "best_validation_equity_return": best_validation,
+        "executed_iterations": len(history),
+        "stopped_early": stopped_early,
         "test": test,
         "history": history,
     }
