@@ -72,19 +72,23 @@ Solo se conserva un registro de mercado cuando $c_{\mathrm{OCR}}\geq 0{,}5$ y el
 
 Las importaciones manuales y \acroref{CSV}{CSV} complementan el flujo cuando se necesitan muestras controladas, fixtures o históricos parciales sin depender de una sesión de navegador. Esta vía se utiliza para validar parsers, modelos de persistencia y reglas económicas antes de automatizar el proceso completo.
 
-\section{Construcción y ejecución de modelos}
+\section{Entrenamiento y ejecución de modelos}
 
-La construcción de los conjuntos temporales parte exclusivamente del histórico persistido. El proceso exporta una versión identificable del conjunto de datos y conserva sus fechas de corte, columnas, tamaños y tasas de clase. La normalización de los registros y el método de separación temporal se describen en el Capítulo~5, por lo que esta sección se limita a explicar cómo se conectan esos conjuntos con los componentes ejecutables.
+Los conjuntos temporales preparados en el Capítulo~5 alimentan los procesos de entrenamiento. Los modelos se ajustan con el conjunto de entrenamiento, su configuración se selecciona mediante validación y el conjunto de prueba queda reservado para la evaluación final descrita en el capítulo de experimentación. Esta separación mantiene independientes la selección del modelo y la medición de su resultado final.
 
-El módulo supervisado entrena modelos tabulares y guarda el artefacto seleccionado, el listado de variables de entrada, la configuración empleada y un informe de entrenamiento. En una consulta posterior, el servicio de inferencia comprueba que recibe esas mismas variables y devuelve una probabilidad junto con la versión del modelo. Esa probabilidad se utiliza como señal de entrada y no constituye una orden de compra.
+El módulo supervisado entrena modelos tabulares y guarda el fichero del modelo seleccionado junto con el listado de variables de entrada, la configuración empleada y un informe de entrenamiento. En una consulta posterior, el servicio de inferencia comprueba que recibe esas mismas variables y devuelve una probabilidad junto con la versión del modelo. Esa probabilidad pasa al simulador para evaluar la posible operación, pero no ejecuta una compra.
 
 El simulador de cartera se mantiene separado de los modelos de aprendizaje. Implementa las comisiones, el bloqueo de intercambio, las posiciones y las restricciones explicadas en el Capítulo~\ref{chap:propuesta}. El entorno multiagente reutiliza ese simulador para ejecutar episodios y conserva, para cada paso, las observaciones locales, las acciones propuestas, el resultado de la transición y el desglose de las recompensas. De este modo, el entrenamiento puede revisar por qué una política recibe una recompensa sin alterar los datos de mercado ni enviar una orden real.
 
-Los comandos de entrenamiento guardan los parámetros de cada ejecución y el mejor modelo seleccionado mediante validación. La evaluación final sobre el conjunto de prueba y la comparación entre configuraciones se presentan en el capítulo de experimentación.
+El entrenamiento MARL sigue el esquema de entrenamiento centralizado y ejecución descentralizada descrito en la Sección~2.4. Durante el entrenamiento, cada actor recibe únicamente la observación correspondiente a su rol, mientras que el modelo evaluador central utiliza el estado compartido para valorar la decisión conjunta. Cuando se carga un modelo entrenado para ejecutar una simulación o generar una recomendación, se utilizan solo los tres actores locales. El modelo evaluador central no interviene en esa ejecución.
+
+Los comandos de construcción de conjuntos de datos y de entrenamiento conservan, sin secretos, la configuración de cada ejecución, el rango temporal, las variables, el tamaño de cada partición, el porcentaje de casos que cumplen y no cumplen el criterio económico, los hiperparámetros y las métricas obtenidas. Esta información permite distinguir dos situaciones que visualmente podrían parecer iguales: ejecutar un modelo con más datos y repetir exactamente una configuración anterior. La evaluación final sobre el conjunto de prueba y la comparación entre configuraciones se presentan en el capítulo de experimentación.
+
+Las pruebas automatizadas verifican los componentes de dominio, persistencia, OCR, scraping, simulación, MARL y panel web antes de utilizar sus resultados en tablas y gráficas.
 
 \section{Consola local de consulta}
 
-La consola local convierte el estado técnico en una interfaz de revisión. Su pantalla principal separa la bandeja de oportunidades del detalle de la oportunidad seleccionada. La bandeja concentra el nombre del artículo, la ruta, el margen y los precios Steam y BUFF. El detalle explica qué señal la ha producido, qué datos faltan y qué restricciones de cartera intervienen.
+La consola local convierte el estado técnico en una interfaz de revisión. Su pantalla principal separa la lista de oportunidades del detalle de la oportunidad seleccionada. La lista muestra el nombre del artículo, la secuencia prevista de compra y venta, los precios publicados y el beneficio neto estimado. El detalle indica la probabilidad calculada por el modelo supervisado, las fechas de captura de los datos y las restricciones de cartera que intervienen.
 
 El panel no ejecuta compras. Las acciones de abrir Steam o BUFF sirven para que la persona usuaria revise la oportunidad en su fuente. Los estados \emph{revisar}, \emph{observar} y \emph{bloqueado} representan una decisión explicable, no una orden automática. Esta restricción es importante mientras la validación estadística y multiagente sigue en fase exploratoria.
 
@@ -94,42 +98,11 @@ El panel no ejecuta compras. Las acciones de abrir Steam o BUFF sirven para que 
     \item[\emph{Bloqueado}] Los costes, el riesgo o las restricciones de cartera impiden continuar con la posible operación.
 \end{description}
 
-\begin{table}[h]
-\centering
-\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{0.26\textwidth} >{\raggedright\arraybackslash}X}
-\toprule
-Vista & Información que hace visible \\
-\midrule
-Oportunidades & Ruta, precios, margen y estado de la señal. \\
-Scraper & Progreso, conectores, logs y resultado. \\
-Sesiones & Vigencia de Steam y BUFF. \\
-Modelo & Versión, conjunto, métricas y carácter experimental. \\
-Agentes y riesgo & Roles, capital bloqueado, límites y rechazos. \\
-\bottomrule
-\end{tabularx}
-\caption{Vistas de consola.}
-\label{tab:vistas-consola}
-\end{table}
-
-\section{Reproducibilidad y configuración}
-
-La configuración se versiona mediante un fichero de ejemplo sin secretos. Para ejecutar la persistencia basta con definir \texttt{DATABASE\_URL}. El resto de opciones habilita funciones concretas: ruta de Tesseract, token local del servidor de scraping, límites de concurrencia o parámetros de sesiones. Las claves de una base de datos y los estados de navegador quedan excluidos del control de versiones.
-
-Los comandos de construcción de datasets y entrenamiento guardan el rango temporal, las columnas, los tamaños de cada partición, las tasas de clase, los hiperparámetros y las métricas obtenidas. Esta información permite distinguir dos situaciones que visualmente podrían parecer iguales: ejecutar un modelo con más datos y repetir exactamente una configuración anterior.
-
-\begin{algorithm}[H]
-\caption{Ejecución de experimento.}
-\label{alg:experimento-reproducible}
-\begin{algorithmic}[1]
-\Require Dataset versionado, fechas de corte, configuración y semilla
-\Ensure Informe, figura y modelo asociados a una ejecución
-\State Construir entrenamiento, validación y prueba respetando el orden temporal
-\State Guardar el esquema de variables y las tasas de clase
-\State Entrenar los candidatos con la configuración declarada
-\State Elegir parámetros usando solo validación
-\State Evaluar una vez sobre prueba y guardar métricas
-\State Generar tabla o figura desde el informe guardado
-\end{algorithmic}
-\end{algorithm}
-
-Este procedimiento se aplica también a las pruebas automatizadas. La suite acompaña las modificaciones del sistema, de forma que las tablas y gráficas se apoyen en componentes que han pasado las comprobaciones de dominio, persistencia, OCR, scraping, simulación, MARL y panel web.
+La consola se organiza en las siguientes vistas:
+\begin{itemize}
+  \item \textbf{Oportunidades:} muestra los artículos candidatos, sus precios, el beneficio neto estimado y el estado de revisión.
+  \item \textbf{Captura:} permite iniciar una obtención manual de datos y consultar su progreso, los conectores utilizados y el resultado.
+  \item \textbf{Sesiones:} informa de la vigencia de las sesiones locales de Steam y BUFF necesarias para las fuentes que requieren autenticación.
+  \item \textbf{Modelo:} identifica la versión cargada, el conjunto de datos utilizado, las métricas disponibles y su carácter experimental.
+  \item \textbf{Agentes y cartera:} muestra los roles MARL, el capital bloqueado, los límites aplicados y las propuestas rechazadas.
+\end{itemize}
