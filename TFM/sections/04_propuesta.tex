@@ -93,16 +93,16 @@ Una vez definido el problema MARL, la arquitectura describe cómo se organizan l
     flujo/.style={-{Latex[length=2.3mm]}, thick, draw=tfmAccent},
     registro/.style={-{Latex[length=2.3mm]}, thick, dashed, draw=tfmMuted}
   ]
-    \node[bloque, text width=5.0cm] (datos) {\textbf{Captura y persistencia}\\Datos de mercado normalizados};
+    \node[bloque, text width=5.0cm] (datos) at (0,0) {\textbf{Captura y persistencia}\\Datos de mercado normalizados};
 
-    \node[bloque, below left=of datos] (modelo) {\textbf{Modelo supervisado}\\Probabilidad del candidato};
-    \node[bloque, below right=of datos] (cartera) {\textbf{Estado de cartera}\\Saldo, posiciones y riesgo};
+    \node[bloque] (modelo) at (-2.35,-1.75) {\textbf{Modelo supervisado}\\Probabilidad del candidato};
+    \node[bloque] (cartera) at (2.35,-1.75) {\textbf{Estado de cartera}\\Saldo, posiciones y riesgo};
 
-    \node[bloque, below=1.05cm of modelo] (scout) {\textbf{Scout}\\Marca o ignora};
-    \node[bloque, below=1.05cm of datos] (trader) {\textbf{Trader}\\Compra, vende o mantiene};
-    \node[bloque, below=1.05cm of cartera] (portfolio) {\textbf{Portfolio}\\Aprueba o rechaza};
+    \node[bloque] (scout) at (-3.7,-3.55) {\textbf{Scout}\\Marca o ignora};
+    \node[bloque] (trader) at (0,-3.55) {\textbf{Trader}\\Compra, vende o mantiene};
+    \node[bloque] (portfolio) at (3.7,-3.55) {\textbf{Portfolio}\\Aprueba o rechaza};
 
-    \node[decision, below=1.05cm of trader] (decisionfinal) {\textbf{Decisión final simulada}\\Actualizar cartera y registrar resultado};
+    \node[decision] (decisionfinal) at (0,-5.35) {\textbf{Decisión final simulada}\\Actualizar cartera y registrar resultado};
 
     \draw[flujo] (datos) -- (modelo);
     \draw[flujo] (datos) -- (cartera);
@@ -113,7 +113,7 @@ Una vez definido el problema MARL, la arquitectura describe cómo se organizan l
     \draw[flujo] (scout) -- (decisionfinal);
     \draw[flujo] (trader) -- (decisionfinal);
     \draw[flujo] (portfolio) -- (decisionfinal);
-    \draw[registro] (decisionfinal.east) -- ++(1.0,0) |- node[right, font=\scriptsize, align=left] {registro y\\nuevo estado} (datos.east);
+    \draw[registro] (decisionfinal.east) -- ++(1.2,0) |- node[right, font=\scriptsize, align=left] {registro y\\nuevo estado} (datos.east);
   \end{tikzpicture}
   \caption{Niveles de información y decisión en la arquitectura propuesta.}
   \label{fig:arquitectura-propuesta}
