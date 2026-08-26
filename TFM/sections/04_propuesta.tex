@@ -90,8 +90,8 @@ Una vez definido el problema MARL, la arquitectura describe cómo se organizan l
       text width=4.4cm,
       fill=white
     },
-    flujo/.style={-{Latex[length=2.3mm]}, thick, draw=tfmAccent},
-    registro/.style={-{Latex[length=2.3mm]}, thick, dashed, draw=tfmMuted}
+    flujo/.style={-{Latex[length=3.2mm,width=2.5mm]}, line width=0.9pt, draw=tfmAccent},
+    registro/.style={-{Latex[length=3.2mm,width=2.5mm]}, line width=0.9pt, dashed, draw=tfmMuted}
   ]
     \node[bloque, text width=5.2cm] (datos) at (0,0) {\textbf{Captura y persistencia}\\Datos de mercado normalizados};
 
@@ -112,14 +112,20 @@ Una vez definido el problema MARL, la arquitectura describe cómo se organizan l
     \draw[flujo] (scout) -- (decisionfinal);
     \draw[flujo] (trader) -- (decisionfinal);
     \draw[flujo] (portfolio) -- (decisionfinal);
-    \draw[registro] (decisionfinal.east) -- ++(1.1,0) |- node[right, font=\scriptsize, align=left] {actualiza\\cartera} (cartera.east);
-    \draw[registro] (decisionfinal.west) -- ++(-1.1,0) |- node[left, font=\scriptsize] {registro} (datos.west);
+
+    \draw[registro] (decisionfinal.east) -- ++(3.8,0) |- 
+    node[pos=0.75, right, font=\scriptsize, align=left] {actualiza\\cartera} 
+    (cartera.east);
+
+    \draw[registro] (decisionfinal.west) -- ++(-3.8,0) |- 
+    node[pos=0.75, fill=white, inner sep=2pt, font=\scriptsize] {registro} 
+    (datos.west);
   \end{tikzpicture}
   \caption{Niveles de información y decisión en la arquitectura propuesta.}
   \label{fig:arquitectura-propuesta}
 \end{figure}
 
-La Figura~\ref{fig:arquitectura-propuesta} resume el recorrido principal por niveles. El primer nivel captura y conserva observaciones de Steam Community Market, \acroref{BUFF}{BUFF}, SteamDT, \acroref{OCR}{OCR} e importaciones manuales. El segundo nivel prepara la información que alimenta la decisión: el modelo supervisado genera una probabilidad a partir de los datos de mercado y el simulador mantiene el estado de la cartera. El estado de cartera no procede directamente de la captura, sino de las decisiones simuladas anteriores. El tercer nivel reparte esa información entre Scout, Trader y Portfolio. El último nivel aplica la decisión final simulada, actualiza la cartera y registra el resultado para conservar la trazabilidad del episodio.
+La Figura~\ref{fig:arquitectura-propuesta} resume el recorrido principal por niveles. El primer nivel captura y conserva observaciones de Steam Community Market, \acroref{BUFF}{BUFF}, SteamDT, \acroref{OCR}{OCR} e importaciones manuales. El segundo nivel prepara la información que alimenta la decisión: el modelo supervisado genera una probabilidad a partir de los datos de mercado y el simulador mantiene el estado de la cartera. El estado de cartera no procede directamente de la captura, sino de cartera inicial y decisiones simuladas anteriores. El tercer nivel reparte esa información entre Scout, Trader y Portfolio. El último nivel aplica la decisión final simulada, actualiza la cartera y registra el resultado para conservar la trazabilidad del episodio.
 
 El flujo comienza cuando los componentes de adquisición recopilan datos de los mercados secundarios y de las fuentes auxiliares. Antes de utilizar los datos extraídos, se normalizan y se conservan junto con su instante de captura para construir un histórico trazable. Sobre ese histórico se calculan las variables necesarias para obtener una señal supervisada. Una probabilidad alta indica que una posible operación merece atención, pero los agentes todavía deben comprobar el estado de la cartera y las restricciones antes de aprobar una compra simulada.
 
@@ -128,15 +134,19 @@ La salida del sistema debe ser auditable. Cada predicción, acción y decisión 
 \begin{algorithm}[H]
 \caption{Flujo de información y decisión simulada}
 \begin{algorithmic}[1]
-\Require Datos de mercado, estado de cartera y señal supervisada opcional
+\Require Secuencia temporal de candidatos, estado inicial de cartera y señal supervisada opcional
 \Ensure Cartera actualizada, recompensa y registro trazable
+\For{cada candidato $c_t$ del episodio}
 \State Normalizar los datos de mercado y conservar la captura.
-\State Consultar el estado de cartera y calcular las restricciones aplicables.
+\State Consultar el estado de cartera $s_t$ y calcular las restricciones aplicables.
 \State Incorporar la señal supervisada cuando esté disponible.
-\State Generar una observación local para cada agente multiagente.
-\State Obtener las acciones coordinadas y aplicar las restricciones de riesgo.
-\State Simular la transición y actualizar saldo, posiciones y capital bloqueado.
-\State Calcular recompensa, métricas y trazabilidad del episodio.
+\State Generar las observaciones locales $o_t^S$, $o_t^T$ y $o_t^P$.
+\State Obtener $a_t^S$, $a_t^T$ y $a_t^P$ y formar la acción conjunta $\mathbf{a}_t$.
+\State Validar la acción conjunta con las restricciones de riesgo.
+\State Simular la transición hacia $s_{t+1}$.
+\State Actualizar saldo, posiciones, capital bloqueado y métricas.
+\State Calcular recompensas y registrar la trazabilidad del paso.
+\EndFor
 \end{algorithmic}
 \end{algorithm}
 
@@ -203,11 +213,11 @@ En las ecuaciones siguientes, $t$ representa el instante actual del episodio y $
 El retorno sobre la inversión, denominado \textit{Return on Investment} (ROI), expresa el beneficio neto de una operación con relación al importe invertido:
 
 \begin{equation}
-\mathrm{ROI}_j=\frac{b^{\mathrm{neto}}_j}{I_j}.
+\mathrm{ROI}_j=\frac{B^{\mathrm{neto}}_j}{I_j}.
 \label{eq:roi-operacion}
 \end{equation}
 
-En la Ecuación~\ref{eq:roi-operacion}, $b^{\mathrm{neto}}_j$ es el beneficio neto de la operación $j$ e $I_j$ es el importe invertido para adquirir el artículo, incluidos los costes de compra aplicables. Por ejemplo, si se invierten 100~EUR y la venta posterior devuelve 110~EUR después de aplicar sus costes, el beneficio neto es 10~EUR y $\mathrm{ROI}_j=\frac{10}{100}=0{,}10$. El retorno sobre la inversión permite comparar operaciones de importes distintos sin dar más importancia a una operación solo por requerir más capital.
+En la Ecuación~\ref{eq:roi-operacion}, $B^{\mathrm{neto}}_j$ es el beneficio neto de la operación $j$ e $I_j$ es el importe invertido para adquirir el artículo, incluidos los costes de compra aplicables. Por ejemplo, si se invierten 100~EUR y la venta posterior devuelve 110~EUR después de aplicar sus costes, el beneficio neto es 10~EUR y $\mathrm{ROI}_j=\frac{10}{100}=0{,}10$. El retorno sobre la inversión permite comparar operaciones de importes distintos sin dar más importancia a una operación solo por requerir más capital.
 
 Antes del entrenamiento, el ROI se limita al intervalo entre $-1$ y $1$. Esto evita que un resultado excepcional determine por sí solo el aprendizaje. En la ecuación siguiente, $R_j$ representa el ROI limitado. Por ejemplo, un ROI de $0{,}10$ mantiene ese valor, mientras que un ROI de $1{,}40$ pasa a valer $1$.
 
