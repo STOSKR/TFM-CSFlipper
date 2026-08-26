@@ -423,7 +423,7 @@ El comando PPO con \acroref{RLlib}{RLlib} completó una iteración y 64 pasos de
 
 \subsection{Matriz de entrenamiento MARL}
 
-La matriz actual entrena políticas CTDE con tres actores, Scout, Trader y Portfolio, y un modelo evaluador central utilizado solo durante el entrenamiento. Se emplea \texttt{trading\_profit\_v2}, 1.000~EUR de capital inicial, un máximo de 100 iteraciones, ocho episodios por iteración y parada temprana después de 20 iteraciones sin mejora en validación. Cada configuración se repite con las semillas 7, 19 y 31. En total se han completado 21 entrenamientos y 3.552 episodios, sin consultar el conjunto de prueba.
+La matriz actual entrena tres políticas por rol, Scout, Trader y Portfolio, a partir de las observaciones locales definidas en el entorno. Se emplea \texttt{trading\_profit\_v2}, 1.000~EUR de capital inicial, un máximo de 100 iteraciones, ocho episodios por iteración y parada temprana después de 20 iteraciones sin mejora en validación. Cada configuración se repite con las semillas 7, 19 y 31. En total se han completado 21 entrenamientos y 3.552 episodios, sin consultar el conjunto de prueba.
 
 La configuración base usa un peso común de $g=0{,}70$, un objetivo flexible de inversión del 50\,\%, tolerancia del 5\,\% y tasa de aprendizaje de $0{,}0003$. A partir de ella se estudian el peso de la recompensa cooperativa, el objetivo de inversión, la tasa de aprendizaje y la retirada de la probabilidad supervisada. La Tabla~\ref{tab:matriz-marl-validacion} muestra el retorno del valor final de cartera respecto del capital inicial, seleccionado por validación. Cada valor es la media de las tres semillas y el intervalo recoge la variabilidad observada.
 
