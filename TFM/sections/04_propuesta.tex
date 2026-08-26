@@ -1,13 +1,13 @@
-\chapter{Formalización del problema y arquitectura multiagente propuesta}
+\chapter{Modelo de decisión y arquitectura multiagente propuesta}
 \label{chap:propuesta}
 
-\noindent Este capítulo concreta el problema de decisión presentado en los capítulos anteriores mediante un modelo de aprendizaje por refuerzo multiagente. El Capítulo~\ref{chap:caso-estudio} delimitó el dominio de los activos digitales de \textit{Counter-Strike 2}, las plataformas de intercambio y las restricciones operativas del mercado. A partir de ese contexto, este capítulo define qué decide el sistema, qué información forma parte del estado, qué agentes intervienen, qué acciones puede proponer cada uno y cómo se evalúan las consecuencias dentro de una cartera simulada.
+\noindent Este capítulo concreta, para el caso de estudio, el modelo de decisión que se utilizará en la propuesta multiagente. El Capítulo~2 presentó el marco teórico general del aprendizaje supervisado, el aprendizaje por refuerzo y el aprendizaje por refuerzo multiagente. El Capítulo~\ref{chap:caso-estudio} delimitó después el dominio de los activos digitales de \textit{Counter-Strike 2}, las plataformas de intercambio y las restricciones operativas del mercado. A partir de ese material previo, este capítulo explica cómo se aplican esos conceptos al problema concreto de compraventa simulada.
 
-La estructura del capítulo separa dos planos que no deben confundirse. Primero se formaliza el problema: agentes, estado, observaciones, acciones, transición, recompensa, restricciones y criterio temporal. Después se presenta la arquitectura de la solución, es decir, la organización técnica que permite capturar datos, almacenarlos, producir una señal supervisada y ejecutar episodios de decisión simulada. Esta separación evita interpretar una predicción de mercado como una decisión completa de compraventa.
+La estructura del capítulo separa dos planos que no deben confundirse. Primero se define el modelo de decisión aplicado: agentes, estado, observaciones, acciones, transición, recompensa, restricciones y criterio temporal. Después se presenta la arquitectura de la solución, es decir, la organización técnica que permite capturar datos, almacenarlos, producir una señal supervisada y ejecutar episodios de decisión simulada. Esta separación evita interpretar una predicción de mercado como una decisión completa de compraventa.
 
 La evaluación se realiza exclusivamente dentro del simulador. Las acciones modifican una cartera simulada, no una cuenta real ni artículos reales. Por tanto, el capítulo describe una propuesta de decisión y aprendizaje, no un mecanismo de ejecución automática sobre Steam, \acroref{BUFF}{BUFF} ni ninguna otra plataforma.
 
-\section{Definición del problema de decisión}
+\section{Problema de decisión del caso de estudio}
 \label{sec:definicion-problema-decision}
 
 El problema que aborda este trabajo consiste en decidir, a lo largo del tiempo, si conviene comprar, mantener, vender o descartar oportunidades de compraventa sobre activos digitales de \acroref{CS2}{CS2}. La decisión no se limita a detectar una diferencia favorable entre dos precios publicados. Una operación puede parecer rentable en el instante de compra y, aun así, no ser adecuada si consume demasiado saldo, concentra la cartera en un único artículo, queda bloqueada durante varios días o no dispone de una salida posterior razonable.
@@ -20,12 +20,12 @@ Por tanto, el objetivo no es entrenar un clasificador aislado que indique si un 
 
 La formulación multiagente permite repartir esta decisión en responsabilidades diferenciadas. Scout se centra en identificar candidatos relevantes. Trader decide la acción operativa principal, como comprar, vender o mantener. Portfolio actúa como control de cartera y valida si la propuesta respeta los límites configurados. Los tres agentes comparten un entorno y sus decisiones forman una acción conjunta. La operación solo se ejecuta en el simulador cuando las acciones son compatibles y las reglas de cartera lo permiten.
 
-Esta definición conecta el caso de estudio con el marco teórico de la Sección~2.4. Allí se presentó el aprendizaje por refuerzo multiagente como una extensión del aprendizaje por refuerzo en la que varios agentes interactúan con un mismo entorno. En este capítulo se aplica esa formulación al problema concreto de compraventa simulada de activos digitales.
+Esta definición conecta el caso de estudio con el marco teórico de la Sección~2.4. Allí se presentó el aprendizaje por refuerzo multiagente como una extensión del aprendizaje por refuerzo en la que varios agentes interactúan con un mismo entorno. En este capítulo no se repite esa teoría general, sino que se aplica al problema concreto de compraventa simulada de activos digitales.
 
-\section{Formalización MARL del problema}
+\section{Modelo MARL aplicado al caso de estudio}
 \label{sec:formalizacion-marl-problema}
 
-Partiendo de la formulación general presentada en la Sección~2.4, el problema de este trabajo se modela como:
+Partiendo de la formulación general presentada en la Sección~2.4, el problema de este trabajo se concreta como:
 
 \begin{equation}
 \mathcal{M}_{\mathrm{CS2}}=\left(
@@ -334,10 +334,14 @@ Por ejemplo, considérese la venta tardía del ejemplo anterior, con $R_j=0{,}10
 
 Después de cada transición, el entorno devuelve una recompensa híbrida a cada agente. Esta recompensa es cero cuando no se cierra una operación, no se incumple una restricción, no se omite una oportunidad viable y no existe un déficit de inversión penalizable. Durante el entrenamiento, la sucesión de estas recompensas se utiliza para calcular el retorno acumulado de cada política, según la Ecuación~\ref{eq:retorno-rl}. Por tanto, las recompensas cooperativa e individual no se suman entre agentes. Primero se combinan para obtener $r_t^i$ y, después, el algoritmo de aprendizaje por refuerzo utiliza esa señal para actualizar la política del agente $i$.
 
-\section{Restricciones de riesgo}
+\section{Restricciones de riesgo y validez de acciones}
 \label{sec:restricciones-riesgo}
 
-Las restricciones se comprueban antes de ejecutar una compra simulada. Su finalidad es impedir que una señal supervisada favorable apruebe una operación que no respeta los límites de la cartera. La configuración inicial incluye los siguientes límites, que pueden modificarse en cada experimento:
+Las restricciones se comprueban antes de ejecutar una compra simulada. Su finalidad es impedir que una señal supervisada favorable apruebe una operación que no respeta los límites de la cartera. Dentro del modelo MARL, estas restricciones pertenecen al entorno y no sustituyen a los agentes. El entorno calcula los límites aplicables a partir del estado global, Portfolio recibe parte de esa información en su observación local y la acción conjunta solo se transforma en una compra cuando la propuesta supera esos controles.
+
+Esta ubicación es importante porque separa decisión y validez. Scout puede marcar un candidato y Trader puede proponer una compra, pero esas acciones no significan que la operación deba ejecutarse. Portfolio puede aprobar o rechazar la propuesta, y aun así el entorno conserva la comprobación final para garantizar que una acción inválida no modifique la cartera. De este modo, las restricciones actúan como reglas del simulador y como información de aprendizaje: los agentes observan avisos o incumplimientos y reciben penalizaciones cuando insisten en operaciones que no pueden realizarse.
+
+La configuración inicial incluye los siguientes límites, que pueden modificarse en cada experimento:
 
 \begin{itemize}
   \item \textbf{Tamaño de posición:} el importe de una sola compra no puede superar el 20\,\% del valor neto de la cartera.
@@ -346,7 +350,13 @@ Las restricciones se comprueban antes de ejecutar una compra simulada. Su finali
   \item \textbf{Reserva de efectivo:} después de la compra debe permanecer disponible al menos el 10\,\% del valor neto de la cartera.
 \end{itemize}
 
-La banda flexible descrita en la Sección~\ref{sec:funcion-recompensa} se comprueba junto con estos límites. Una propuesta que supera su máximo efectivo, $u+d$, se considera un incumplimiento. Los límites enumerados anteriormente no incorporan tolerancia.
+Por ejemplo, una compra de 250~EUR en una cartera valorada en 1.000~EUR incumple el límite de tamaño de posición, porque representa el 25\,\% del valor neto y el máximo permitido es el 20\,\%. Si el sistema ya mantiene posiciones abiertas del mismo artículo por 200~EUR, una nueva compra de 150~EUR también puede incumplir la exposición por artículo, ya que la exposición conjunta ascendería al 35\,\%. En ambos casos, la operación puede parecer atractiva por retorno esperado, pero no debe abrirse porque modifica la cartera de una forma incompatible con el nivel de riesgo definido para el experimento.
+
+La banda flexible descrita en la Sección~\ref{sec:funcion-recompensa} se comprueba junto con estos límites. Una propuesta que supera su máximo efectivo, $u+d$, se considera un incumplimiento. Los límites enumerados anteriormente no incorporan tolerancia. Esta diferencia permite combinar dos tipos de control. Por un lado, los límites estrictos impiden operaciones que comprometen demasiado capital o dejan poco saldo disponible. Por otro, la banda flexible orienta a Trader para que no invierta muy por debajo o por encima de la proporción objetivo cuando existen oportunidades viables.
 
 El periodo de bloqueo de intercambio no constituye un límite adicional, sino una condición de la posición simulada. Una compra puede estar permitida y, aun así, el artículo adquirido no puede venderse hasta que termine ese periodo. El simulador conserva esa información para que Trader y Portfolio no propongan una venta imposible.
+
+En términos de transición, una compra válida reduce el saldo disponible, crea una posición abierta y registra la fecha de desbloqueo. Una compra inválida no cambia la cartera, pero deja constancia del motivo de rechazo. Esa diferencia evita mezclar dos situaciones distintas: no comprar porque los agentes deciden esperar y no comprar porque la operación incumple una regla. En el primer caso la recompensa puede ser cero o depender de una oportunidad perdida; en el segundo se aplica la penalización definida en la Sección~\ref{sec:funcion-recompensa}.
+
+Las restricciones también hacen que la señal supervisada tenga un papel acotado. La probabilidad producida por el modelo supervisado puede ayudar a ordenar candidatos, pero no puede aprobar por sí sola una operación. El entorno siempre evalúa el estado de cartera en el instante actual, incluyendo saldo, capital bloqueado y exposiciones acumuladas. Por tanto, dos candidatos con la misma probabilidad pueden recibir decisiones diferentes si uno encaja en la cartera y el otro supera los límites de riesgo.
 
