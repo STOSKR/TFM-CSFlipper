@@ -79,30 +79,30 @@ Una vez definido el problema MARL, la arquitectura describe cómo se organizan l
       thick,
       rounded corners=3pt,
       fill=tfmSoft,
-      text width=3.1cm,
-      minimum height=1.0cm,
+      text width=2.75cm,
+      minimum height=0.95cm,
       align=center,
       inner sep=4pt,
       font=\small
     },
     decision/.style={
       bloque,
-      text width=4.2cm,
+      text width=4.4cm,
       fill=white
     },
     flujo/.style={-{Latex[length=2.3mm]}, thick, draw=tfmAccent},
     registro/.style={-{Latex[length=2.3mm]}, thick, dashed, draw=tfmMuted}
   ]
-    \node[bloque, text width=5.0cm] (datos) at (0,0) {\textbf{Captura y persistencia}\\Datos de mercado normalizados};
+    \node[bloque, text width=5.2cm] (datos) at (0,0) {\textbf{Captura y persistencia}\\Datos de mercado normalizados};
 
-    \node[bloque] (modelo) at (-2.35,-1.75) {\textbf{Modelo supervisado}\\Probabilidad del candidato};
-    \node[bloque] (cartera) at (2.35,-1.75) {\textbf{Estado de cartera}\\Saldo, posiciones y riesgo};
+    \node[bloque] (modelo) at (-3.0,-2.2) {\textbf{Modelo supervisado}\\Probabilidad del candidato};
+    \node[bloque] (cartera) at (3.0,-2.2) {\textbf{Estado de cartera}\\Saldo, posiciones y riesgo};
 
-    \node[bloque] (scout) at (-3.7,-3.55) {\textbf{Scout}\\Marca o ignora};
-    \node[bloque] (trader) at (0,-3.55) {\textbf{Trader}\\Compra, vende o mantiene};
-    \node[bloque] (portfolio) at (3.7,-3.55) {\textbf{Portfolio}\\Aprueba o rechaza};
+    \node[bloque] (scout) at (-4.2,-4.45) {\textbf{Scout}\\Marca o ignora};
+    \node[bloque] (trader) at (0,-4.45) {\textbf{Trader}\\Compra, vende o mantiene};
+    \node[bloque] (portfolio) at (4.2,-4.45) {\textbf{Portfolio}\\Aprueba o rechaza};
 
-    \node[decision] (decisionfinal) at (0,-5.35) {\textbf{Decisión final simulada}\\Actualizar cartera y registrar resultado};
+    \node[decision] (decisionfinal) at (0,-6.75) {\textbf{Decisión final simulada}\\Actualizar cartera y registrar resultado};
 
     \draw[flujo] (datos) -- (modelo);
     \draw[flujo] (datos) -- (cartera);
