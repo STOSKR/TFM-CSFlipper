@@ -1,7 +1,7 @@
 \chapter{Modelo de decisión y arquitectura multiagente propuesta}
 \label{chap:propuesta}
 
-\noindent Este capítulo concreta, para el caso de estudio, el modelo de decisión que se utilizará en la propuesta multiagente. El Capítulo~2 presentó el marco teórico general del aprendizaje supervisado, el aprendizaje por refuerzo y el aprendizaje por refuerzo multiagente. El Capítulo~\ref{chap:caso-estudio} delimitó después el dominio de los activos digitales de \textit{Counter-Strike 2}, las plataformas de intercambio y las restricciones operativas del mercado. A partir de ese material previo, este capítulo explica cómo se aplican esos conceptos al problema concreto de compraventa simulada.
+\noindent Este capítulo concreta, para el caso de estudio, el modelo de decisión que se utilizará en la propuesta multiagente. En el Capítulo~2 se ha presentado el marco teórico general del aprendizaje supervisado, el aprendizaje por refuerzo y el aprendizaje por refuerzo multiagente. En el Capítulo~\ref{chap:caso-estudio} se ha delimitado después el dominio de los activos digitales de \textit{Counter-Strike 2}, las plataformas de intercambio y las restricciones operativas del mercado. A partir de ese material previo, este capítulo explica cómo se aplican esos conceptos al problema concreto de compraventa simulada.
 
 La estructura del capítulo separa dos planos que no deben confundirse. Primero se define el modelo de decisión aplicado: agentes, estado, observaciones, acciones, transición, recompensa, restricciones y criterio temporal. Después se presenta la arquitectura de la solución, es decir, la organización técnica que permite capturar datos, almacenarlos, producir una señal supervisada y ejecutar episodios de decisión simulada. Esta separación evita interpretar una predicción de mercado como una decisión completa de compraventa.
 
@@ -20,7 +20,7 @@ Por tanto, el objetivo no es entrenar un clasificador aislado que indique si un 
 
 La formulación multiagente permite repartir esta decisión en responsabilidades diferenciadas. Scout se centra en identificar candidatos relevantes. Trader decide la acción operativa principal, como comprar, vender o mantener. Portfolio actúa como control de cartera y valida si la propuesta respeta los límites configurados. Los tres agentes comparten un entorno y sus decisiones forman una acción conjunta. La operación solo se ejecuta en el simulador cuando las acciones son compatibles y las reglas de cartera lo permiten.
 
-Esta definición conecta el caso de estudio con el marco teórico de la Sección~2.4. Allí se presentó el aprendizaje por refuerzo multiagente como una extensión del aprendizaje por refuerzo en la que varios agentes interactúan con un mismo entorno. En este capítulo no se repite esa teoría general, sino que se aplica al problema concreto de compraventa simulada de activos digitales.
+Esta definición conecta el caso de estudio con el marco teórico de la Sección~2.4. Allí se ha presentado el aprendizaje por refuerzo multiagente como una extensión del aprendizaje por refuerzo en la que varios agentes interactúan con un mismo entorno. En este capítulo no se repite esa teoría general, sino que se aplica al problema concreto de compraventa simulada de activos digitales.
 
 \section{Modelo MARL aplicado al caso de estudio}
 \label{sec:formalizacion-marl-problema}
