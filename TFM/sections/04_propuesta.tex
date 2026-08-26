@@ -7,6 +7,60 @@ La propuesta separa las responsabilidades de adquisición de datos, persistencia
 
 Por último, el capítulo define el entorno de cartera, las acciones disponibles, la evolución del estado y la distribución de responsabilidades entre los agentes. Asimismo, presenta las recompensas individuales y cooperativas que orientan el aprendizaje, junto con las restricciones de riesgo que limitan las decisiones. La evaluación se realiza dentro del simulador, sin ejecutar operaciones en los mercados secundarios.
 
+\section{Arquitectura del sistema}
+
+La arquitectura se organiza en cinco capas: adquisición, persistencia, predicción, decisión multiagente y simulación. Cada capa recibe una salida definida de la anterior y entrega una entrada definida a la siguiente. Esta separación reduce el acoplamiento y permite comprobar cada parte por separado, una práctica habitual en entornos de evaluación reproducible \cite{liu2021finrl}.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}[
+    node distance=0.42cm,
+    capa/.style={
+      draw=tfmAccent,
+      thick,
+      rounded corners=3pt,
+      fill=tfmSoft,
+      text width=7.2cm,
+      minimum height=0.65cm,
+      align=center,
+      inner sep=4pt,
+      font=\small
+    },
+    flujo/.style={-{Latex[length=2.3mm]}, thick, draw=tfmAccent},
+    registro/.style={-{Latex[length=2.3mm]}, thick, dashed, draw=tfmMuted}
+  ]
+    \node[capa] (adquisicion) {\textbf{1. Adquisición}};
+    \node[capa, below=of adquisicion] (persistencia) {\textbf{2. Persistencia}};
+    \node[capa, below=of persistencia] (prediccion) {\textbf{3. Predicción}};
+    \node[capa, below=of prediccion] (decision) {\textbf{4. Decisión MARL}};
+    \node[capa, below=of decision] (simulacion) {\textbf{5. Simulación de cartera}};
+
+    \draw[flujo] (adquisicion) -- (persistencia);
+    \draw[flujo] (persistencia) -- (prediccion);
+    \draw[flujo] (prediccion) -- (decision);
+    \draw[flujo] (decision) -- (simulacion);
+    \draw[registro] (simulacion.west) -- ++(-1.0,0) |- (persistencia.west);
+  \end{tikzpicture}
+  \caption{Flujo de la arquitectura propuesta.}
+  \label{fig:arquitectura-propuesta}
+\end{figure}
+
+La Figura~\ref{fig:arquitectura-propuesta} resume el recorrido principal. Las responsabilidades de las capas son las siguientes:
+
+\begin{itemize}
+  \item \textbf{Adquisición:} recopila observaciones de Steam Community Market, \acroref{BUFF}{BUFF}, SteamDT, \acroref{OCR}{OCR} e importaciones manuales.
+  \item \textbf{Persistencia:} conserva las observaciones normalizadas, los históricos, las predicciones y las decisiones simuladas.
+  \item \textbf{Predicción:} estima la probabilidad de que un candidato cumpla el criterio económico definido.
+  \item \textbf{Decisión MARL:} Scout, Trader y Portfolio proponen y validan una acción coordinada.
+  \item \textbf{Simulación de cartera:} actualiza la cartera simulada y produce métricas y recompensas. Sus resultados se registran de nuevo en la capa de persistencia.
+\end{itemize}
+
+La salida del sistema debe ser auditable. Cada predicción, acción y decisión simulada se relaciona con su fuente de datos, la versión del modelo, el episodio y la configuración de simulación. Esta trazabilidad permite distinguir un error de datos, un error del modelo y una decisión inadecuada de la política.
+
+La decisión final siempre queda registrada como simulada. Esto permite evaluar el sistema con métricas de cartera sin exponer capital durante la investigación. La arquitectura puede generar recomendaciones, registros de episodios y métricas, pero no envía órdenes a Steam, \acroref{BUFF}{BUFF} ni ninguna otra plataforma.
+
+\Needspace{32\baselineskip}
+
 \section{Proceso de decisión simulado}
 
 A partir del planteamiento descrito en el Capítulo 1, la propuesta representa el caso de uso como una tarea de decisión secuencial sobre una cartera simulada, siguiendo la formulación general del aprendizaje por refuerzo \cite{sutton2018reinforcement}. En cada instante, el sistema recibe datos de los mercados secundarios, el estado de la cartera y una estimación supervisada calculada a partir de datos históricos.
@@ -302,55 +356,3 @@ La banda flexible descrita en la Sección~4.4 se comprueba junto con estos lími
 
 El periodo de bloqueo de intercambio no constituye un límite adicional, sino una condición de la posición simulada. Una compra puede estar permitida y, aun así, el artículo adquirido no puede venderse hasta que termine ese periodo. El simulador conserva esa información para que Trader y Portfolio no propongan una venta imposible.
 
-\Needspace{32\baselineskip}
-\section{Síntesis de la arquitectura propuesta}
-
-La arquitectura se organiza en cinco capas: adquisición, persistencia, predicción, decisión multiagente y simulación. Cada capa recibe una salida definida de la anterior y entrega una entrada definida a la siguiente. Esta separación reduce el acoplamiento y permite comprobar cada parte por separado, una práctica habitual en entornos de evaluación reproducible \cite{liu2021finrl}.
-
-\begin{figure}[H]
-  \centering
-  \begin{tikzpicture}[
-    node distance=0.42cm,
-    capa/.style={
-      draw=tfmAccent,
-      thick,
-      rounded corners=3pt,
-      fill=tfmSoft,
-      text width=7.2cm,
-      minimum height=0.65cm,
-      align=center,
-      inner sep=4pt,
-      font=\small
-    },
-    flujo/.style={-{Latex[length=2.3mm]}, thick, draw=tfmAccent},
-    registro/.style={-{Latex[length=2.3mm]}, thick, dashed, draw=tfmMuted}
-  ]
-    \node[capa] (adquisicion) {\textbf{1. Adquisición}};
-    \node[capa, below=of adquisicion] (persistencia) {\textbf{2. Persistencia}};
-    \node[capa, below=of persistencia] (prediccion) {\textbf{3. Predicción}};
-    \node[capa, below=of prediccion] (decision) {\textbf{4. Decisión MARL}};
-    \node[capa, below=of decision] (simulacion) {\textbf{5. Simulación de cartera}};
-
-    \draw[flujo] (adquisicion) -- (persistencia);
-    \draw[flujo] (persistencia) -- (prediccion);
-    \draw[flujo] (prediccion) -- (decision);
-    \draw[flujo] (decision) -- (simulacion);
-    \draw[registro] (simulacion.west) -- ++(-1.0,0) |- (persistencia.west);
-  \end{tikzpicture}
-  \caption{Flujo de la arquitectura propuesta.}
-  \label{fig:arquitectura-propuesta}
-\end{figure}
-
-La Figura~\ref{fig:arquitectura-propuesta} resume el recorrido principal. Las responsabilidades de las capas son las siguientes:
-
-\begin{itemize}
-  \item \textbf{Adquisición:} recopila observaciones de Steam Community Market, \acroref{BUFF}{BUFF}, SteamDT, \acroref{OCR}{OCR} e importaciones manuales.
-  \item \textbf{Persistencia:} conserva las observaciones normalizadas, los históricos, las predicciones y las decisiones simuladas.
-  \item \textbf{Predicción:} estima la probabilidad de que un candidato cumpla el criterio económico definido.
-  \item \textbf{Decisión MARL:} Scout, Trader y Portfolio proponen y validan una acción coordinada.
-  \item \textbf{Simulación de cartera:} actualiza la cartera simulada y produce métricas y recompensas. Sus resultados se registran de nuevo en la capa de persistencia.
-\end{itemize}
-
-La salida del sistema debe ser auditable. Cada predicción, acción y decisión simulada se relaciona con su fuente de datos, la versión del modelo, el episodio y la configuración de simulación. Esta trazabilidad permite distinguir un error de datos, un error del modelo y una decisión inadecuada de la política.
-
-La decisión final siempre queda registrada como simulada. Esto permite evaluar el sistema con métricas de cartera sin exponer capital durante la investigación. La arquitectura puede generar recomendaciones, registros de episodios y métricas, pero no envía órdenes a Steam, \acroref{BUFF}{BUFF} ni ninguna otra plataforma.
