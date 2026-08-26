@@ -73,38 +73,53 @@ Una vez definido el problema MARL, la arquitectura describe cómo se organizan l
 \begin{figure}[H]
   \centering
   \begin{tikzpicture}[
-    node distance=0.42cm,
-    capa/.style={
+    node distance=0.85cm and 0.65cm,
+    bloque/.style={
       draw=tfmAccent,
       thick,
       rounded corners=3pt,
       fill=tfmSoft,
-      text width=7.2cm,
-      minimum height=0.65cm,
+      text width=3.1cm,
+      minimum height=1.0cm,
       align=center,
       inner sep=4pt,
       font=\small
     },
+    decision/.style={
+      bloque,
+      text width=4.2cm,
+      fill=white
+    },
     flujo/.style={-{Latex[length=2.3mm]}, thick, draw=tfmAccent},
     registro/.style={-{Latex[length=2.3mm]}, thick, dashed, draw=tfmMuted}
   ]
-    \node[capa] (adquisicion) {\textbf{1. Adquisición}};
-    \node[capa, below=of adquisicion] (persistencia) {\textbf{2. Persistencia}};
-    \node[capa, below=of persistencia] (prediccion) {\textbf{3. Predicción}};
-    \node[capa, below=of prediccion] (decision) {\textbf{4. Decisión MARL}};
-    \node[capa, below=of decision] (simulacion) {\textbf{5. Simulación de cartera}};
+    \node[bloque, text width=5.0cm] (datos) {\textbf{Captura y persistencia}\\Datos de mercado normalizados};
 
-    \draw[flujo] (adquisicion) -- (persistencia);
-    \draw[flujo] (persistencia) -- (prediccion);
-    \draw[flujo] (prediccion) -- (decision);
-    \draw[flujo] (decision) -- (simulacion);
-    \draw[registro] (simulacion.west) -- ++(-1.0,0) |- (persistencia.west);
+    \node[bloque, below left=of datos] (modelo) {\textbf{Modelo supervisado}\\Probabilidad del candidato};
+    \node[bloque, below right=of datos] (cartera) {\textbf{Estado de cartera}\\Saldo, posiciones y riesgo};
+
+    \node[bloque, below=1.05cm of modelo] (scout) {\textbf{Scout}\\Marca o ignora};
+    \node[bloque, below=1.05cm of datos] (trader) {\textbf{Trader}\\Compra, vende o mantiene};
+    \node[bloque, below=1.05cm of cartera] (portfolio) {\textbf{Portfolio}\\Aprueba o rechaza};
+
+    \node[decision, below=1.05cm of trader] (decisionfinal) {\textbf{Decisión final simulada}\\Actualizar cartera y registrar resultado};
+
+    \draw[flujo] (datos) -- (modelo);
+    \draw[flujo] (datos) -- (cartera);
+    \draw[flujo] (modelo) -- (scout);
+    \draw[flujo] (modelo) -- (trader);
+    \draw[flujo] (cartera) -- (trader);
+    \draw[flujo] (cartera) -- (portfolio);
+    \draw[flujo] (scout) -- (decisionfinal);
+    \draw[flujo] (trader) -- (decisionfinal);
+    \draw[flujo] (portfolio) -- (decisionfinal);
+    \draw[registro] (decisionfinal.east) -- ++(1.0,0) |- node[right, font=\scriptsize, align=left] {registro y\\nuevo estado} (datos.east);
   \end{tikzpicture}
-  \caption{Flujo de la arquitectura propuesta.}
+  \caption{Niveles de información y decisión en la arquitectura propuesta.}
   \label{fig:arquitectura-propuesta}
 \end{figure}
 
-La Figura~\ref{fig:arquitectura-propuesta} resume el recorrido principal. La capa de adquisición recopila observaciones de Steam Community Market, \acroref{BUFF}{BUFF}, SteamDT, \acroref{OCR}{OCR} e importaciones manuales. La capa de persistencia conserva observaciones normalizadas, históricos, predicciones y decisiones simuladas. La capa de predicción estima la probabilidad de que un candidato cumpla el criterio económico definido. La capa de decisión MARL transforma el estado disponible en acciones coordinadas de Scout, Trader y Portfolio. Por último, la capa de simulación actualiza la cartera, calcula métricas y devuelve las recompensas que orientan el aprendizaje.
+La Figura~\ref{fig:arquitectura-propuesta} resume el recorrido principal por niveles. El primer nivel captura y conserva observaciones de Steam Community Market, \acroref{BUFF}{BUFF}, SteamDT, \acroref{OCR}{OCR} e importaciones manuales. El segundo nivel prepara la información que alimenta la decisión: el modelo supervisado genera una probabilidad para el candidato y el simulador mantiene el estado de la cartera. El tercer nivel reparte esa información entre Scout, Trader y Portfolio. El último nivel aplica la decisión final simulada, actualiza la cartera y registra el resultado para que el nuevo estado pueda utilizarse en los pasos posteriores.
 
 El flujo comienza cuando los componentes de adquisición recopilan datos de los mercados secundarios y de las fuentes auxiliares. Antes de utilizar los datos extraídos, se normalizan y se conservan junto con su instante de captura para construir un histórico trazable. Sobre ese histórico se calculan las variables necesarias para obtener una señal supervisada. Una probabilidad alta indica que una posible operación merece atención, pero los agentes todavía deben comprobar el estado de la cartera y las restricciones antes de aprobar una compra simulada.
 
