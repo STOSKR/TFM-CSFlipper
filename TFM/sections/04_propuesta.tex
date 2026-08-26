@@ -105,7 +105,6 @@ Una vez definido el problema MARL, la arquitectura describe cómo se organizan l
     \node[decision] (decisionfinal) at (0,-6.75) {\textbf{Decisión final simulada}\\Actualizar cartera y registrar resultado};
 
     \draw[flujo] (datos) -- (modelo);
-    \draw[flujo] (datos) -- (cartera);
     \draw[flujo] (modelo) -- (scout);
     \draw[flujo] (modelo) -- (trader);
     \draw[flujo] (cartera) -- (trader);
@@ -113,13 +112,14 @@ Una vez definido el problema MARL, la arquitectura describe cómo se organizan l
     \draw[flujo] (scout) -- (decisionfinal);
     \draw[flujo] (trader) -- (decisionfinal);
     \draw[flujo] (portfolio) -- (decisionfinal);
-    \draw[registro] (decisionfinal.east) -- ++(1.2,0) |- node[right, font=\scriptsize, align=left] {registro y\\nuevo estado} (datos.east);
+    \draw[registro] (decisionfinal.east) -- ++(1.1,0) |- node[right, font=\scriptsize, align=left] {actualiza\\cartera} (cartera.east);
+    \draw[registro] (decisionfinal.west) -- ++(-1.1,0) |- node[left, font=\scriptsize] {registro} (datos.west);
   \end{tikzpicture}
   \caption{Niveles de información y decisión en la arquitectura propuesta.}
   \label{fig:arquitectura-propuesta}
 \end{figure}
 
-La Figura~\ref{fig:arquitectura-propuesta} resume el recorrido principal por niveles. El primer nivel captura y conserva observaciones de Steam Community Market, \acroref{BUFF}{BUFF}, SteamDT, \acroref{OCR}{OCR} e importaciones manuales. El segundo nivel prepara la información que alimenta la decisión: el modelo supervisado genera una probabilidad para el candidato y el simulador mantiene el estado de la cartera. El tercer nivel reparte esa información entre Scout, Trader y Portfolio. El último nivel aplica la decisión final simulada, actualiza la cartera y registra el resultado para que el nuevo estado pueda utilizarse en los pasos posteriores.
+La Figura~\ref{fig:arquitectura-propuesta} resume el recorrido principal por niveles. El primer nivel captura y conserva observaciones de Steam Community Market, \acroref{BUFF}{BUFF}, SteamDT, \acroref{OCR}{OCR} e importaciones manuales. El segundo nivel prepara la información que alimenta la decisión: el modelo supervisado genera una probabilidad a partir de los datos de mercado y el simulador mantiene el estado de la cartera. El estado de cartera no procede directamente de la captura, sino de las decisiones simuladas anteriores. El tercer nivel reparte esa información entre Scout, Trader y Portfolio. El último nivel aplica la decisión final simulada, actualiza la cartera y registra el resultado para conservar la trazabilidad del episodio.
 
 El flujo comienza cuando los componentes de adquisición recopilan datos de los mercados secundarios y de las fuentes auxiliares. Antes de utilizar los datos extraídos, se normalizan y se conservan junto con su instante de captura para construir un histórico trazable. Sobre ese histórico se calculan las variables necesarias para obtener una señal supervisada. Una probabilidad alta indica que una posible operación merece atención, pero los agentes todavía deben comprobar el estado de la cartera y las restricciones antes de aprobar una compra simulada.
 
