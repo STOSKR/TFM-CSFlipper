@@ -35,27 +35,29 @@ El entrenamiento multiagente se realiza con \acroref{PPO}{PPO}, \emph{Proximal P
 
 \section{Validación técnica y pruebas}
 
-Las pruebas no se tratan como material auxiliar, sino como parte de la evidencia experimental del proyecto. Antes de interpretar resultados de modelos o agentes, se comprueba que las piezas que producen esos resultados funcionan de forma aislada: reglas económicas, parsing de mercado, persistencia, construcción de datasets, inferencia supervisada, simulador de cartera, restricciones de riesgo, entorno PettingZoo, adaptador \acroref{RLlib}{RLlib}, comandos de episodios y panel web.
+Las pruebas técnicas no se usan para demostrar rentabilidad, sino para comprobar que los resultados experimentales proceden de componentes que funcionan de forma controlada. Antes de interpretar un modelo supervisado o una política \acroref{MARL}{MARL}, se valida que las reglas económicas, la captura de datos, la persistencia, la construcción de conjuntos temporales, la inferencia supervisada, el simulador de cartera y el entorno multiagente producen salidas coherentes. Esta separación es importante porque un resultado numérico puede parecer válido aunque se haya calculado sobre datos mal normalizados, fechas desplazadas, comisiones incorrectas o acciones imposibles dentro del simulador.
 
-La suite automatizada se organiza principalmente con Pytest y se complementa con Ruff y Mypy. Las pruebas unitarias cubren el comportamiento determinista del simulador, las reglas económicas del procedimiento manual, el \acroref{OCR}{OCR}, SteamDT, Steam, \acroref{BUFF}{BUFF}, los datasets supervisados, el dataset de trading, el servicio de scoring y los componentes \acroref{MARL}{MARL}. También existe una prueba de integración para repositorios de persistencia, separada porque depende de una base de datos disponible.
+La validación se organiza en tres capas. La primera comprueba funciones aisladas: conversión de moneda, cálculo de comisiones, bloqueo temporal, límites de cartera, extracción de campos de mercado y construcción de etiquetas. La segunda revisa flujos completos sin depender de una ejecución real de compraventa: captura, normalización, almacenamiento, creación de datasets y carga de modelos. La tercera comprueba que el entorno multiagente puede recorrer episodios de compra, mantenimiento, venta y rechazo de operaciones, registrando observaciones, acciones, recompensas y estado de cartera.
+
+El conjunto de pruebas automatizadas combina tres tipos de comprobación ya descritos en el Capítulo~6: ejecución de casos con \glosref{pytest}{Pytest}, revisión estática con \glosref{ruff}{Ruff} y comprobación de tipos con \glosref{mypy}{Mypy}. En esta sección no se valoran por la herramienta empleada, sino por el riesgo que reducen. Las pruebas unitarias comprueban el comportamiento determinista del simulador, las reglas económicas del procedimiento manual, el \acroref{OCR}{OCR}, los conectores de mercado, los datasets supervisados, el dataset de trading, el servicio de scoring y los componentes \acroref{MARL}{MARL}. La prueba de integración de persistencia se mantiene separada porque necesita una base de datos disponible.
 
 \begin{table}[h]
 \centering
 \begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{0.27\textwidth} >{\raggedright\arraybackslash}X}
 \toprule
-Bloque & Qué verifica \\
+Bloque & Riesgo controlado \\
 \midrule
-Reglas y cartera & Fees, conversión, \textit{trade hold}, posiciones y límites. \\
-Datos y scraping & Parsing, normalización y construcción de históricos. \\
-Modelo supervisado & Variables, carga de modelo e inferencia. \\
-Simulación \acroref{MARL}{MARL} & Acciones, observaciones, recompensas y adaptación a \acroref{RLlib}{RLlib}. \\
-Interfaz y operación & Estado, recomendaciones y ejecución de tareas. \\
+Reglas y cartera & Cálculos económicos incorrectos o posiciones imposibles. \\
+Datos y captura & Registros incompletos, mal normalizados o sin trazabilidad temporal. \\
+Modelo supervisado & Variables incompatibles, modelos no cargables o inferencia incoherente. \\
+Simulación \acroref{MARL}{MARL} & Acciones inválidas, recompensas mal asignadas o estado de cartera inconsistente. \\
+Interfaz y operación & Comandos inseguros, estados poco claros o recomendaciones no revisables. \\
 \bottomrule
 \end{tabularx}
 \caption{Cobertura de pruebas.}
 \end{table}
 
-Las pruebas de rendimiento se integran en la evaluación del capítulo porque condicionan la utilidad del sistema. En este proyecto el rendimiento no se mide solo por tiempo de ejecución, sino también por cobertura de datos, número de señales generadas, coste de entrenamiento, capital bloqueado, drawdown y operaciones rechazadas. Los smoke tests de entrenamiento y los episodios \acroref{MARL}{MARL} registran estas métricas para comprobar que el sistema no solo ejecuta, sino que produce salidas interpretables y comparables entre configuraciones.
+Las pruebas de rendimiento se interpretan con cautela. En este proyecto el rendimiento no se reduce al tiempo de ejecución: también importan la cobertura de datos, el número de señales generadas, el coste de entrenamiento, el capital bloqueado, el drawdown y las operaciones rechazadas. Las ejecuciones mínimas de entrenamiento y los episodios \acroref{MARL}{MARL} registran estas métricas para comprobar que el sistema produce salidas interpretables y comparables entre configuraciones. Aun así, estas pruebas no sustituyen la evaluación económica final: validan que el sistema puede medir, no que una estrategia sea mejor que otra.
 
 \section{Métricas}
 
