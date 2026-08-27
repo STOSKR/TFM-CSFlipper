@@ -21,14 +21,14 @@ El entrenamiento multiagente se realiza con \acroref{PPO}{PPO}, \emph{Proximal P
 \label{alg:entrenamiento-ppo}
 \begin{algorithmic}[1]
 \Require Entorno paralelo, políticas Scout, Trader y Portfolio, iteraciones y pasos
-\Ensure Checkpoint y métricas de la ejecución
+\Ensure Modelo guardado (\glosref{checkpoint}{checkpoint}) y métricas de la ejecución
 \State Inicializar una política \acroref{PPO}{PPO} por rol con observaciones vectoriales
 \For{cada iteración de entrenamiento}
   \State Ejecutar episodios y registrar $(o_t^i,a_t^i,R_t,m_t^i)$
   \State Estimar ventajas $\widehat{A}_t$ a partir de las transiciones registradas
   \State Optimizar cada política con el objetivo recortado de \acroref{PPO}{PPO}
 \EndFor
-\State Evaluar el checkpoint sin actualizar sus parámetros
+\State Evaluar el modelo guardado sin actualizar sus parámetros
 \State Guardar efectivo, posiciones, operaciones y recompensa media
 \end{algorithmic}
 \end{algorithm}
@@ -57,19 +57,23 @@ Interfaz y operación & Comandos inseguros, estados poco claros o recomendacione
 \caption{Cobertura de pruebas.}
 \end{table}
 
-Las pruebas de rendimiento se interpretan con cautela. En este proyecto el rendimiento no se reduce al tiempo de ejecución: también importan la cobertura de datos, el número de señales generadas, el coste de entrenamiento, el capital bloqueado, el drawdown y las operaciones rechazadas. Las ejecuciones mínimas de entrenamiento y los episodios \acroref{MARL}{MARL} registran estas métricas para comprobar que el sistema produce salidas interpretables y comparables entre configuraciones. Aun así, estas pruebas no sustituyen la evaluación económica final: validan que el sistema puede medir, no que una estrategia sea mejor que otra.
+Las pruebas de \textbf{\glosref{rendimiento-tecnico}{rendimiento técnico}} se interpretan con cautela. En este proyecto el rendimiento no se reduce al tiempo de ejecución: también importan la cobertura de datos, el número de señales generadas, el coste de entrenamiento, el capital bloqueado, el \textbf{\glosref{drawdown}{drawdown}} y las operaciones rechazadas. Las ejecuciones mínimas de entrenamiento y los episodios \acroref{MARL}{MARL} registran estas métricas para comprobar que el sistema produce salidas interpretables y comparables entre configuraciones. Aun así, estas pruebas no sustituyen la evaluación económica final: validan que el sistema puede medir, no que una estrategia sea mejor que otra.
 
 \section{Métricas}
 
-Las métricas permiten interpretar una estrategia más allá de si produce una señal. Se separan indicadores de retorno y de riesgo para comprobar tanto el posible margen como el uso de capital y las restricciones que condicionan una decisión.
+Las métricas permiten interpretar el sistema desde varias perspectivas. En este trabajo no basta con saber si un modelo produce una señal favorable, porque una señal puede ser estadísticamente correcta y aun así no ser útil para operar. Por ejemplo, puede aparecer muy pocas veces, puede depender de un conjunto pequeño de artículos, puede que el beneficio no superar las comisiones o puede exigir un capital que la cartera no tiene disponible. Por ese motivo, la evaluación separa la calidad predictiva, el resultado económico, el riesgo asumido y el rendimiento técnico del sistema.
 
-\subsection{Métricas de rentabilidad}
+\begin{itemize}
+  \item \textbf{Métricas predictivas del modelo supervisado.} Estas métricas se aplican al modelo que produce la señal supervisada. Su objetivo es medir si la estimación histórica aporta información antes de que intervenga el entorno \acroref{MARL}{MARL}. La precisión indica qué proporción de las señales marcadas como favorables termina siendo realmente favorable. La \textbf{\glosref{exhaustividad}{exhaustividad}}, también denominada \emph{recall}, mide qué proporción de los casos favorables detecta el modelo. La métrica \acroref{F1}{F1} combina ambas para evitar mirar solo una de ellas. También se emplean \acroref{ROC-AUC}{ROC-AUC} y \acroref{PR-AUC}{PR-AUC}, aunque la segunda resulta más informativa cuando la clase positiva domina o cuando hay pocos ejemplos negativos \cite{saito2015pr}. Además, el \textbf{\glosref{brier-score}{Brier score}} mide el error de las probabilidades estimadas y la \textbf{\glosref{calibracion-probabilidades}{calibración de probabilidades}} comprueba si una probabilidad del modelo se corresponde con la frecuencia observada \cite{niculescu2005predicting,guo2017calibration}. En el uso operativo se presta especial atención a la precisión en umbrales altos, porque una señal menos frecuente pero más fiable puede ser más útil que muchas señales ruidosas.
 
-Las métricas de rentabilidad principales son beneficio neto, retorno porcentual, saldo final y número de señales operativas. En los modelos supervisados se usan además precisión, recall, \acroref{F1}{F1}, \acroref{ROC-AUC}{ROC-AUC}, \acroref{PR-AUC}{PR-AUC} y Brier score. Para el uso operativo se da especial importancia a la precisión en umbrales altos, porque una señal menos frecuente pero más fiable puede ser más útil que muchas señales ruidosas. La calibración de probabilidades es relevante porque la salida del modelo se usa como señal de decisión, no solo como etiqueta binaria \cite{niculescu2005predicting}.
+  \item \textbf{Métricas económicas de la operación.} Estas métricas miden el resultado económico de una compra, una venta o una secuencia de decisiones. Incluyen el beneficio neto, el retorno porcentual, el saldo final, el valor de la cartera y el número de señales operativas. El beneficio neto descuenta precio de compra, comisiones, conversión de divisa y costes aplicables; por tanto, es la medida más directa de si una operación concreta aporta ganancias. El retorno porcentual permite comparar operaciones de distinto tamaño, porque relaciona el beneficio con el capital empleado. El saldo final y el valor de cartera son necesarios cuando la evaluación incluye posiciones que todavía no se han cerrado, ya que una parte del resultado puede estar en efectivo y otra parte en activos pendientes de venta.
 
-\subsection{Métricas de riesgo}
+  \item \textbf{Métricas de riesgo y uso de cartera.} Estas métricas responden a una pregunta distinta: si una estrategia es asumible aunque parezca rentable. Se consideran el capital bloqueado medio, el número de posiciones abiertas, la exposición por activo o plataforma, las operaciones rechazadas por riesgo y el impacto del \textit{trade hold}. También se usa el \textbf{\glosref{drawdown}{drawdown}}, entendido como la mayor caída del valor de la cartera respecto a un máximo anterior. Estas medidas son importantes porque el sistema no opera con capital infinito. Una política que concentra demasiadas compras en un único artículo, deja mucho saldo inmovilizado o depende de activos bloqueados puede ser mala aunque algunas operaciones individuales tengan beneficio.
 
-Las métricas de riesgo incluyen drawdown, capital bloqueado medio, posiciones abiertas, exposición por activo o plataforma, operaciones rechazadas por riesgo e impacto del \textit{trade hold}. Estas métricas son necesarias para evaluar si una estrategia es operativamente utilizable y no solo rentable en una métrica aislada.
+  \item \textbf{Métricas de rendimiento técnico y volumen.} El rendimiento técnico recoge cuánto tarda el sistema en ejecutar sus procesos y qué volumen de información maneja. En esta memoria se registra el tiempo de ejecución de las pruebas automatizadas, el número de pruebas superadas, el número de filas de cada partición, el número de artículos cubiertos, las iteraciones de entrenamiento, los pasos de entorno y los episodios simulados. Para la captura de datos, el tiempo no depende solo del código: también influyen los límites de las plataformas, los bloqueos temporales, la reutilización de cookies de sesión, los reintentos y los retrasos introducidos para no saturar las fuentes. Por eso, cuando se habla de cuánto tarda la captura, debe interpretarse como rendimiento operativo bajo restricciones externas, no como una medida de velocidad local. 
+\end{itemize}
+
+Esta separación de métricas evita mezclar conclusiones. Las métricas predictivas indican si la señal supervisada es razonable; las métricas económicas indican si una decisión produce beneficio; las métricas de riesgo indican si la cartera puede asumir esa decisión; y las métricas de rendimiento técnico indican si el sistema se puede ejecutar, repetir y auditar con los recursos disponibles.
 
 \section{Resultados}
 
