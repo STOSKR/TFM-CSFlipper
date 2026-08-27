@@ -6,46 +6,27 @@ El capítulo se estructura por fases. Primero se validan las reglas y los datos 
 
 \section{Diseño experimental}
 
-La experimentación se ha desarrollado por fases. Primero, se han migrado reglas económicas y estructuras de datos. Después, se han construido conjuntos supervisados para estudiar señales de mercado. Más adelante, se ha creado un conjunto de compraventa basado en precios Steam/\acroref{BUFF}{BUFF} y se ha entrenado una matriz de políticas multiagente. Esta secuencia evita entrenar agentes \acroref{MARL}{MARL} sobre un entorno que todavía no representa bien el problema económico. La Tabla~\ref{tab:matriz-experimental} resume las ejecuciones que se desarrollan con detalle en las secciones siguientes.
+Para la primera fase de captura de datos, se ha construido un \glosref{scraping}{scraper}, es decir, un programa que consulta fuentes web y transforma sus respuestas en datos estructurados, junto con persistencia de registros, sesiones y \glosref{cookie-sesion}{cookies de sesión}, pequeños datos locales que permiten reutilizar una autenticación ya iniciada. Esta parte no se evalúa con una métrica de rentabilidad, pero condiciona todos los experimentos posteriores: sin datos trazables, fechas de captura y sesiones reproducibles no se puede construir un histórico.
 
-\begin{table}[h]
-\centering
-\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{0.28\textwidth} >{\raggedright\arraybackslash}X}
-\toprule
-Flujo & Comprobación ejecutada \\
-\midrule
-Reglas económicas & Pruebas de conversión, comisiones, bloqueo temporal y límites. \\
-Modelo de dirección & Entrenamiento, calibración y perfil de umbrales sobre histórico Steam. \\
-Trading BUFF--Steam & Cortes temporales iniciales y conjunto \texttt{trading\_profit\_v2} para entrenamiento multiagente. \\
-OCR & Parser, umbral de confianza y recorrido de imagen. \\
-\acroref{MARL}{MARL} & Controles funcionales y matriz de 21 entrenamientos con siete configuraciones y tres semillas. \\
-\bottomrule
-\end{tabularx}
-\caption{Matriz experimental.}
-\label{tab:matriz-experimental}
-\end{table}
+Durante esta fase también se han observado restricciones externas. Algunas cuentas o sesiones han sufrido bloqueos temporales y ha sido necesario ajustar el tamaño de los lotes, los reintentos y los retrasos entre peticiones. Por otra parte, las plataformas han sufrido cambios estructurales y ha sido necesario adaptar el código para mantener la compatibilidad. Por estos motivos, la evaluación no presenta la captura como un proceso instantáneo, sino como una parte del desarrollo que obliga a equilibrar cobertura de datos, estabilidad de sesión y respeto de los límites operativos de cada plataforma. Después de esta base se migran reglas económicas, se construyen conjuntos supervisados, se crea el conjunto de compraventa Steam/\acroref{BUFF}{BUFF} y se entrena la matriz multiagente.
 
-\subsection{Escenarios de evaluación}
+El criterio de evaluación no es solo predictivo. Una señal puede tener buena precisión y aun así no ser operativa si aparece pocas veces, si depende de artículos concretos o si no supera costes de transacción. Por eso las métricas del modelo supervisado se interpretan como apoyo a la decisión, no como resultado económico final. Esta distinción es especialmente importante en el conjunto Steam/\acroref{BUFF}{BUFF}, donde el objetivo no es anticipar una subida de precio aislada, sino estudiar una posible compraventa con precios normalizados, comisiones y horizonte temporal.
 
-Se han usado dos tipos de datasets. El primero predice dirección de mercado sobre histórico disponible y permite estudiar señales temporales de forma amplia. El segundo intenta modelar oportunidades de compraventa Steam/\acroref{BUFF}{BUFF} con precios normalizados, comisiones y horizonte temporal. Este segundo dataset es más cercano al objetivo del \acroref{TFM}{TFM}, pero también es más exigente porque necesita histórico alineado entre plataformas.
+En la parte supervisada se comparan modelos tabulares como regresión logística, random forest e histogram gradient boosting, familias habituales en clasificación tabular \cite{breiman2001random,friedman2001greedy}. Estos modelos se contrastan con una referencia simple que predice la clase mayoritaria, de modo que sus resultados puedan interpretarse frente a la tasa base del conjunto. En cambio, la parte multiagente no compara clasificadores, sino políticas que actúan dentro de un simulador de cartera. Por eso se separan primero los controles funcionales del entorno, que validan compra, bloqueo, venta y trazabilidad, y después la matriz de entrenamiento, que compara configuraciones de aprendizaje con semillas distintas sobre el bloque de validación, sin utilizar el conjunto de prueba.
 
-El criterio de evaluación no es solo predictivo. Una señal puede tener buena precisión y aun así no ser operativa si aparece pocas veces, si depende de artículos concretos o si no supera costes de transacción. Por eso las métricas del modelo supervisado se interpretan como apoyo a la decisión, no como resultado económico final.
-
-\subsection{Estrategias de comparación}
-
-La comparación experimental se plantea en tres niveles. El primero es un baseline simple o dummy para comprobar que los modelos aprenden algo más que la tasa base. El segundo compara modelos supervisados tabulares como regresión logística, random forest e histogram gradient boosting, familias ampliamente usadas para clasificación tabular \cite{breiman2001random,friedman2001greedy}. El tercero separa los controles funcionales del entorno \acroref{MARL}{MARL} de la comparación de políticas entrenadas. Los primeros validan compra, bloqueo, venta y trazabilidad. La matriz posterior compara configuraciones de aprendizaje con semillas distintas sobre el bloque de validación, sin utilizar el conjunto de prueba.
+El entrenamiento multiagente se realiza con \acroref{PPO}{PPO}, \emph{Proximal Policy Optimization}, un algoritmo de aprendizaje por refuerzo que ajusta una política a partir de episodios simulados y limita el tamaño de cada actualización para evitar cambios bruscos entre una iteración y la siguiente \cite{schulman2017ppo}. En este trabajo no se entrena una única política general: se mantiene una política por rol, Scout, Trader y Portfolio. Cada política recibe sus observaciones locales, selecciona acciones y se actualiza con las recompensas registradas por el entorno.
 
 \begin{algorithm}[H]
-\caption{Entrenamiento PPO}
+\caption{Entrenamiento con PPO}
 \label{alg:entrenamiento-ppo}
 \begin{algorithmic}[1]
 \Require Entorno paralelo, políticas Scout, Trader y Portfolio, iteraciones y pasos
 \Ensure Checkpoint y métricas de la ejecución
-\State Inicializar una política PPO por rol con observaciones vectoriales
+\State Inicializar una política \acroref{PPO}{PPO} por rol con observaciones vectoriales
 \For{cada iteración de entrenamiento}
   \State Ejecutar episodios y registrar $(o_t^i,a_t^i,R_t,m_t^i)$
   \State Estimar ventajas $\widehat{A}_t$ a partir de las transiciones registradas
-  \State Optimizar cada política con el objetivo recortado de PPO
+  \State Optimizar cada política con el objetivo recortado de \acroref{PPO}{PPO}
 \EndFor
 \State Evaluar el checkpoint sin actualizar sus parámetros
 \State Guardar efectivo, posiciones, operaciones y recompensa media
