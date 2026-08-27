@@ -1,6 +1,8 @@
 \chapter{Experimentación y análisis}
 
-\noindent Este capítulo presenta las pruebas realizadas sobre reglas económicas, datos, modelos supervisados, OCR y arquitectura multiagente. Se separan las comprobaciones funcionales, las exploraciones iniciales de datos y la matriz de entrenamiento \acroref{MARL}{MARL}. Esta distinción evita atribuir a una verificación técnica el significado de una comparación de modelos entrenados.
+\noindent Este capítulo presenta la evaluación experimental del sistema desarrollado. La experimentación no se limita a comparar modelos, sino que comprueba de forma progresiva las piezas necesarias para que una decisión simulada sea interpretable: reglas económicas, construcción de datos, modelos supervisados, reconocimiento mediante \acroref{OCR}{OCR}, simulador de cartera y entorno multiagente. Esta organización permite separar las verificaciones técnicas de los resultados de aprendizaje, evitando que una prueba de funcionamiento se interprete como una mejora económica demostrada.
+
+El capítulo se estructura por fases. Primero se validan las reglas y los datos que sostienen el simulador. Después se analizan los modelos supervisados y los cortes temporales de compraventa Steam/\acroref{BUFF}{BUFF}. A continuación se presentan las comprobaciones funcionales del entorno \acroref{MARL}{MARL} y la matriz de entrenamiento multiagente. Finalmente, se delimita la evaluación final reservada y se discuten las limitaciones que condicionan la interpretación de los resultados.
 
 \section{Diseño experimental}
 
