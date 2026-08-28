@@ -77,6 +77,7 @@ DMarket & Activos digitales de videojuegos & Compra y venta entre usuarios \\
 
 Las dos tablas no deben interpretarse como pares equivalentes, ya que cada una reúne ejemplos independientes de una configuración de intercambio \cite{buffMarketplace,skinportItemsApi,bitskinsMarketplace,dmarketMarketplace}.
 \section{Aprendizaje supervisado y no supervisado}
+\label{sec:estado-arte-supervisado}
 
 El aprendizaje supervisado es un método que aprende a partir de ejemplos en los que se conoce tanto la información de entrada como el resultado que debe estimarse. Cada ejemplo se representa mediante una entrada $x$ y una etiqueta $y$, que es el resultado conocido asociado a esa entrada. Durante el entrenamiento, el modelo ajusta sus parámetros para aprender la relación entre ambas variables.
 
@@ -108,6 +109,7 @@ El aprendizaje no supervisado parte de datos de entrada sin una etiqueta o resul
 La diferencia esencial entre ambos enfoques se encuentra en la información disponible durante el entrenamiento. El aprendizaje supervisado aprende a relacionar una entrada con un resultado conocido, mientras que el aprendizaje no supervisado describe la estructura de los datos sin partir de un resultado objetivo. Ambos enfoques pueden utilizarse de forma complementaria, por ejemplo, cuando los grupos o patrones identificados mediante aprendizaje no supervisado se incorporan como información adicional a un modelo supervisado. Una estimación o una probabilidad no constituye por sí sola una decisión, ya que no incorpora automáticamente las restricciones ni las consecuencias posteriores de una acción.
 
 \section{Aprendizaje por refuerzo}
+\label{sec:estado-arte-rl}
 
 El aprendizaje por refuerzo (\acroref{RL}{RL}, por sus siglas en inglés de \emph{Reinforcement Learning}) estudia problemas de decisión secuencial en los que un agente aprende mediante su interacción con un entorno \cite{sutton2018reinforcement}. En cada instante $t$, el agente recibe la información disponible, denominada estado $s_t$, selecciona una acción $a_t$ y recibe una recompensa $r_{t+1}$. Como consecuencia de esa acción, el entorno pasa a un nuevo estado $s_{t+1}$. A diferencia del aprendizaje supervisado, donde un modelo aprende a reproducir etiquetas históricas, en RL el agente aprende qué acciones conviene seleccionar a lo largo de una secuencia de decisiones.
 
@@ -178,6 +180,7 @@ En la Ecuación~\ref{eq:objetivo-rl-general}, $\pi^\star$ es la política buscad
 Durante el aprendizaje, el agente debe equilibrar exploración y explotación. La exploración consiste en probar acciones cuya utilidad todavía es incierta para conocer sus consecuencias. La explotación consiste en seleccionar las acciones que, según lo aprendido hasta ese momento, tienen un retorno esperado mayor. Explorar en exceso puede acumular decisiones poco útiles, mientras que explotar demasiado pronto puede impedir descubrir alternativas mejores.
 
 \section{Aprendizaje por refuerzo multiagente}
+\label{sec:estado-arte-marl}
 
 Un sistema multiagente reúne dos o más agentes que actúan sobre un mismo entorno. Estos agentes pueden colaborar, competir o tomar decisiones independientes. En un sistema cooperativo comparten un objetivo global, aunque cada agente disponga de información y responsabilidades distintas \cite{wooldridge2009multiagent,busoniu2008comprehensive}. El aprendizaje por refuerzo multiagente, o \acroref{MARL}{MARL}, amplía la formulación de \acroref{RL}{RL} para representar estos sistemas.
 
@@ -258,6 +261,7 @@ El paradigma de entrenamiento centralizado y ejecución descentralizada, conocid
 La Figura~\ref{fig:marl-ctde} muestra una interacción general de este tipo. Las líneas continuas representan el intercambio necesario para ejecutar la política de cada agente. Las líneas discontinuas representan la información adicional que utiliza el modelo evaluador únicamente durante el entrenamiento.
 
 \section{Gestión de carteras y riesgo}
+\label{sec:estado-arte-carteras-riesgo}
 
 La gestión de una cartera estudia cómo las decisiones sobre varios activos y el saldo disponible afectan al conjunto de recursos. No basta con evaluar cada activo de forma aislada. Una decisión de compra o venta de un activo puede parecer atractiva por sí sola y, sin embargo, puede aumentar demasiado la dependencia de la cartera respecto a un activo, una categoría o una plataforma.
 
@@ -274,6 +278,7 @@ También interviene el horizonte temporal, que determina durante cuánto tiempo 
 Por tanto, la gestión de carteras combina la rentabilidad esperada, la concentración de los recursos, el plazo de las decisiones y los costes asociados a modificarlas.
 
 \section{Aplicaciones y trabajos relacionados}
+\label{sec:estado-arte-aplicaciones}
 
 El aprendizaje automático se ha aplicado a problemas de análisis y decisión en los que los datos cambian con el tiempo. El aprendizaje supervisado permite estimar una variable a partir de observaciones históricas. El aprendizaje no supervisado permite descubrir agrupaciones o patrones en datos sin etiqueta. El aprendizaje por refuerzo permite estudiar decisiones encadenadas cuando una acción modifica las condiciones de las decisiones posteriores.
 
