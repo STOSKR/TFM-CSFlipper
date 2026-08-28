@@ -290,41 +290,36 @@ Cada paso registra la información utilizada, las acciones propuestas y el resul
 \section{Agentes de decisión}
 \label{sec:agentes-decision}
 
-La decisión simulada se distribuye entre tres agentes \acroref{MARL}{MARL} con responsabilidades diferenciadas. Cada agente recibe una observación local adaptada a su función y propone una acción dentro del entorno de simulación:
+La Sección~\ref{sec:formalizacion-marl-problema} define el conjunto de agentes, las observaciones locales y las acciones disponibles dentro del modelo \acroref{MARL}{MARL}. Esta sección desarrolla esa definición desde el punto de vista de diseño: qué responsabilidad tiene cada agente, qué información resulta más relevante para su decisión y cómo interpreta el simulador la acción conjunta resultante. Por tanto, no se introduce un controlador centralizado. Cada agente propone su propia acción a partir de su observación local, y el entorno se limita a comprobar si la combinación de acciones puede convertirse en una transición válida de cartera.
 
 \begin{itemize}
-    \setlength{\itemsep}{0.2em}
+    \setlength{\itemsep}{0.35em}
     \setlength{\topsep}{0.35em}
-    \item \textbf{Scout:} revisa la plataforma, el tipo de publicación, el precio de compra, el retorno previsto, la disponibilidad y la probabilidad supervisada. Su función es identificar los artículos que merecen atención.
-    \item \textbf{Trader:} utiliza la señal de Scout, la información de compra y venta prevista y las posiciones del mismo artículo que ya existen en la cartera para proponer la acción operativa principal.
-    \item \textbf{Portfolio:} comprueba el saldo, el capital bloqueado, la exposición prevista, las posiciones que pueden venderse y las restricciones de riesgo antes de validar una propuesta.
+    \item \textbf{Reparto de responsabilidades.} La decisión simulada se divide en tres roles para evitar que una única política mezcle tareas distintas. Scout actúa como filtro inicial de candidatos: no decide si se compra, sino si el artículo merece pasar a una evaluación más completa. Trader decide la intención operativa principal: mantener la cartera, intentar una compra o cerrar una posición vendible. Portfolio revisa la viabilidad económica y de riesgo de la propuesta antes de permitir que el entorno simule la operación. Esta separación permite que cada agente aprenda sobre una parte concreta del problema sin perder el carácter común de la decisión, porque las tres acciones se interpretan juntas en cada instante.
+    \item \textbf{Información observada.} Cada agente recibe una observación local coherente con su responsabilidad. Scout observa sobre todo información del candidato: plataforma, tipo de publicación, precio de compra, retorno previsto, disponibilidad y probabilidad supervisada. Trader utiliza la señal de Scout, la información de compra y venta prevista y las posiciones del mismo artículo que ya existen en la cartera. Portfolio observa variables de cartera y de control, como saldo disponible, capital bloqueado, exposición prevista, posiciones vendibles y restricciones de riesgo. Esta diferencia no implica que existan tres entornos separados; todos actúan sobre el mismo estado global, pero cada uno recibe la parte que necesita para decidir.
+    \item \textbf{Acciones ya formalizadas.} Las acciones disponibles para cada agente se han definido en la Sección~\ref{sec:formalizacion-marl-problema}: Scout puede ignorar o marcar un candidato; Trader puede mantener, comprar o vender; y Portfolio puede rechazar o aprobar una propuesta. En esta sección se mantienen esos mismos nombres para no introducir vocabulario nuevo. La combinación de las tres acciones forma la acción conjunta, que es la entrada que interpreta el simulador para decidir si se abre una posición, se cierra una posición o se mantiene la cartera.
+    \item \textbf{Interpretación por el simulador.} El simulador no elige las acciones de los agentes. Primero recibe las acciones producidas por las políticas $\pi_S$, $\pi_T$ y $\pi_P$. Después comprueba si la combinación tiene sentido económico y operativo: una compra solo puede abrirse si Scout marca el candidato, Trader propone comprar, Portfolio aprueba y los límites de riesgo se cumplen; una venta solo puede cerrarse si Trader propone vender, Portfolio aprueba y existe una posición desbloqueada del mismo artículo. Cualquier otra combinación conserva la cartera y registra el motivo de no ejecución.
 \end{itemize}
 
-Las acciones disponibles para cada agente son las siguientes:
-\begin{itemize}
-    \setlength{\itemsep}{0.1em}
-    \setlength{\topsep}{0.3em}
-    \item \textbf{Scout:} \textit{ignorar} o \textit{marcar} un artículo.
-    \item \textbf{Trader:} \textit{mantener} la cartera, \textit{comprar} una unidad o \textit{vender} una posición desbloqueada del artículo.
-    \item \textbf{Portfolio:} \textit{rechazar} o \textit{aprobar} la propuesta.
-\end{itemize}
+La siguiente representación resume esta interpretación operativa de la acción conjunta:
 
 \begin{algorithm}[H]
 \small
-\caption{Decisión cooperativa}
+\caption{Interpretación de la acción conjunta}
 \label{alg:decision-cooperativa}
 \begin{algorithmic}[1]
-\Require Artículo candidato $c_t$ y observaciones locales
-\Ensure Transición de cartera y recompensas híbridas $r_t^S$, $r_t^T$ y $r_t^P$
+\Require Artículo candidato $c_t$, estado global $s_t$ y observaciones locales $o_t^S$, $o_t^T$ y $o_t^P$
+\Ensure Estado siguiente $s_{t+1}$ y recompensas híbridas $r_t^S$, $r_t^T$ y $r_t^P$
 \State $a_t^{S} \gets \pi_S(o_t^{S})$
 \State $a_t^{T} \gets \pi_T(o_t^{T})$
 \State $a_t^{P} \gets \pi_P(o_t^{P})$
+\State Formar la acción conjunta $\mathbf{a}_t=(a_t^S,a_t^T,a_t^P)$.
 \If{$a_t^{S}=\textit{marcar}$ \textbf{y} $a_t^{T}=\textit{comprar}$ \textbf{y} $a_t^{P}=\textit{aprobar}$ \textbf{y} la compra cumple los límites de riesgo}
-  \State Abrir una posición simulada y bloquear su capital
+  \State Abrir una posición simulada y bloquear su capital.
 \ElsIf{$a_t^{T}=\textit{vender}$ \textbf{y} $a_t^{P}=\textit{aprobar}$ \textbf{y} existe una posición desbloqueada de $c_t$}
-  \State Cerrar una posición simulada y abonar su importe neto
+  \State Cerrar una posición simulada y abonar su importe neto.
 \Else
-  \State Mantener el saldo y registrar el motivo de no ejecución
+  \State Mantener el saldo y registrar el motivo de no ejecución.
 \EndIf
 \State Actualizar el saldo, las posiciones, la exposición y las métricas de riesgo.
 \State Calcular la recompensa común y las señales individuales de los tres agentes.
@@ -332,23 +327,23 @@ Las acciones disponibles para cada agente son las siguientes:
 \end{algorithmic}
 \end{algorithm}
 
-En el Algoritmo~\ref{alg:decision-cooperativa}, $c_t$ representa el artículo considerado en el instante $t$. Las funciones $\pi_S$, $\pi_T$ y $\pi_P$ son las políticas de Scout, Trader y Portfolio. Cada política recibe su observación local, representada por $o_t^S$, $o_t^T$ u $o_t^P$, y produce una acción, representada por $a_t^S$, $a_t^T$ o $a_t^P$.
+En el Algoritmo~\ref{alg:decision-cooperativa}, $c_t$ representa el artículo considerado en el instante $t$. Las funciones $\pi_S$, $\pi_T$ y $\pi_P$ son las políticas de Scout, Trader y Portfolio. Cada política recibe su observación local y produce una acción. El simulador no sustituye esas políticas: únicamente interpreta $\mathbf{a}_t$, aplica las reglas de transición y calcula las recompensas que se explican en la Sección~\ref{sec:funcion-recompensa}.
 
-Una compra simulada requiere que Scout marque el artículo, Trader solicite la compra y Portfolio la apruebe. Una venta simulada requiere la solicitud de Trader, la aprobación de Portfolio y una posición desbloqueada del mismo artículo. Scout no emite una marca nueva para vender porque la posición ya forma parte de la cartera. La recompensa de cada agente incorpora un componente común y otro individual, como se explica en la Sección~\ref{sec:funcion-recompensa}.
+Una compra simulada requiere la participación coherente de los tres agentes. Scout debe marcar el artículo, Trader debe solicitar la compra y Portfolio debe aprobarla. Una venta simulada no requiere una nueva marca de Scout, porque la posición ya forma parte de la cartera; en ese caso intervienen Trader, que propone vender, y Portfolio, que aprueba si la posición está desbloqueada y la operación es válida. Esta distinción evita confundir dos fases distintas del ciclo de compraventa: la selección de candidatos nuevos y la gestión de posiciones ya abiertas.
 
 \section{Función de recompensa}
 \label{sec:funcion-recompensa}
 
-
-\textcolor{magenta}{BUFFF, HAY QUE ESTRUCTURAR ESTA SECCIÓN EN SUBSECCIONES ... NO PUEDES HACER UNA SECCIÓN QUE SEAN 4 PÁGINAS!!}
-
 El objetivo del sistema es maximizar el valor de la cartera simulada. La recompensa debe reflejar este objetivo sin incentivar decisiones que incumplan los límites de riesgo, ignoren los costes o no respeten las restricciones de intercambio. Una recompensa basada solo en comprar a un precio bajo o en detectar una subida de precio sería incompleta, porque no tendría en cuenta si puede realizarse una venta posterior, si el capital queda bloqueado o si la compra supera los límites de la cartera \cite{sutton2018reinforcement,markowitz1952portfolio,liu2021finrl}.
 
-\noindent\textbf{Recompensa cooperativa.} La recompensa común mide el resultado económico de una operación de compraventa cuando se completa su ciclo de compra y venta. La compra abre una posición y la venta posterior la cierra. Solo entonces se conoce el importe recuperado y se puede valorar la operación. Una compra permitida no recibe recompensa cooperativa en ese instante. La única excepción es una propuesta que incumple restricciones, que recibe una penalización inmediata para que los agentes aprendan a no proponer operaciones imposibles.
+\subsection{Recompensa cooperativa y variables económicas}
+\label{sec:recompensa-cooperativa}
 
-En las ecuaciones siguientes, $t$ representa el instante actual del episodio y $j$ una operación de compraventa cerrada en ese instante. Los valores $a$, $b$ y $c$ son coeficientes configurables. Su selección se realizará mediante validación, utilizando episodios distintos de los empleados para entrenar el modelo.
+La recompensa común mide el resultado económico de una operación de compraventa cuando se completa su ciclo de compra y venta. La compra abre una posición y la venta posterior la cierra. Solo entonces se conoce el importe recuperado y se puede valorar la operación. Una compra permitida no recibe recompensa cooperativa en ese instante. La única excepción es una propuesta que incumple restricciones, que recibe una penalización inmediata para que los agentes aprendan a no proponer operaciones imposibles.
 
-El retorno sobre la inversión, denominado \textit{Return on Investment} (ROI), expresa el beneficio neto de una operación con relación al importe invertido:
+En las ecuaciones siguientes, $t$ representa el instante actual del episodio y $j$ una operación de compraventa cerrada en ese instante. Los valores $a$, $b$ y $c$ son coeficientes configurables. Su selección se realiza mediante validación, utilizando episodios distintos de los empleados para entrenar el modelo.
+
+El \textbf{\glosref{retorno-inversion}{retorno sobre la inversión}} (\acroref{ROI}{ROI}, del inglés \textit{Return on Investment}) expresa el beneficio neto de una operación con relación al importe invertido:
 
 \begin{equation}
 \mathrm{ROI}_j=\frac{B^{\mathrm{neto}}_j}{I_j}.
@@ -398,7 +393,10 @@ Por tanto, la parte superior de la banda, $u+d$, es el máximo efectivo para est
 
 Por ejemplo, una compra de 100~EUR recibe una recompensa cooperativa de $0$ en el momento de comprar. Si la venta posterior devuelve 110~EUR después de aplicar sus costes, el beneficio neto es 10~EUR y el ROI es $0{,}10$. Si se vende en el octavo día, $e_j=0$. Con $a=0{,}60$, la recompensa al cerrar la operación es $r_t^{\mathrm{cartera}}=0{,}60\cdot0{,}10=0{,}06$. Si la misma venta se realiza cuatro días más tarde, $e_j=4$, y $b=0{,}01$, la recompensa pasa a ser $r_t^{\mathrm{cartera}}=0{,}60\cdot0{,}10-0{,}01\cdot4=0{,}02$. En cambio, si se propone una compra que incumple una cuarta parte de los límites comprobados, $l_t=0{,}25$, y $c=0{,}80$, la recompensa es $r_t^{\mathrm{cartera}}=-0{,}80\cdot0{,}25=-0{,}20$.
 
-\noindent\textbf{Recompensa individual.} Además de la recompensa común, el entorno calcula una señal individual para cada rol. Estas señales no representan dinero. Usan el ROI, los días adicionales y la proporción de límites incumplidos, por lo que son comparables con la recompensa cooperativa.
+\subsection{Señales individuales por agente}
+\label{sec:senales-individuales-agentes}
+
+Además de la recompensa común, el entorno calcula una señal individual para cada rol. Estas señales no representan dinero. Usan el ROI, los días adicionales y la proporción de límites incumplidos, por lo que son comparables con la recompensa cooperativa.
 
 La señal individual de Scout evalúa la selección inicial de cada artículo. Antes de mostrar la expresión, se aplican dos reglas sencillas:
 
@@ -486,6 +484,9 @@ r_{P,t}=
 \end{equation}
 
 Portfolio no recibe una recompensa individual positiva por aprobar una compra permitida. Su incentivo para aprobar operaciones rentables procede de la recompensa cooperativa. Sin embargo, si rechaza una compra que respetaba los límites, existía saldo suficiente y habría terminado con un ROI positivo, recibe una penalización igual a ese ROI. Esta comprobación se realiza únicamente durante el entrenamiento con los datos históricos posteriores. Así, rechazar una operación sigue siendo neutro cuando protege la cartera, pero no se convierte en una forma gratuita de evitar cualquier compra.
+
+\subsection{Recompensa híbrida y uso en el entrenamiento}
+\label{sec:recompensa-hibrida-entrenamiento}
 
 La recompensa que recibe cada agente combina la recompensa común, vinculada al resultado de las operaciones y al cumplimiento de los límites, y la señal individual asociada a su responsabilidad concreta:
 
