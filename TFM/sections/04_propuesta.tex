@@ -1,4 +1,5 @@
 \chapter{Modelo de decisión y arquitectura multiagente propuesta}
+
 \label{chap:propuesta}
 
 \noindent Este capítulo concreta, para el caso de estudio, el modelo de decisión que se utilizará en la propuesta multiagente. En el Capítulo~2 se ha presentado el marco teórico general del aprendizaje supervisado, el aprendizaje por refuerzo y el aprendizaje por refuerzo multiagente \cite{sutton2018reinforcement,wooldridge2009multiagent,busoniu2008comprehensive}. En el Capítulo~\ref{chap:caso-estudio} se explica el caso de \textit{Counter-Strike 2}: qué artículos se estudian, qué plataformas intervienen y qué condiciones afectan a una operación de compraventa \cite{steamMarketFAQ,buffMarketplace,counterStrike2}. A partir de ese material previo, este capítulo explica cómo se aplican esos conceptos al problema concreto de compraventa simulada.
@@ -88,68 +89,178 @@ Cada \textbf{\glosref{episodio}{episodio}} es una ejecución completa del simula
 \section{Arquitectura del sistema}
 \label{sec:arquitectura-sistema}
 
-Una vez definido el problema MARL, la arquitectura describe cómo se organizan los componentes necesarios para construir los estados, ejecutar las acciones y registrar sus consecuencias. La arquitectura se organiza en cinco capas: adquisición, persistencia, predicción, decisión multiagente y simulación. Cada capa recibe una salida definida de la anterior y entrega una entrada definida a la siguiente. Esta separación reduce el acoplamiento y permite comprobar cada parte por separado, una práctica habitual en entornos de evaluación reproducible \cite{liu2021finrl,pineau2021reproducibility}.
-
-\textcolor{red}{Realmente la figura es una arquitectura MARL. Según lo que has dicho en la sección anterior, el estado sería los datos de mercado, la probabilidad del candidato y el estado de la cartera, no??? Podrías remarcar lo que es el estado en la figura}
-
-
+Una vez definido el problema MARL, la arquitectura describe cómo se organizan los componentes necesarios para construir el estado de decisión, ejecutar las acciones y registrar sus consecuencias. La arquitectura se organiza en cuatro niveles: captura y persistencia de datos, preparación del estado, decisión de los agentes y aplicación de la decisión simulada. Cada nivel recibe una salida definida del anterior y entrega una entrada definida al siguiente. Esta separación reduce el acoplamiento y permite comprobar cada parte por separado, una práctica habitual en entornos de evaluación reproducible \cite{liu2021finrl,pineau2021reproducibility}.
 
 \begin{figure}[H]
   \centering
+
   \begin{tikzpicture}[
-    node distance=0.85cm and 0.65cm,
     bloque/.style={
       draw=tfmAccent,
       thick,
       rounded corners=3pt,
       fill=tfmSoft,
-      text width=2.75cm,
+      text width=3.3cm,
+      minimum height=1cm,
+      align=center,
+      inner sep=4pt,
+      font=\small
+    },
+    nivel/.style={
+      font=\scriptsize\bfseries,
+      text=tfmMuted,
+      align=right,
+      anchor=east
+    },
+    flujo/.style={
+      -{Latex[length=2.8mm,width=2.2mm]},
+      line width=0.8pt,
+      draw=tfmAccent
+    }
+  ]
+
+    % Nivel 1
+    \node[bloque, text width=5.8cm] (captura) at (0,0)
+      {\textbf{Captura y persistencia}\\
+       Datos de mercado normalizados};
+
+    % Nivel 2
+    \node[bloque] (modelo) at (-2.6,-2.8)
+      {\textbf{Modelo supervisado}\\
+       Probabilidad del candidato};
+
+    \node[bloque] (cartera) at (2.6,-2.8)
+      {\textbf{Estado de cartera}\\
+       Saldo, posiciones y riesgo};
+
+    % Nivel 3
+    \node[bloque] (scout) at (-4.3,-5.6)
+      {\textbf{Scout}\\
+       Marca o ignora};
+
+    \node[bloque] (trader) at (0,-5.6)
+      {\textbf{Trader}\\
+       Compra, vende o mantiene};
+
+    \node[bloque] (portfolio) at (4.3,-5.6)
+      {\textbf{Portfolio}\\
+       Aprueba o rechaza};
+
+    % Nivel 4
+    \node[bloque, text width=5.2cm, fill=white] (decisionfinal) at (0,-8.4)
+      {\textbf{Decisión final simulada}\\
+       Actualizar cartera y registrar resultado};
+
+    % Etiquetas de niveles
+    \node[nivel] at (-6.1,0)    {Nivel 1};
+    \node[nivel] at (-6.1,-2.8) {Nivel 2};
+    \node[nivel] at (-6.1,-5.6) {Nivel 3};
+    \node[nivel] at (-6.1,-8.4) {Nivel 4};
+
+    % Flechas
+    \draw[flujo] (captura.south) -- ++(0,-0.45) -| (modelo.north);
+
+    \draw[flujo] (modelo.south) -- ++(0,-0.40) -| (scout.north);
+    \draw[flujo] (modelo.south) -- ++(0,-0.40) -| (trader.north west);
+
+    \draw[flujo] (cartera.south) -- ++(0,-0.40) -| (trader.north east);
+    \draw[flujo] (cartera.south) -- ++(0,-0.40) -| (portfolio.north);
+
+    \draw[flujo] (scout.south) -- ++(0,-0.40) -| (decisionfinal.north west);
+    \draw[flujo] (trader.south) -- (decisionfinal.north);
+    \draw[flujo] (portfolio.south) -- ++(0,-0.40) -| (decisionfinal.north east);
+
+  \end{tikzpicture}
+
+  \caption{Niveles principales de la arquitectura propuesta.}
+  \label{fig:arquitectura-niveles}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+
+  \begin{tikzpicture}[
+    bloque/.style={
+      draw=tfmAccent,
+      thick,
+      rounded corners=3pt,
+      fill=tfmSoft,
+      text width=2.85cm,
       minimum height=0.95cm,
       align=center,
       inner sep=4pt,
       font=\small
     },
-    decision/.style={
+    estado/.style={
       bloque,
-      text width=4.4cm,
+      text width=3.35cm,
       fill=white
     },
-    flujo/.style={-{Latex[length=3.2mm,width=2.5mm]}, line width=0.9pt, draw=tfmAccent},
-    registro/.style={-{Latex[length=3.2mm,width=2.5mm]}, line width=0.9pt, dashed, draw=tfmMuted}
+    flujo/.style={
+      -{Latex[length=2.8mm,width=2.2mm]},
+      line width=0.8pt,
+      draw=tfmAccent
+    },
+    registro/.style={
+      -{Latex[length=2.8mm,width=2.2mm]},
+      line width=0.8pt,
+      dashed,
+      draw=tfmMuted
+    }
   ]
-    \node[bloque, text width=5.2cm] (datos) at (0,0) {\textbf{Captura y persistencia}\\Datos de mercado normalizados};
+    \node[bloque, text width=4.2cm] (captura) at (0,0)
+      {\textbf{Captura y persistencia}\\
+       Datos normalizados};
 
-    \node[bloque] (modelo) at (-3.0,-2.2) {\textbf{Modelo supervisado}\\Probabilidad del candidato};
-    \node[bloque] (cartera) at (3.0,-2.2) {\textbf{Estado de cartera}\\Saldo, posiciones y riesgo};
+    \node[bloque] (modelo) at (-2.65,-2.55)
+      {\textbf{Modelo supervisado}\\
+       Probabilidad};
 
-    \node[bloque] (scout) at (-4.2,-4.45) {\textbf{Scout}\\Marca o ignora};
-    \node[bloque] (trader) at (0,-4.45) {\textbf{Trader}\\Compra, vende o mantiene};
-    \node[bloque] (portfolio) at (4.2,-4.45) {\textbf{Portfolio}\\Aprueba o rechaza};
+    \node[bloque] (cartera) at (2.65,-2.55)
+      {\textbf{Estado de cartera}\\
+       Saldo y posiciones};
 
-    \node[decision] (decisionfinal) at (0,-6.75) {\textbf{Decisión final simulada}\\Actualizar cartera y registrar resultado};
+    \node[estado, text width=4.4cm] (estado) at (0,-5.25)
+      {\textbf{Estado de decisión $s_t$}\\
+       Mercado, señal supervisada y cartera};
 
-    \draw[flujo] (datos) -- (modelo);
-    \draw[flujo] (modelo) -- (scout);
-    \draw[flujo] (modelo) -- (trader);
-    \draw[flujo] (cartera) -- (trader);
-    \draw[flujo] (cartera) -- (portfolio);
-    \draw[flujo] (scout) -- (decisionfinal);
-    \draw[flujo] (trader) -- (decisionfinal);
-    \draw[flujo] (portfolio) -- (decisionfinal);
+    \node[bloque, text width=4cm] (agentes) at (0,-7.55)
+      {\textbf{Agentes}\\
+       Scout, Trader y Portfolio};
 
-    \draw[registro] (decisionfinal.east) -- ++(3.8,0) |- 
-    node[pos=0.75, right, font=\scriptsize, align=left] {actualiza\\cartera} 
-    (cartera.east);
+    \node[estado, text width=4.4cm] (decision) at (0,-10.0)
+      {\textbf{Decisión final simulada}\\
+       Transición, recompensa y registro};
 
-    \draw[registro] (decisionfinal.west) -- ++(-3.8,0) |- 
-    node[pos=0.75, fill=white, inner sep=2pt, font=\scriptsize] {registro} 
-    (datos.west);
+    \coordinate (capturaDown) at ($(captura.south)+(0,-0.65)$);
+    \coordinate (registroLeft) at (-5.05,-10.0);
+    \coordinate (carteraRight) at (5.05,-10.0);
+
+    \draw[flujo] (captura.south) -- (capturaDown) -| (modelo.north);
+    \draw[flujo] (captura.south) -- (capturaDown) -| (estado.north);
+    \draw[flujo] (modelo.south) -- ++(0,-0.55) -| (estado.north west);
+    \draw[flujo] (cartera.south) -- ++(0,-0.55) -| (estado.north east);
+    \draw[flujo] (estado.south) -- (agentes.north);
+    \draw[flujo] (agentes.south) -- (decision.north);
+
+    \draw[registro] (decision.west) -- (registroLeft) |- 
+      node[pos=0.82, left, fill=white, inner sep=2pt, font=\scriptsize, align=center]
+      {registro}
+      (captura.west);
+
+    \draw[registro] (decision.east) -- (carteraRight) |- 
+      node[pos=0.78, right, fill=white, inner sep=2pt, font=\scriptsize, align=center]
+      {actualiza\\cartera}
+      (cartera.east);
   \end{tikzpicture}
-  \caption{Niveles de información y decisión en la arquitectura propuesta.}
-  \label{fig:arquitectura-propuesta}
+
+  \caption{Construcción del estado y retroalimentación de la decisión simulada.}
+  \label{fig:arquitectura-estado-retroalimentacion}
 \end{figure}
 
-La Figura~\ref{fig:arquitectura-propuesta} resume el recorrido principal por niveles. El primer nivel captura y conserva observaciones de Steam Community Market, \acroref{BUFF}{BUFF}, SteamDT, \acroref{OCR}{OCR} e importaciones manuales. El segundo nivel prepara la información que alimenta la decisión: el modelo supervisado genera una probabilidad a partir de los datos de mercado y el simulador mantiene el estado de la cartera. El estado de cartera no procede directamente de la captura, sino de cartera inicial y decisiones simuladas anteriores. El tercer nivel reparte esa información entre Scout, Trader y Portfolio. El último nivel aplica la decisión final simulada, actualiza la cartera y registra el resultado para conservar la trazabilidad del episodio.
+La Figura~\ref{fig:arquitectura-niveles} resume el recorrido principal por niveles. El primer nivel captura y conserva observaciones de Steam Community Market, \acroref{BUFF}{BUFF}, SteamDT, \acroref{OCR}{OCR} e importaciones manuales. El segundo nivel prepara la información que alimenta la decisión: el modelo supervisado genera una probabilidad a partir de los datos de mercado y el simulador mantiene el estado de la cartera. El tercer nivel reparte esa información entre Scout, Trader y Portfolio. El último nivel aplica la decisión final simulada, actualiza la cartera y registra el resultado para conservar la trazabilidad del episodio.
+
+La Figura~\ref{fig:arquitectura-estado-retroalimentacion} separa el detalle que no conviene cargar en la figura general. El estado de decisión $s_t$ combina datos de mercado normalizados, señal supervisada y estado de cartera. El estado de cartera no procede directamente de la captura, sino de la cartera inicial y de las decisiones simuladas anteriores. Por eso la retroalimentación se representa desde la decisión final hacia la cartera, mientras que el registro de resultados vuelve al nivel de persistencia para conservar la historia completa del episodio.
 
 El flujo comienza cuando los componentes de adquisición recopilan datos de los mercados secundarios y de las fuentes auxiliares. Antes de utilizar los datos extraídos, se normalizan y se conservan junto con su instante de captura para construir un histórico trazable. Sobre ese histórico se calculan las variables necesarias para obtener una señal supervisada. Una probabilidad alta indica que una posible operación merece atención, pero los agentes todavía deben comprobar el estado de la cartera y las restricciones antes de aprobar una compra simulada.
 
@@ -161,7 +272,7 @@ La salida del sistema debe ser auditable. Cada predicción, acción y decisión 
 \Require Secuencia temporal de candidatos, estado inicial de cartera y señal supervisada opcional
 \Ensure Cartera actualizada, recompensa y registro trazable
 \For{cada candidato $c_t$ del episodio}
-\State Normalizar los datos de mercado y conservar la captura.
+\State Consultar el candidato ya capturado y normalizado.
 \State Consultar el estado de cartera $s_t$ y calcular las restricciones aplicables.
 \State Incorporar la señal supervisada cuando esté disponible.
 \State Generar las observaciones locales $o_t^S$, $o_t^T$ y $o_t^P$.
