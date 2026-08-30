@@ -62,12 +62,15 @@ def _render_dataset_v2(metadata: dict[str, object], output: Path) -> None:
     )
     size_axis.set_xticks(positions, [labels[split] for split in ("train", "validation", "test")])
     size_axis.set_ylabel("Ejemplos")
-    size_axis.set_title("Tamaño de las particiones", loc="left", fontsize=11, fontweight="bold")
+    size_axis.set_ylim(0, max(rows) * 1.22)
+    size_axis.set_title(
+        "Tamaño de las particiones", loc="left", fontsize=11, fontweight="bold", pad=16
+    )
     for bar, row, item_count in zip(bars, rows, items, strict=True):
         size_axis.text(
             bar.get_x() + bar.get_width() / 2,
             row + max(rows) * 0.025,
-            f"{row:,}\n{item_count} artículos".replace(",", "."),
+            f"{row:,} ejemplos\n{item_count} artículos".replace(",", "."),
             ha="center",
             va="bottom",
             fontsize=8.1,

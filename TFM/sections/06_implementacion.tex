@@ -1,24 +1,14 @@
 \chapter{Implementación y operación}
 
-\noindent Este capítulo describe la implementación del sistema propuesto. Explica cómo se obtienen y almacenan los datos de los mercados, cómo se construyen los conjuntos temporales para los modelos y cómo se conectan la predicción supervisada, el simulador de cartera y el entorno multiagente. También presenta la consola local utilizada para consultar oportunidades, ejecutar tareas de captura y revisar el estado de los componentes.
+\noindent Este capítulo documenta los elementos implementados que permiten ejecutar el diseño definido en los Capítulos~\ref{chap:propuesta} y~5. No introduce un modelo de decisión nuevo: muestra cómo se materializan la captura de datos, la construcción de la señal supervisada, el simulador y la consola local de consulta. La evaluación de estos componentes se presenta en el Capítulo~7.
 
 La implementación mantiene separadas la adquisición de datos, la persistencia, la preparación de conjuntos, los modelos y la interfaz de consulta. Esta separación permite repetir un experimento, localizar el origen de un dato y revisar una oportunidad sin ejecutar compras ni ventas reales. La estructura detallada del código se incluye en el Anexo~\ref{anx:repositorio}.
 
-\section{Componentes y responsabilidades}
+\section{Componentes implementados}
 
-La implementación se organiza en componentes que intercambian datos mediante formatos definidos. Cada componente recibe campos concretos y produce un resultado con campos conocidos por el componente siguiente. Por ejemplo, un extractor no entrega directamente una recomendación, entrega un registro de mercado con el artículo, la fuente, la fecha de captura, el precio, la moneda, el volumen, el origen y la calidad de la lectura. La persistencia conserva esa información y los módulos posteriores construyen las variables o ejecutan los modelos que correspondan. Esta secuencia permite localizar un error sin repetir todo el flujo.
+La adquisición entrega registros de mercado trazables con artículo, fuente, fecha, precio, moneda, volumen y calidad de lectura. La persistencia conserva esos registros y sus series históricas. A partir de ellos, la preparación temporal crea las variables que alimentan el modelo supervisado. En una ejecución del entorno MARL, los registros actuales construyen $m_t$, la probabilidad del modelo forma $h_t$ y el simulador mantiene $c_t$. Esta correspondencia implementa la separación del estado presentada en la Sección~\ref{sec:formalizacion-marl-problema}.
 
-\begin{itemize}
-  \item \textbf{Adquisición:} localiza artículos, consulta las fuentes y convierte cada resultado en un registro de mercado trazable.
-  \item \textbf{Preparación y persistencia:} conserva el estado más reciente y el histórico incremental. A partir de este último crea los conjuntos temporales descritos en el Capítulo~5.
-  \item \textbf{Predicción supervisada:} recibe las variables preparadas a partir del histórico y calcula una probabilidad para cada posible operación. Esta probabilidad es una señal de entrada, no una decisión.
-  \item \textbf{Simulación y entorno multiagente:} recibe los datos de mercado, el estado de cartera y la señal supervisada. Los roles proponen y validan acciones, mientras el simulador aplica las reglas económicas y calcula las consecuencias de cada decisión simulada.
-  \item \textbf{Consola local:} permite ejecutar tareas controladas y revisar oportunidades, sesiones y resultados sin enviar órdenes a los mercados.
-\end{itemize}
-
-\clearpage
-
-La predicción tabular se implementa con scikit-learn \cite{pedregosa2011scikit}. Cada modelo entrenado se guarda con Joblib junto con un fichero que identifica sus variables de entrada, su configuración y las métricas obtenidas durante el entrenamiento. El entorno multiagente dispone de una interfaz PettingZoo \cite{terry2021pettingzoo} y de una integración con Ray/\acroref{RLlib}{RLlib} \cite{ray2018rllib}. PyTorch proporciona los componentes de cálculo empleados durante el entrenamiento \cite{paszke2019pytorch}. Las pruebas unitarias y de integración se ejecutan con \glosref{pytest}{Pytest}, una herramienta de Python para localizar y ejecutar pruebas automatizadas, y con pytest-asyncio para los casos asíncronos \cite{pytestDocs}. \glosref{ruff}{Ruff} revisa estilo y posibles errores estáticos, mientras que \glosref{mypy}{Mypy} comprueba las anotaciones de tipos antes de ejecutar el código \cite{ruffDocs,mypyDocs}. Estas herramientas materializan la propuesta, pero no sustituyen la justificación metodológica de los capítulos anteriores.
+La predicción tabular se implementa con scikit-learn \cite{pedregosa2011scikit} y los modelos se almacenan con Joblib junto con sus variables, configuración y métricas. El entorno multiagente sigue la interfaz PettingZoo \cite{terry2021pettingzoo} y se integra con Ray/\acroref{RLlib}{RLlib} \cite{ray2018rllib}; PyTorch proporciona los componentes de cálculo del entrenamiento \cite{paszke2019pytorch}. Las pruebas automatizadas se ejecutan con \glosref{pytest}{Pytest} y pytest-asyncio \cite{pytestDocs}; \glosref{ruff}{Ruff} y \glosref{mypy}{Mypy} revisan, respectivamente, el estilo y las anotaciones de tipos \cite{ruffDocs,mypyDocs}. Estos detalles facilitan la trazabilidad, pero la justificación del modelo se mantiene en los capítulos de diseño y evaluación.
 
 \section{Adquisición y persistencia de datos}
 
@@ -78,7 +68,7 @@ Los conjuntos temporales preparados en el Capítulo~5 alimentan los procesos de 
 
 El módulo supervisado entrena modelos tabulares y guarda el fichero del modelo seleccionado junto con el listado de variables de entrada, la configuración empleada y un informe de entrenamiento. En una consulta posterior, el servicio de inferencia comprueba que recibe esas mismas variables y devuelve una probabilidad junto con la versión del modelo. Esa probabilidad pasa al simulador para evaluar la posible operación, pero no ejecuta una compra.
 
-El simulador de cartera se mantiene separado de los modelos de aprendizaje. Implementa las comisiones, el bloqueo de intercambio, las posiciones y las restricciones explicadas en el Capítulo~\ref{chap:propuesta}. El entorno multiagente reutiliza ese simulador para ejecutar episodios y conserva, para cada paso, las observaciones locales, las acciones propuestas, el resultado de la transición y el desglose de las recompensas. De este modo, el entrenamiento puede revisar por qué una política recibe una recompensa sin alterar los datos de mercado ni enviar una orden real.
+El simulador de cartera se mantiene separado de los modelos de aprendizaje. Implementa las comisiones, el bloqueo de intercambio, las posiciones y los controles de validez explicados en el Capítulo~\ref{chap:propuesta}. El entorno multiagente reutiliza ese simulador para ejecutar episodios: combina $m_t$, $c_t$ y $h_t$, entrega las observaciones locales, interpreta las acciones y conserva la transición y el desglose de recompensas. De este modo, el entrenamiento puede revisar por qué una política recibe una recompensa sin alterar los datos de mercado ni enviar una orden real.
 
 El entrenamiento MARL sigue el esquema de entrenamiento centralizado y ejecución descentralizada descrito en la Sección~2.4. Durante el entrenamiento, cada actor recibe únicamente la observación correspondiente a su rol, mientras que el modelo evaluador central utiliza el estado compartido para valorar la decisión conjunta. Cuando se carga un modelo entrenado para ejecutar una simulación o generar una recomendación, se utilizan solo los tres actores locales. El modelo evaluador central no interviene en esa ejecución.
 
@@ -88,7 +78,16 @@ Las pruebas automatizadas verifican los componentes de dominio, persistencia, OC
 
 \section{Consola local de consulta}
 
-La consola local convierte el estado técnico en una interfaz de revisión. Su pantalla principal separa la lista de oportunidades del detalle de la oportunidad seleccionada. La lista muestra el nombre del artículo, la secuencia prevista de compra y venta, los precios publicados y el beneficio neto estimado. El detalle indica la probabilidad calculada por el modelo supervisado, las fechas de captura de los datos y las restricciones de cartera que intervienen.
+La consola local convierte el estado técnico en una interfaz de revisión. Su pantalla principal separa la lista de oportunidades del detalle de la oportunidad seleccionada. La lista muestra el nombre del artículo, la secuencia prevista de compra y venta, los precios publicados y el beneficio neto estimado. El detalle identifica la ruta, los precios de ambas plataformas, el margen estimado, el instante de captura y el carácter experimental de la señal.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.96\textwidth]{figures/app/consola_oportunidades.png}
+\caption{Consola local de consulta de oportunidades. La interfaz separa la lista de candidatos de la información de la oportunidad seleccionada.}
+\label{fig:consola-oportunidades}
+\end{figure}
+
+La Figura~\ref{fig:consola-oportunidades} muestra una ejecución conectada a la base de datos local. La interfaz no convierte el margen estimado en una compra automática: presenta los datos necesarios para revisar una oportunidad y conserva la decisión en estado de consulta.
 
 El panel no ejecuta compras. Las acciones de abrir Steam o BUFF sirven para que la persona usuaria revise la oportunidad en su fuente. Los estados \emph{revisar}, \emph{observar} y \emph{bloqueado} representan una decisión explicable, no una orden automática. Esta restricción es importante mientras la validación estadística y multiagente sigue en fase exploratoria.
 

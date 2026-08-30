@@ -28,11 +28,9 @@ Con esta descripción, el problema queda preparado para expresarse como un model
 \section{Modelo MARL aplicado al caso de estudio}
 \label{sec:formalizacion-marl-problema}
 
-Partiendo de la formulación general presentada en la Sección~\ref{sec:estado-arte-marl}, el problema de este trabajo se modela como un sistema \acroref{MARL}{MARL} con observabilidad parcial. En un proceso de decisión de Markov parcialmente observable, conocido como \acroref{POMDP}{POMDP} (\textit{Partial Observability Markov Decision Process}), el entorno mantiene un estado real, pero el agente solo recibe una observación incompleta de ese estado \cite{kaelbling1998planning}. En este trabajo se utiliza esa idea en un contexto multiagente: existe un estado global de mercado y cartera, pero cada agente recibe solo la parte de información que necesita para cumplir su responsabilidad \cite{wooldridge2009multiagent,busoniu2008comprehensive}.
+Partiendo de la formulación general presentada en la Sección~\ref{sec:estado-arte-marl}, el problema se representa como un sistema \acroref{MARL}{MARL} con observabilidad parcial. El entorno mantiene el estado completo de la simulación, mientras que cada agente recibe únicamente la información necesaria para desempeñar su función \cite{kaelbling1998planning,wooldridge2009multiagent,busoniu2008comprehensive}. La formalización separa el problema de decisión de la arquitectura que lo implementa en la sección siguiente.
 
-En cada instante del episodio, el entorno presenta un candidato de compraventa construido a partir de datos de mercado. Ese candidato se combina con la situación actual de la cartera simulada y, cuando está disponible, con una señal supervisada calculada a partir de datos históricos. Los agentes no modifican directamente los datos de mercado: proponen acciones sobre la cartera simulada. Después, el simulador comprueba si la acción conjunta es válida, calcula el estado siguiente y devuelve las recompensas correspondientes.
-
-El modelo aplicado se expresa mediante la siguiente tupla:
+El modelo se define como:
 
 \begin{equation}
 \mathcal{M}_{\mathrm{CS2}}=\left(
@@ -46,50 +44,69 @@ P_{\mathrm{sim}},
 \label{eq:marl-cs2}
 \end{equation}
 
-\begin{itemize}
-  \item \textbf{Elementos de la tupla.} En la Ecuación~\ref{eq:marl-cs2}, $\mathcal{N}$ es el conjunto de agentes, $\mathcal{S}$ es el conjunto de estados globales, $\mathcal{O}^{i}$ es el conjunto de \glosref{observacion-local}{observaciones locales} que recibe el agente $i$, $\mathcal{A}^{i}$ es su conjunto de acciones, $P_{\mathrm{sim}}$ es la función de transición implementada por el simulador, $R^{i}$ es la recompensa recibida por el agente $i$ y $\gamma$ es el factor de descuento. La presencia de $\mathcal{O}^{i}$ indica que el modelo no asume observación completa por parte de todos los agentes: el entorno conserva el estado global, pero cada agente decide con una vista parcial.
+En la Ecuación~\ref{eq:marl-cs2}, $\mathcal{N}$ es el conjunto de agentes, $\mathcal{S}$ el conjunto de estados globales, $\mathcal{O}^{i}$ el conjunto de \glosref{observacion-local}{observaciones locales} del agente $i$, $\mathcal{A}^{i}$ sus acciones posibles, $P_{\mathrm{sim}}$ la transición del simulador, $R^{i}$ su recompensa y $\gamma$ el factor de descuento. El conjunto de agentes es $\mathcal{N}=\{S,T,P\}$, donde $S$, $T$ y $P$ designan, respectivamente, a Scout, Trader y Portfolio. Los tres actúan sobre un mismo entorno y sus decisiones se combinan en cada instante; no son tres entornos ni tres carteras independientes.
 
-  \item \textbf{Agentes.} El conjunto de agentes se define como $\mathcal{N}=\{\text{Scout},\text{Trader},\text{Portfolio}\}$. Scout revisa si el candidato merece atención; Trader decide la acción operativa sobre la cartera; y Portfolio valida si la propuesta respeta saldo, exposición, posiciones abiertas y restricciones de riesgo. La separación no significa que trabajen en procesos independientes. Los tres agentes actúan sobre el mismo entorno y sus decisiones se interpretan juntas en cada instante.
+\paragraph{Estado global y fuentes de información.}
+En el instante $t$, el estado global se expresa como $s_t=(m_t,c_t,h_t)$. El bloque $m_t$ reúne la información actual del candidato de mercado; $c_t$ describe la cartera simulada; y $h_t$ contiene la salida del modelo supervisado. La Tabla~\ref{tab:componentes-estado-marl} concreta sus componentes. El Capítulo~5 explica cómo las fuentes externas y el histórico construyen $m_t$ y $h_t$; el bloque $c_t$ no se descarga de un mercado, sino que el simulador lo inicializa y actualiza durante el episodio.
 
-  \item \textbf{Estado global.} El estado global $s_t\in\mathcal{S}$ reúne toda la información que el entorno necesita para simular correctamente el instante $t$. En este trabajo se compone de tres bloques:
-  \begin{itemize}
-    \item \textbf{Información dinámica de mercado:} plataforma de compra, plataforma de venta, tipo de precio, precio de compra normalizado, valor neto de salida estimado, retorno actual, destino del saldo, cantidad disponible y señales de actividad. Esta información no es una configuración fija. Representa lo que el sistema conoce de un artículo en una fecha concreta del episodio. Si el mismo artículo aparece de nuevo en otra fecha, el estado puede cambiar porque cambian sus precios, su disponibilidad o el volumen observado.
-    \item \textbf{Información dinámica de cartera:} efectivo disponible, efectivo previsto tras la compra, capital bloqueado, exposición del candidato, posiciones desbloqueadas vendibles y posiciones todavía bloqueadas. Esta parte cambia por las decisiones simuladas anteriores: una compra reduce saldo y abre una posición; una venta cierra una posición y recupera efectivo neto; y el paso del tiempo puede desbloquear activos que antes no podían venderse.
-    \item \textbf{Señal supervisada:} probabilidad estimada por el modelo supervisado y un indicador que señala si esa probabilidad está disponible en el episodio. La señal forma parte del estado porque es información que los agentes pueden observar, pero su papel sigue siendo auxiliar: informa sobre el candidato, no ejecuta una operación ni sustituye a la decisión multiagente.
-  \end{itemize}
-  Además de estos bloques, cada episodio utiliza parámetros configurados antes de empezar, como comisiones, horizonte temporal, duración del bloqueo de intercambio, límites de riesgo y saldo inicial. Estos parámetros no son decisiones de los agentes ni cambian en cada paso, pero condicionan cómo el simulador calcula transiciones y recompensas.
+\begin{table}[H]
+\centering
+\caption{Componentes del estado global del modelo $\mathcal{M}_{\mathrm{CS2}}$.}
+\label{tab:componentes-estado-marl}
+\begin{tabularx}{\textwidth}{@{}p{0.18\textwidth}p{0.29\textwidth}X@{}}
+\toprule
+\textbf{Bloque} & \textbf{Componentes} & \textbf{Función en la decisión} \\
+\midrule
+$m_t$: mercado & Artículo, fecha, plataformas de compra y venta, precios publicados y normalizados, valor neto de venta estimado, ROI previsto, disponibilidad y actividad observada. & Describe la oportunidad disponible en el instante $t$. Sus valores pueden cambiar aunque se trate del mismo artículo en otra fecha. \\
+$c_t$: cartera & Efectivo disponible, valor de cartera, posiciones abiertas, importe invertido, fecha de desbloqueo, posiciones vendibles y exposición por artículo y plataforma. & Representa los recursos y compromisos que condicionan si una propuesta puede ejecutarse. \\
+$h_t$: señal supervisada & Probabilidad estimada, disponibilidad de la estimación y versión del modelo que la produce. & Aporta una estimación basada en el histórico para ordenar candidatos; no ejecuta compras ni sustituye la decisión de los agentes. \\
+\bottomrule
+\end{tabularx}
+\end{table}
 
-  \item \textbf{Observaciones locales.} Cada agente recibe una observación local $o_t^i\in\mathcal{O}^i$, es decir, una selección del estado global adaptada a su responsabilidad. Scout observa principalmente información del candidato, actividad de mercado y señal supervisada. Trader observa esas señales junto con información de salida, saldo disponible y posiciones del mismo artículo. Portfolio observa ratios de cartera, avisos de riesgo, número de incumplimientos y posiciones vendibles. Esta distinción evita asumir que todos los agentes conocen toda la información del sistema.
+Las comisiones, la duración del bloqueo de intercambio, el saldo inicial y los límites utilizados en cada experimento son parámetros del entorno. Se fijan antes de iniciar el episodio. Por tanto, determinan cómo se calcula el estado y qué acciones pueden ejecutarse, pero no son acciones de los agentes.
 
-  \item \textbf{Acciones.} El conjunto de acciones se define por rol y contiene siete acciones disponibles repartidas entre los tres agentes:
-  \begin{itemize}
-    \item \textbf{Scout:} \textit{ignorar candidato} o \textit{marcar candidato}.
-    \item \textbf{Trader:} \textit{mantener cartera}, \textit{comprar una unidad} o \textit{vender una unidad}.
-    \item \textbf{Portfolio:} \textit{rechazar propuesta} o \textit{aprobar propuesta}.
-  \end{itemize}
-  En cada instante, cada agente elige una de sus acciones disponibles. La combinación de las tres decisiones forma la \textbf{\glosref{accion-conjunta}{acción conjunta}} $\mathbf{a}_t=(a_t^{S},a_t^{T},a_t^{P})$. Como hay dos acciones de Scout, tres de Trader y dos de Portfolio, existen hasta $2\cdot3\cdot2=12$ combinaciones posibles. No todas producen una operación económica. Por ejemplo, una compra simulada solo se intenta cuando Scout marca el candidato, Trader propone comprar una unidad y Portfolio aprueba la propuesta. Una venta simulada solo se intenta cuando Trader propone vender una unidad, Portfolio aprueba la propuesta y existe una posición desbloqueada del mismo artículo. En el resto de combinaciones, la cartera se mantiene o se registra una decisión no ejecutada.
+\paragraph{Observaciones locales y acciones.}
+Cada agente decide a partir de una proyección del estado global, $o_t^i=G_i(s_t)$; una observación local no se añade al estado ni constituye un segundo estado. Scout recibe los campos de $m_t$ y $h_t$ necesarios para clasificar el candidato. Trader recibe esos campos y la parte de $c_t$ que informa sobre el efectivo disponible y las posiciones del mismo artículo. Portfolio recibe los indicadores de $c_t$ que permiten comprobar la exposición, el efectivo que permanecería tras la compra y la posibilidad de vender una posición. De este modo, el entorno conserva $s_t$, mientras cada política usa solamente $o_t^i$.
 
-  \item \textbf{Simulador y transición.} Las acciones no las devuelve el simulador. Las acciones las generan las políticas de los agentes a partir de sus observaciones locales. El simulador recibe la acción conjunta, comprueba qué caso representa y calcula la transición $P_{\mathrm{sim}}(s_{t+1}\mid s_t,\mathbf{a}_t)$. La transición es la regla que determina el estado resultante $s_{t+1}$ después de aplicar la decisión sobre el estado actual $s_t$.
-  \begin{itemize}
-    \item \textbf{Compra válida:} si la acción conjunta solicita una compra y la propuesta cumple las restricciones, el estado siguiente reduce el efectivo disponible, abre una nueva posición, registra el coste invertido, actualiza la exposición de cartera y guarda la fecha a partir de la cual la unidad podrá venderse.
-    \item \textbf{Venta válida:} si la acción conjunta solicita una venta, Portfolio la aprueba y existe una posición desbloqueada del mismo artículo, el estado siguiente cierra esa posición, aplica comisiones, incorpora el importe neto al efectivo disponible y actualiza el beneficio de la operación.
-    \item \textbf{Decisión no ejecutada o inválida:} si la acción conjunta no solicita una operación completa, si no hay saldo suficiente, si no existe posición vendible o si se incumple una restricción de riesgo, el estado siguiente conserva la cartera económica sin abrir ni cerrar posiciones. Aun así, el simulador registra el motivo de no ejecución para que la recompensa pueda distinguir entre esperar voluntariamente y proponer una operación imposible.
-  \end{itemize}
-  Esta transición modela el efecto de la decisión sobre la cartera simulada. Los precios históricos y los datos de mercado observados no se modifican por la acción de los agentes; lo que cambia es la cartera, el registro del episodio y, en el siguiente instante, el candidato de mercado que presenta la secuencia temporal.
+Los conjuntos de acciones son:
 
-  \item \textbf{Restricciones de riesgo.} Las restricciones no son un agente adicional ni un elemento nuevo de la tupla. Dentro del modelo aparecen integradas en tres lugares. Primero, forman parte de $P_{\mathrm{sim}}$, porque condicionan si una acción conjunta puede transformarse en una compra válida o debe dejar la cartera sin cambios. Segundo, forman parte de las observaciones de Portfolio, porque este agente recibe avisos de saldo, exposición, bloqueo y posiciones vendibles antes de aprobar o rechazar. Tercero, forman parte de $R^{i}$, porque una propuesta inválida puede generar penalizaciones. Antes de ejecutar una compra, el entorno calcula cuatro controles: límite de tamaño de posición, exposición por artículo, exposición por plataforma y reserva mínima de efectivo. Estos controles impiden que una señal supervisada favorable apruebe por sí sola una operación que dejaría la cartera mal distribuida, sin liquidez suficiente o concentrada en un único activo.
+\[
+\begin{aligned}
+\mathcal{A}^{S}&=\{\textit{ignorar},\textit{marcar}\},\\
+\mathcal{A}^{T}&=\{\textit{mantener},\textit{comprar},\textit{vender}\},\\
+\mathcal{A}^{P}&=\{\textit{rechazar},\textit{aprobar}\}.
+\end{aligned}
+\]
 
-  \item \textbf{Recompensa y episodio.} La recompensa de cada agente se define mediante una función $R^{i}(s_t,\mathbf{a}_t,s_{t+1})$. En este trabajo se usa una recompensa híbrida: una parte común asociada al resultado económico de la cartera y una parte individual asociada a la responsabilidad de cada rol. La parte común se obtiene al cerrar operaciones o al proponer compras inválidas. La parte individual penaliza errores concretos, como marcar candidatos que terminan con pérdidas, no comprar oportunidades viables, vender tarde o aprobar compras que incumplen límites. La Sección~\ref{sec:funcion-recompensa} desarrolla esta función con sus ecuaciones.
-\end{itemize}
+La \glosref{accion-conjunta}{acción conjunta} es $\mathbf{a}_t=(a_t^S,a_t^T,a_t^P)$. Las políticas generan doce combinaciones formales posibles, pero la función de interpretación $\Phi(s_t,\mathbf{a}_t)$ las reduce a tres resultados del simulador: \textit{comprar}, \textit{vender} o \textit{mantener}. Solo se intenta una compra cuando $(a_t^S,a_t^T,a_t^P)=(\textit{marcar},\textit{comprar},\textit{aprobar})$. Solo se intenta una venta cuando Trader propone vender, Portfolio aprueba y existe una posición vendible del artículo. Las demás combinaciones se interpretan como mantener. Si una compra o una venta propuesta incumple una condición de validez, tampoco se modifica la cartera, pero el entorno conserva el motivo del rechazo.
 
-El factor de descuento $\gamma$ mantiene el significado presentado en la Sección~\ref{sec:estado-arte-rl}. En este problema es relevante porque la recompensa económica suele aparecer después de la compra, cuando una venta posterior cierra la posición. Un valor de $\gamma$ alto permite que el entrenamiento relacione decisiones de compra con recompensas futuras, mientras que un valor bajo daría demasiado peso a señales inmediatas \cite{sutton2018reinforcement}. La implementación experimental utiliza $\gamma=0{,}99$, como se detalla en los parámetros de entrenamiento del Anexo~A.
+\paragraph{Validez y transición.}
+La función $C(s_t,\mathbf{a}_t)$ representa los controles que una acción debe superar para poder ejecutarse. Para una compra, utiliza los campos de $c_t$ y comprueba el saldo, el tamaño de la posición, la exposición por artículo y plataforma, la reserva de efectivo y la banda de inversión. Para una venta, comprueba que exista una posición abierta y que haya finalizado su bloqueo. Estos controles pertenecen al entorno: Portfolio observa los valores que los determinan, pero el simulador conserva la comprobación final. La Sección~\ref{sec:restricciones-riesgo} detalla los límites y la Sección~\ref{sec:funcion-recompensa} explica las penalizaciones asociadas a una propuesta inválida.
 
-Cada \textbf{\glosref{episodio}{episodio}} es una ejecución completa del simulador sobre una secuencia temporal de candidatos. Comienza con una cartera inicial, recorre instantes ordenados por fecha y termina cuando se han procesado todos los datos del periodo seleccionado o cuando se alcanza el límite de pasos configurado. Durante el episodio se actualizan saldo, posiciones abiertas, capital bloqueado, fechas de desbloqueo y métricas de exposición. El objetivo de aprendizaje sigue el criterio general de la Ecuación~\ref{eq:objetivo-rl-general}: obtener políticas que maximicen el retorno esperado a lo largo del episodio.
+En los experimentos, la transición es determinista: dados el estado, la acción conjunta y el siguiente registro temporal, el simulador siempre produce el mismo estado siguiente. En consecuencia,
+
+\begin{equation}
+P_{\mathrm{sim}}(s_{t+1}\mid s_t,\mathbf{a}_t)=
+\begin{cases}
+1, & \text{si } s_{t+1}=T_{\mathrm{sim}}(s_t,\mathbf{a}_t),\\
+0, & \text{en cualquier otro caso}.
+\end{cases}
+\label{eq:transicion-determinista-cs2}
+\end{equation}
+
+Si $\Phi$ devuelve \textit{comprar} y $C$ se cumple, $T_{\mathrm{sim}}$ actualiza $c_t$: descuenta el importe, abre una posición, registra su fecha de desbloqueo y actualiza las exposiciones. Si devuelve \textit{vender}, cierra una posición vendible, aplica las comisiones y actualiza el efectivo y el beneficio neto. Si devuelve \textit{mantener} o falla $C$, se conserva la parte económica de la cartera y se registra el resultado. En todos los casos, el siguiente candidato de la secuencia temporal determina $m_{t+1}$ y la señal correspondiente determina $h_{t+1}$. Las acciones no modifican los precios ni el histórico observado.
+
+La recompensa de cada agente se expresa como $R^i(s_t,\mathbf{a}_t,s_{t+1})$ y se desarrolla en la Sección~\ref{sec:funcion-recompensa}. El factor de descuento $\gamma$ mantiene el significado presentado en la Sección~\ref{sec:estado-arte-rl}. Aquí es relevante porque una compra puede recibir su resultado económico varios instantes después, cuando se produce la venta. La implementación experimental utiliza $\gamma=0{,}99$, como se detalla en el Anexo~A.
+
+Cada \textbf{\glosref{episodio}{episodio}} es una ejecución completa del simulador sobre una secuencia temporal de candidatos. Comienza con una cartera inicial, recorre los instantes ordenados por fecha y termina al procesar el periodo seleccionado o al alcanzar el límite de pasos. El objetivo de aprendizaje es obtener políticas que maximicen el retorno esperado a lo largo del episodio, según el criterio general de la Ecuación~\ref{eq:objetivo-rl-general}.
 
 \section{Arquitectura del sistema}
 \label{sec:arquitectura-sistema}
 
-Una vez definido el problema MARL, la arquitectura describe cómo se organizan los componentes necesarios para construir el estado de decisión, ejecutar las acciones y registrar sus consecuencias. La arquitectura se organiza en cuatro niveles: captura y persistencia de datos, preparación del estado, decisión de los agentes y aplicación de la decisión simulada. Cada nivel recibe una salida definida del anterior y entrega una entrada definida al siguiente. Esta separación reduce el acoplamiento y permite comprobar cada parte por separado, una práctica habitual en entornos de evaluación reproducible \cite{liu2021finrl,pineau2021reproducibility}.
+\textbf{Cuatro niveles.} Una vez definido el problema MARL, la arquitectura describe cómo se organizan los componentes necesarios para construir el estado de decisión, ejecutar las acciones y registrar sus consecuencias. Se organiza en cuatro niveles: captura y persistencia de datos, preparación del estado, decisión de los agentes y aplicación de la decisión simulada. Cada nivel recibe una salida definida del anterior y entrega una entrada definida al siguiente. Esta separación reduce el acoplamiento y permite comprobar cada parte por separado, una práctica habitual en entornos de evaluación reproducible \cite{liu2021finrl,pineau2021reproducibility}.
+
+\textbf{Entrenamiento centralizado y ejecución descentralizada.} Durante el entrenamiento, las políticas de \textit{Scout}, \textit{Trader} y \textit{Portfolio} reciben sus observaciones locales; el modelo evaluador utiliza el estado global y la acción conjunta para valorar su coordinación. En la ejecución de un episodio solo intervienen las tres políticas locales. El simulador no es un cuarto agente ni un controlador centralizado: aplica $T_{\mathrm{sim}}$, verifica $C(s_t,\mathbf{a}_t)$ y registra la transición resultante \cite{lowe2017maddpg,yu2022mappo}.
 
 \begin{figure}[H]
   \centering
@@ -135,15 +152,15 @@ Una vez definido el problema MARL, la arquitectura describe cómo se organizan l
 
     % Nivel 3
     \node[bloque] (scout) at (-4.3,-5.6)
-      {\textbf{Scout}\\
+      {\textbf{\textit{Scout}}\\
        Marca o ignora};
 
     \node[bloque] (trader) at (0,-5.6)
-      {\textbf{Trader}\\
+      {\textbf{\textit{Trader}}\\
        Compra, vende o mantiene};
 
     \node[bloque] (portfolio) at (4.3,-5.6)
-      {\textbf{Portfolio}\\
+      {\textbf{\textit{Portfolio}}\\
        Aprueba o rechaza};
 
     % Nivel 4
@@ -226,7 +243,7 @@ Una vez definido el problema MARL, la arquitectura describe cómo se organizan l
 
     \node[bloque, text width=4cm] (agentes) at (0,-7.55)
       {\textbf{Agentes}\\
-       Scout, Trader y Portfolio};
+       \textit{Scout}, \textit{Trader} y \textit{Portfolio}};
 
     \node[estado, text width=4.4cm] (decision) at (0,-10.0)
       {\textbf{Decisión final simulada}\\
@@ -258,20 +275,20 @@ Una vez definido el problema MARL, la arquitectura describe cómo se organizan l
   \label{fig:arquitectura-estado-retroalimentacion}
 \end{figure}
 
-La Figura~\ref{fig:arquitectura-niveles} resume el recorrido principal por niveles. El primer nivel captura y conserva observaciones de Steam Community Market, \acroref{BUFF}{BUFF}, SteamDT, \acroref{OCR}{OCR} e importaciones manuales. El segundo nivel prepara la información que alimenta la decisión: el modelo supervisado genera una probabilidad a partir de los datos de mercado y el simulador mantiene el estado de la cartera. El tercer nivel reparte esa información entre Scout, Trader y Portfolio. El último nivel aplica la decisión final simulada, actualiza la cartera y registra el resultado para conservar la trazabilidad del episodio.
+\textbf{Recorrido principal.} La Figura~\ref{fig:arquitectura-niveles} resume el recorrido por niveles. El primer nivel captura y conserva observaciones de Steam Community Market, \acroref{BUFF}{BUFF}, SteamDT, \acroref{OCR}{OCR} e importaciones manuales. El segundo nivel prepara la información que alimenta la decisión: el modelo supervisado genera una probabilidad a partir de los datos de mercado y el simulador mantiene el estado de la cartera. El tercer nivel reparte esa información entre \textit{Scout}, \textit{Trader} y \textit{Portfolio}. El último nivel aplica la decisión final simulada, actualiza la cartera y registra el resultado para conservar la trazabilidad del episodio.
 
-La Figura~\ref{fig:arquitectura-estado-retroalimentacion} separa el detalle que no conviene cargar en la figura general. El estado de decisión $s_t$ combina datos de mercado normalizados, señal supervisada y estado de cartera. El estado de cartera no procede directamente de la captura, sino de la cartera inicial y de las decisiones simuladas anteriores. Por eso la retroalimentación se representa desde la decisión final hacia la cartera, mientras que el registro de resultados vuelve al nivel de persistencia para conservar la historia completa del episodio.
+\textbf{Construcción del estado.} La Figura~\ref{fig:arquitectura-estado-retroalimentacion} separa el detalle que no conviene cargar en la figura general. El estado de decisión $s_t$ combina datos de mercado normalizados, señal supervisada y estado de cartera. El estado de cartera no procede directamente de la captura, sino de la cartera inicial y de las decisiones simuladas anteriores. Por eso la retroalimentación se representa desde la decisión final hacia la cartera, mientras que el registro de resultados vuelve al nivel de persistencia para conservar la historia completa del episodio.
 
-El flujo comienza cuando los componentes de adquisición recopilan datos de los mercados secundarios y de las fuentes auxiliares. Antes de utilizar los datos extraídos, se normalizan y se conservan junto con su instante de captura para construir un histórico trazable. Sobre ese histórico se calculan las variables necesarias para obtener una señal supervisada. Una probabilidad alta indica que una posible operación merece atención, pero los agentes todavía deben comprobar el estado de la cartera y las restricciones antes de aprobar una compra simulada.
+\textbf{Preparación de la información.} El flujo comienza cuando los componentes de adquisición recopilan datos de los mercados secundarios y de las fuentes auxiliares. Antes de utilizar los datos extraídos, se normalizan y se conservan junto con su instante de captura para construir un histórico trazable. Sobre ese histórico se calculan las variables necesarias para obtener una señal supervisada. Una probabilidad alta indica que una posible operación merece atención, pero los agentes todavía deben comprobar el estado de la cartera y las restricciones antes de aprobar una compra simulada.
 
-La salida del sistema debe ser auditable. Cada predicción, acción y decisión simulada se relaciona con su fuente de datos, la versión del modelo, el episodio y la configuración de simulación. Esta trazabilidad permite distinguir un error de datos, un error del modelo y una decisión inadecuada de la política. La decisión final siempre queda registrada como simulada. La arquitectura puede generar recomendaciones, registros de episodios y métricas, pero no envía órdenes a Steam, \acroref{BUFF}{BUFF} ni ninguna otra plataforma.
+\textbf{Trazabilidad.} La salida del sistema debe ser auditable. Cada predicción, acción y decisión simulada se relaciona con su fuente de datos, la versión del modelo, el episodio y la configuración de simulación. Esta trazabilidad permite distinguir un error de datos, un error del modelo y una decisión inadecuada de la política. La decisión final siempre queda registrada como simulada. La arquitectura puede generar recomendaciones, registros de episodios y métricas, pero no envía órdenes a Steam, \acroref{BUFF}{BUFF} ni ninguna otra plataforma.
 
 \begin{algorithm}[H]
 \caption{Flujo de información y decisión simulada}
 \begin{algorithmic}[1]
 \Require Secuencia temporal de candidatos, estado inicial de cartera y señal supervisada opcional
 \Ensure Cartera actualizada, recompensa y registro trazable
-\For{cada candidato $c_t$ del episodio}
+\For{cada candidato $x_t$ del episodio}
 \State Consultar el candidato ya capturado y normalizado.
 \State Consultar el estado de cartera $s_t$ y calcular las restricciones aplicables.
 \State Incorporar la señal supervisada cuando esté disponible.
@@ -285,30 +302,29 @@ La salida del sistema debe ser auditable. Cada predicción, acción y decisión 
 \end{algorithmic}
 \end{algorithm}
 
-Cada paso registra la información utilizada, las acciones propuestas y el resultado de la simulación. Este registro permite reconstruir cómo se obtuvo una recomendación y diferenciar la información de partida de las consecuencias que calcula el simulador.
+\textbf{Flujo de decisión.} Cada paso registra la información utilizada, las acciones propuestas y el resultado de la simulación. Este registro permite reconstruir cómo se obtuvo una recomendación y diferenciar la información de partida de las consecuencias que calcula el simulador.
 
 \section{Agentes de decisión}
 \label{sec:agentes-decision}
 
-La Sección~\ref{sec:formalizacion-marl-problema} define el conjunto de agentes, las observaciones locales y las acciones disponibles dentro del modelo \acroref{MARL}{MARL}. Esta sección desarrolla esa definición desde el punto de vista de diseño: qué responsabilidad tiene cada agente, qué información resulta más relevante para su decisión y cómo interpreta el simulador la acción conjunta resultante. Por tanto, no se introduce un controlador centralizado. Cada agente propone su propia acción a partir de su observación local, y el entorno se limita a comprobar si la combinación de acciones puede convertirse en una transición válida de cartera.
+La Sección~\ref{sec:formalizacion-marl-problema} ha definido los conjuntos de agentes, observaciones y acciones del modelo. Esta sección concreta las tres políticas que implementan ese modelo. \textbf{Reparto de responsabilidades.} Separar los roles evita que una única política tenga que filtrar candidatos, decidir la operación y controlar la cartera al mismo tiempo. No se introduce un controlador que reemplace a los agentes: \textit{Scout}, \textit{Trader} y \textit{Portfolio} producen, respectivamente, $a_t^S$, $a_t^T$ y $a_t^P$ a partir de sus observaciones locales.
 
 \begin{itemize}
     \setlength{\itemsep}{0.35em}
     \setlength{\topsep}{0.35em}
-    \item \textbf{Reparto de responsabilidades.} La decisión simulada se divide en tres roles para evitar que una única política mezcle tareas distintas. Scout actúa como filtro inicial de candidatos: no decide si se compra, sino si el artículo merece pasar a una evaluación más completa. Trader decide la intención operativa principal: mantener la cartera, intentar una compra o cerrar una posición vendible. Portfolio revisa la viabilidad económica y de riesgo de la propuesta antes de permitir que el entorno simule la operación. Esta separación permite que cada agente aprenda sobre una parte concreta del problema sin perder el carácter común de la decisión, porque las tres acciones se interpretan juntas en cada instante.
-    \item \textbf{Información observada.} Cada agente recibe una observación local coherente con su responsabilidad. Scout observa sobre todo información del candidato: plataforma, tipo de publicación, precio de compra, retorno previsto, disponibilidad y probabilidad supervisada. Trader utiliza la señal de Scout, la información de compra y venta prevista y las posiciones del mismo artículo que ya existen en la cartera. Portfolio observa variables de cartera y de control, como saldo disponible, capital bloqueado, exposición prevista, posiciones vendibles y restricciones de riesgo. Esta diferencia no implica que existan tres entornos separados; todos actúan sobre el mismo estado global, pero cada uno recibe la parte que necesita para decidir.
-    \item \textbf{Acciones ya formalizadas.} Las acciones disponibles para cada agente se han definido en la Sección~\ref{sec:formalizacion-marl-problema}: Scout puede ignorar o marcar un candidato; Trader puede mantener, comprar o vender; y Portfolio puede rechazar o aprobar una propuesta. En esta sección se mantienen esos mismos nombres para no introducir vocabulario nuevo. La combinación de las tres acciones forma la acción conjunta, que es la entrada que interpreta el simulador para decidir si se abre una posición, se cierra una posición o se mantiene la cartera.
-    \item \textbf{Interpretación por el simulador.} El simulador no elige las acciones de los agentes. Primero recibe las acciones producidas por las políticas $\pi_S$, $\pi_T$ y $\pi_P$. Después comprueba si la combinación tiene sentido económico y operativo: una compra solo puede abrirse si Scout marca el candidato, Trader propone comprar, Portfolio aprueba y los límites de riesgo se cumplen; una venta solo puede cerrarse si Trader propone vender, Portfolio aprueba y existe una posición desbloqueada del mismo artículo. Cualquier otra combinación conserva la cartera y registra el motivo de no ejecución.
+    \item \textbf{\textit{Scout} ($S$).} Su política $\pi_S(o_t^S)$ decide si el candidato se ignora o se marca. Para ello usa los datos de mercado y la señal supervisada incluidos en su observación. Marcarlo no abre una posición; solo habilita que \textit{Trader} pueda proponer una compra.
+    \item \textbf{\textit{Trader} ($T$).} Su política $\pi_T(o_t^T)$ elige mantener, comprar o vender. La observación incorpora la información económica del candidato y el efectivo y las posiciones que afectan a su propuesta. \textit{Trader} determina la intención operativa, pero no modifica directamente la cartera.
+    \item \textbf{\textit{Portfolio} ($P$).} Su política $\pi_P(o_t^P)$ aprueba o rechaza la propuesta. Observa los componentes de cartera que determinan la exposición, el efectivo posterior a una compra y las posiciones vendibles. La aprobación expresa la decisión del agente; el entorno conserva la comprobación final de $C(s_t,\mathbf{a}_t)$.
 \end{itemize}
 
-La siguiente representación resume esta interpretación operativa de la acción conjunta:
+\textbf{Interpretación conjunta.} La siguiente representación resume cómo el simulador interpreta las acciones de los tres agentes:
 
 \begin{algorithm}[H]
 \small
 \caption{Interpretación de la acción conjunta}
 \label{alg:decision-cooperativa}
 \begin{algorithmic}[1]
-\Require Artículo candidato $c_t$, estado global $s_t$ y observaciones locales $o_t^S$, $o_t^T$ y $o_t^P$
+\Require Artículo candidato $x_t$, estado global $s_t$ y observaciones locales $o_t^S$, $o_t^T$ y $o_t^P$
 \Ensure Estado siguiente $s_{t+1}$ y recompensas híbridas $r_t^S$, $r_t^T$ y $r_t^P$
 \State $a_t^{S} \gets \pi_S(o_t^{S})$
 \State $a_t^{T} \gets \pi_T(o_t^{T})$
@@ -316,7 +332,7 @@ La siguiente representación resume esta interpretación operativa de la acción
 \State Formar la acción conjunta $\mathbf{a}_t=(a_t^S,a_t^T,a_t^P)$.
 \If{$a_t^{S}=\textit{marcar}$ \textbf{y} $a_t^{T}=\textit{comprar}$ \textbf{y} $a_t^{P}=\textit{aprobar}$ \textbf{y} la compra cumple los límites de riesgo}
   \State Abrir una posición simulada y bloquear su capital.
-\ElsIf{$a_t^{T}=\textit{vender}$ \textbf{y} $a_t^{P}=\textit{aprobar}$ \textbf{y} existe una posición desbloqueada de $c_t$}
+\ElsIf{$a_t^{T}=\textit{vender}$ \textbf{y} $a_t^{P}=\textit{aprobar}$ \textbf{y} existe una posición desbloqueada de $x_t$}
   \State Cerrar una posición simulada y abonar su importe neto.
 \Else
   \State Mantener el saldo y registrar el motivo de no ejecución.
@@ -327,9 +343,9 @@ La siguiente representación resume esta interpretación operativa de la acción
 \end{algorithmic}
 \end{algorithm}
 
-En el Algoritmo~\ref{alg:decision-cooperativa}, $c_t$ representa el artículo considerado en el instante $t$. Las funciones $\pi_S$, $\pi_T$ y $\pi_P$ son las políticas de Scout, Trader y Portfolio. Cada política recibe su observación local y produce una acción. El simulador no sustituye esas políticas: únicamente interpreta $\mathbf{a}_t$, aplica las reglas de transición y calcula las recompensas que se explican en la Sección~\ref{sec:funcion-recompensa}.
+\textbf{Papel del simulador.} En el Algoritmo~\ref{alg:decision-cooperativa}, $x_t$ representa el artículo considerado en el instante $t$. Las funciones $\pi_S$, $\pi_T$ y $\pi_P$ son las políticas de \textit{Scout}, \textit{Trader} y \textit{Portfolio}. Cada política recibe su observación local y produce una acción. El simulador no sustituye esas políticas: únicamente interpreta $\mathbf{a}_t$, aplica las reglas de transición y calcula las recompensas que se explican en la Sección~\ref{sec:funcion-recompensa}.
 
-Una compra simulada requiere la participación coherente de los tres agentes. Scout debe marcar el artículo, Trader debe solicitar la compra y Portfolio debe aprobarla. Una venta simulada no requiere una nueva marca de Scout, porque la posición ya forma parte de la cartera; en ese caso intervienen Trader, que propone vender, y Portfolio, que aprueba si la posición está desbloqueada y la operación es válida. Esta distinción evita confundir dos fases distintas del ciclo de compraventa: la selección de candidatos nuevos y la gestión de posiciones ya abiertas.
+\textbf{Compra y venta.} Una compra simulada requiere la participación coherente de los tres agentes. \textit{Scout} debe marcar el artículo, \textit{Trader} debe solicitar la compra y \textit{Portfolio} debe aprobarla. Una venta simulada no requiere una nueva marca de \textit{Scout}, porque la posición ya forma parte de la cartera; en ese caso intervienen \textit{Trader}, que propone vender, y \textit{Portfolio}, que aprueba si la posición está desbloqueada y la operación es válida. Esta distinción evita confundir dos fases distintas del ciclo de compraventa: la selección de candidatos nuevos y la gestión de posiciones ya abiertas.
 
 \section{Función de recompensa}
 \label{sec:funcion-recompensa}
@@ -525,6 +541,4 @@ La banda flexible descrita en la Sección~\ref{sec:funcion-recompensa} se compru
 El periodo de bloqueo de intercambio no constituye un límite adicional, sino una condición de la posición simulada. Una compra puede estar permitida y, aun así, el artículo adquirido no puede venderse hasta que termine ese periodo. El simulador conserva esa información para que Trader y Portfolio no propongan una venta imposible.
 
 En términos de transición, una compra válida reduce el saldo disponible, crea una posición abierta y registra la fecha de desbloqueo. Una compra inválida no cambia la cartera, pero deja constancia del motivo de rechazo. Esa diferencia evita mezclar dos situaciones distintas: no comprar porque los agentes deciden esperar y no comprar porque la operación incumple una regla. En el primer caso la recompensa puede ser cero o depender de una oportunidad perdida; en el segundo se aplica la penalización definida en la Sección~\ref{sec:funcion-recompensa}.
-
-Las restricciones también hacen que la señal supervisada tenga un papel acotado. La probabilidad producida por el modelo supervisado puede ayudar a ordenar candidatos, pero no puede aprobar por sí sola una operación. El entorno siempre evalúa el estado de cartera en el instante actual, incluyendo saldo, capital bloqueado y exposiciones acumuladas. Por tanto, dos candidatos con la misma probabilidad pueden recibir decisiones diferentes si uno encaja en la cartera y el otro supera los límites de riesgo.
 

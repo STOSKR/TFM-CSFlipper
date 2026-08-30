@@ -1,10 +1,10 @@
 \chapter{Entorno y preparación de datos}
 
-\noindent Este capítulo describe el entorno de datos empleado en los experimentos. En primer lugar, identifica las fuentes de información disponibles y el papel que desempeña cada una en la recogida de datos de los mercados secundarios de artículos de \acroref{CS2}{CS2}. A continuación, explica cómo se normalizan y validan los registros para conservar su procedencia, su fecha de captura y los atributos que identifican cada artículo.
+\noindent El Capítulo~\ref{chap:propuesta} define el estado del modelo MARL como $s_t=(m_t,c_t,h_t)$: información de mercado, estado de cartera y señal supervisada. Este capítulo explica el origen de los dos bloques que dependen de información externa. Los registros actuales de los mercados se normalizan para construir $m_t$, mientras que sus series históricas permiten obtener las variables y la señal supervisada $h_t$. El bloque de cartera $c_t$ no procede de una fuente externa: el simulador lo inicializa y actualiza a partir de las decisiones ejecutadas.
 
-El capítulo presenta después las variables construidas a partir del histórico y el procedimiento temporal con el que se forman los conjuntos de entrenamiento, validación y prueba. Esta preparación permite que los modelos utilicen únicamente la información disponible en cada fecha y que sus resultados se evalúen sin incorporar información futura.
+El capítulo identifica las fuentes de información disponibles, explica cómo se normalizan y validan los registros para conservar su procedencia, su fecha de captura y los atributos que identifican cada artículo, y presenta las variables y el procedimiento temporal con el que se forman los conjuntos de entrenamiento, validación y prueba. Esta preparación permite que los modelos utilicen únicamente la información disponible en cada fecha y que sus resultados se evalúen sin incorporar información futura.
 
-\section{Fuentes de datos}
+\section{Fuentes de datos y relación con el estado}
 
 El Capítulo~\ref{chap:caso-estudio} describe los mercados secundarios que delimitan el caso de estudio. Este apartado concreta el uso de cada fuente dentro del flujo de datos. El flujo principal comienza con SteamDT y continúa con la consulta de Steam Community Market y \acroref{BUFF}{BUFF} para los artículos seleccionados:
 
@@ -16,6 +16,25 @@ El Capítulo~\ref{chap:caso-estudio} describe los mercados secundarios que delim
 \end{itemize}
 
 Cada registro almacenado conserva la fuente, la fecha de captura, la moneda original y los atributos que identifican el artículo. La siguiente sección describe cómo se normalizan y validan estos campos. Los procedimientos técnicos de captura se presentan en el Capítulo 6.
+
+La Tabla~\ref{tab:fuentes-estado-marl} resume la trazabilidad desde cada fuente hasta el modelo de decisión. Una misma fuente puede contribuir al bloque de mercado actual y, si proporciona una serie temporal suficiente, a la construcción de la señal supervisada.
+
+\begin{table}[H]
+\centering
+\caption{Relación entre las fuentes de datos y el estado del modelo MARL.}
+\label{tab:fuentes-estado-marl}
+\begin{tabularx}{\textwidth}{@{}p{0.22\textwidth}p{0.33\textwidth}X@{}}
+\toprule
+\textbf{Origen} & \textbf{Datos conservados} & \textbf{Destino en $s_t$} \\
+\midrule
+SteamDT & Lista inicial de artículos candidatos. & Delimita los candidatos que pueden originar un bloque $m_t$; no produce por sí solo una señal supervisada. \\
+Steam Community Market & Precios actuales e históricos, órdenes de compra y volumen de intercambios. & Aporta campos de $m_t$ y, mediante su histórico, variables para calcular $h_t$. \\
+BUFF & Precio actual de compra y órdenes de compra. & Completa los precios y la disponibilidad de $m_t$ para la ruta de compraventa entre mercados. \\
+OCR e importación manual & Precios, moneda y atributos extraídos de capturas o ficheros. & Sustituyen o complementan campos de $m_t$ y solo contribuyen al histórico si superan la validación descrita en la Sección~5.2. \\
+Simulador de cartera & Saldo inicial y consecuencias de compras, ventas y bloqueos. & Construye y actualiza $c_t$; no es una fuente de datos de mercado. \\
+\bottomrule
+\end{tabularx}
+\end{table}
 
 \section{Normalización y validación de los datos}
 
@@ -39,7 +58,7 @@ Las variables de mercado se agrupan en los siguientes bloques:
   \item \textbf{Evolución temporal:} cambios y retornos de precio a 1, 3 y 7 días, así como la media y la desviación de los últimos 7 días. También se incorporan el día de la semana, el mes y un indicador de fin de semana.
 \end{itemize}
 
-Los valores derivados de la comparación de precios en la fecha inicial, como el beneficio neto y el ROI calculados con los precios disponibles en esa fecha, pueden utilizarse como variables de entrada. No se incorporan al conjunto de datos las variables de cartera, porque el simulador las crea y actualiza durante cada episodio, tal como se describe en el Capítulo~\ref{chap:propuesta}.
+Los valores derivados de la comparación de precios en la fecha inicial, como el beneficio neto y el ROI calculados con los precios disponibles en esa fecha, pueden utilizarse como variables de entrada. El modelo supervisado transforma esas variables en la probabilidad que forma $h_t$. No se incorporan al conjunto de datos las variables de cartera, porque el simulador las crea y actualiza durante cada episodio, tal como se describe en el Capítulo~\ref{chap:propuesta}.
 
 Para formar el conjunto temporal, se toma un artículo $i$ y una fecha $t$. El sistema calcula sus variables con los registros disponibles hasta $t$ y busca después el primer registro futuro de precio dentro del intervalo comprendido entre $t+8$ y $t+15$ días. El primer límite representa el periodo de bloqueo de intercambio utilizado en la simulación. Los siete días adicionales permiten conservar el ejemplo cuando la fuente no publica un registro exactamente en el octavo día.
 
@@ -63,4 +82,4 @@ El conjunto actual separa los datos por fecha para evitar que los modelos conozc
   \item \textbf{Prueba:} desde el 1 de marzo de 2026 hasta el 30 de junio de 2026.
 \end{itemize}
 
-Los quince días anteriores a cada frontera se excluyen del conjunto. Esta franja de purga impide que un registro de entrenamiento o validación utilice como resultado un precio perteneciente al periodo siguiente. Con este procedimiento, cada conjunto conserva únicamente la información disponible en su periodo y permite evaluar los modelos sin incorporar datos futuros.
+Los quince días anteriores a cada frontera se excluyen del conjunto. Esta franja de purga impide que un registro de entrenamiento o validación utilice como resultado un precio perteneciente al periodo siguiente. Con este procedimiento, cada conjunto conserva únicamente la información disponible en su periodo y permite evaluar los modelos sin incorporar datos futuros. Cuando el entorno MARL recorre un episodio, consulta la probabilidad producida con estas variables temporales para completar $h_t$; los precios y atributos de la fecha del paso completan $m_t$ y el simulador actualiza $c_t$.
