@@ -2,7 +2,7 @@
 
 \noindent Este capítulo presenta la evaluación experimental del sistema desarrollado. La experimentación no se limita a comparar modelos, sino que comprueba de forma progresiva las piezas necesarias para que una decisión simulada sea interpretable: reglas económicas, construcción de datos, modelos supervisados, reconocimiento mediante \acroref{OCR}{OCR}, simulador de cartera y entorno multiagente. Esta organización permite separar las verificaciones técnicas de los resultados de aprendizaje, evitando que una prueba de funcionamiento se interprete como una mejora económica demostrada.
 
-El capítulo se estructura por fases. Primero se validan las reglas y los datos que sostienen el simulador. Después se analizan los modelos supervisados y los cortes temporales de compraventa Steam/\acroref{BUFF}{BUFF}. A continuación se presentan las comprobaciones funcionales del entorno \acroref{MARL}{MARL} y la matriz de entrenamiento multiagente. Finalmente, se delimita la evaluación final reservada y se discuten las limitaciones que condicionan la interpretación de los resultados.
+El capítulo se estructura por fases. Primero se validan las reglas y los datos que sostienen el simulador. Después se analizan los modelos supervisados y los cortes temporales de compraventa Steam/\acroref{BUFF}{BUFF}. A continuación se presentan las comprobaciones funcionales del entorno \acroref{MARL}{MARL} y la matriz de entrenamiento multiagente. Finalmente, se discuten las limitaciones que condicionan la interpretación de los resultados.
 
 \section{Diseño experimental}
 
@@ -32,6 +32,8 @@ El entrenamiento multiagente se realiza con \acroref{PPO}{PPO}, \emph{Proximal P
 \State Guardar efectivo, posiciones, operaciones y recompensa media
 \end{algorithmic}
 \end{algorithm}
+
+El conjunto de prueba permanece aislado durante la selección de la configuración. Una vez elegida mediante validación, la evaluación independiente debe compararla con referencias homogéneas: mantener el efectivo, comprar cuando el margen neto observado sea positivo y un agente único sujeto a las mismas restricciones. Esta comparación comunicará el retorno de cartera, el beneficio neto, las operaciones cerradas, las posiciones abiertas y los rechazos por restricciones como media e intervalo entre semillas.
 
 \section{Validación técnica y pruebas}
 \label{sec:validacion-tecnica}
@@ -437,15 +439,9 @@ Sin probabilidad supervisada & 12,29\,\% & 12,29--12,29\,\% \\
 
 El objetivo de inversión del 65\,\% obtiene la mayor media, con un 12,45\,\% frente al 12,29\,\% de la configuración base. Sin embargo, la diferencia es reducida y su mejor resultado, 12,91\,\%, procede de una sola semilla. Además, 19 de las 21 ejecuciones se han detenido tras 20 iteraciones sin mejora. La matriz demuestra que el entrenamiento, la validación y la parada temprana se ejecutan de forma reproducible, pero no justifica todavía afirmar que una configuración supera de forma robusta a las demás.
 
-\section{Evaluación final reservada}
-
-La prueba de \texttt{trading\_profit\_v2} no se ha consultado durante la construcción de la matriz. Una vez fijada la configuración que se evaluará, debe ejecutarse una sola evaluación independiente con las tres semillas elegidas. Esta evaluación comunicará el retorno de cartera, el beneficio neto, las operaciones cerradas, las posiciones abiertas y las restricciones rechazadas. El resultado se presentará como media e intervalo entre semillas, no como el mejor valor individual.
-
-La comparación final debe incluir baselines homogéneos: mantener efectivo, comprar cuando el margen observado es positivo y un agente único con las mismas restricciones. La matriz ya incorpora una ablación sin probabilidad supervisada. Las siguientes extensiones son retirar el agente Portfolio o modificar los pesos de recompensa, siempre seleccionando los parámetros con validación y dejando la prueba aislada. Estas comparaciones permitirán distinguir si una diferencia proviene de la arquitectura multiagente, de la señal supervisada, de una regla de cartera o de la estructura del simulador.
-
 \section{Discusión}
 
-La discusión relaciona los resultados con el alcance del trabajo. Se identifican las condiciones que limitan su interpretación, las partes que ya funcionan de forma integrada y los datos que faltan para una evaluación más sólida.
+Esta sección interpreta los resultados obtenidos, sin añadir experimentos nuevos. Su objetivo es delimitar qué evidencia aporta el trabajo, qué condiciones reducen la solidez de las conclusiones y qué falta para comparar una política multiagente con una estrategia simple.
 
 \subsection{Evolución del enfoque experimental}
 
@@ -455,20 +451,16 @@ Esta evolución también ha permitido separar dos objetivos que no deben confund
 
 Por último, antes de ampliar el número de episodios y configuraciones multiagente, se priorizó que el entorno, las recompensas, las restricciones y las métricas fueran comprobables. Esta secuencia desplazó el trabajo desde reglas manuales dispersas hacia una simulación reproducible y permite interpretar la matriz de entrenamiento junto con sus límites de datos, en lugar de presentar una política como concluyente sin evidencia suficiente.
 
-\subsection{Amenazas a la validez}
+\subsection{Alcance de la evidencia y limitaciones}
 
-La principal amenaza interna es el desbalance de etiquetas: la prueba de marzo contiene 85 casos rentables de 95 y los bloques posteriores llegan a tener una sola clase. La segunda es el solapamiento de artículos entre entrenamiento y prueba. La división por fecha protege frente al uso de futuro, pero no responde a la pregunta más exigente de generalizar a activos virtuales no presentes en el entrenamiento. La tercera amenaza es operativa: el precio BUFF se usa como entrada puntual y la salida Steam se estima con histórico y comisiones, por lo que la sincronización exacta de ambos mercados requiere más capturas. Además, los experimentos simulan operaciones con datos observados. No envían órdenes reales, no transfieren artículos entre plataformas ni utilizan capital real, por lo que no permiten garantizar la ejecución futura de una operación.
+La principal limitación de los resultados supervisados es el desequilibrio de etiquetas. La prueba de marzo contiene 85 operaciones rentables de 95 y los bloques posteriores llegan a tener una sola clase. Además, los mismos artículos aparecen en entrenamiento y prueba. La división por fecha evita utilizar información futura, pero no demuestra que el modelo pueda generalizar a artículos virtuales que no haya observado durante el entrenamiento. Estas condiciones hacen que una precisión elevada o una probabilidad bien calibrada deban interpretarse con cautela.
 
-También hay límites de medición. El OCR está validado a nivel funcional, pero aún no dispone de un corpus de imágenes etiquetado. El entorno MARL ya incluye compra, bloqueo, venta y una matriz de políticas entrenadas, pero las configuraciones actuales presentan diferencias pequeñas en validación y todavía no se han contrastado en la prueba independiente. Estas limitaciones no invalidan la arquitectura, pero acotan las conclusiones a viabilidad técnica y evidencia experimental inicial.
+También existe una limitación operativa. El precio de \acroref{BUFF}{BUFF} se consulta como entrada puntual, mientras que la salida en Steam se estima con histórico y comisiones. Para reproducir de forma más fiel una operación entre ambas plataformas se necesitan más capturas sincronizadas y una cobertura mayor de artículos. Además, los experimentos simulan operaciones con datos observados: no envían órdenes reales, no transfieren artículos entre plataformas ni utilizan capital real. Por tanto, no permiten garantizar que una operación pueda ejecutarse en el futuro al precio previsto.
 
-\subsection{Casos favorables}
+Por último, la evidencia técnica tiene alcances distintos. El \acroref{OCR}{OCR} está validado a nivel funcional, pero no dispone aún de un corpus de imágenes etiquetado con el que medir su exactitud. El entorno \acroref{MARL}{MARL} ya incluye compra, bloqueo, venta y una matriz de políticas entrenadas, pero las configuraciones presentan diferencias pequeñas en validación y todavía no se han contrastado en la prueba independiente. Estas limitaciones no invalidan la arquitectura, pero acotan las conclusiones a viabilidad técnica y evidencia experimental inicial.
 
-El trabajo realizado muestra que el sistema ya puede integrar fuentes, construir datasets, entrenar modelos supervisados, calibrar probabilidades, simular reglas económicas y ejecutar un smoke multiagente. La separación entre adquisición, predicción, simulación y decisión ha resultado útil porque permite avanzar por partes y detectar bloqueos concretos sin rehacer toda la arquitectura.
+\textbf{Evidencia actual.}
 
-\subsection{Limitaciones observadas}
+En conjunto, el trabajo demuestra que el sistema puede integrar fuentes de datos, construir conjuntos temporales, entrenar y calibrar modelos supervisados, aplicar reglas económicas y recorrer episodios de compra, bloqueo y venta dentro de una cartera simulada. También demuestra que la matriz multiagente puede entrenarse y validarse de forma reproducible con configuraciones y semillas registradas. La separación entre adquisición, predicción, simulación y decisión permite comprobar cada componente y localizar un problema sin rehacer el resto del sistema.
 
-La principal limitación actual es la disponibilidad de histórico alineado entre Steam y \acroref{BUFF}{BUFF}. Aunque el conjunto actual contiene ejemplos no rentables en los tres bloques, validación y prueba siguen concentradas en operaciones rentables. También existe riesgo de sobreajuste en variables categóricas de alta cardinalidad y en señales de precisión alta con pocos casos. Las reglas de las plataformas, sus comisiones y la actividad de intercambio también pueden cambiar con el tiempo, por lo que los resultados deben interpretarse según las condiciones observadas en cada captura. Por último, el entorno \acroref{MARL}{MARL} necesita la evaluación independiente y los baselines descritos antes de poder concluir si la arquitectura multiagente mejora a una estrategia simple.
-
-\subsection{Lectura de los resultados}
-
-Los resultados confirman la viabilidad técnica de la integración y la simulación, así como la ejecución reproducible de una matriz de entrenamiento multiagente. La comparación definitiva del rendimiento económico entre políticas requiere ahora cerrar la evaluación independiente, ampliar los datos y contrastar baselines homogéneos.
+La evidencia disponible respalda, por tanto, la viabilidad técnica de la propuesta, pero no una superioridad económica de la arquitectura multiagente. Para afirmar que una política mejora una estrategia simple será necesario completar la evaluación independiente sobre la prueba aislada, ampliar la cobertura temporal y contrastar los baselines homogéneos definidos en el diseño experimental.
