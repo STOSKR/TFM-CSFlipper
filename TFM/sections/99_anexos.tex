@@ -44,7 +44,7 @@ Los directorios principales cumplen estas funciones:
 
 \section{Configuración del entorno}
 
-El entorno se define en \texttt{pyproject.toml}. El proyecto usa Python, Supabase/Postgres, Pytest, Ruff, Mypy y dependencias opcionales para \acroref{MARL}{MARL} como Ray/\acroref{RLlib}{RLlib}, PettingZoo, Gymnasium y PyTorch. Para desarrollo local existe un \texttt{docker-compose.yml} con Postgres.
+El entorno se define en \texttt{pyproject.toml}. El proyecto usa Python, Supabase/PostgreSQL, Pytest, Ruff, Mypy y dependencias opcionales para \acroref{MARL}{MARL} como Ray/\acroref{RLlib}{RLlib}, PettingZoo, Gymnasium y PyTorch. Para desarrollo local existe un \texttt{docker-compose.yml} con PostgreSQL.
 
 Comandos representativos:
 
@@ -68,11 +68,15 @@ python -m apps.cli.train_supervised_model
 python -m apps.cli.build_trading_dataset
 python -m apps.cli.retrain_trading_model
 python -m apps.cli.score_live_opportunities
+python -m apps.cli.train_marl_ctde
+python -m apps.cli.run_marl_experiment_matrix --help
 \end{verbatim}
+
+Estos comandos son puntos de entrada, no una receta para ejecutar todos los experimentos sin revisión. Los procesos que consultan o persisten datos requieren la configuración local y las credenciales correspondientes; la matriz multiagente, además, recibe un plan y un directorio de salida. Los argumentos concretos de cada ejecución y sus resultados se conservan como artefactos, según se describe al final de este anexo.
 
 \section{Parámetros de entrenamiento}
 
-Los experimentos supervisados usan splits temporales, calibración de probabilidades y selección por precisión operativa en umbrales altos. En los smoke tests se han comparado modelos dummy, regresión logística, random forest e histogram gradient boosting. El entrenamiento \acroref{MARL}{MARL} usa \acroref{RLlib}{RLlib} con un entorno multiagente y tres políticas: Scout, Trader y Portfolio.
+Los experimentos supervisados usan particiones temporales, calibración de probabilidades y selección por precisión operativa en umbrales altos. Las exploraciones comparan un modelo de referencia que predice la clase mayoritaria, regresión logística, \emph{random forest} e \emph{histogram gradient boosting}. El entrenamiento \acroref{MARL}{MARL} usa \acroref{RLlib}{RLlib} con un entorno multiagente y tres políticas: \textit{Scout}, \textit{Trader} y \textit{Portfolio}.
 
 \begin{table}[h]
 \centering
@@ -80,23 +84,26 @@ Los experimentos supervisados usan splits temporales, calibración de probabilid
 \toprule
 Bloque & Parámetros relevantes \\
 \midrule
-Supervisado & Split temporal, umbral operativo, calibración, modelo candidato y columnas excluidas por leakage. \\
-Trading & Dirección de arbitraje, horizonte, fees, tipo de cambio, ventana histórica y target de beneficio neto. \\
+Supervisado & Partición temporal, umbral operativo, calibración, modelo candidato y columnas excluidas para evitar información futura. \\
+Compraventa & Dirección de la operación, horizonte, comisiones, tipo de cambio, ventana histórica y umbral de beneficio neto. \\
 Simulación & Saldo inicial, tamaño máximo de posición, \textit{trade hold}, comisiones y límites de exposición. \\
-\acroref{MARL}{MARL} & Número de episodios, políticas Scout/Trader/Portfolio, algoritmo \acroref{PPO}{PPO} y métricas de cartera. \\
+\acroref{MARL}{MARL} & Políticas \textit{Scout}/\textit{Trader}/\textit{Portfolio}, algoritmo \acroref{PPO}{PPO}, $\gamma=0{,}99$, recompensa, restricciones y métricas de cartera. \\
+Matriz \acroref{MARL}{MARL} & 1.000~EUR iniciales, 100 iteraciones máximas, ocho episodios por iteración, parada tras 20 iteraciones sin mejora y semillas 7, 19 y 31. \\
 \bottomrule
 \end{tabularx}
 \caption{Configuración experimental.}
 \end{table}
 
+Los valores de la última fila corresponden a la matriz comunicada en el Capítulo~7. No constituyen parámetros universales del modelo: se registran para que la comparación entre configuraciones pueda repetirse en las mismas condiciones.
+
 \section{Modelo de datos}
 
 El modelo operativo actual gira alrededor de dos tablas principales: \texttt{market\_items} y \texttt{market\_history\_points}. La primera representa artículos identificados por sus atributos y su estado actual por plataforma. La segunda almacena series temporales en formato largo, con una fila por artículo, plataforma, fecha y métrica. La separación entre \texttt{market\_items} y \texttt{market\_history\_points} evita mezclar métricas distintas y permite añadir nuevas señales sin alterar la forma general del histórico.
 
-El esquema canónico previsto añade entidades como \texttt{assets}, \texttt{platforms}, \texttt{market\_observations}, \texttt{predictions}, \texttt{agent\_actions}, \texttt{investment\_decisions} y \texttt{simulated\_positions}. El objetivo de este esquema es mejorar trazabilidad, auditoría y separación entre observación, predicción y decisión.
+El repositorio conserva además un esquema canónico de migración, distinto del flujo experimental operativo actual. Incluye \texttt{assets}, \texttt{platforms}, \texttt{market\_observations}, \texttt{outbox\_events}, \texttt{predictions}, \texttt{risk\_profiles}, \texttt{votes}, \texttt{investment\_decisions} y \texttt{simulated\_positions}. Su objetivo es mejorar la trazabilidad, la auditoría y la separación entre observación, predicción y decisión. No se utiliza como fuente primaria de los conjuntos descritos en el Capítulo~7.
 
-\section{Resultados adicionales}
+\section{Artefactos de reproducibilidad}
 
-Los resultados intermedios se guardan en \texttt{model-runs} y los datasets derivados en \texttt{data/datasets}. Estas carpetas permiten conservar reportes de cobertura, exploración de características, métricas de entrenamiento, umbrales seleccionados y salidas de smoke tests sin mezclar los artefactos pesados con el código principal.
+Los conjuntos derivados se guardan en \texttt{data/datasets}, incluidos los conjuntos \texttt{trading\_profit\_v1} y \texttt{trading\_profit\_v2}. Los modelos y las salidas de entrenamiento se almacenan en \texttt{model-runs}; los cortes temporales, informes y figuras de exploración se conservan en \texttt{data/experiments} y \texttt{docs/experiments}. Esta separación evita mezclar los artefactos generados con el código fuente y permite recuperar el contexto de una ejecución concreta.
 
-Para que un experimento aporte evidencia reproducible, debe registrar como mínimo: configuración usada, periodo temporal, número de activos, tamaño de cada split, tasa de positivos, modelo o política evaluada, métricas principales y limitaciones observadas.
+Para que un experimento aporte evidencia reproducible, debe registrar como mínimo: configuración usada, periodo temporal, número de artículos, tamaño de cada partición, proporción de operaciones rentables, modelo o política evaluada, métricas principales y limitaciones observadas.
