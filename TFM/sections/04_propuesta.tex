@@ -38,13 +38,13 @@ El modelo se define como:
 \mathcal{S},
 \{\mathcal{O}^{i}\}_{i\in\mathcal{N}},
 \{\mathcal{A}^{i}\}_{i\in\mathcal{N}},
-P_{\mathrm{sim}},
+ T_{\mathrm{sim}},
 \{R^{i}\}_{i\in\mathcal{N}},
 \gamma\right).
 \label{eq:marl-cs2}
 \end{equation}
 
-En la Ecuación~\ref{eq:marl-cs2}, $\mathcal{N}$ es el conjunto de agentes, $\mathcal{S}$ el conjunto de estados globales, $\mathcal{O}^{i}$ el conjunto de \glosref{observacion-local}{observaciones locales} del agente $i$, $\mathcal{A}^{i}$ sus acciones posibles, $P_{\mathrm{sim}}$ la transición del simulador, $R^{i}$ su recompensa y $\gamma$ el factor de descuento. El conjunto de agentes es $\mathcal{N}=\{S,T,P\}$, donde $S$, $T$ y $P$ designan, respectivamente, al agente \textbf{\textit{Scout}}, al agente \textbf{\textit{Trader}} y al agente \textbf{\textit{Portfolio}}. Los tres actúan sobre un mismo entorno y sus decisiones se combinan en cada instante; no son tres entornos ni tres carteras independientes.
+En la Ecuación~\ref{eq:marl-cs2}, $\mathcal{N}$ es el conjunto de agentes, $\mathcal{S}$ el conjunto de estados globales, $\mathcal{O}^{i}$ el conjunto de \glosref{observacion-local}{observaciones locales} del agente $i$, $\mathcal{A}^{i}$ sus acciones posibles, $T_{\mathrm{sim}}$ la función de transición del simulador, $R^{i}$ su recompensa y $\gamma$ el factor de descuento. El conjunto de agentes es $\mathcal{N}=\{S,T,P\}$, donde $S$, $T$ y $P$ designan, respectivamente, al agente \textbf{\textit{Scout}}, al agente \textbf{\textit{Trader}} y al agente \textbf{\textit{Portfolio}}. Los tres actúan sobre un mismo entorno y sus decisiones se combinan en cada instante; no son tres entornos ni tres carteras independientes.
 
 El objetivo del agente \textit{Scout} es seleccionar los candidatos que merecen atención. El agente \textit{Trader} formula la intención operativa sobre esos candidatos y las posiciones abiertas: mantener, comprar o vender. El agente \textit{Portfolio} valora esa propuesta desde el estado de la cartera y decide aprobarla o rechazarla. La acción solo se ejecuta si la interpretación del entorno la considera válida.
 
@@ -81,27 +81,49 @@ Los conjuntos de acciones son:
 \end{aligned}
 \]
 
-La \glosref{accion-conjunta}{acción conjunta} es $\mathbf{a}_t=(a_t^S,a_t^T,a_t^P)$. Las políticas generan doce combinaciones formales posibles, pero la función de interpretación $\Phi(s_t,\mathbf{a}_t)$ las reduce a tres resultados del simulador: \textit{comprar}, \textit{vender} o \textit{mantener}. Solo se intenta una compra cuando $(a_t^S,a_t^T,a_t^P)=(\textit{marcar},\textit{comprar},\textit{aprobar})$. Solo se intenta una venta cuando el agente \textit{Trader} propone vender, el agente \textit{Portfolio} aprueba y existe una posición vendible del artículo. Las demás combinaciones se interpretan como mantener. Si una compra o una venta propuesta incumple una condición de validez, tampoco se modifica la cartera, pero el entorno conserva el motivo del rechazo.
+La \glosref{accion-conjunta}{acción conjunta} es $\mathbf{a}_t=(a_t^S,a_t^T,a_t^P)$ y pertenece al espacio $\mathcal{A}=\mathcal{A}^S\times\mathcal{A}^T\times\mathcal{A}^P$. Sus doce combinaciones formales se resuelven dentro de la función de transición; no se introduce una función adicional para interpretarlas.
 
-\paragraph{Validez y transición.}
-La función $C(s_t,\mathbf{a}_t)$ representa los controles que una acción debe superar para poder ejecutarse. Para una compra, utiliza los campos de $c_t$ y comprueba el saldo, el tamaño de la posición, la exposición por artículo y plataforma, la reserva de efectivo y la banda de inversión. Para una venta, comprueba que exista una posición abierta y que haya finalizado su bloqueo. Estos controles pertenecen al entorno: el agente \textit{Portfolio} observa los valores que los determinan, pero el simulador conserva la comprobación final. La Sección~\ref{sec:restricciones-riesgo} detalla los límites y la Sección~\ref{sec:funcion-recompensa} explica las penalizaciones asociadas a una propuesta inválida.
-
-\textcolor{magenta}{$T_{\mathrm{sim}}$ no lo has definido y debería ser $T(s,a,s')$ ... de hecho, en la definición del MDP de la cartera, $P$ no es la transición, sino la probabilidad ... puedes definir directamente la función de transición en el MDP como $T: S \times A \times S \rightarrow [0,1]$, es decir, $T(s,a,s')=P(s' |s,a)$ pero debería haber solo una función }
-
-\textcolor{blue}{qué es  $C(s_t,\mathbf{a}_t)$?? de dónde sale este componente?? en qué parte del MDP se define?? Yo creo que forma parte de la función de transición, es lo que devuelve el simulador cuando se aplica una acción en un estado ... explícalo en términos de la función de transición $T_{\mathrm{sim}}$, o sea, cómo tiene que ser $s$, cuál sería la acción $a$ y cuál es el estado resultante $a'$  ... igual lo puedes poner en forma de tabla y que se vea mejor }
-
-En los experimentos, la transición es determinista: dados el estado, la acción conjunta y el siguiente registro temporal, el simulador siempre produce el mismo estado siguiente. En consecuencia,
+\Needspace{8\baselineskip}
+\paragraph{Función de transición del simulador.}
+La transición se define directamente como
 
 \begin{equation}
-P_{\mathrm{sim}}(s_{t+1}\mid s_t,\mathbf{a}_t)=
+T_{\mathrm{sim}}:\mathcal{S}\times\mathcal{A}\times\mathcal{S}\longrightarrow[0,1],
+\qquad
+T_{\mathrm{sim}}(s_t,\mathbf{a}_t,s_{t+1}).
+\label{eq:funcion-transicion-cs2}
+\end{equation}
+
+Su valor indica la probabilidad de alcanzar el estado $s_{t+1}$ tras aplicar la acción conjunta $\mathbf{a}_t$ en el estado $s_t$. La validez de una compra o una venta no forma un componente independiente del modelo: son condiciones que la propia transición comprueba a partir de $c_t$. La Tabla~\ref{tab:transicion-simulador} concreta los únicos resultados posibles sobre la cartera.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabularx}{\textwidth}{@{}p{0.23\textwidth}p{0.30\textwidth}X@{}}
+\toprule
+\textbf{Acción conjunta} & \textbf{Condición comprobada por $T_{\mathrm{sim}}$} & \textbf{Actualización de $c_{t+1}$} \\
+\midrule
+Compra & $(\textit{marcar},\textit{comprar},\textit{aprobar})$ y saldo, tamaño de posición, exposición, reserva de efectivo y banda de inversión válidos. & Descuenta el coste, abre la posición, registra la fecha de desbloqueo y actualiza las exposiciones. \\
+Venta & El agente \textit{Trader} propone vender, el agente \textit{Portfolio} aprueba y existe una posición desbloqueada del artículo. & Cierra la posición, aplica las comisiones, incorpora el importe neto al efectivo y registra el beneficio neto. \\
+Mantenimiento o rechazo & Cualquier otra combinación, o una compra o venta que no cumple sus condiciones. & Conserva la parte económica de la cartera y registra el motivo de no ejecución. \\
+\bottomrule
+\end{tabularx}
+\caption{Resultados de la transición del simulador sobre la cartera.}
+\label{tab:transicion-simulador}
+\end{table}
+
+En los experimentos la transición es determinista. Dados $s_t$ y $\mathbf{a}_t$, la Tabla~\ref{tab:transicion-simulador} determina un único $s_{t+1}$; por tanto,
+
+\begin{equation}
+T_{\mathrm{sim}}(s_t,\mathbf{a}_t,s_{t+1})=
 \begin{cases}
-1, & \text{si } s_{t+1}=T_{\mathrm{sim}}(s_t,\mathbf{a}_t),\\
+1, & \text{si } s_{t+1} \text{ es el estado determinado por la Tabla~\ref{tab:transicion-simulador}},\\
 0, & \text{en cualquier otro caso}.
 \end{cases}
 \label{eq:transicion-determinista-cs2}
 \end{equation}
 
-Si $\Phi$ devuelve \textit{comprar} y $C$ se cumple, $T_{\mathrm{sim}}$ actualiza $c_t$: descuenta el importe, abre una posición, registra su fecha de desbloqueo y actualiza las exposiciones. Si devuelve \textit{vender}, cierra una posición vendible, aplica las comisiones y actualiza el efectivo y el beneficio neto. Si devuelve \textit{mantener} o falla $C$, se conserva la parte económica de la cartera y se registra el resultado. En todos los casos, el siguiente candidato de la secuencia temporal determina $m_{t+1}$ y la señal correspondiente determina $h_{t+1}$. Las acciones no modifican los precios ni el histórico observado. \textcolor{magenta}{demasiado descriptivo, explicar de una forma más estructurada}
+En los tres casos, el siguiente registro de la secuencia temporal determina $m_{t+1}$ y la señal supervisada correspondiente determina $h_{t+1}$. Por ello, la transición actualiza la cartera y avanza la información observada, pero las acciones no modifican los precios ni el histórico de mercado.
 
 La recompensa de cada agente se expresa como $R^i(s_t,\mathbf{a}_t,s_{t+1})$ y se desarrolla en la Sección~\ref{sec:funcion-recompensa}. El factor de descuento $\gamma$ mantiene el significado presentado en la Sección~\ref{sec:estado-arte-rl}. Aquí es relevante porque una compra puede recibir su resultado económico varios instantes después, cuando se produce la venta. La implementación experimental utiliza $\gamma=0{,}99$, como se detalla en el Anexo~A.
 
@@ -112,7 +134,7 @@ Cada \textbf{\glosref{episodio}{episodio}} es una ejecución completa del simula
 
 Una vez definido el problema MARL, la arquitectura describe cómo se organizan los componentes necesarios para construir el estado de decisión, ejecutar las acciones y registrar sus consecuencias. La arquitectura se organiza en \textbf{cuatro niveles}: captura y persistencia de datos, preparación del estado, decisión de los agentes y aplicación de la decisión simulada. Cada nivel recibe una salida definida del anterior y entrega una entrada definida al siguiente. Esta separación reduce el acoplamiento y permite comprobar cada parte por separado, una práctica habitual en entornos de evaluación reproducible \cite{liu2021finrl,pineau2021reproducibility}.
 
-\textbf{Entrenamiento centralizado y ejecución descentralizada.} Durante el entrenamiento, las políticas de los agentes \textit{Scout}, \textit{Trader} y \textit{Portfolio} reciben sus observaciones locales; el modelo evaluador utiliza el estado global y la acción conjunta para valorar su coordinación. En la ejecución de un episodio solo intervienen las tres políticas locales. El simulador no es un cuarto agente ni un controlador centralizado: aplica $T_{\mathrm{sim}}$, verifica $C(s_t,\mathbf{a}_t)$ y registra la transición resultante \cite{lowe2017maddpg,yu2022mappo}.
+\textbf{Entrenamiento centralizado y ejecución descentralizada.} Durante el entrenamiento, las políticas de los agentes \textit{Scout}, \textit{Trader} y \textit{Portfolio} reciben sus observaciones locales; el modelo evaluador utiliza el estado global y la acción conjunta para valorar su coordinación. En la ejecución de un episodio solo intervienen las tres políticas locales. El simulador no es un cuarto agente ni un controlador centralizado: aplica $T_{\mathrm{sim}}$ y registra la transición resultante \cite{lowe2017maddpg,yu2022mappo}.
 
 \begin{figure}[H]
   \centering
@@ -313,47 +335,48 @@ Una vez definido el problema MARL, la arquitectura describe cómo se organizan l
 \section{Agentes de decisión}
 \label{sec:agentes-decision}
 
-La Sección~\ref{sec:formalizacion-marl-problema} ha definido los conjuntos de agentes, observaciones y acciones del modelo. Esta sección concreta las tres políticas que implementan ese modelo. \textbf{Reparto de responsabilidades.} Separar los roles evita que una única política tenga que filtrar candidatos, decidir la operación y controlar la cartera al mismo tiempo. No se introduce un controlador que reemplace a los agentes: los agentes \textit{Scout}, \textit{Trader} y \textit{Portfolio} producen, respectivamente, $a_t^S$, $a_t^T$ y $a_t^P$ a partir de sus observaciones locales.
+La Sección~\ref{sec:formalizacion-marl-problema} ha definido los conjuntos de agentes, observaciones y acciones del modelo. Esta sección concreta qué política aprende cada agente y qué papel desempeña dentro de la decisión conjunta.
 
-\textcolor{magenta}{no entiendo, qué es eso de 'Reparto de responsabilidades' en mitad del texto arriba???}
+\paragraph{Políticas aprendidas.}
+Para cada agente $i\in\mathcal{N}$, la política parametrizada se expresa como
 
-\textcolor{blue}{la política es la función que aprende el agente de RL, es $\pi(a |s)$ y es la probabilidad de aplicar una acción en un estado, eso es lo que deben aprender los agentes ... en tu caso, supongo que sería $\pi(a |o)$. No puedes hablar de políticas como si fueran funciones o algoritmos definidos, esto es lo que se aprende}
+\begin{equation}
+\pi_{\theta_i}:\mathcal{O}^{i}\longrightarrow\Delta(\mathcal{A}^{i}),
+\qquad
+\pi_{\theta_i}(a^i\mid o^i),
+\label{eq:politica-local-agente}
+\end{equation}
+
+donde $\pi_{\theta_i}(a^i\mid o^i)$ es la probabilidad de que el agente $i$ aplique la acción $a^i$ al observar $o^i$, y $\Delta(\mathcal{A}^{i})$ representa el conjunto de distribuciones de probabilidad sobre sus acciones posibles. Los parámetros $\theta_i$ no se fijan mediante reglas manuales: el algoritmo de aprendizaje los ajusta a partir de los episodios simulados y las recompensas recibidas. Los roles delimitan qué información observa cada agente, qué acciones puede proponer y qué señal de recompensa recibe, pero no imponen de antemano su decisión en cada estado.
 
 \begin{itemize}
     \setlength{\itemsep}{0.35em}
     \setlength{\topsep}{0.35em}
-    \item \textbf{Agente \textit{Scout} ($S$).} Su política $\pi_S(o_t^S)$ decide si el candidato se ignora o se marca. Para ello usa los datos de mercado y la señal supervisada incluidos en su observación. Marcarlo no abre una posición; solo habilita que el agente \textit{Trader} pueda proponer una compra.
-    \item \textbf{Agente \textit{Trader} ($T$).} Su política $\pi_T(o_t^T)$ elige mantener, comprar o vender. La observación incorpora la información económica del candidato y el efectivo y las posiciones que afectan a su propuesta. El agente \textit{Trader} determina la intención operativa, pero no modifica directamente la cartera.
-    \item \textbf{Agente \textit{Portfolio} ($P$).} Su política $\pi_P(o_t^P)$ aprueba o rechaza la propuesta. Observa los componentes de cartera que determinan la exposición, el efectivo posterior a una compra y las posiciones vendibles. La aprobación expresa la decisión del agente; el entorno conserva la comprobación final de $C(s_t,\mathbf{a}_t)$.
+    \item \textbf{Agente \textit{Scout} ($S$).} La política aprendida $\pi_{\theta_S}(a^S\mid o_t^S)$ asigna una probabilidad a ignorar o marcar el candidato a partir de los datos de mercado y la señal supervisada. Marcarlo no abre una posición; solo habilita que el agente \textit{Trader} pueda proponer una compra.
+    \item \textbf{Agente \textit{Trader} ($T$).} La política aprendida $\pi_{\theta_T}(a^T\mid o_t^T)$ asigna una probabilidad a mantener, comprar o vender. Su observación incorpora la información económica del candidato y el efectivo y las posiciones que afectan a la propuesta. El agente \textit{Trader} formula la intención operativa, pero no modifica directamente la cartera.
+    \item \textbf{Agente \textit{Portfolio} ($P$).} La política aprendida $\pi_{\theta_P}(a^P\mid o_t^P)$ asigna una probabilidad a aprobar o rechazar la propuesta. Observa los componentes de cartera que determinan la exposición, el efectivo posterior a una compra y las posiciones vendibles. La aprobación expresa la decisión del agente; la transición del simulador conserva la comprobación final de las condiciones de la operación.
 \end{itemize}
 
-\textbf{Interpretación conjunta.} La siguiente representación resume cómo el simulador interpreta las acciones de los tres agentes:
+\textbf{Aplicación conjunta.} La siguiente representación resume cómo se obtienen las acciones de las políticas aprendidas y cómo el simulador aplica la transición:
 
 \begin{algorithm}[H]
 \small
-\caption{Interpretación de la acción conjunta}
+\caption{Aplicación de la acción conjunta}
 \label{alg:decision-cooperativa}
 \begin{algorithmic}[1]
-\Require Artículo candidato $x_t$, estado global $s_t$ y observaciones locales $o_t^S$, $o_t^T$ y $o_t^P$
+\Require Estado global $s_t$ y observaciones locales $o_t^S$, $o_t^T$ y $o_t^P$
 \Ensure Estado siguiente $s_{t+1}$ y recompensas híbridas $r_t^S$, $r_t^T$ y $r_t^P$
-\State $a_t^{S} \gets \pi_S(o_t^{S})$
-\State $a_t^{T} \gets \pi_T(o_t^{T})$
-\State $a_t^{P} \gets \pi_P(o_t^{P})$
+\State $a_t^{S} \sim \pi_{\theta_S}(\cdot\mid o_t^{S})$
+\State $a_t^{T} \sim \pi_{\theta_T}(\cdot\mid o_t^{T})$
+\State $a_t^{P} \sim \pi_{\theta_P}(\cdot\mid o_t^{P})$
 \State Formar la acción conjunta $\mathbf{a}_t=(a_t^S,a_t^T,a_t^P)$.
-\If{$a_t^{S}=\textit{marcar}$ \textbf{y} $a_t^{T}=\textit{comprar}$ \textbf{y} $a_t^{P}=\textit{aprobar}$ \textbf{y} la compra cumple los límites de riesgo}
-  \State Abrir una posición simulada y bloquear su capital.
-\ElsIf{$a_t^{T}=\textit{vender}$ \textbf{y} $a_t^{P}=\textit{aprobar}$ \textbf{y} existe una posición desbloqueada de $x_t$}
-  \State Cerrar una posición simulada y abonar su importe neto.
-\Else
-  \State Mantener el saldo y registrar el motivo de no ejecución.
-\EndIf
-\State Actualizar el saldo, las posiciones, la exposición y las métricas de riesgo.
+\State Obtener el único $s_{t+1}$ para el que $T_{\mathrm{sim}}(s_t,\mathbf{a}_t,s_{t+1})=1$.
 \State Calcular la recompensa común y las señales individuales de los tres agentes.
 \State Devolver $r_t^S$, $r_t^T$ y $r_t^P$ mediante la combinación híbrida.
 \end{algorithmic}
 \end{algorithm}
 
-\textbf{Papel del simulador.} En el Algoritmo~\ref{alg:decision-cooperativa}, $x_t$ representa el artículo considerado en el instante $t$. Las funciones $\pi_S$, $\pi_T$ y $\pi_P$ son las políticas de los agentes \textit{Scout}, \textit{Trader} y \textit{Portfolio}. Cada política recibe su observación local y produce una acción. El simulador no sustituye esas políticas: únicamente interpreta $\mathbf{a}_t$, aplica las reglas de transición y calcula las recompensas que se explican en la Sección~\ref{sec:funcion-recompensa}.
+\textbf{Papel del simulador.} En el Algoritmo~\ref{alg:decision-cooperativa}, las políticas $\pi_{\theta_S}$, $\pi_{\theta_T}$ y $\pi_{\theta_P}$ generan las acciones de los agentes \textit{Scout}, \textit{Trader} y \textit{Portfolio} a partir de sus observaciones locales. El simulador no sustituye esas políticas ni escoge sus acciones: recibe $\mathbf{a}_t$, aplica $T_{\mathrm{sim}}$ y calcula las recompensas explicadas en la Sección~\ref{sec:funcion-recompensa}.
 
 \textbf{Compra y venta.} Una compra simulada requiere la participación coherente de los tres agentes. El agente \textit{Scout} debe marcar el artículo, el agente \textit{Trader} debe solicitar la compra y el agente \textit{Portfolio} debe aprobarla. Una venta simulada no requiere una nueva marca del agente \textit{Scout}, porque la posición ya forma parte de la cartera; en ese caso intervienen el agente \textit{Trader}, que propone vender, y el agente \textit{Portfolio}, que aprueba si la posición está desbloqueada y la operación es válida. Esta distinción evita confundir dos fases distintas del ciclo de compraventa: la selección de candidatos nuevos y la gestión de posiciones ya abiertas.
 
