@@ -6,22 +6,22 @@ El capítulo se estructura por fases. Primero se validan las reglas y los datos 
 
 \section{Diseño experimental}
 
-Para la primera fase de captura de datos, se ha construido un \glosref{scraping}{scraper}, es decir, un programa que consulta fuentes web y transforma sus respuestas en datos estructurados, junto con persistencia de registros, sesiones y \glosref{cookie-sesion}{cookies de sesión}, pequeños datos locales que permiten reutilizar una autenticación ya iniciada. Esta parte no se evalúa con una métrica de rentabilidad, pero condiciona todos los experimentos posteriores: sin datos trazables, fechas de captura y sesiones reproducibles no se puede construir un histórico.
+Para la primera fase de captura de datos, se ha construido un \emph{\glosref{scraping}{scraper}}, es decir, un programa que consulta fuentes web y transforma sus respuestas en datos estructurados, junto con persistencia de registros, sesiones y \emph{\glosref{cookie-sesion}{cookies de sesión}}, pequeños datos locales que permiten reutilizar una autenticación ya iniciada. Esta parte no se evalúa con una métrica de rentabilidad, pero condiciona todos los experimentos posteriores: sin datos trazables, fechas de captura y sesiones reproducibles no se puede construir un histórico.
 
 Durante esta fase también se han observado restricciones externas. Algunas cuentas o sesiones han sufrido bloqueos temporales y ha sido necesario ajustar el tamaño de los lotes, los reintentos y los retrasos entre peticiones. Por otra parte, las plataformas han sufrido cambios estructurales y ha sido necesario adaptar el código para mantener la compatibilidad. Por estos motivos, la evaluación no presenta la captura como un proceso instantáneo, sino como una parte del desarrollo que obliga a equilibrar cobertura de datos, estabilidad de sesión y respeto de los límites operativos de cada plataforma. Después de esta base se migran reglas económicas, se construyen conjuntos supervisados, se crea el conjunto de compraventa Steam/\acroref{BUFF}{BUFF} y se entrena la matriz multiagente.
 
 El criterio de evaluación no es solo predictivo. Una señal puede tener buena precisión y aun así no ser operativa si aparece pocas veces, si depende de artículos concretos o si no supera costes de transacción. Por eso las métricas del modelo supervisado se interpretan como apoyo a la decisión, no como resultado económico final. Esta distinción es especialmente importante en el conjunto Steam/\acroref{BUFF}{BUFF}, donde el objetivo no es anticipar una subida de precio aislada, sino estudiar una posible compraventa con precios normalizados, comisiones y horizonte temporal.
 
-En la parte supervisada se comparan modelos tabulares como regresión logística, random forest e histogram gradient boosting, familias habituales en clasificación tabular \cite{breiman2001random,friedman2001greedy}. Estos modelos se contrastan con una referencia simple que predice la clase mayoritaria, de modo que sus resultados puedan interpretarse frente a la tasa base del conjunto. En cambio, la parte multiagente no compara clasificadores, sino políticas que actúan dentro de un simulador de cartera. Por eso se separan primero los controles funcionales del entorno, que validan compra, bloqueo, venta y trazabilidad, y después la matriz de entrenamiento, que compara configuraciones de aprendizaje con semillas distintas sobre el bloque de validación, sin utilizar el conjunto de prueba.
+En la parte supervisada se comparan modelos tabulares como regresión logística, \emph{random forest} e \emph{histogram gradient boosting}, familias habituales en clasificación tabular \cite{breiman2001random,friedman2001greedy}. Estos modelos se contrastan con una referencia simple que predice la clase mayoritaria, de modo que sus resultados puedan interpretarse frente a la tasa base del conjunto. En cambio, la parte multiagente no compara clasificadores, sino políticas que actúan dentro de un simulador de cartera. Por eso se separan primero los controles funcionales del entorno, que validan compra, bloqueo, venta y trazabilidad, y después la matriz de entrenamiento, que compara configuraciones de aprendizaje con semillas distintas sobre el bloque de validación, sin utilizar el conjunto de prueba.
 
-El entrenamiento multiagente se realiza con \acroref{PPO}{PPO}, \emph{Proximal Policy Optimization}, un algoritmo de aprendizaje por refuerzo que ajusta una política a partir de episodios simulados y limita el tamaño de cada actualización para evitar cambios bruscos entre una iteración y la siguiente \cite{schulman2017ppo}. En este trabajo no se entrena una única política general: se mantiene una política por rol, Scout, Trader y Portfolio. Cada política recibe sus observaciones locales, selecciona acciones y se actualiza con las recompensas registradas por el entorno.
+El entrenamiento multiagente se realiza con \acroref{PPO}{PPO}, \emph{Proximal Policy Optimization}, un algoritmo de aprendizaje por refuerzo que ajusta una política a partir de episodios simulados y limita el tamaño de cada actualización para evitar cambios bruscos entre una iteración y la siguiente \cite{schulman2017ppo}. En este trabajo no se entrena una única política general: se mantiene una política por rol, \textit{Scout}, \textit{Trader} y \textit{Portfolio}. Cada política recibe sus observaciones locales, selecciona acciones y se actualiza con las recompensas registradas por el entorno.
 
 \begin{algorithm}[H]
 \caption{Entrenamiento con PPO}
 \label{alg:entrenamiento-ppo}
 \begin{algorithmic}[1]
-\Require Entorno paralelo, políticas Scout, Trader y Portfolio, iteraciones y pasos
-\Ensure Modelo guardado (\glosref{checkpoint}{checkpoint}) y métricas de la ejecución
+\Require Entorno paralelo, políticas \textit{Scout}, \textit{Trader} y \textit{Portfolio}, iteraciones y pasos
+\Ensure Modelo guardado (\glosref{checkpoint}{punto de control}) y métricas de la ejecución
 \State Inicializar una política \acroref{PPO}{PPO} por rol con observaciones vectoriales
 \For{cada iteración de entrenamiento}
   \State Ejecutar episodios y registrar $(o_t^i,a_t^i,R_t,m_t^i)$
@@ -33,18 +33,18 @@ El entrenamiento multiagente se realiza con \acroref{PPO}{PPO}, \emph{Proximal P
 \end{algorithmic}
 \end{algorithm}
 
-El conjunto de prueba permanece aislado durante la selección de la configuración. Una vez elegida mediante validación, la evaluación independiente debe compararla con referencias homogéneas: mantener el efectivo, comprar cuando el margen neto observado sea positivo y un agente único sujeto a las mismas restricciones. Esta comparación comunicará el retorno de cartera, el beneficio neto, las operaciones cerradas, las posiciones abiertas y los rechazos por restricciones como media e intervalo entre semillas.
+El conjunto de prueba permaneció aislado durante la selección de la configuración. La evaluación independiente compara la política MARL seleccionada mediante validación con referencias homogéneas: mantener efectivo, comprar cuando el margen neto observado es positivo y PPO centralizado con una única política sujeto a las mismas restricciones. La comparación comunica el retorno de cartera, el beneficio neto, las operaciones cerradas, las posiciones abiertas y los rechazos por restricciones como media e intervalo entre semillas. La prueba se ejecutó una sola vez y no se ha reutilizado al ampliar la cuadrícula de validación.
 
 \section{Validación técnica y pruebas}
 \label{sec:validacion-tecnica}
 
 Las pruebas técnicas no se usan para demostrar rentabilidad, sino para comprobar que los resultados experimentales proceden de componentes que funcionan de forma controlada. Antes de interpretar un modelo supervisado o una política \acroref{MARL}{MARL}, se valida que las reglas económicas, la captura de datos, la persistencia, la construcción de conjuntos temporales, la inferencia supervisada, el simulador de cartera y el entorno multiagente producen salidas coherentes. Esta separación es importante porque un resultado numérico puede parecer válido aunque se haya calculado sobre datos mal normalizados, fechas desplazadas, comisiones incorrectas o acciones imposibles dentro del simulador.
 
-La validación se organiza en tres capas. La primera comprueba funciones aisladas: conversión de moneda, cálculo de comisiones, bloqueo temporal, límites de cartera, extracción de campos de mercado y construcción de etiquetas. La segunda revisa flujos completos sin depender de una ejecución real de compraventa: captura, normalización, almacenamiento, creación de datasets y carga de modelos. La tercera comprueba que el entorno multiagente puede recorrer episodios de compra, mantenimiento, venta y rechazo de operaciones, registrando observaciones, acciones, recompensas y estado de cartera.
+La validación se organiza en tres capas. La primera comprueba funciones aisladas: conversión de moneda, cálculo de comisiones, bloqueo temporal, límites de cartera, extracción de campos de mercado y construcción de etiquetas. La segunda revisa flujos completos sin depender de una ejecución real de compraventa: captura, normalización, almacenamiento, creación de conjuntos de datos y carga de modelos. La tercera comprueba que el entorno multiagente puede recorrer episodios de compra, mantenimiento, venta y rechazo de operaciones, registrando observaciones, acciones, recompensas y estado de cartera.
 
 \textbf{Reglas económicas.} Antes de los experimentos se han convertido las reglas del procedimiento manual en funciones comprobables: conversión entre \acroref{EUR}{EUR} y \acroref{CNY}{CNY}, factores de comisión, cálculo de beneficio neto, rentabilidad porcentual, fecha de desbloqueo y capital bloqueado. Esta migración no demuestra rentabilidad por sí misma, pero garantiza que los experimentos posteriores usan las mismas reglas económicas y parámetros explícitos. Las pruebas unitarias reducen el riesgo de errores silenciosos y permiten repetir cada experimento con la misma configuración.
 
-El conjunto de pruebas automatizadas combina tres tipos de comprobación ya descritos en el Capítulo~6: ejecución de casos con \glosref{pytest}{Pytest}, revisión estática con \glosref{ruff}{Ruff} y comprobación de tipos con \glosref{mypy}{Mypy}. En esta sección no se valoran por la herramienta empleada, sino por el riesgo que reducen. Las pruebas unitarias comprueban el comportamiento determinista del simulador, las reglas económicas del procedimiento manual, el \acroref{OCR}{OCR}, los conectores de mercado, los datasets supervisados, el dataset de trading, el servicio de scoring y los componentes \acroref{MARL}{MARL}. La prueba de integración de persistencia se mantiene separada porque necesita una base de datos disponible.
+El conjunto de pruebas automatizadas combina tres tipos de comprobación ya descritos en el Capítulo~6: ejecución de casos con \glosref{pytest}{Pytest}, revisión estática con \glosref{ruff}{Ruff} y comprobación de tipos con \glosref{mypy}{Mypy}. En esta sección no se valoran por la herramienta empleada, sino por el riesgo que reducen. Las pruebas unitarias comprueban el comportamiento determinista del simulador, las reglas económicas del procedimiento manual, el \acroref{OCR}{OCR}, los conectores de mercado, los conjuntos supervisados, el conjunto de compraventa, el servicio de evaluación de oportunidades y los componentes \acroref{MARL}{MARL}. La prueba de integración de persistencia se mantiene separada porque necesita una base de datos disponible.
 
 \begin{table}[h]
 \centering
@@ -62,7 +62,7 @@ Interfaz y operación & Comandos inseguros, estados poco claros o recomendacione
 \caption{Cobertura de pruebas.}
 \end{table}
 
-Las pruebas de \textbf{\glosref{rendimiento-tecnico}{rendimiento técnico}} se interpretan con cautela. En este proyecto el rendimiento no se reduce al tiempo de ejecución: también importan la cobertura de datos, el número de señales generadas, el coste de entrenamiento, el capital bloqueado, el \textbf{\glosref{drawdown}{drawdown}} y las operaciones rechazadas. Las ejecuciones mínimas de entrenamiento y los episodios \acroref{MARL}{MARL} registran estas métricas para comprobar que el sistema produce salidas interpretables y comparables entre configuraciones. Aun así, estas pruebas no sustituyen la evaluación económica final: validan que el sistema puede medir, no que una estrategia sea mejor que otra.
+Las pruebas de \textbf{\glosref{rendimiento-tecnico}{rendimiento técnico}} se interpretan con cautela. En este proyecto el rendimiento no se reduce al tiempo de ejecución: también importan la cobertura de datos, el número de señales generadas, el coste de entrenamiento, el capital bloqueado, el \textbf{\emph{\glosref{drawdown}{drawdown}}} y las operaciones rechazadas. Las ejecuciones mínimas de entrenamiento y los episodios \acroref{MARL}{MARL} registran estas métricas para comprobar que el sistema produce salidas interpretables y comparables entre configuraciones. Aun así, estas pruebas no sustituyen la evaluación económica final: validan que el sistema puede medir, no que una estrategia sea mejor que otra.
 
 \section{Métricas}
 \label{sec:metricas-experimentacion}
@@ -70,16 +70,18 @@ Las pruebas de \textbf{\glosref{rendimiento-tecnico}{rendimiento técnico}} se i
 Las métricas permiten interpretar el sistema desde varias perspectivas. En este trabajo no basta con saber si un modelo produce una señal favorable, porque una señal puede ser estadísticamente correcta y aun así no ser útil para operar. Por ejemplo, puede aparecer muy pocas veces, puede depender de un conjunto pequeño de artículos, puede que el beneficio no supere las comisiones o puede exigir un capital que la cartera no tiene disponible. Por ese motivo, la evaluación separa la calidad predictiva, el resultado económico, el riesgo asumido y el rendimiento técnico del sistema.
 
 \begin{itemize}
-  \item \textbf{Métricas predictivas del modelo supervisado.} Estas métricas se aplican al modelo que produce la señal supervisada. Su objetivo es medir si la estimación histórica aporta información antes de que intervenga el entorno \acroref{MARL}{MARL}. La precisión indica qué proporción de las señales marcadas como favorables termina siendo realmente favorable. La \textbf{\glosref{exhaustividad}{exhaustividad}}, también denominada \emph{recall}, mide qué proporción de los casos favorables detecta el modelo. La métrica \acroref{F1}{F1} combina ambas para evitar mirar solo una de ellas \cite{powers2011evaluation}. También se emplean \acroref{ROC-AUC}{ROC-AUC} y \acroref{PR-AUC}{PR-AUC}, aunque la segunda resulta más informativa cuando la clase positiva domina o cuando hay pocos ejemplos negativos \cite{saito2015pr}. Además, el \textbf{\glosref{brier-score}{Brier score}} mide el error de las probabilidades estimadas y la \textbf{\glosref{calibracion-probabilidades}{calibración de probabilidades}} comprueba si una probabilidad del modelo se corresponde con la frecuencia observada \cite{niculescu2005predicting,guo2017calibration}. En el uso operativo se presta especial atención a la precisión en umbrales altos, porque una señal menos frecuente pero más fiable puede ser más útil que muchas señales ruidosas.
+  \item \textbf{Métricas predictivas del modelo supervisado.} Estas métricas se aplican al modelo que produce la señal supervisada. Su objetivo es medir si la estimación histórica aporta información antes de que intervenga el entorno \acroref{MARL}{MARL}. La precisión indica qué proporción de las señales marcadas como favorables termina siendo realmente favorable. La \textbf{\glosref{exhaustividad}{exhaustividad}}, también denominada \emph{recall}, mide qué proporción de los casos favorables detecta el modelo. La métrica \acroref{F1}{F1} combina ambas para evitar mirar solo una de ellas \cite{powers2011evaluation}. También se emplean \acroref{ROC-AUC}{ROC-AUC} y \acroref{PR-AUC}{PR-AUC}, aunque la segunda resulta más informativa cuando la clase positiva domina o cuando hay pocos ejemplos negativos \cite{saito2015pr}. Además, el \textbf{\emph{\glosref{brier-score}{Brier score}}} mide el error de las probabilidades estimadas y la \textbf{\glosref{calibracion-probabilidades}{calibración de probabilidades}} comprueba si una probabilidad del modelo se corresponde con la frecuencia observada \cite{niculescu2005predicting,guo2017calibration}. En el uso operativo se presta especial atención a la precisión en umbrales altos, porque una señal menos frecuente pero más fiable puede ser más útil que muchas señales ruidosas.
 
   \item \textbf{Métricas económicas de la operación.} Estas métricas miden el resultado económico de una compra, una venta o una secuencia de decisiones. Incluyen el beneficio neto, el retorno porcentual, el saldo final, el valor de la cartera y el número de señales operativas. El beneficio neto descuenta precio de compra, comisiones, conversión de divisa y costes aplicables; por tanto, es la medida más directa de si una operación concreta aporta ganancias. El retorno porcentual permite comparar operaciones de distinto tamaño, porque relaciona el beneficio con el capital empleado. El saldo final y el valor de cartera son necesarios cuando la evaluación incluye posiciones que todavía no se han cerrado, ya que una parte del resultado puede estar en efectivo y otra parte en activos pendientes de venta.
 
-  \item \textbf{Métricas de riesgo y uso de cartera.} Estas métricas responden a una pregunta distinta: si una estrategia es asumible aunque parezca rentable. Se consideran el capital bloqueado medio, el número de posiciones abiertas, la exposición por activo o plataforma, las operaciones rechazadas por riesgo y el impacto del \textit{trade hold}. También se usa el \textbf{\glosref{drawdown}{drawdown}}, entendido como la mayor caída del valor de la cartera respecto a un máximo anterior. Estas medidas son importantes porque el sistema no opera con capital infinito. Una política que concentra demasiadas compras en un único artículo, deja mucho saldo inmovilizado o depende de activos bloqueados puede ser mala aunque algunas operaciones individuales tengan beneficio.
+  \item \textbf{Métricas de riesgo y uso de cartera.} Estas métricas responden a una pregunta distinta: si una estrategia es asumible aunque parezca rentable. Se consideran el capital bloqueado medio, el número de posiciones abiertas, la exposición por activo o plataforma, las operaciones rechazadas por riesgo y el impacto del \textit{trade hold}. También se usa el \textbf{\emph{\glosref{drawdown}{drawdown}}}, entendido como la mayor caída del valor de la cartera respecto a un máximo anterior. Estas medidas son importantes porque el sistema no opera con capital infinito. Una política que concentra demasiadas compras en un único artículo, deja mucho saldo inmovilizado o depende de activos bloqueados puede ser mala aunque algunas operaciones individuales tengan beneficio.
 
   \item \textbf{Métricas de rendimiento técnico y volumen.} El rendimiento técnico recoge cuánto tarda el sistema en ejecutar sus procesos, qué volumen de información maneja y qué coste práctico tiene repetir una ejecución. En esta memoria se registra el tiempo de ejecución de las pruebas automatizadas, el número de pruebas superadas, el número de filas de cada partición, el número de artículos cubiertos, las iteraciones de entrenamiento, los pasos de entorno y los episodios simulados. También se conserva el tamaño de los conjuntos generados cuando resulta relevante para explicar la cobertura disponible. Para la captura de datos, el tiempo no depende solo del código: también influyen los límites de las plataformas, los bloqueos temporales, la reutilización de cookies de sesión, los reintentos y los retrasos introducidos para no saturar las fuentes. Por eso, cuando se habla de cuánto tarda la captura, debe interpretarse como rendimiento operativo bajo restricciones externas, no como una medida de velocidad local. 
 \end{itemize}
 
-Esta separación de métricas evita mezclar conclusiones. Las métricas predictivas indican si la señal supervisada es razonable; las métricas económicas indican si una decisión produce beneficio; las métricas de riesgo indican si la cartera puede asumir esa decisión; y las métricas de rendimiento técnico indican si el sistema se puede ejecutar, repetir y auditar con los recursos disponibles.
+En el entrenamiento \acroref{MARL}{MARL} se añade un cuarto nivel de lectura: las \textbf{métricas de aprendizaje}. La recompensa común y las recompensas de cada agente indican si las transiciones generan la señal que define la tarea; la entropía y las probabilidades de acción indican si la política se aleja de su distribución inicial; y la pérdida de valor del crítico, la fracción de recorte y la divergencia KL aproximada permiten detectar actualizaciones inestables. Estas medidas no se sustituyen por el retorno de cartera: muestran cómo aprende la política, mientras que el retorno económico se utiliza para seleccionar y, finalmente, evaluar una configuración.
+
+Esta separación de métricas evita mezclar conclusiones. Las métricas predictivas indican si la señal supervisada es razonable; las métricas económicas indican si una decisión produce beneficio; las métricas de riesgo indican si la cartera puede asumir esa decisión; las métricas de rendimiento técnico indican si el sistema se puede ejecutar, repetir y auditar con los recursos disponibles; y las métricas de aprendizaje muestran si las políticas multiagente están modificando su comportamiento de manera estable.
 
 \section{Resultados}
 
@@ -216,7 +218,7 @@ El orden temporal se conserva en todas las fases. Para el corte de marzo se han 
 
 La Figura~\ref{fig:cobertura-marzo} muestra una limitación que no se aprecia al mirar solo el número de filas. Los tres bloques contienen las mismas 19 representaciones de artículo y están dominados por la clase rentable. La separación temporal evita que se use información futura, pero no demuestra por sí sola que el modelo generalice a artículos que no ha visto durante el entrenamiento.
 
-La selección compara las familias dummy, regresión logística, random forest e histogram gradient boosting. El modelo dummy se utiliza exclusivamente como referencia de frecuencia base y no tiene parámetros que explorar, por lo que no aparece en la Tabla~\ref{tab:configuraciones-marzo}. La configuración se elige en validación mediante precisión al umbral 0,85 con al menos tres señales. Después se calibra con sigmoide y se mide sobre el bloque de prueba. Además, se ejecuta una ablación de la regresión logística sin retardos, cambios, retornos ni medias móviles de uno, tres y siete días. Esta comparación responde a una pregunta concreta: si el histórico añade información o solamente complejidad. La precisión se presenta junto a la cobertura porque una clase mayoritaria puede hacer que el \acroref{ROC-AUC}{ROC-AUC} parezca más concluyente de lo que permite la muestra \cite{saito2015pr}.
+La selección compara las familias \emph{dummy}, regresión logística, \emph{random forest} e \emph{histogram gradient boosting}. El modelo \emph{dummy} se utiliza exclusivamente como referencia de frecuencia base y no tiene parámetros que explorar, por lo que no aparece en la Tabla~\ref{tab:configuraciones-marzo}. La configuración se elige en validación mediante precisión al umbral 0,85 con al menos tres señales. Después se calibra con sigmoide y se mide sobre el bloque de prueba. Además, se ejecuta una ablación de la regresión logística sin retardos, cambios, retornos ni medias móviles de uno, tres y siete días. Esta comparación responde a una pregunta concreta: si el histórico añade información o solamente complejidad. La precisión se presenta junto a la cobertura porque una clase mayoritaria puede hacer que el \acroref{ROC-AUC}{ROC-AUC} parezca más concluyente de lo que permite la muestra \cite{saito2015pr}.
 
 La exploración no se ha limitado a escoger una familia. La Tabla~\ref{tab:configuraciones-marzo} recoge el espacio de búsqueda empleado. El conjunto de prueba ha quedado fuera de esta selección: sus valores se han consultado una vez después de fijar la configuración de validación.
 
@@ -227,7 +229,7 @@ La exploración no se ha limitado a escoger una familia. La Tabla~\ref{tab:confi
 Familia & Configuraciones exploradas \\
 \midrule
 Regresión logística & Regularización L2 con $C \in \{0{,}3, 1, 3\}$. \\
-Random forest & Profundidad 10 o 18, 160 árboles y cinco muestras por hoja. \\
+\emph{Random forest} & Profundidad 10 o 18, 160 árboles y cinco muestras por hoja. \\
 HGB & Tasa de aprendizaje 0,05 o 0,10, 160 iteraciones y 31 hojas. \\
 \bottomrule
 \end{tabularx}
@@ -239,11 +241,11 @@ HGB & Tasa de aprendizaje 0,05 o 0,10, 160 iteraciones y 31 hojas. \\
 \centering
 \begin{tabular}{l r r r r}
 \toprule
-Configuración & ROC-AUC & Brier & Precisión @0,85 & Señales \\
+Configuración & ROC-AUC & \emph{Brier} & Precisión @0,85 & Señales \\
 \midrule
 Logística con histórico & 0,641 & 0,075 & 0,929 & 85 \\
 Logística sin histórico & 0,760 & 0,072 & 0,970 & 67 \\
-Random forest con histórico & 0,742 & 0,074 & 0,942 & 86 \\
+\emph{Random forest} con histórico & 0,742 & 0,074 & 0,942 & 86 \\
 HGB con histórico & 0,649 & 0,082 & 0,915 & 82 \\
 \bottomrule
 \end{tabular}
@@ -279,7 +281,7 @@ En esta expresión, $x_k$ es una variable numérica y $\varepsilon_k$ es una peq
 \small
 \begin{tabular}{l l r r r r}
 \toprule
-\shortstack[l]{Variables\\históricas} & \shortstack[l]{Perturbación\\numérica} & ROC-AUC & Brier & \shortstack[r]{Precisión\\@0,85} & Señales \\
+\shortstack[l]{Variables\\históricas} & \shortstack[l]{Perturbación\\numérica} & ROC-AUC & \emph{Brier} & \shortstack[r]{Precisión\\@0,85} & Señales \\
 \midrule
 Sí & No & 0,631 & 0,076 & 0,931 & 87 \\
 No & No & \textbf{0,716} & \textbf{0,076} & \textbf{0,952} & 62 \\
@@ -298,7 +300,7 @@ No & Sí & 0,613 & 0,084 & 0,919 & 86 \\
 \label{fig:ablacion-marzo}
 \end{figure}
 
-La combinación sin variables históricas ni perturbación numérica obtiene el mejor equilibrio entre separación y calibración. La perturbación duplica el tamaño de entrenamiento de 171 a 342 filas, pero empeora ROC-AUC y Brier en ambas configuraciones. Por ello no se incorpora al modelo de referencia. Este resultado no prueba que la aumentación sea perjudicial en cualquier muestra. Indica que, con una colección corta y muy concentrada en operaciones positivas, introducir pequeñas variaciones de precio añade más ruido que información.
+La combinación sin variables históricas ni perturbación numérica obtiene el mejor equilibrio entre separación y calibración. La perturbación duplica el tamaño de entrenamiento de 171 a 342 filas, pero empeora ROC-AUC y \emph{Brier} en ambas configuraciones. Por ello no se incorpora al modelo de referencia. Este resultado no prueba que la aumentación sea perjudicial en cualquier muestra. Indica que, con una colección corta y muy concentrada en operaciones positivas, introducir pequeñas variaciones de precio añade más ruido que información.
 
 La lectura debe mantenerse prudente. Los 19 artículos disponibles en el corte aparecen tanto en entrenamiento como en prueba y la etiqueta positiva representa el 89,5\% de la prueba. Una estrategia que marca muchos casos como favorables puede alcanzar precisión elevada por la propia distribución de la muestra. El corte de mayo confirma este problema: de 361 ejemplos de entrenamiento, 76 de validación y 95 de prueba, las dos últimas particiones contienen exclusivamente etiquetas positivas. En esas condiciones ROC-AUC no es una métrica definida y no se entrena un modelo para presentarlo como comparación válida. Este resultado establece una condición de continuación clara: ampliar la cobertura cruzada BUFF--Steam y equilibrar los eventos antes de convertir el modelo en recomendación operativa.
 
@@ -313,7 +315,7 @@ La Figura~\ref{fig:umbral-marzo} complementa esta lectura. La precisión se mant
 
 \subsection{Evidencia técnica y OCR}
 
-La suite completa se ejecutó el 14 de agosto de 2026 y obtuvo 282 pruebas superadas en 24,94 segundos. Las tres pruebas de integración utilizaron el \texttt{DATABASE\_URL} PostgreSQL configurado en Supabase. Registran un snapshot de mercado, comprueban la actualización de una cotización y guardan una señal de oportunidad vinculada a un artículo. Cada una abre una transacción externa y la revierte al terminar, por lo que la comprobación no añade datos de prueba al histórico utilizado por los experimentos. Este registro de datos, configuración y resultados permite repetir las comprobaciones, práctica recomendada para hacer evaluables los resultados de aprendizaje automático \cite{pineau2021reproducibility}.
+El conjunto completo se ejecutó el 14 de agosto de 2026 y obtuvo 282 pruebas superadas en 24,94 segundos. Las tres pruebas de integración utilizaron el \texttt{DATABASE\_URL} PostgreSQL configurado en Supabase. Registran una instantánea de mercado, comprueban la actualización de una cotización y guardan una señal de oportunidad vinculada a un artículo. Cada una abre una transacción externa y la revierte al terminar, por lo que la comprobación no añade datos de prueba al histórico utilizado por los experimentos. Este registro de datos, configuración y resultados permite repetir las comprobaciones, práctica recomendada para hacer evaluables los resultados de aprendizaje automático \cite{pineau2021reproducibility}.
 
 \begin{table}[htbp]
 \centering
@@ -321,8 +323,8 @@ La suite completa se ejecutó el 14 de agosto de 2026 y obtuvo 282 pruebas super
 \toprule
 Bloque & Pruebas & Alcance \\
 \midrule
-Unitarias actuales & 279 & Economía, OCR, conectores, scraping, datasets, simulador, MARL y panel web. \\
-Integración & 3 & Persistencia de snapshots, actualización de precios y señales en PostgreSQL. \\
+Unitarias actuales & 279 & Economía, OCR, conectores, captura web, conjuntos de datos, simulador, MARL y panel web. \\
+Integración & 3 & Persistencia de instantáneas, actualización de precios y señales en PostgreSQL. \\
 Suite completa & 282 & Todas superadas en 24,94 segundos. \\
 \bottomrule
 \end{tabularx}
@@ -332,7 +334,7 @@ Suite completa & 282 & Todas superadas en 24,94 segundos. \\
 
 \textbf{Validación funcional de OCR.}
 
-La evaluación de OCR disponible es funcional, no una medida de exactitud sobre un corpus etiquetado de capturas. Por ello no se comunica una tasa de reconocimiento que no se ha medido. Las pruebas comprueban que el parser convierte una observación de mercado en un contrato con artículo, calidad, plataforma, precio, moneda y volumen, que rechaza una confianza inferior a 0,5 y que el recorrido de imagen llama a carga, preprocesado y reconocimiento antes de persistir el resultado. El uso del motor se apoya en la arquitectura de Tesseract descrita por Smith \cite{smith2007tesseract}. La Tabla~\ref{tab:ocr-funcional} delimita qué evidencia existe y qué queda pendiente.
+La evaluación de OCR disponible es funcional, no una medida de exactitud sobre un corpus etiquetado de capturas. Por ello no se comunica una tasa de reconocimiento que no se ha medido. Las pruebas comprueban que el analizador convierte una observación de mercado en un contrato con artículo, calidad, plataforma, precio, moneda y volumen, que rechaza una confianza inferior a 0,5 y que el recorrido de imagen llama a carga, preprocesado y reconocimiento antes de persistir el resultado. El uso del motor se apoya en la arquitectura de Tesseract descrita por Smith \cite{smith2007tesseract}. La Tabla~\ref{tab:ocr-funcional} delimita qué evidencia existe y qué queda pendiente.
 
 \begin{table}[htbp]
 \centering
@@ -340,22 +342,22 @@ La evaluación de OCR disponible es funcional, no una medida de exactitud sobre 
 \toprule
 Prueba & Caso ejecutado \\
 \midrule
-Fixture de texto & Texto Steam y BUFF convertido a observaciones. \\
+Caso de texto & Texto Steam y BUFF convertido a observaciones. \\
 Umbral de confianza & Confianza 0,2 con mínimo configurado en 0,5. \\
-Recorrido de imagen & Carga, preprocesado y reconocimiento con un runner controlado. \\
+Recorrido de imagen & Carga, preprocesado y reconocimiento con un ejecutor controlado. \\
 \bottomrule
 \end{tabularx}
 \caption{Validación funcional de OCR.}
 \label{tab:ocr-funcional}
 \end{table}
 
-La fixture confirma que el parser construye observaciones con los campos esperados a partir de texto de mercado. La prueba de confianza rechaza el valor 0,2 al exigir un mínimo de 0,5. El recorrido de imagen completa la secuencia de carga, preprocesado y reconocimiento y devuelve una confianza de 0,91 en el caso preparado.
+El caso de texto confirma que el analizador construye observaciones con los campos esperados a partir de texto de mercado. La prueba de confianza rechaza el valor 0,2 al exigir un mínimo de 0,5. El recorrido de imagen completa la secuencia de carga, preprocesado y reconocimiento y devuelve una confianza de 0,91 en el caso preparado.
 
 Estas comprobaciones validan la integración, no la exactitud del OCR sobre capturas de interfaz. Por eso el siguiente experimento debe usar un conjunto etiquetado y comunicar por separado la exactitud de artículo, calidad, plataforma, precio y moneda. Hasta disponer de ese conjunto, el OCR se presenta como un conector validado y no como un sistema de reconocimiento cuantificado.
 
 \subsection{Controles funcionales y entrenamiento MARL}
 
-La evaluación multiagente no utiliza una lista abstracta de acciones. Cada episodio recorre las observaciones del bloque de prueba de marzo en orden temporal. Scout indica si una oportunidad merece atención, Trader puede comprar una unidad, mantener o solicitar una venta y Portfolio aplica las restricciones de cartera. Una compra requiere el acuerdo de los tres roles. Una venta requiere que exista una posición desbloqueada del mismo artículo y que Portfolio la apruebe. De este modo, el episodio permite comprobar el intercambio entre una oportunidad local, las posiciones abiertas y el capital disponible para el conjunto de la cartera.
+La evaluación multiagente no utiliza una lista abstracta de acciones. Cada episodio recorre las observaciones del bloque de prueba de marzo en orden temporal. \textit{Scout} indica si una oportunidad merece atención, \textit{Trader} puede comprar una unidad, mantener o solicitar una venta y \textit{Portfolio} aplica las restricciones de cartera. Una compra requiere el acuerdo de los tres roles. Una venta requiere que exista una posición desbloqueada del mismo artículo y que \textit{Portfolio} la apruebe. De este modo, el episodio permite comprobar el intercambio entre una oportunidad local, las posiciones abiertas y el capital disponible para el conjunto de la cartera.
 
 \begin{table}[htbp]
 \centering
@@ -364,23 +366,23 @@ La evaluación multiagente no utiliza una lista abstracta de acciones. Cada epis
 Elemento & Configuración comprobada \\
 \midrule
 Observaciones & 95 filas del bloque de prueba de marzo, en orden temporal. \\
-Roles & Scout, Trader y Portfolio con observaciones locales. \\
+Roles & \textit{Scout}, \textit{Trader} y \textit{Portfolio} con observaciones locales. \\
 Capital inicial & 1.000 EUR en el recorrido de cartera de marzo. \\
 Acciones & Compra con acuerdo de los tres roles y venta aprobada de posiciones desbloqueadas. \\
-Estado de cartera & Efectivo, posiciones, exposición, bloqueo y drawdown. \\
+Estado de cartera & Efectivo, posiciones, exposición, bloqueo y \emph{drawdown}. \\
 Recompensa & Recompensa cooperativa al cerrar una operación, penalización por demora y señales individuales por rol. \\
-Smoke PPO & Una iteración y 64 pasos mediante el adaptador PettingZoo--RLlib. \\
+Prueba mínima de PPO & Una iteración y 64 pasos mediante el adaptador PettingZoo--RLlib. \\
 \bottomrule
 \end{tabularx}
 \caption{Episodio MARL.}
 \label{tab:protocolo-marl}
 \end{table}
 
-La diferencia entre el recorrido funcional y PPO debe mantenerse clara. La regla determinista se usa para verificar el ciclo de cartera completo. El smoke de PPO comprueba que el mismo entorno puede entregar observaciones y recompensas a RLlib. Estos controles no se utilizan para estimar el rendimiento de una política. Su finalidad es comprobar que el entorno que se usa después en el entrenamiento representa los ciclos de compra, bloqueo y venta definidos en el Capítulo~4.
+La diferencia entre el recorrido funcional y PPO debe mantenerse clara. La regla determinista se usa para verificar el ciclo de cartera completo. La prueba mínima de PPO comprueba que el mismo entorno puede entregar observaciones y recompensas a RLlib. Estos controles no se utilizan para estimar el rendimiento de una política. Su finalidad es comprobar que el entorno que se usa después en el entrenamiento representa los ciclos de compra, bloqueo y venta definidos en el Capítulo~4.
 
 \textbf{Resultados de los controles funcionales.}
 
-El entorno multiagente se ha comprobado con el bloque de marzo. Scout marca una oportunidad, Trader solicita una compra o una venta y Portfolio decide si la propuesta respeta el saldo disponible, el tamaño de posición, la exposición por artículo y plataforma, la reserva de efectivo y la banda flexible de inversión. La recompensa cooperativa utilizada en estas ejecuciones se define en la Sección~\ref{sec:funcion-recompensa}. La venta añade un resultado importante: el beneficio neto se registra al cerrar la posición, no solo como una estimación en el momento de comprar.
+El entorno multiagente se ha comprobado con el bloque de marzo. \textit{Scout} marca una oportunidad, \textit{Trader} solicita una compra o una venta y \textit{Portfolio} decide si la propuesta respeta el saldo disponible, el tamaño de posición, la exposición por artículo y plataforma, la reserva de efectivo y la banda flexible de inversión. La recompensa cooperativa utilizada en estas ejecuciones se define en la Sección~\ref{sec:funcion-recompensa}. La venta añade un resultado importante: el beneficio neto se registra al cerrar la posición, no solo como una estimación en el momento de comprar.
 
 \begin{table}[H]
 \centering
@@ -403,41 +405,121 @@ El recorrido de cartera parte de 1.000 EUR y procesa 95 observaciones de marzo. 
 
 Estas cifras verifican que el entorno conserva las posiciones abiertas, aplica límites y reutiliza efectivo después de una venta. No miden el rendimiento de PPO ni permiten estimar beneficio neto futuro: el corte contiene oportunidades preseleccionadas y está muy concentrado en márgenes positivos.
 
-El comando PPO con \acroref{RLlib}{RLlib} ha completado una iteración y 64 pasos de entorno con el conjunto de entrenamiento. El estado central se expone al adaptador y hay una política por rol. La evaluación del checkpoint corto no ha ejecutado compras. Esta prueba valida la compatibilidad técnica, pero una única iteración no permite comparar una política aprendida con una regla de margen. La matriz de entrenamiento posterior repite semillas, episodios y configuraciones para comunicar la variabilidad del aprendizaje \cite{agarwal2021deep}.
+El comando PPO con \acroref{RLlib}{RLlib} ha completado una iteración y 64 pasos de entorno con el conjunto de entrenamiento. El estado central se expone al adaptador y hay una política por rol. La evaluación del punto de control corto no ha ejecutado compras. Esta prueba valida la compatibilidad técnica, pero una única iteración no permite comparar una política aprendida con una regla de margen. La matriz de entrenamiento posterior repite semillas, episodios y configuraciones para comunicar la variabilidad del aprendizaje \cite{agarwal2021deep}.
 
-\textbf{Matriz de entrenamiento MARL.}
+\textbf{Matriz de problemas MARL.}
 
-La matriz actual entrena tres políticas por rol, Scout, Trader y Portfolio, a partir de las observaciones locales definidas en el entorno. Se emplea \texttt{trading\_profit\_v2}, 1.000~EUR de capital inicial, un máximo de 100 iteraciones, ocho episodios por iteración y parada temprana después de 20 iteraciones sin mejora en validación. Cada configuración se repite con las semillas 7, 19 y 31. En total se han completado 21 entrenamientos y 3.552 episodios, sin consultar el conjunto de prueba.
+La matriz de entrenamiento no se limita a variar parámetros del algoritmo. Cada ejecución define un problema de cartera por la combinación de conjunto de activos, saldo inicial, periodo temporal y restricciones operativas. Los activos se seleccionan de forma estratificada por su precio mediano usando exclusivamente las particiones de entrenamiento y validación de \texttt{trading\_profit\_v2}; el bloque de prueba no interviene ni en esta selección ni en el entrenamiento. Los episodios recorren ventanas temporales consecutivas de catorce días de esos dos bloques.
 
-La configuración base usa un peso común de $g=0{,}70$, un objetivo flexible de inversión del 50\,\%, tolerancia del 5\,\% y tasa de aprendizaje de $0{,}0003$. A partir de ella se estudian el peso de la recompensa cooperativa, el objetivo de inversión, la tasa de aprendizaje y la retirada de la probabilidad supervisada. La Tabla~\ref{tab:matriz-marl-validacion} muestra el retorno del valor final de cartera respecto del capital inicial, seleccionado por validación. Cada valor es la media de las tres semillas y el intervalo recoge la variabilidad observada.
+La tipología de un problema se describe mediante dos dimensiones independientes: el tamaño del universo de activos y el perfil de restricciones de la cartera. Los tamaños se construyen con los activos seleccionados de forma estratificada y con las filas correspondientes de entrenamiento y validación:
+
+\begin{itemize}
+  \item \textbf{Pequeño:} cinco activos, 252 filas de entrenamiento y 66 de validación, con 500~EUR de saldo inicial.
+  \item \textbf{Mediano:} veinte activos, 939 filas de entrenamiento y 257 de validación, con 1.000~EUR de saldo inicial.
+  \item \textbf{Grande:} cien activos, 4.884 filas de entrenamiento y 1.316 de validación, con 5.000~EUR de saldo inicial.
+\end{itemize}
+
+El perfil de cartera fija cuánto se puede invertir y concentrar. Se han definido los cuatro perfiles siguientes:
+
+\begin{itemize}
+  \item \textbf{Restrictivo:} posición máxima del 10\,\%, exposición por artículo del 15\,\%, exposición por plataforma del 50\,\%, reserva mínima de efectivo del 25\,\%, objetivo de inversión del 35\,\% y como máximo tres posiciones abiertas.
+  \item \textbf{Estándar:} posición máxima del 20\,\%, exposición por artículo del 30\,\%, exposición por plataforma del 70\,\%, reserva mínima del 10\,\% y objetivo de inversión del 50\,\%. El máximo de posiciones se ajusta al tamaño: ocho en el caso mediano y veinte en el grande.
+  \item \textbf{Concentrado:} posición máxima del 30\,\%, exposición por artículo del 60\,\%, exposición por plataforma del 90\,\%, reserva mínima del 5\,\%, objetivo de inversión del 65\,\% y como máximo tres posiciones abiertas.
+  \item \textbf{Diversificado:} posición máxima del 15\,\%, exposición por artículo del 20\,\%, exposición por plataforma del 70\,\%, reserva mínima del 10\,\%, objetivo de inversión del 65\,\% y como máximo doce posiciones abiertas.
+\end{itemize}
+
+La cuadrícula combina los tres tamaños con los cuatro perfiles: doce problemas y, con tres semillas por problema, 36 entrenamientos independientes. Para cada tamaño se conserva el mismo conjunto de activos en los cuatro perfiles, de modo que las diferencias observadas puedan atribuirse a las restricciones de cartera y no a un cambio de artículos. La matriz se ha ejecutado íntegramente sobre entrenamiento y validación; el bloque de prueba no interviene en la selección ni en estas comparaciones.
+
+Todas las ejecuciones usan tres políticas, \textit{Scout}, \textit{Trader} y \textit{Portfolio}, con \acroref{PPO}{PPO}, tasa de aprendizaje $0{,}0003$, descuento $\gamma=0{,}99$, ocho episodios por iteración y un máximo de ochenta iteraciones. La recompensa combina un componente común, con peso $g=0{,}70$, y señales específicas de cada rol. La parada temprana se activa después de veinte iteraciones sin mejora del retorno de cartera en validación. Las políticas comienzan con salidas \emph{logit} neutras; por tanto, sin evidencia de aprendizaje no favorecen inicialmente ninguna acción válida.
+
+\textbf{Métricas de aprendizaje.}
+
+Además del retorno de validación, se registra la recompensa común por paso, las recompensas de \textit{Scout}, \textit{Trader} y \textit{Portfolio}, la entropía de cada política, las probabilidades medias de sus acciones, la pérdida de la red \emph{actor}, la fracción de actualizaciones recortadas y la divergencia KL aproximada. Para el crítico central se registra la pérdida de valor, que es el error cuadrático medio entre el retorno estimado y el valor predicho. Estas métricas distinguen una cartera que obtiene un retorno puntual de un proceso en el que las políticas cambian de forma coherente y el crítico se mantiene estable.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{figures/experimentacion/09_marl_recompensas.png}
+\caption{Evolución de las recompensas por paso durante el entrenamiento. Las bandas representan la desviación típica entre semillas.}
+\label{fig:marl-recompensas}
+\end{figure}
+
+La Figura~\ref{fig:marl-recompensas} muestra la media y la variabilidad entre semillas de los tres tamaños con perfil estándar. En los escenarios pequeño y medio, la recompensa común y las señales de los roles aumentan durante el entrenamiento. En el escenario grande, en cambio, la mejora es más tenue y la señal de \textit{Scout} permanece negativa. La comparación indica que aumentar el número de activos sin aumentar el presupuesto de entrenamiento no produce la misma evidencia de aprendizaje.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{figures/experimentacion/10_marl_estabilidad_ppo.png}
+\caption{Pérdida de valor del crítico y entropía de las políticas durante el entrenamiento con PPO.}
+\label{fig:marl-estabilidad}
+\end{figure}
+
+La Figura~\ref{fig:marl-estabilidad} completa el diagnóstico. La pérdida de valor del crítico disminuye de forma global en los tres casos, aunque mantiene oscilaciones propias de las actualizaciones por lotes. Las entropías bajan con claridad para \textit{Trader} y \textit{Portfolio} en los escenarios pequeño y medio: las políticas dejan de explorar sus acciones con probabilidades similares. En el escenario grande, la entropía de \textit{Scout} casi no cambia, otra señal de que el entrenamiento disponible resulta insuficiente para esa escala.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{figures/experimentacion/11_marl_politicas.png}
+\caption{Probabilidad media de cada acción al inicio y al final del entrenamiento.}
+\label{fig:marl-politicas}
+\end{figure}
+
+La modificación de las políticas puede verse de forma directa en la Figura~\ref{fig:marl-politicas}. \textit{Scout} pasa de repartir su probabilidad entre ignorar y marcar a priorizar marcar en los problemas pequeño y medio; \textit{Trader} aumenta la probabilidad de mantener y reduce la de comprar; y \textit{Portfolio} modifica el equilibrio entre aprobar y rechazar. El escenario grande conserva probabilidades próximas a las iniciales. Esta evidencia no prueba que las decisiones sean óptimas, pero sí muestra qué agentes han abandonado la política inicial neutra y hacia qué acciones se han desplazado.
+
+La Tabla~\ref{tab:resultados-tipologias-marl} resume la selección por validación de las doce combinaciones. El retorno es el aumento del valor final de cartera respecto al saldo inicial en el mejor punto de control de cada semilla. El perfil diversificado obtiene el mayor retorno medio en los tres tamaños; la combinación mediano-diversificada alcanza 3,504\,\%, aunque su intervalo de 0,000 a 5,255\,\% muestra que una semilla no mejora el retorno inicial. Por tanto, el resultado identifica una tendencia, no una configuración superior de forma concluyente.
 
 \begin{table}[htbp]
 \centering
-\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}} >{\raggedright\arraybackslash}p{0.43\textwidth} r r @{}}
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}l r r}
 \toprule
-Familia de configuración & Retorno medio & Intervalo entre semillas \\
+Tamaño & Perfil & Retorno medio & Intervalo entre semillas \\
 \midrule
-Base & 12,29\,\% & 12,29--12,29\,\% \\
-Recompensa cooperativa 50\,\% & 12,29\,\% & 12,29--12,29\,\% \\
-Recompensa cooperativa 90\,\% & 12,33\,\% & 12,29--12,42\,\% \\
-Objetivo de inversión 35\,\% & 10,03\,\% & 10,03--10,03\,\% \\
-Objetivo de inversión 65\,\% & \textbf{12,45\,\%} & 12,22--12,91\,\% \\
-Tasa de aprendizaje 0,0001 & 12,29\,\% & 12,29--12,29\,\% \\
-Sin probabilidad supervisada & 12,29\,\% & 12,29--12,29\,\% \\
+Pequeño & Restrictivo & 0,377\,\% & 0,377--0,377\,\% \\
+Pequeño & Estándar & 0,609\,\% & 0,383--1,061\,\% \\
+Pequeño & Concentrado & 0,377\,\% & 0,377--0,377\,\% \\
+Pequeño & Diversificado & 0,896\,\% & 0,880--0,904\,\% \\
+Mediano & Restrictivo & 1,161\,\% & 0,719--1,382\,\% \\
+Mediano & Estándar & 1,976\,\% & 0,000--3,123\,\% \\
+Mediano & Concentrado & 1,261\,\% & 1,201--1,382\,\% \\
+Mediano & Diversificado & \textbf{3,504\,\%} & 0,000--5,255\,\% \\
+Grande & Restrictivo & 0,260\,\% & 0,190--0,401\,\% \\
+Grande & Estándar & 1,707\,\% & 1,623--1,816\,\% \\
+Grande & Concentrado & 0,250\,\% & 0,190--0,370\,\% \\
+Grande & Diversificado & 1,878\,\% & 1,623--2,006\,\% \\
 \bottomrule
-\end{tabular*}
-\caption{Resultados de validación de la matriz MARL.}
-\label{tab:matriz-marl-validacion}
+\end{tabularx}
+\caption{Retorno de validación de la cuadrícula completa MARL.}
+\label{tab:resultados-tipologias-marl}
 \end{table}
 
-\begin{figure}[htbp]
+\begin{figure}[H]
 \centering
-\includegraphics[width=0.96\textwidth]{figures/experimentacion/08_marl_validacion.png}
-\caption{Resultados de validación de la matriz MARL. Cada punto representa una semilla.}
-\label{fig:matriz-marl-validacion}
+\includegraphics[width=\textwidth]{figures/experimentacion/12_marl_cuadricula_completa.png}
+\caption{Retorno de validación por tamaño y perfil de cartera.}
+\label{fig:marl-cuadricula-completa}
 \end{figure}
 
-El objetivo de inversión del 65\,\% obtiene la mayor media, con un 12,45\,\% frente al 12,29\,\% de la configuración base. Sin embargo, la diferencia es reducida y su mejor resultado, 12,91\,\%, procede de una sola semilla. Además, 19 de las 21 ejecuciones se han detenido tras 20 iteraciones sin mejora. La matriz demuestra que el entrenamiento, la validación y la parada temprana se ejecutan de forma reproducible, pero no justifica todavía afirmar que una configuración supera de forma robusta a las demás.
+La Figura~\ref{fig:marl-cuadricula-completa} permite comparar los perfiles dentro de un mismo tamaño. La diversificación mejora el retorno medio frente a los perfiles restrictivo y concentrado en los tres tamaños. No obstante, la dispersión observada en el caso mediano aconseja no usar solo la media para seleccionar una política. Las curvas de recompensa, entropía y pérdida de valor mostradas anteriormente complementan este resultado: el escenario grande mantiene mayor entropía de \textit{Scout}, mientras que el mediano diversificado alcanza retornos más altos a costa de una variabilidad notable entre semillas.
+
+\textbf{Evaluación independiente en prueba.}
+
+Una vez elegida la tipología media diversificada mediante validación, se ha realizado una única evaluación sobre el bloque de prueba. Los tres checkpoints MARL, las tres réplicas de la referencia PPO centralizada formada por una única política, la regla de margen neto positivo y la política de mantener efectivo recorren las mismas ocho ventanas temporales, con los mismos veinte activos, 1.000~EUR y restricciones. La política centralizada observa el estado global y escoge la acción conjunta, mientras que los tres roles MARL actúan con sus observaciones locales. En todas las filas se mide el valor de una única cartera conjunta, no el rendimiento aislado de cada rol.
+
+La Tabla~\ref{tab:prueba-final-marl} muestra la comparación. MARL obtiene un retorno medio de 6,605\,\% y 66,05~EUR de beneficio realizado; supera a mantener efectivo y a la política PPO centralizada, cuyo promedio queda condicionado por una semilla que no mejora en validación. Sin embargo, la regla determinista de margen positivo alcanza 7,098\,\%. La diferencia de 0,493 puntos porcentuales no permite presentar la arquitectura multiagente como superior a esa referencia simple. El resultado sí confirma que las políticas MARL seleccionadas en validación se ejecutan sobre prueba con resultados positivos y reproducibles entre semillas.
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}X r r r r}
+\toprule
+Política & Retorno medio & Beneficio neto & Ventas cerradas & Posiciones abiertas \\
+\midrule
+Mantener efectivo (sin operar) & 0,000\,\% & 0,00~EUR & 0,00 & 0,00 \\
+Margen neto positivo & \textbf{7,098\,\%} & \textbf{70,98~EUR} & 11,25 & 12,00 \\
+PPO centralizado (una política) & 4,486\,\% & 44,86~EUR & 7,50 & 8,00 \\
+MARL (tres roles) & 6,605\,\% & 66,05~EUR & 11,00 & 12,00 \\
+\bottomrule
+\end{tabularx}
+\caption{Evaluación única del valor de la cartera conjunta en prueba para la tipología media diversificada. Para MARL, el intervalo entre semillas es 6,163--6,869\,\%.}
+\label{tab:prueba-final-marl}
+\end{table}
 
 \section{Discusión}
 
@@ -457,10 +539,10 @@ La principal limitación de los resultados supervisados es el desequilibrio de e
 
 También existe una limitación operativa. El precio de \acroref{BUFF}{BUFF} se consulta como entrada puntual, mientras que la salida en Steam se estima con histórico y comisiones. Para reproducir de forma más fiel una operación entre ambas plataformas se necesitan más capturas sincronizadas y una cobertura mayor de artículos. Además, los experimentos simulan operaciones con datos observados: no envían órdenes reales, no transfieren artículos entre plataformas ni utilizan capital real. Por tanto, no permiten garantizar que una operación pueda ejecutarse en el futuro al precio previsto.
 
-Por último, la evidencia técnica tiene alcances distintos. El \acroref{OCR}{OCR} está validado a nivel funcional, pero no dispone aún de un corpus de imágenes etiquetado con el que medir su exactitud. El entorno \acroref{MARL}{MARL} ya incluye compra, bloqueo, venta y una matriz de políticas entrenadas, pero las configuraciones presentan diferencias pequeñas en validación y todavía no se han contrastado en la prueba independiente. Estas limitaciones no invalidan la arquitectura, pero acotan las conclusiones a viabilidad técnica y evidencia experimental inicial.
+Por último, la evidencia técnica tiene alcances distintos. El \acroref{OCR}{OCR} está validado a nivel funcional, pero no dispone aún de un corpus de imágenes etiquetado con el que medir su exactitud. El entorno \acroref{MARL}{MARL} ya incluye compra, bloqueo, venta y 36 entrenamientos sobre las doce combinaciones de tamaño y perfil. Las curvas muestran aprendizaje en parte de los escenarios, pero el tamaño grande mantiene una exploración elevada de \textit{Scout} y los perfiles mediano estándar y diversificado presentan variabilidad entre semillas. La combinación mediano-diversificada se ha contrastado una vez en prueba independiente, con retorno positivo, aunque sin superar la referencia de margen neto positivo. Estas limitaciones no invalidan la arquitectura, pero acotan las conclusiones a viabilidad técnica y evidencia experimental inicial.
 
 \textbf{Evidencia actual.}
 
-En conjunto, el trabajo demuestra que el sistema puede integrar fuentes de datos, construir conjuntos temporales, entrenar y calibrar modelos supervisados, aplicar reglas económicas y recorrer episodios de compra, bloqueo y venta dentro de una cartera simulada. También demuestra que la matriz multiagente puede entrenarse y validarse de forma reproducible con configuraciones y semillas registradas. La separación entre adquisición, predicción, simulación y decisión permite comprobar cada componente y localizar un problema sin rehacer el resto del sistema.
+En conjunto, el trabajo demuestra que el sistema puede integrar fuentes de datos, construir conjuntos temporales, entrenar y calibrar modelos supervisados, aplicar reglas económicas y recorrer episodios de compra, bloqueo y venta dentro de una cartera simulada. También demuestra que las políticas multiagente modifican sus recompensas, entropías y distribuciones de acción de forma medible en los escenarios pequeño y medio, y que estos cambios dependen de la escala y las restricciones de cartera. La separación entre adquisición, predicción, simulación y decisión permite comprobar cada componente y localizar un problema sin rehacer el resto del sistema.
 
-La evidencia disponible respalda, por tanto, la viabilidad técnica de la propuesta, pero no una superioridad económica de la arquitectura multiagente. Para afirmar que una política mejora una estrategia simple será necesario completar la evaluación independiente sobre la prueba aislada, ampliar la cobertura temporal y contrastar los baselines homogéneos definidos en el diseño experimental.
+La evidencia disponible respalda, por tanto, la viabilidad técnica de la propuesta, pero no una superioridad económica de la arquitectura multiagente. Para afirmar que una política mejora una estrategia simple será necesario ampliar la cobertura temporal, reservar nuevos bloques de prueba y repetir la comparación homogénea sin reutilizar el bloque de prueba ya evaluado.

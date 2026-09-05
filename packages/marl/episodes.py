@@ -42,14 +42,14 @@ class MarketEpisodeSource:
         available_days = self.days
         latest_full_start = available_days[-1] - timedelta(days=days - 1)
         eligible_indices = [
-            index for index, observed_day in enumerate(available_days) if observed_day <= latest_full_start
+            index
+            for index, observed_day in enumerate(available_days)
+            if observed_day <= latest_full_start
         ]
         start_index = rng.choice(eligible_indices or list(range(len(available_days))))
         start_day = available_days[start_index]
         end_day = start_day + timedelta(days=days - 1)
-        window = tuple(
-            step for step in self.steps if start_day <= step.observed_day <= end_day
-        )
+        window = tuple(step for step in self.steps if start_day <= step.observed_day <= end_day)
         if not window:
             window = (self.steps[start_index % len(self.steps)],)
         if max_steps is not None:
@@ -59,16 +59,69 @@ class MarketEpisodeSource:
         return window
 
 
+def select_price_stratified_item_ids(
+    path: Path | str,
+    *,
+    asset_count: int | None,
+    train_split: str = "train",
+    validation_split: str = "validation",
+    maximum_item_price_eur: float | None = None,
+) -> tuple[str, ...] | None:
+    """Selecciona activos de forma determinista sin consultar la prueba.
+
+    La selección usa únicamente los cortes de entrenamiento y validación. Cada
+    activo se ordena por su precio mediano observado en entrenamiento y se
+    escogen puntos repartidos por todo ese rango, para no construir escenarios
+    formados solo por activos baratos o caros.
+    """
+
+    if asset_count is None:
+        return None
+    if asset_count <= 0:
+        raise ValueError("asset_count must be positive when supplied")
+    train_steps = load_market_episode_steps(path, split=train_split)
+    validation_steps = load_market_episode_steps(path, split=validation_split)
+    validation_ids = {step.item_id for step in validation_steps}
+    prices_by_item: dict[str, list[float]] = {}
+    for step in train_steps:
+        if step.item_id in validation_ids:
+            prices_by_item.setdefault(step.item_id, []).append(float(step.buy_price_eur))
+    ranked = sorted(
+        (
+            (float(pd.Series(prices).median()), item_id)
+            for item_id, prices in prices_by_item.items()
+            if (
+                maximum_item_price_eur is None
+                or float(pd.Series(prices).median()) <= maximum_item_price_eur
+            )
+        ),
+        key=lambda pair: (pair[0], pair[1]),
+    )
+    if len(ranked) < asset_count:
+        raise ValueError(
+            f"only {len(ranked)} assets satisfy the scenario but {asset_count} were requested"
+        )
+    if asset_count == len(ranked):
+        return tuple(item_id for _price, item_id in ranked)
+    indices = [round(index * (len(ranked) - 1) / (asset_count - 1)) for index in range(asset_count)]
+    if asset_count == 1:
+        indices = [len(ranked) // 2]
+    return tuple(ranked[index][1] for index in indices)
+
+
 def load_market_episode_steps(
     path: Path | str,
     *,
     split: str = "train",
     limit: int | None = None,
+    item_ids: frozenset[str] | None = None,
 ) -> tuple[MarketEpisodeStep, ...]:
     source_path = Path(path)
     parquet_path = _parquet_path(source_path, split=split)
     route_defaults = _route_defaults(source_path)
     frame = pd.read_parquet(parquet_path)
+    if item_ids is not None:
+        frame = frame[frame["item_id"].isin(item_ids)]
     if limit is not None:
         frame = frame.head(limit)
     rows = (
@@ -82,10 +135,11 @@ def load_market_episode_source(
     path: Path | str,
     *,
     split: str = "train",
+    item_ids: frozenset[str] | None = None,
 ) -> MarketEpisodeSource:
     """Carga un corte temporal completo para muestrear episodios de entrenamiento."""
 
-    return MarketEpisodeSource(load_market_episode_steps(path, split=split))
+    return MarketEpisodeSource(load_market_episode_steps(path, split=split, item_ids=item_ids))
 
 
 def _parquet_path(path: Path, *, split: str) -> Path:

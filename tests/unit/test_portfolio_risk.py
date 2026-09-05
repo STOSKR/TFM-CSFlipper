@@ -101,6 +101,33 @@ def test_portfolio_risk_keeps_market_observations_outside_hard_limits() -> None:
     assert "volatility" not in snapshot.limits
 
 
+def test_portfolio_risk_can_limit_the_number_of_open_positions() -> None:
+    simulator = PortfolioSimulator(initial_cash_eur=Decimal("100"))
+    simulator.buy(
+        item_id="item-1",
+        item_name="AK-47 | Slate",
+        buy_platform=BUFF,
+        buy_price=Decimal("10"),
+        buy_currency="CNY",
+        purchased_at=date(2026, 1, 1),
+    )
+
+    snapshot = evaluate_portfolio_risk(
+        simulator,
+        as_of=date(2026, 1, 2),
+        config=PortfolioRiskConfig(max_open_positions=1),
+        candidate=RiskCandidate(
+            item_id="item-2",
+            buy_platform=STEAM,
+            buy_value_eur=Decimal("10"),
+        ),
+    )
+
+    assert snapshot.candidate_allowed is False
+    assert snapshot.violations == ("open_positions",)
+    assert snapshot.limits["open_positions"].value == Decimal("2")
+
+
 def test_portfolio_risk_without_candidate_observes_existing_max_exposures() -> None:
     simulator = PortfolioSimulator(initial_cash_eur=Decimal("100"))
     simulator.buy(

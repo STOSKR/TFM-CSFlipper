@@ -4,7 +4,11 @@ from pathlib import Path
 
 import pandas as pd  # type: ignore[import-untyped]
 
-from packages.marl import MarketMARLEnvironment, load_market_episode_steps
+from packages.marl import (
+    MarketMARLEnvironment,
+    load_market_episode_steps,
+    select_price_stratified_item_ids,
+)
 
 
 def test_load_market_episode_steps_from_dataset_split(tmp_path: Path) -> None:
@@ -88,3 +92,31 @@ def test_load_market_episode_steps_respects_limit(tmp_path: Path) -> None:
     steps = load_market_episode_steps(path, limit=2)
 
     assert len(steps) == 2
+
+
+def test_price_stratified_scenario_selects_shared_affordable_assets(tmp_path: Path) -> None:
+    dataset_dir = tmp_path / "dataset"
+    dataset_dir.mkdir()
+    rows = [
+        {
+            "item_id": f"item-{index}",
+            "representation_name": f"Item {index}",
+            "observed_day": "2026-01-01",
+            "buy_price_eur": price,
+            "current_exit_net_eur": price,
+            "current_return": 0.0,
+        }
+        for index, price in enumerate((5.0, 15.0, 45.0, 90.0), start=1)
+    ]
+    pd.DataFrame(rows).to_parquet(dataset_dir / "train.parquet", index=False)
+    pd.DataFrame(rows[:-1]).to_parquet(dataset_dir / "validation.parquet", index=False)
+
+    selected = select_price_stratified_item_ids(
+        dataset_dir,
+        asset_count=2,
+        maximum_item_price_eur=50.0,
+    )
+
+    assert selected == ("item-1", "item-3")
+    steps = load_market_episode_steps(dataset_dir, item_ids=frozenset(selected))
+    assert [step.item_id for step in steps] == ["item-1", "item-3"]

@@ -14,8 +14,10 @@ from packages.marl import (
     CooperativeRewardConfig,
     CTDETrainingConfig,
     HybridRewardConfig,
+    select_price_stratified_item_ids,
     train_ctde,
 )
+from packages.simulation import PortfolioRiskConfig
 
 
 def main() -> None:
@@ -63,6 +65,11 @@ def run_matrix(*, plan_path: Path, output_root: Path, resume: bool) -> dict[str,
                 "status": "completed",
                 "output_dir": str(output_dir),
                 "seed": training.seed,
+                "scenario": {
+                    "name": training.scenario_name,
+                    "asset_count": None if training.asset_ids is None else len(training.asset_ids),
+                    "risk": _risk_summary(training.risk_config),
+                },
                 "parameters": _parameter_summary(training),
                 "best_iteration": best["iteration"],
                 "best_validation_equity_return": report["best_validation_equity_return"],
@@ -75,10 +82,40 @@ def run_matrix(*, plan_path: Path, output_root: Path, resume: bool) -> dict[str,
 
 
 def _training_config(values: dict[str, Any], *, output_dir: Path) -> CTDETrainingConfig:
+    initial_cash = Decimal(str(values.get("cash", "1000")))
+    risk_config = PortfolioRiskConfig(
+        max_position_fraction=Decimal(str(values.get("max_position_fraction", "0.20"))),
+        max_item_fraction=Decimal(str(values.get("max_item_fraction", "0.30"))),
+        max_platform_fraction=Decimal(str(values.get("max_platform_fraction", "0.70"))),
+        min_cash_fraction=Decimal(str(values.get("min_cash_fraction", "0.10"))),
+        warning_usage_ratio=Decimal(str(values.get("warning_usage_ratio", "0.80"))),
+        max_open_positions=(
+            int(values["max_open_positions"])
+            if values.get("max_open_positions") is not None
+            else None
+        ),
+    )
+    explicit_asset_ids = values.get("asset_ids")
+    asset_ids = (
+        tuple(str(item_id) for item_id in explicit_asset_ids)
+        if explicit_asset_ids is not None
+        else select_price_stratified_item_ids(
+            Path(values["dataset_dir"]),
+            asset_count=(
+                int(values["asset_count"]) if values.get("asset_count") is not None else None
+            ),
+            maximum_item_price_eur=float(
+                values.get(
+                    "asset_selection_max_price_eur",
+                    initial_cash * risk_config.max_position_fraction,
+                )
+            ),
+        )
+    )
     return CTDETrainingConfig(
         dataset_dir=Path(values["dataset_dir"]),
         output_dir=output_dir,
-        initial_cash_eur=Decimal(str(values.get("cash", "1000"))),
+        initial_cash_eur=initial_cash,
         iterations=int(values.get("iterations", 4)),
         episodes_per_iteration=int(values.get("episodes_per_iteration", 3)),
         episode_days=int(values.get("episode_days", 14)),
@@ -99,11 +136,12 @@ def _training_config(values: dict[str, Any], *, output_dir: Path) -> CTDETrainin
         test_seed=int(values.get("test_seed", 20007)),
         include_supervised_probability=bool(values.get("include_supervised_probability", True)),
         evaluate_test=False,
+        scenario_name=str(values.get("scenario_name", "complete")),
+        asset_ids=asset_ids,
+        risk_config=risk_config,
         reward_config=CooperativeRewardConfig(
             roi_weight=Decimal(str(values.get("roi_weight", "0.60"))),
-            extra_hold_day_penalty=Decimal(
-                str(values.get("extra_hold_day_penalty", "0.01"))
-            ),
+            extra_hold_day_penalty=Decimal(str(values.get("extra_hold_day_penalty", "0.01"))),
             constraint_violation_penalty=Decimal(
                 str(values.get("constraint_violation_penalty", "0.80"))
             ),
@@ -118,7 +156,7 @@ def _training_config(values: dict[str, Any], *, output_dir: Path) -> CTDETrainin
     )
 
 
-def _parameter_summary(config: CTDETrainingConfig) -> dict[str, str | int]:
+def _parameter_summary(config: CTDETrainingConfig) -> dict[str, str | int | float | None]:
     return {
         "shared_weight": str(config.hybrid_reward_config.shared_weight),
         "roi_weight": str(config.reward_config.roi_weight),
@@ -137,6 +175,16 @@ def _parameter_summary(config: CTDETrainingConfig) -> dict[str, str | int]:
         "early_stopping_patience": config.early_stopping_patience,
         "validation_seed": config.validation_seed,
         "test_seed": config.test_seed,
+    }
+
+
+def _risk_summary(config: PortfolioRiskConfig) -> dict[str, str | int | None]:
+    return {
+        "max_position_fraction": str(config.max_position_fraction),
+        "max_item_fraction": str(config.max_item_fraction),
+        "max_platform_fraction": str(config.max_platform_fraction),
+        "min_cash_fraction": str(config.min_cash_fraction),
+        "max_open_positions": config.max_open_positions,
     }
 
 

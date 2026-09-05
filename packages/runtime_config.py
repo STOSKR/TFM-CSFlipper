@@ -205,6 +205,7 @@ def _risk_config(section: dict[str, Any]) -> PortfolioRiskConfig:
         max_platform_fraction=_decimal(section, "max_platform_fraction", Decimal("0.70")),
         min_cash_fraction=_decimal(section, "min_cash_fraction", Decimal("0.10")),
         warning_usage_ratio=_decimal(section, "warning_usage_ratio", Decimal("0.80")),
+        max_open_positions=_optional_int(section, "max_open_positions", None),
     )
 
 
@@ -264,10 +265,7 @@ def _optional_decimal(
 
 
 def _balance_withdrawal_map(section: dict[str, Any]) -> dict[str, Decimal]:
-    return {
-        _balance_key(key): Decimal(str(value))
-        for key, value in section.items()
-    }
+    return {_balance_key(key): Decimal(str(value)) for key, value in section.items()}
 
 
 def _balance_key(value: str) -> str:

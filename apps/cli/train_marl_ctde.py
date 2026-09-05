@@ -12,8 +12,10 @@ from packages.marl import (
     CooperativeRewardConfig,
     CTDETrainingConfig,
     HybridRewardConfig,
+    select_price_stratified_item_ids,
     train_ctde,
 )
+from packages.simulation import PortfolioRiskConfig
 
 
 def main() -> None:
@@ -23,6 +25,8 @@ def main() -> None:
     parser.add_argument("--dataset-dir", type=Path, default=Path("data/datasets/trading_profit_v2"))
     parser.add_argument("--output-dir", type=Path, default=Path("model-runs/marl_ctde"))
     parser.add_argument("--cash", type=str, default="1000")
+    parser.add_argument("--scenario-name", default="complete")
+    parser.add_argument("--asset-count", type=int, default=None)
     parser.add_argument("--iterations", type=int, default=50)
     parser.add_argument("--episodes-per-iteration", type=int, default=8)
     parser.add_argument("--episode-days", type=int, default=14)
@@ -45,6 +49,11 @@ def main() -> None:
     parser.add_argument("--constraint-violation-penalty", type=str, default="0.80")
     parser.add_argument("--target-investment-fraction", type=str, default="0.50")
     parser.add_argument("--target-investment-tolerance", type=str, default="0.05")
+    parser.add_argument("--max-position-fraction", type=str, default="0.20")
+    parser.add_argument("--max-item-fraction", type=str, default="0.30")
+    parser.add_argument("--max-platform-fraction", type=str, default="0.70")
+    parser.add_argument("--min-cash-fraction", type=str, default="0.10")
+    parser.add_argument("--max-open-positions", type=int, default=None)
     parser.add_argument("--seed", type=int, default=7)
     parser.add_argument("--validation-seed", type=int, default=10007)
     parser.add_argument("--test-seed", type=int, default=20007)
@@ -59,11 +68,19 @@ def main() -> None:
         help="Run the ablation without the supervised prediction feature.",
     )
     args = parser.parse_args()
+    initial_cash = Decimal(args.cash)
+    risk_config = PortfolioRiskConfig(
+        max_position_fraction=Decimal(args.max_position_fraction),
+        max_item_fraction=Decimal(args.max_item_fraction),
+        max_platform_fraction=Decimal(args.max_platform_fraction),
+        min_cash_fraction=Decimal(args.min_cash_fraction),
+        max_open_positions=args.max_open_positions,
+    )
     report = train_ctde(
         CTDETrainingConfig(
             dataset_dir=args.dataset_dir,
             output_dir=args.output_dir,
-            initial_cash_eur=Decimal(args.cash),
+            initial_cash_eur=initial_cash,
             iterations=args.iterations,
             episodes_per_iteration=args.episodes_per_iteration,
             episode_days=args.episode_days,
@@ -80,6 +97,13 @@ def main() -> None:
             test_seed=args.test_seed,
             include_supervised_probability=not args.no_supervised_probability,
             evaluate_test=not args.skip_test,
+            scenario_name=args.scenario_name,
+            asset_ids=select_price_stratified_item_ids(
+                args.dataset_dir,
+                asset_count=args.asset_count,
+                maximum_item_price_eur=float(initial_cash * risk_config.max_position_fraction),
+            ),
+            risk_config=risk_config,
             reward_config=CooperativeRewardConfig(
                 roi_weight=Decimal(args.roi_weight),
                 extra_hold_day_penalty=Decimal(args.extra_hold_day_penalty),

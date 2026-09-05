@@ -322,8 +322,7 @@ Una vez definido el problema MARL, la arquitectura describe cómo se organizan l
 \State Incorporar la señal supervisada cuando esté disponible.
 \State Generar las observaciones locales $o_t^S$, $o_t^T$ y $o_t^P$.
 \State Obtener $a_t^S$, $a_t^T$ y $a_t^P$ y formar la acción conjunta $\mathbf{a}_t$.
-\State Validar la acción conjunta con las restricciones de riesgo.
-\State Simular la transición hacia $s_{t+1}$.
+\State Aplicar $T_{\mathrm{sim}}$, que comprueba las condiciones de la operación y obtiene $s_{t+1}$.
 \State Actualizar saldo, posiciones, capital bloqueado y métricas.
 \State Calcular recompensas y registrar la trazabilidad del paso.
 \EndFor
@@ -380,6 +379,8 @@ donde $\pi_{\theta_i}(a^i\mid o^i)$ es la probabilidad de que el agente $i$ apli
 
 \textbf{Compra y venta.} Una compra simulada requiere la participación coherente de los tres agentes. El agente \textit{Scout} debe marcar el artículo, el agente \textit{Trader} debe solicitar la compra y el agente \textit{Portfolio} debe aprobarla. Una venta simulada no requiere una nueva marca del agente \textit{Scout}, porque la posición ya forma parte de la cartera; en ese caso intervienen el agente \textit{Trader}, que propone vender, y el agente \textit{Portfolio}, que aprueba si la posición está desbloqueada y la operación es válida. Esta distinción evita confundir dos fases distintas del ciclo de compraventa: la selección de candidatos nuevos y la gestión de posiciones ya abiertas.
 
+\textbf{Alcance de la compra.} En la implementación evaluada, una acción de compra abre una única unidad del artículo. La cantidad no forma parte del espacio de acciones; el simulador solo decide si esa unidad es admisible con los límites de cartera.
+
 \section{Función de recompensa}
 \label{sec:funcion-recompensa}
 
@@ -422,14 +423,14 @@ En el primer caso, $a$ determina la importancia del ROI realmente obtenido. El v
 
 En el segundo caso, $l_t$ representa la proporción de límites incumplidos respecto de los límites comprobados. También toma valores entre 0 y 1. El coeficiente $c$ debe ser suficientemente alto para que proponer una compra inválida no resulte preferible a no comprar.
 
-La proporción de capital que Trader propone destinar a compras se controla mediante un objetivo flexible. La fórmula divide ese capital propuesto entre el valor de la cartera antes de tomar la decisión. Si $C_t$ es el importe total de las compras propuestas por Trader en un instante y $V_t$ es el valor de la cartera antes de esas compras, la proporción propuesta se define como:
+La proporción de capital destinada a compras se controla mediante un objetivo flexible por día simulado. Al procesar la última observación de ese día, $C_t$ es el importe total de las compras ejecutadas durante el día y $V_t$ es el valor de la cartera al inicio de ese día. La proporción invertida se define como:
 
 \begin{equation}
 p_t=\frac{C_t}{V_t}.
 \label{eq:proporcion-invertida}
 \end{equation}
 
-Por ejemplo, si la cartera vale 1.000~EUR antes de comprar y Trader propone compras por un total de 400~EUR, entonces $C_t=400$, $V_t=1.000$ y $p_t=\frac{400}{1.000}=0{,}40$. Es decir, Trader propone destinar el 40\,\% de la cartera a esas compras. El subíndice $t$ solo indica el instante en el que se realiza este cálculo.
+Por ejemplo, si la cartera vale 1.000~EUR al inicio del día y se ejecutan compras por un total de 400~EUR, entonces $C_t=400$, $V_t=1.000$ y $p_t=\frac{400}{1.000}=0{,}40$. Es decir, Trader destina el 40\,\% de la cartera a compras durante ese día. El subíndice $t$ identifica el último paso procesado en ese día simulado.
 
 El valor $u$ representa la proporción objetivo y $d$ el margen de tolerancia, ambos configurables. No se considera que exista un incumplimiento de este límite mientras se cumpla la siguiente condición:
 

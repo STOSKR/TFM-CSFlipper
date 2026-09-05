@@ -1,6 +1,6 @@
 \chapter{Anexos}
 
-\noindent Los anexos reúnen detalles operativos que complementan la explicación principal: estructura del repositorio, configuración del entorno, comandos reproducibles y parámetros de entrenamiento.
+\noindent Los anexos reúnen detalles operativos que complementan la explicación principal: estructura del repositorio, configuración del entorno, comandos reproducibles y parámetros de entrenamiento. El código y los planes de experimento están disponibles públicamente; los datos de mercado, credenciales y resultados pesados se conservan de forma local.
 
 \section{Estructura del repositorio}
 \label{anx:repositorio}
@@ -10,19 +10,20 @@ El código fuente completo se encuentra en el repositorio público del proyecto:
 \url{https://github.com/STOSKR/TFM-CSFlipper}
 \end{center}
 
-La Figura~\ref{fig:estructura-repositorio} resume la organización. Se muestran solo los directorios que ayudan a localizar cada parte del sistema, mientras que los ficheros y resultados generados se consultan directamente en el repositorio.
+La Figura~\ref{fig:estructura-repositorio} resume la organización. Se muestran solo los directorios que ayudan a localizar cada parte del sistema; los resultados generados localmente se describen en la Sección~A.6.
 
 \begin{figure}[htbp]
 \centering
 \fbox{%
 \begin{minipage}{0.78\textwidth}
 \small
-\begin{tabular}{@{}ll}
+\begin{tabular}{@{}l>{\raggedright\arraybackslash}p{0.48\textwidth}}
 \texttt{TFM-CSFlipper/} & \\
 \quad \texttt{apps/} & comandos, extractores e interfaz local \\
 \quad \texttt{packages/} & lógica reutilizable del sistema \\
 \quad \texttt{tests/} & pruebas unitarias y de integración \\
-\quad \texttt{data/} & datasets y resultados derivados \\
+\quad \texttt{data/} & datasets y resultados derivados locales (no versionados) \\
+\quad \texttt{model-runs/} & checkpoints e historiales locales de entrenamiento \\
 \quad \texttt{docs/} & documentación técnica \\
 \quad \texttt{TFM/} & memoria, figuras y bibliografía
 \end{tabular}
@@ -37,7 +38,8 @@ Los directorios principales cumplen estas funciones:
   \item \texttt{apps}: contiene los extractores, los comandos de consola y la interfaz local.
   \item \texttt{packages}: agrupa los contratos, la persistencia, la predicción, el simulador, el entorno \acroref{MARL}{MARL} y el procesamiento visual.
   \item \texttt{tests}: reúne las pruebas unitarias y de integración que verifican reglas económicas, conectores y flujos principales.
-  \item \texttt{data}: conserva datasets derivados, informes y resultados que no forman parte del código fuente.
+  \item \texttt{data}: conserva localmente datasets derivados, informes y resultados que no forman parte del código fuente público.
+  \item \texttt{model-runs}: conserva localmente checkpoints e historiales de entrenamiento; no se versiona por su tamaño y porque dependen de datos de mercado no publicados.
   \item \texttt{docs}: recoge documentación técnica y decisiones de desarrollo.
   \item \texttt{TFM}: contiene el código \LaTeX{}, las figuras y la bibliografía de esta memoria.
 \end{itemize}
@@ -76,7 +78,7 @@ Estos comandos son puntos de entrada, no una receta para ejecutar todos los expe
 
 \section{Parámetros de entrenamiento}
 
-Los experimentos supervisados usan particiones temporales, calibración de probabilidades y selección por precisión operativa en umbrales altos. Las exploraciones comparan un modelo de referencia que predice la clase mayoritaria, regresión logística, \emph{random forest} e \emph{histogram gradient boosting}. El entrenamiento \acroref{MARL}{MARL} usa \acroref{RLlib}{RLlib} con un entorno multiagente y tres políticas: \textit{Scout}, \textit{Trader} y \textit{Portfolio}.
+Los experimentos supervisados usan particiones temporales, calibración de probabilidades y selección por precisión operativa en umbrales altos. Las exploraciones comparan un modelo de referencia que predice la clase mayoritaria, regresión logística, \emph{random forest} e \emph{histogram gradient boosting}. La matriz \acroref{MARL}{MARL} usa una implementación de \acroref{PPO}{PPO} con actor por rol y crítico central; el adaptador PettingZoo--\acroref{RLlib}{RLlib} se mantiene como comprobación de compatibilidad. Las tres políticas son \textit{Scout}, \textit{Trader} y \textit{Portfolio}.
 
 \begin{table}[h]
 \centering
@@ -87,14 +89,14 @@ Bloque & Parámetros relevantes \\
 Supervisado & Partición temporal, umbral operativo, calibración, modelo candidato y columnas excluidas para evitar información futura. \\
 Compraventa & Dirección de la operación, horizonte, comisiones, tipo de cambio, ventana histórica y umbral de beneficio neto. \\
 Simulación & Saldo inicial, tamaño máximo de posición, \textit{trade hold}, comisiones y límites de exposición. \\
-\acroref{MARL}{MARL} & Políticas \textit{Scout}/\textit{Trader}/\textit{Portfolio}, algoritmo \acroref{PPO}{PPO}, $\gamma=0{,}99$, recompensa, restricciones y métricas de cartera. \\
-Matriz \acroref{MARL}{MARL} & 1.000~EUR iniciales, 100 iteraciones máximas, ocho episodios por iteración, parada tras 20 iteraciones sin mejora y semillas 7, 19 y 31. \\
+\acroref{MARL}{MARL} & Políticas \textit{Scout}/\textit{Trader}/\textit{Portfolio}, \acroref{PPO}{PPO}, $\gamma=0{,}99$, recompensa híbrida, restricciones, métricas de aprendizaje y de cartera. \\
+Matriz \acroref{MARL}{MARL} & Doce combinaciones: tres tamaños, de 5 a 100 activos y de 500 a 5.000~EUR, y cuatro perfiles de cartera; 80 iteraciones máximas, ocho episodios por iteración, parada tras 20 iteraciones sin mejora y semillas 7, 19 y 31. \\
 \bottomrule
 \end{tabularx}
 \caption{Configuración experimental.}
 \end{table}
 
-Los valores de la última fila corresponden a la matriz comunicada en el Capítulo~7. No constituyen parámetros universales del modelo: se registran para que la comparación entre configuraciones pueda repetirse en las mismas condiciones.
+Los valores de la última fila corresponden a la matriz comunicada en el Capítulo~7. El plan versionado \texttt{docs/experiments/2026-09-05-marl-full-grid.json} contiene los límites de cada combinación. No son parámetros universales del modelo: se registran para que la comparación pueda repetirse en las mismas condiciones, una vez disponible una copia local del conjunto de datos.
 
 \section{Modelo de datos}
 
@@ -104,6 +106,6 @@ El repositorio conserva además un esquema canónico de migración, distinto del
 
 \section{Artefactos de reproducibilidad}
 
-Los conjuntos derivados se guardan en \texttt{data/datasets}, incluidos los conjuntos \texttt{trading\_profit\_v1} y \texttt{trading\_profit\_v2}. Los modelos y las salidas de entrenamiento se almacenan en \texttt{model-runs}; los cortes temporales, informes y figuras de exploración se conservan en \texttt{data/experiments} y \texttt{docs/experiments}. Esta separación evita mezclar los artefactos generados con el código fuente y permite recuperar el contexto de una ejecución concreta.
+Los conjuntos derivados se guardan localmente en \texttt{data/datasets}, incluidos \texttt{trading\_profit\_v1} y \texttt{trading\_profit\_v2}. Los checkpoints y las salidas de entrenamiento se guardan en \texttt{model-runs}. Ambos directorios están excluidos del control de versiones: contienen datos de mercado generados localmente, resultados voluminosos y, en algunos flujos, configuraciones que requieren credenciales. El repositorio público sí conserva el código de construcción, los comandos, los tests, el plan de la matriz \acroref{MARL}{MARL} en \texttt{docs/experiments} y las figuras incorporadas a la memoria. Esta separación permite auditar la metodología sin publicar datos sensibles o no redistribuibles.
 
 Para que un experimento aporte evidencia reproducible, debe registrar como mínimo: configuración usada, periodo temporal, número de artículos, tamaño de cada partición, proporción de operaciones rentables, modelo o política evaluada, métricas principales y limitaciones observadas.

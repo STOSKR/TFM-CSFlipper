@@ -18,6 +18,7 @@ class PortfolioRiskConfig:
     max_platform_fraction: Decimal = Decimal("0.70")
     min_cash_fraction: Decimal = Decimal("0.10")
     warning_usage_ratio: Decimal = Decimal("0.80")
+    max_open_positions: int | None = None
 
     def __post_init__(self) -> None:
         _require_unit_interval(self.max_position_fraction, "max_position_fraction")
@@ -25,6 +26,8 @@ class PortfolioRiskConfig:
         _require_unit_interval(self.max_platform_fraction, "max_platform_fraction")
         _require_unit_interval(self.min_cash_fraction, "min_cash_fraction")
         _require_unit_interval(self.warning_usage_ratio, "warning_usage_ratio")
+        if self.max_open_positions is not None and self.max_open_positions <= 0:
+            raise ValueError("max_open_positions must be positive when supplied")
 
 
 @dataclass(frozen=True, slots=True)
@@ -121,6 +124,14 @@ def evaluate_portfolio_risk(
             risk_config,
         ),
     }
+    if risk_config.max_open_positions is not None:
+        open_positions_after_candidate = Decimal(metrics.open_positions + (1 if candidate else 0))
+        limits["open_positions"] = _max_limit(
+            "open_positions",
+            open_positions_after_candidate,
+            Decimal(risk_config.max_open_positions),
+            risk_config,
+        )
     violations = tuple(name for name, metric in limits.items() if metric.breached)
     warnings = tuple(
         name for name, metric in limits.items() if metric.warning and not metric.breached

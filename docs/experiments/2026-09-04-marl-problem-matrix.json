@@ -1,0 +1,48 @@
+{
+  "base": {
+    "dataset_dir": "data/datasets/trading_profit_v2",
+    "iterations": 80,
+    "episodes_per_iteration": 8,
+    "episode_days": 14,
+    "max_steps_per_episode": 2000,
+    "learning_rate": 0.0003,
+    "gamma": 0.99,
+    "ppo_clip": 0.20,
+    "update_epochs": 4,
+    "entropy_weight": 0.01,
+    "value_weight": 0.50,
+    "early_stopping_patience": 20,
+    "validation_seed": 10007,
+    "roi_weight": "0.60",
+    "extra_hold_day_penalty": "0.01",
+    "constraint_violation_penalty": "0.80",
+    "shared_weight": "0.70",
+    "target_investment_fraction": "0.50",
+    "target_investment_tolerance": "0.05",
+    "max_position_fraction": "0.20",
+    "max_item_fraction": "0.30",
+    "max_platform_fraction": "0.70",
+    "min_cash_fraction": "0.10"
+  },
+  "experiments": [
+    {"name": "small_restricted_s07", "scenario_name": "small_restricted", "asset_count": 5, "cash": "500", "max_position_fraction": "0.10", "max_item_fraction": "0.15", "max_platform_fraction": "0.50", "min_cash_fraction": "0.25", "max_open_positions": 3, "target_investment_fraction": "0.35", "seed": 7},
+    {"name": "small_restricted_s19", "scenario_name": "small_restricted", "asset_count": 5, "cash": "500", "max_position_fraction": "0.10", "max_item_fraction": "0.15", "max_platform_fraction": "0.50", "min_cash_fraction": "0.25", "max_open_positions": 3, "target_investment_fraction": "0.35", "seed": 19},
+    {"name": "small_restricted_s31", "scenario_name": "small_restricted", "asset_count": 5, "cash": "500", "max_position_fraction": "0.10", "max_item_fraction": "0.15", "max_platform_fraction": "0.50", "min_cash_fraction": "0.25", "max_open_positions": 3, "target_investment_fraction": "0.35", "seed": 31},
+
+    {"name": "medium_standard_s07", "scenario_name": "medium_standard", "asset_count": 20, "cash": "1000", "max_open_positions": 8, "seed": 7},
+    {"name": "medium_standard_s19", "scenario_name": "medium_standard", "asset_count": 20, "cash": "1000", "max_open_positions": 8, "seed": 19},
+    {"name": "medium_standard_s31", "scenario_name": "medium_standard", "asset_count": 20, "cash": "1000", "max_open_positions": 8, "seed": 31},
+
+    {"name": "large_standard_s07", "scenario_name": "large_standard", "asset_count": 100, "cash": "5000", "max_open_positions": 20, "seed": 7},
+    {"name": "large_standard_s19", "scenario_name": "large_standard", "asset_count": 100, "cash": "5000", "max_open_positions": 20, "seed": 19},
+    {"name": "large_standard_s31", "scenario_name": "large_standard", "asset_count": 100, "cash": "5000", "max_open_positions": 20, "seed": 31},
+
+    {"name": "medium_concentrated_s07", "scenario_name": "medium_concentrated", "asset_count": 20, "cash": "1000", "max_position_fraction": "0.30", "max_item_fraction": "0.60", "max_platform_fraction": "0.90", "min_cash_fraction": "0.05", "max_open_positions": 3, "target_investment_fraction": "0.65", "seed": 7},
+    {"name": "medium_concentrated_s19", "scenario_name": "medium_concentrated", "asset_count": 20, "cash": "1000", "max_position_fraction": "0.30", "max_item_fraction": "0.60", "max_platform_fraction": "0.90", "min_cash_fraction": "0.05", "max_open_positions": 3, "target_investment_fraction": "0.65", "seed": 19},
+    {"name": "medium_concentrated_s31", "scenario_name": "medium_concentrated", "asset_count": 20, "cash": "1000", "max_position_fraction": "0.30", "max_item_fraction": "0.60", "max_platform_fraction": "0.90", "min_cash_fraction": "0.05", "max_open_positions": 3, "target_investment_fraction": "0.65", "seed": 31},
+
+    {"name": "medium_diversified_s07", "scenario_name": "medium_diversified", "asset_count": 20, "cash": "1000", "max_position_fraction": "0.15", "max_item_fraction": "0.20", "max_platform_fraction": "0.70", "min_cash_fraction": "0.10", "max_open_positions": 12, "target_investment_fraction": "0.65", "seed": 7},
+    {"name": "medium_diversified_s19", "scenario_name": "medium_diversified", "asset_count": 20, "cash": "1000", "max_position_fraction": "0.15", "max_item_fraction": "0.20", "max_platform_fraction": "0.70", "min_cash_fraction": "0.10", "max_open_positions": 12, "target_investment_fraction": "0.65", "seed": 19},
+    {"name": "medium_diversified_s31", "scenario_name": "medium_diversified", "asset_count": 20, "cash": "1000", "max_position_fraction": "0.15", "max_item_fraction": "0.20", "max_platform_fraction": "0.70", "min_cash_fraction": "0.10", "max_open_positions": 12, "target_investment_fraction": "0.65", "seed": 31}
+  ]
+}

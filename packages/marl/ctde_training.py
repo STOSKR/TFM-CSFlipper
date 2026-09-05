@@ -14,7 +14,7 @@ from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from decimal import Decimal
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 import torch
@@ -29,6 +29,7 @@ from packages.marl.market_env import (
     MarketMARLEnvironment,
 )
 from packages.marl.rewards import CooperativeRewardConfig, HybridRewardConfig
+from packages.simulation import PortfolioRiskConfig
 
 
 @dataclass(frozen=True, slots=True)
@@ -55,6 +56,9 @@ class CTDETrainingConfig:
     test_seed: int = 20_007
     include_supervised_probability: bool = True
     evaluate_test: bool = True
+    scenario_name: str = "complete"
+    asset_ids: tuple[str, ...] | None = None
+    risk_config: PortfolioRiskConfig = PortfolioRiskConfig()
     reward_config: CooperativeRewardConfig = CooperativeRewardConfig()
     hybrid_reward_config: HybridRewardConfig = HybridRewardConfig()
     allocation_config: AllocationTargetConfig = AllocationTargetConfig()
@@ -70,6 +74,10 @@ class CTDETrainingConfig:
             raise ValueError("gamma must be in (0, 1]")
         if self.early_stopping_patience is not None and self.early_stopping_patience <= 0:
             raise ValueError("early_stopping_patience must be positive when provided")
+        if not self.scenario_name.strip():
+            raise ValueError("scenario_name must not be empty")
+        if self.asset_ids is not None and not self.asset_ids:
+            raise ValueError("asset_ids must not be empty when supplied")
 
 
 class _Actor(nn.Module):
@@ -78,8 +86,7 @@ class _Actor(nn.Module):
         inputs: int,
         outputs: int,
         *,
-        initial_preferred_action: int = 0,
-        initial_sell_feature_index: int | None = None,
+        initial_preferred_action: int | None = None,
     ) -> None:
         super().__init__()
         self.network = nn.Sequential(
@@ -90,9 +97,9 @@ class _Actor(nn.Module):
             nn.Linear(64, outputs),
         )
         self.direct = nn.Linear(inputs, outputs)
-        # La exploración comienza con una ligera preferencia por la acción
-        # operativa. Así se obtienen cierres y recompensas observables desde
-        # los primeros episodios; los pesos aprendidos pueden revertirla.
+        # Las políticas parten de logits neutros: la exploración debe surgir
+        # de la política estocástica y de las recompensas, no de un sesgo
+        # inicial hacia comprar, vender o aprobar.
         with torch.no_grad():
             output = self.network[-1]
             if isinstance(output, nn.Linear):
@@ -100,13 +107,11 @@ class _Actor(nn.Module):
                 nn.init.zeros_(output.bias)
                 nn.init.zeros_(self.direct.weight)
                 nn.init.zeros_(self.direct.bias)
-                self.direct.bias[initial_preferred_action] = 0.50
-                if initial_sell_feature_index is not None and outputs > 2:
-                    self.direct.bias[2] = -0.20
-                    self.direct.weight[2, initial_sell_feature_index] = 1.0
+                if initial_preferred_action is not None:
+                    self.direct.bias[initial_preferred_action] = 0.50
 
     def forward(self, observation: Tensor) -> Tensor:
-        return self.network(observation) + self.direct(observation)
+        return cast(Tensor, self.network(observation) + self.direct(observation))
 
 
 class _CentralEvaluator(nn.Module):
@@ -121,7 +126,7 @@ class _CentralEvaluator(nn.Module):
         )
 
     def forward(self, state: Tensor) -> Tensor:
-        return self.network(state)
+        return cast(Tensor, self.network(state))
 
 
 @dataclass(slots=True)
@@ -130,8 +135,12 @@ class _Rollout:
     states: list[np.ndarray[Any, Any]]
     actions: dict[str, list[int]]
     action_masks: dict[str, list[np.ndarray[Any, Any]]]
+    action_probabilities: dict[str, list[np.ndarray[Any, Any]]]
+    policy_entropies: dict[str, list[float]]
     log_probabilities: dict[str, list[float]]
     rewards: dict[str, list[float]]
+    common_reward_components: dict[str, list[float]]
+    agent_reward_components: dict[str, dict[str, list[float]]]
     mean_common_reward: float
     final_equity_return: float
     final_equity_eur: float
@@ -177,9 +186,26 @@ def train_ctde(config: CTDETrainingConfig) -> dict[str, Any]:
 
     _seed_everything(config.seed)
     config.output_dir.mkdir(parents=True, exist_ok=True)
-    train_source = load_market_episode_source(config.dataset_dir, split=config.train_split)
-    validation_source = load_market_episode_source(config.dataset_dir, split=config.validation_split)
-    test_source = load_market_episode_source(config.dataset_dir, split=config.test_split)
+    item_ids = None if config.asset_ids is None else frozenset(config.asset_ids)
+    train_source = load_market_episode_source(
+        config.dataset_dir,
+        split=config.train_split,
+        item_ids=item_ids,
+    )
+    validation_source = load_market_episode_source(
+        config.dataset_dir,
+        split=config.validation_split,
+        item_ids=item_ids,
+    )
+    test_source = (
+        load_market_episode_source(
+            config.dataset_dir,
+            split=config.test_split,
+            item_ids=item_ids,
+        )
+        if config.evaluate_test
+        else None
+    )
     actors, evaluator = _models()
     optimizer = torch.optim.Adam(
         [parameter for model in (*actors.values(), evaluator) for parameter in model.parameters()],
@@ -260,7 +286,7 @@ def train_ctde(config: CTDETrainingConfig) -> dict[str, Any]:
             rng=random.Random(config.test_seed),
             episodes=max(1, min(8, config.episodes_per_iteration)),
         )
-        if config.evaluate_test
+        if test_source is not None
         else None
     )
     report = {
@@ -268,6 +294,12 @@ def train_ctde(config: CTDETrainingConfig) -> dict[str, Any]:
         "actors": list(AGENT_IDS),
         "central_evaluator": "solo entrenamiento",
         "dataset_dir": str(config.dataset_dir),
+        "scenario": {
+            "name": config.scenario_name,
+            "asset_count": None if config.asset_ids is None else len(config.asset_ids),
+            "asset_ids": None if config.asset_ids is None else list(config.asset_ids),
+            "risk_config": _risk_config_dict(config.risk_config),
+        },
         "splits": {
             "train": config.train_split,
             "validation": config.validation_split,
@@ -297,12 +329,6 @@ def _models() -> tuple[dict[str, _Actor], _CentralEvaluator]:
         agent_id: _Actor(
             len(AGENT_SPECS[agent_id].observation_fields),
             len(AGENT_SPECS[agent_id].action_space),
-            initial_preferred_action=1,
-            initial_sell_feature_index=(
-                AGENT_SPECS[agent_id].observation_fields.index("matching_sellable_positions")
-                if agent_id == "trader"
-                else None
-            ),
         )
         for agent_id in AGENT_IDS
     }
@@ -329,6 +355,7 @@ def _sample_rollout(
     env = MarketMARLEnvironment(
         steps,
         initial_cash_eur=config.initial_cash_eur,
+        risk_config=config.risk_config,
         reward_config=config.reward_config,
         hybrid_reward_config=config.hybrid_reward_config,
         allocation_config=config.allocation_config,
@@ -346,17 +373,29 @@ def _sample_rollout(
             mask = action_masks[agent_id]
             logits = _masked_logits(actors[agent_id](observation), mask)
             distribution = Categorical(logits=logits)
-            action = distribution.sample() if explore else torch.argmax(logits)
+            action = distribution.sample() if explore else torch.argmax(logits)  # type: ignore[no-untyped-call]
             rollout.observations[agent_id].append(observation.detach().numpy())
             rollout.actions[agent_id].append(int(action.item()))
             rollout.action_masks[agent_id].append(np.asarray(mask, dtype=np.bool_))
-            rollout.log_probabilities[agent_id].append(float(distribution.log_prob(action).item()))
+            rollout.action_probabilities[agent_id].append(distribution.probs.detach().numpy())
+            rollout.policy_entropies[agent_id].append(
+                float(distribution.entropy().item())  # type: ignore[no-untyped-call]
+            )
+            rollout.log_probabilities[agent_id].append(
+                float(distribution.log_prob(action).item())  # type: ignore[no-untyped-call]
+            )
             actions[agent_id] = int(action.item())
         rollout.states.append(central_state.detach().numpy())
         observations, rewards, _terminations, _truncations, infos = env.step(actions)
-        common_rewards.append(float(infos["scout"]["reward_breakdown"]["total"]))
+        common_breakdown = infos["scout"]["reward_breakdown"]
+        common_rewards.append(float(common_breakdown["total"]))
+        for component, value in common_breakdown.items():
+            rollout.common_reward_components[component].append(float(value))
         for agent_id in AGENT_IDS:
             rollout.rewards[agent_id].append(float(rewards[agent_id]))
+            agent_breakdown = infos[agent_id]["individual_reward_breakdown"]
+            for component, value in agent_breakdown.items():
+                rollout.agent_reward_components[agent_id][component].append(float(value))
         if infos["trader"].get("executed_sale"):
             rollout.closed_operations += 1
 
@@ -379,8 +418,31 @@ def _empty_rollout() -> _Rollout:
         states=[],
         actions={agent_id: [] for agent_id in AGENT_IDS},
         action_masks={agent_id: [] for agent_id in AGENT_IDS},
+        action_probabilities={agent_id: [] for agent_id in AGENT_IDS},
+        policy_entropies={agent_id: [] for agent_id in AGENT_IDS},
         log_probabilities={agent_id: [] for agent_id in AGENT_IDS},
         rewards={agent_id: [] for agent_id in AGENT_IDS},
+        common_reward_components={
+            component: []
+            for component in (
+                "total",
+                "closed_operation_roi",
+                "extra_hold_days",
+                "invalid_purchase",
+            )
+        },
+        agent_reward_components={
+            agent_id: {
+                component: []
+                for component in (
+                    "total",
+                    "shared_component",
+                    "individual_signal",
+                    "individual_component",
+                )
+            }
+            for agent_id in AGENT_IDS
+        },
         mean_common_reward=0.0,
         final_equity_return=0.0,
         final_equity_eur=0.0,
@@ -400,11 +462,16 @@ def _update_models(
     *,
     config: CTDETrainingConfig,
 ) -> dict[str, float]:
-    states = torch.as_tensor(np.concatenate([rollout.states for rollout in rollouts]), dtype=torch.float32)
+    states = torch.as_tensor(
+        np.concatenate([rollout.states for rollout in rollouts]), dtype=torch.float32
+    )
     returns = {
         agent_id: torch.as_tensor(
             np.concatenate(
-                [_discounted_returns(rollout.rewards[agent_id], config.gamma) for rollout in rollouts]
+                [
+                    _discounted_returns(rollout.rewards[agent_id], config.gamma)
+                    for rollout in rollouts
+                ]
             ),
             dtype=torch.float32,
         )
@@ -443,43 +510,85 @@ def _update_models(
         agent_id: _normalise(returns[agent_id] - baseline[:, index])
         for index, agent_id in enumerate(AGENT_IDS)
     }
-    last_actor_loss = 0.0
-    last_value_loss = 0.0
+    actor_loss_history: dict[str, list[float]] = {agent_id: [] for agent_id in AGENT_IDS}
+    entropy_history: dict[str, list[float]] = {agent_id: [] for agent_id in AGENT_IDS}
+    clip_fraction_history: dict[str, list[float]] = {agent_id: [] for agent_id in AGENT_IDS}
+    approximate_kl_history: dict[str, list[float]] = {agent_id: [] for agent_id in AGENT_IDS}
+    value_loss_history: list[float] = []
+    total_loss_history: list[float] = []
     for _ in range(config.update_epochs):
         values = evaluator(states)
-        actor_losses: list[Tensor] = []
-        entropies: list[Tensor] = []
+        actor_losses: dict[str, Tensor] = {}
+        entropies: dict[str, Tensor] = {}
+        clip_fractions: dict[str, Tensor] = {}
+        approximate_kls: dict[str, Tensor] = {}
         for agent_id in AGENT_IDS:
             distribution = Categorical(
-                logits=_masked_logits(actors[agent_id](observations[agent_id]), action_masks[agent_id])
+                logits=_masked_logits(
+                    actors[agent_id](observations[agent_id]), action_masks[agent_id]
+                )
             )
-            log_probability = distribution.log_prob(actions[agent_id])
+            log_probability = distribution.log_prob(actions[agent_id])  # type: ignore[no-untyped-call]
             ratio = torch.exp(log_probability - old_log_probabilities[agent_id])
             unclipped = ratio * advantages[agent_id]
-            clipped = torch.clamp(
-                ratio,
-                1 - config.ppo_clip,
-                1 + config.ppo_clip,
-            ) * advantages[agent_id]
-            actor_losses.append(-torch.minimum(unclipped, clipped).mean())
-            entropies.append(distribution.entropy().mean())
-        value_loss = sum(
-            nn.functional.mse_loss(values[:, index], returns[agent_id])
-            for index, agent_id in enumerate(AGENT_IDS)
-        ) / len(AGENT_IDS)
-        actor_loss = sum(actor_losses) / len(actor_losses)
-        entropy = sum(entropies) / len(entropies)
-        loss = actor_loss + config.value_weight * value_loss - config.entropy_weight * entropy
+            clipped = (
+                torch.clamp(
+                    ratio,
+                    1 - config.ppo_clip,
+                    1 + config.ppo_clip,
+                )
+                * advantages[agent_id]
+            )
+            actor_losses[agent_id] = -torch.minimum(unclipped, clipped).mean()
+            entropies[agent_id] = distribution.entropy().mean()  # type: ignore[no-untyped-call]
+            clip_fractions[agent_id] = (torch.abs(ratio - 1) > config.ppo_clip).float().mean()
+            approximate_kls[agent_id] = (old_log_probabilities[agent_id] - log_probability).mean()
+        value_loss = cast(
+            Tensor,
+            sum(
+                nn.functional.mse_loss(values[:, index], returns[agent_id])
+                for index, agent_id in enumerate(AGENT_IDS)
+            )
+            / len(AGENT_IDS),
+        )
+        actor_loss = sum(actor_losses.values(), torch.zeros((), dtype=torch.float32)) / len(
+            actor_losses
+        )
+        entropy = sum(entropies.values(), torch.zeros((), dtype=torch.float32)) / len(entropies)
+        loss: Tensor = (
+            actor_loss + config.value_weight * value_loss - config.entropy_weight * entropy
+        )
         optimizer.zero_grad()
-        loss.backward()
+        loss.backward()  # type: ignore[no-untyped-call]
         torch.nn.utils.clip_grad_norm_(
-            [parameter for model in (*actors.values(), evaluator) for parameter in model.parameters()],
+            [
+                parameter
+                for model in (*actors.values(), evaluator)
+                for parameter in model.parameters()
+            ],
             max_norm=1.0,
         )
         optimizer.step()
-        last_actor_loss = float(actor_loss.item())
-        last_value_loss = float(value_loss.item())
-    return {"actor_loss": last_actor_loss, "value_loss": last_value_loss}
+        value_loss_history.append(float(value_loss.item()))
+        total_loss_history.append(float(loss.item()))
+        for agent_id in AGENT_IDS:
+            actor_loss_history[agent_id].append(float(actor_losses[agent_id].item()))
+            entropy_history[agent_id].append(float(entropies[agent_id].item()))
+            clip_fraction_history[agent_id].append(float(clip_fractions[agent_id].item()))
+            approximate_kl_history[agent_id].append(float(approximate_kls[agent_id].item()))
+    metrics = {
+        "actor_loss": float(
+            np.mean([value for values in actor_loss_history.values() for value in values])
+        ),
+        "value_loss": float(np.mean(value_loss_history)),
+        "total_loss": float(np.mean(total_loss_history)),
+    }
+    for agent_id in AGENT_IDS:
+        metrics[f"actor_loss_{agent_id}"] = float(np.mean(actor_loss_history[agent_id]))
+        metrics[f"entropy_{agent_id}"] = float(np.mean(entropy_history[agent_id]))
+        metrics[f"clip_fraction_{agent_id}"] = float(np.mean(clip_fraction_history[agent_id]))
+        metrics[f"approximate_kl_{agent_id}"] = float(np.mean(approximate_kl_history[agent_id]))
+    return metrics
 
 
 def _evaluate_source(
@@ -503,7 +612,7 @@ def _evaluate_source(
 
 
 def _rollout_metrics(rollouts: list[_Rollout]) -> dict[str, float | int]:
-    return {
+    metrics: dict[str, float | int] = {
         "episodes": len(rollouts),
         "equity_return": float(np.mean([rollout.final_equity_return for rollout in rollouts])),
         "final_equity_eur": float(np.mean([rollout.final_equity_eur for rollout in rollouts])),
@@ -513,13 +622,48 @@ def _rollout_metrics(rollouts: list[_Rollout]) -> dict[str, float | int]:
         "realized_profit_eur": float(
             np.mean([rollout.realized_profit_eur for rollout in rollouts])
         ),
-        "open_invested_eur": float(
-            np.mean([rollout.open_invested_eur for rollout in rollouts])
-        ),
+        "open_invested_eur": float(np.mean([rollout.open_invested_eur for rollout in rollouts])),
         "open_positions": float(np.mean([rollout.open_positions for rollout in rollouts])),
         "mean_common_reward": float(np.mean([rollout.mean_common_reward for rollout in rollouts])),
         "closed_operations": int(sum(rollout.closed_operations for rollout in rollouts)),
     }
+    for component in ("total", "closed_operation_roi", "extra_hold_days", "invalid_purchase"):
+        metrics[f"mean_common_reward_{component}"] = _mean_metric(
+            [rollout.common_reward_components[component] for rollout in rollouts]
+        )
+    metrics["mean_common_reward"] = metrics["mean_common_reward_total"]
+    for agent_id in AGENT_IDS:
+        metrics[f"mean_reward_{agent_id}"] = _mean_metric(
+            [rollout.rewards[agent_id] for rollout in rollouts]
+        )
+        metrics[f"mean_policy_entropy_{agent_id}"] = _mean_metric(
+            [rollout.policy_entropies[agent_id] for rollout in rollouts]
+        )
+        for component in ("total", "shared_component", "individual_signal", "individual_component"):
+            metrics[f"mean_{agent_id}_{component}"] = _mean_metric(
+                [rollout.agent_reward_components[agent_id][component] for rollout in rollouts]
+            )
+        actions = [action for rollout in rollouts for action in rollout.actions[agent_id]]
+        probabilities = [
+            probability
+            for rollout in rollouts
+            for probability in rollout.action_probabilities[agent_id]
+        ]
+        for action_id, action_name in AGENT_SPECS[agent_id].action_space.items():
+            metrics[f"action_rate_{agent_id}_{action_name}"] = (
+                float(np.mean([action == action_id for action in actions])) if actions else 0.0
+            )
+            metrics[f"mean_action_probability_{agent_id}_{action_name}"] = (
+                float(np.mean([probability[action_id] for probability in probabilities]))
+                if probabilities
+                else 0.0
+            )
+    return metrics
+
+
+def _mean_metric(values_by_rollout: list[list[float]]) -> float:
+    values = [value for values in values_by_rollout for value in values]
+    return float(np.mean(values)) if values else 0.0
 
 
 def _discounted_returns(rewards: list[float], gamma: float) -> np.ndarray[Any, Any]:
@@ -578,10 +722,17 @@ def _save_checkpoint(
             },
             "central_state_fields": list(MarketMARLEnvironment.central_state_fields),
             "reward_config": _reward_config_dict(config.reward_config),
-            "hybrid_reward_config": {"shared_weight": str(config.hybrid_reward_config.shared_weight)},
+            "hybrid_reward_config": {
+                "shared_weight": str(config.hybrid_reward_config.shared_weight)
+            },
             "allocation_config": {
                 "target_fraction": str(config.allocation_config.target_fraction),
                 "tolerance": str(config.allocation_config.tolerance),
+            },
+            "risk_config": _risk_config_dict(config.risk_config),
+            "scenario": {
+                "name": config.scenario_name,
+                "asset_ids": None if config.asset_ids is None else list(config.asset_ids),
             },
         },
         path,
@@ -609,12 +760,17 @@ def _write_metadata(path: Path, *, config: CTDETrainingConfig, report: dict[str,
             "output_dir": str(config.output_dir),
             "initial_cash_eur": str(config.initial_cash_eur),
             "reward_config": _reward_config_dict(config.reward_config),
-            "hybrid_reward_config": {"shared_weight": str(config.hybrid_reward_config.shared_weight)},
+            "hybrid_reward_config": {
+                "shared_weight": str(config.hybrid_reward_config.shared_weight)
+            },
+            "risk_config": _risk_config_dict(config.risk_config),
         },
         "best_validation_equity_return": report["best_validation_equity_return"],
         "test": report["test"],
     }
-    path.write_text(json.dumps(payload, indent=2, ensure_ascii=False, default=str), encoding="utf-8")
+    path.write_text(
+        json.dumps(payload, indent=2, ensure_ascii=False, default=str), encoding="utf-8"
+    )
 
 
 def _reward_config_dict(config: CooperativeRewardConfig) -> dict[str, str]:
@@ -622,6 +778,17 @@ def _reward_config_dict(config: CooperativeRewardConfig) -> dict[str, str]:
         "roi_weight": str(config.roi_weight),
         "extra_hold_day_penalty": str(config.extra_hold_day_penalty),
         "constraint_violation_penalty": str(config.constraint_violation_penalty),
+    }
+
+
+def _risk_config_dict(config: PortfolioRiskConfig) -> dict[str, str | int | None]:
+    return {
+        "max_position_fraction": str(config.max_position_fraction),
+        "max_item_fraction": str(config.max_item_fraction),
+        "max_platform_fraction": str(config.max_platform_fraction),
+        "min_cash_fraction": str(config.min_cash_fraction),
+        "warning_usage_ratio": str(config.warning_usage_ratio),
+        "max_open_positions": config.max_open_positions,
     }
 
 
