@@ -113,7 +113,7 @@ Reciente & 551 & 76 & 84 \\
 \begin{figure}[H]
 \centering
 \includegraphics[width=\textwidth]{figures/experimentacion/06_cortes_datasets.png}
-\caption{Número de ejemplos y porcentaje de operaciones rentables en los cortes temporales.}
+\caption{Cortes temporales: tamaño y tasa positiva.}
 \label{fig:evolucion-cortes}
 \end{figure}
 
@@ -170,7 +170,7 @@ Prueba & 12.971 & 354 & 01/03/2026--30/06/2026 & 82,5\,\% \\
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.94\textwidth]{figures/experimentacion/07_dataset_trading_v2.png}
-\caption{Tamaño y distribución de la etiqueta en \texttt{trading\_profit\_v2}.}
+\caption{Distribución de \texttt{trading\_profit\_v2}.}
 \label{fig:dataset-trading-v2}
 \end{figure}
 
@@ -197,7 +197,7 @@ Umbral & Precisión & Exhaustividad & Señales \\
 0,90 & 1,000 & 0,003 & 22 \\
 \bottomrule
 \end{tabular}
-\caption{Umbrales de la exploración supervisada de dirección Steam.}
+\caption{Umbrales de dirección Steam.}
 \label{tab:umbrales-direccion-steam}
 \end{table}
 
@@ -289,7 +289,7 @@ Sí & Sí & 0,575 & 0,085 & 0,924 & 92 \\
 No & Sí & 0,613 & 0,084 & 0,919 & 86 \\
 \bottomrule
 \end{tabular}
-\caption{Ablación de variables históricas y perturbación numérica.}
+\caption{Ablación: histórico y perturbación.}
 \label{tab:ablacion-marzo}
 \end{table}
 
@@ -439,7 +439,7 @@ Además del retorno de validación, se registra la recompensa común por paso, l
 \begin{figure}[H]
 \centering
 \includegraphics[width=\textwidth]{figures/experimentacion/09_marl_recompensas.png}
-\caption{Evolución de las recompensas por paso durante el entrenamiento. Las bandas representan la desviación típica entre semillas.}
+\caption{Recompensas durante el entrenamiento.}
 \label{fig:marl-recompensas}
 \end{figure}
 
@@ -448,7 +448,7 @@ La Figura~\ref{fig:marl-recompensas} muestra la media y la variabilidad entre se
 \begin{figure}[H]
 \centering
 \includegraphics[width=\textwidth]{figures/experimentacion/10_marl_estabilidad_ppo.png}
-\caption{Pérdida de valor del crítico y entropía de las políticas durante el entrenamiento con PPO.}
+\caption{Estabilidad del entrenamiento con PPO.}
 \label{fig:marl-estabilidad}
 \end{figure}
 
@@ -457,7 +457,7 @@ La Figura~\ref{fig:marl-estabilidad} completa el diagnóstico. La pérdida de va
 \begin{figure}[H]
 \centering
 \includegraphics[width=\textwidth]{figures/experimentacion/11_marl_politicas.png}
-\caption{Probabilidad media de cada acción al inicio y al final del entrenamiento.}
+\caption{Políticas al inicio y al final del entrenamiento.}
 \label{fig:marl-politicas}
 \end{figure}
 
@@ -485,14 +485,14 @@ Grande & Concentrado & 0,250\,\% & 0,190--0,370\,\% \\
 Grande & Diversificado & 1,878\,\% & 1,623--2,006\,\% \\
 \bottomrule
 \end{tabularx}
-\caption{Retorno de validación de la cuadrícula completa MARL.}
+\caption{Validación MARL por escenario.}
 \label{tab:resultados-tipologias-marl}
 \end{table}
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=\textwidth]{figures/experimentacion/12_marl_cuadricula_completa.png}
-\caption{Retorno de validación por tamaño y perfil de cartera.}
+\caption{Retorno de validación por escenario.}
 \label{fig:marl-cuadricula-completa}
 \end{figure}
 
@@ -502,7 +502,7 @@ La Figura~\ref{fig:marl-cuadricula-completa} permite comparar los perfiles dentr
 
 Una vez elegida la tipología media diversificada mediante validación, se ha realizado una única evaluación sobre el bloque de prueba. Los tres checkpoints MARL, las tres réplicas de la referencia PPO centralizada formada por una única política, la regla de margen neto positivo y la política de mantener efectivo recorren las mismas ocho ventanas temporales, con los mismos veinte activos, 1.000~EUR y restricciones. La política centralizada observa el estado global y escoge la acción conjunta, mientras que los tres roles MARL actúan con sus observaciones locales. En todas las filas se mide el valor de una única cartera conjunta, no el rendimiento aislado de cada rol.
 
-La Tabla~\ref{tab:prueba-final-marl} muestra la comparación. MARL obtiene un retorno medio de 6,605\,\% y 66,05~EUR de beneficio realizado; supera a mantener efectivo y a la política PPO centralizada, cuyo promedio queda condicionado por una semilla que no mejora en validación. Sin embargo, la regla determinista de margen positivo alcanza 7,098\,\%. La diferencia de 0,493 puntos porcentuales no permite presentar la arquitectura multiagente como superior a esa referencia simple. El resultado sí confirma que las políticas MARL seleccionadas en validación se ejecutan sobre prueba con resultados positivos y reproducibles entre semillas.
+La Tabla~\ref{tab:prueba-final-marl} muestra la comparación. MARL obtiene un retorno medio de 6,605\,\%, con un intervalo entre semillas de 6,163--6,869\,\%, y 66,05~EUR de beneficio realizado; supera a mantener efectivo y a la política PPO centralizada, cuyo promedio queda condicionado por una semilla que no mejora en validación. Sin embargo, la regla determinista de margen positivo alcanza 7,098\,\%. La diferencia de 0,493 puntos porcentuales no permite presentar la arquitectura multiagente como superior a esa referencia simple. El resultado sí confirma que las políticas MARL seleccionadas en validación se ejecutan sobre prueba con resultados positivos y reproducibles entre semillas.
 
 \begin{table}[htbp]
 \centering
@@ -517,7 +517,7 @@ PPO centralizado (una política) & 4,486\,\% & 44,86~EUR & 7,50 & 8,00 \\
 MARL (tres roles) & 6,605\,\% & 66,05~EUR & 11,00 & 12,00 \\
 \bottomrule
 \end{tabularx}
-\caption{Evaluación única del valor de la cartera conjunta en prueba para la tipología media diversificada. Para MARL, el intervalo entre semillas es 6,163--6,869\,\%.}
+\caption{Políticas de cartera en prueba.}
 \label{tab:prueba-final-marl}
 \end{table}
 

@@ -53,7 +53,7 @@ En el instante $t$, el estado global se expresa como $s_t=(m_t,c_t,h_t)$. El blo
 
 \begin{table}[H]
 \centering
-\caption{Componentes del estado global del modelo $\mathcal{M}_{\mathrm{CS2}}$.}
+\caption{Estado global de $\mathcal{M}_{\mathrm{CS2}}$.}
 \label{tab:componentes-estado-marl}
 \begin{tabularx}{\textwidth}{@{}p{0.18\textwidth}p{0.29\textwidth}X@{}}
 \toprule
@@ -108,7 +108,7 @@ Venta & El agente \textit{Trader} propone vender, el agente \textit{Portfolio} a
 Mantenimiento o rechazo & Cualquier otra combinación, o una compra o venta que no cumple sus condiciones. & Conserva la parte económica de la cartera y registra el motivo de no ejecución. \\
 \bottomrule
 \end{tabularx}
-\caption{Resultados de la transición del simulador sobre la cartera.}
+\caption{Transición de cartera.}
 \label{tab:transicion-simulador}
 \end{table}
 
@@ -217,7 +217,7 @@ Una vez definido el problema MARL, la arquitectura describe cómo se organizan l
 
   \end{tikzpicture}
 
-  \caption{Niveles principales de la arquitectura propuesta.}
+  \caption{Arquitectura propuesta.}
   \label{fig:arquitectura-niveles}
 \end{figure}
 
@@ -299,7 +299,7 @@ Una vez definido el problema MARL, la arquitectura describe cómo se organizan l
       (cartera.east);
   \end{tikzpicture}
 
-  \caption{Construcción del estado y retroalimentación de la decisión simulada.}
+  \caption{Ciclo de decisión simulada.}
   \label{fig:arquitectura-estado-retroalimentacion}
 \end{figure}
 

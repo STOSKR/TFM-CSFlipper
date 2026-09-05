@@ -157,7 +157,7 @@ La Figura~\ref{fig:ciclo-rl} representa el ciclo básico de interacción. El est
     \draw[retorno] (entorno.north east) -- node[right, font=\small] {recompensa $r_{t+1}$} (agente.south east);
     \draw[retorno] (entorno.west) .. controls +(-4.0,0) and +(-4.0,0) .. node[left, font=\small, align=center] {nuevo estado\\$s_{t+1}$} (estado.west);
   \end{tikzpicture}
-  \caption{Ciclo de interacción entre un agente y un entorno en aprendizaje por refuerzo.}
+  \caption{Ciclo agente-entorno en aprendizaje por refuerzo.}
   \label{fig:ciclo-rl}
 \end{figure}
 
@@ -254,7 +254,7 @@ El paradigma de entrenamiento centralizado y ejecución descentralizada, conocid
     \draw[flujo] (agenteN.south) -- node[right, font=\scriptsize] {$a_t^N$} (entorno.north east);
     \draw[entrenamiento] (entorno) -- node[right, font=\scriptsize, align=left] {estado global y\\acción conjunta} (evaluador);
   \end{tikzpicture}
-  \caption{Interacción general en MARL con entrenamiento centralizado y ejecución descentralizada.}
+  \caption{MARL con entrenamiento centralizado y ejecución descentralizada.}
   \label{fig:marl-ctde}
 \end{figure}
 
