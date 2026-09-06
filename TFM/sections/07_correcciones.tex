@@ -1,0 +1,483 @@
+\chapter{Experimentación y análisis}
+
+\noindent Este capítulo presenta la evaluación experimental del sistema desarrollado. La experimentación no se limita a comparar modelos, sino que comprueba de forma progresiva las piezas necesarias para que una decisión simulada sea interpretable: reglas económicas, construcción de datos, modelos supervisados, reconocimiento mediante \acroref{OCR}{OCR}, simulador de cartera y entorno multiagente. Esta organización permite separar las verificaciones técnicas de los resultados de aprendizaje, evitando que una prueba de funcionamiento se interprete como una mejora económica demostrada.
+
+El capítulo se estructura por fases. Primero se validan las reglas y los datos que sostienen el simulador. Después se analizan los modelos supervisados y los cortes temporales de compraventa Steam/\acroref{BUFF}{BUFF}. A continuación se presentan las comprobaciones funcionales del entorno \acroref{MARL}{MARL} y la matriz de entrenamiento multiagente. Finalmente, se discuten las limitaciones que condicionan la interpretación de los resultados.
+
+\section{Diseño experimental}
+
+\textcolor{magenta}{el diseño experimental tienes que relacionarlo con las fases de la arquitectura de la figura 4.1 o 4.2 ... lo que expliques aquí debería estar en sintonía con la arquitectura}
+
+\textcolor{blue}{nombres de agentes en cursiva}
+
+Para la primera fase de captura de datos, se ha construido un \glosref{scraping}{scraper}, es decir, un programa que consulta fuentes web y transforma sus respuestas en datos estructurados, junto con persistencia de registros, sesiones y \glosref{cookie-sesion}{cookies de sesión}, pequeños datos locales que permiten reutilizar una autenticación ya iniciada. Esta parte no se evalúa con una métrica de rentabilidad, pero condiciona todos los experimentos posteriores: sin datos trazables, fechas de captura y sesiones reproducibles no se puede construir un histórico.
+
+Durante esta fase también se han observado restricciones externas. Algunas cuentas o sesiones han sufrido bloqueos temporales y ha sido necesario ajustar el tamaño de los lotes, los reintentos y los retrasos entre peticiones. Por otra parte, las plataformas han sufrido cambios estructurales y ha sido necesario adaptar el código para mantener la compatibilidad. Por estos motivos, la evaluación no presenta la captura como un proceso instantáneo, sino como una parte del desarrollo que obliga a equilibrar cobertura de datos, estabilidad de sesión y respeto de los límites operativos de cada plataforma. Después de esta base se migran reglas económicas, se construyen conjuntos supervisados, se crea el conjunto de compraventa Steam/\acroref{BUFF}{BUFF} y se entrena la matriz multiagente.
+
+
+\textcolor{magenta}{este párrafo es sobre el modelo supervisado?? DEJAR CLARO DESDE EL PRINCIPIO ... la primera frase no se sabe de qué estás hablando}
+El criterio de evaluación no es solo predictivo. Una señal puede tener buena precisión y aun así no ser operativa si aparece pocas veces, si depende de artículos concretos o si no supera costes de transacción. Por eso las métricas del modelo supervisado se interpretan como apoyo a la decisión, no como resultado económico final. Esta distinción es especialmente importante en el conjunto Steam/\acroref{BUFF}{BUFF}, donde el objetivo no es anticipar una subida de precio aislada, sino estudiar una posible compraventa con precios normalizados, comisiones y horizonte temporal.
+
+En la \textcolor{magenta}{parte supervisada EXPRSAR MEJOR} se comparan modelos tabulares como regresión logística, random forest e histogram gradient boosting, familias habituales en clasificación tabular \cite{breiman2001random,friedman2001greedy}. Estos modelos se contrastan con una referencia simple que predice la clase mayoritaria, de modo que sus resultados puedan interpretarse frente a la tasa base del conjunto. En cambio, la parte multiagente no compara clasificadores, sino políticas que actúan dentro de un simulador de cartera. Por eso se separan primero los controles funcionales del entorno, que validan compra, bloqueo, venta y trazabilidad, y después la matriz de entrenamiento, que compara configuraciones de aprendizaje con semillas distintas sobre el bloque de validación, sin utilizar el conjunto de prueba.
+
+El entrenamiento multiagente se realiza con \acroref{PPO}{PPO}, \emph{Proximal Policy Optimization}, un algoritmo de aprendizaje por refuerzo que ajusta una política a partir de episodios simulados y limita el tamaño de cada actualización para evitar cambios bruscos entre una iteración y la siguiente \cite{schulman2017ppo}. En este trabajo no se entrena una única política general: se mantiene una política por rol, Scout, Trader y Portfolio. Cada política recibe sus observaciones locales, selecciona acciones y se actualiza con las recompensas registradas por el entorno.
+
+\begin{algorithm}[H]
+\caption{Entrenamiento con PPO}
+\label{alg:entrenamiento-ppo}
+\begin{algorithmic}[1]
+\Require Entorno paralelo, políticas Scout, Trader y Portfolio, iteraciones y pasos
+\Ensure Modelo guardado (\glosref{checkpoint}{checkpoint}) y métricas de la ejecución
+\State Inicializar una política \acroref{PPO}{PPO} por rol con observaciones vectoriales
+\For{cada iteración de entrenamiento}
+  \State Ejecutar episodios y registrar $(o_t^i,a_t^i,R_t,m_t^i)$
+  \State Estimar ventajas $\widehat{A}_t$ a partir de las transiciones registradas
+  \State Optimizar cada política con el objetivo recortado de \acroref{PPO}{PPO}
+\EndFor
+\State Evaluar el modelo guardado sin actualizar sus parámetros
+\State Guardar efectivo, posiciones, operaciones y recompensa media
+\end{algorithmic}
+\end{algorithm}
+
+El conjunto de prueba permanece aislado durante la selección de la configuración. Una vez elegida mediante validación, la evaluación independiente debe compararla con referencias homogéneas: mantener el efectivo, comprar cuando el margen neto observado sea positivo y un agente único sujeto a las mismas restricciones. Esta comparación comunicará el retorno de cartera, el beneficio neto, las operaciones cerradas, las posiciones abiertas y los rechazos por restricciones como media e intervalo entre semillas.
+
+\section{Validación técnica y pruebas}
+\label{sec:validacion-tecnica}
+
+Las pruebas técnicas no se usan para demostrar rentabilidad, sino para comprobar que los resultados experimentales proceden de componentes que funcionan de forma controlada. Antes de interpretar un modelo supervisado o una política \acroref{MARL}{MARL}, se valida que las reglas económicas, la captura de datos, la persistencia, la construcción de conjuntos temporales, la inferencia supervisada, el simulador de cartera y el entorno multiagente producen salidas coherentes. Esta separación es importante porque un resultado numérico puede parecer válido aunque se haya calculado sobre datos mal normalizados, fechas desplazadas, comisiones incorrectas o acciones imposibles dentro del simulador.
+
+La validación se organiza en tres capas. La primera comprueba funciones aisladas: conversión de moneda, cálculo de comisiones, bloqueo temporal, límites de cartera, extracción de campos de mercado y construcción de etiquetas. La segunda revisa flujos completos sin depender de una ejecución real de compraventa: captura, normalización, almacenamiento, creación de datasets y carga de modelos. La tercera comprueba que el entorno multiagente puede recorrer episodios de compra, mantenimiento, venta y rechazo de operaciones, registrando observaciones, acciones, recompensas y estado de cartera. \textcolor{magenta}{ESTRUCTURAR LA INFORMACIÓN ...} \textcolor{blue}{lo que viene a continuación en los siguientes párrafos, ¿está relacionado con estas tres capas?? ACLARAR Y ENLAZAR SI ES EL CASO}
+
+\textbf{Reglas económicas.} Antes de los experimentos se han convertido las reglas del procedimiento manual en funciones comprobables: conversión entre \acroref{EUR}{EUR} y \acroref{CNY}{CNY}, factores de comisión, cálculo de beneficio neto, rentabilidad porcentual, fecha de desbloqueo y capital bloqueado. Esta migración no demuestra rentabilidad por sí misma, pero garantiza que los experimentos posteriores usan las mismas reglas económicas y parámetros explícitos. Las pruebas unitarias reducen el riesgo de errores silenciosos y permiten repetir cada experimento con la misma configuración.
+
+El conjunto de pruebas automatizadas combina tres tipos de comprobación ya descritos en el Capítulo~6: ejecución de casos con \glosref{pytest}{Pytest}, revisión estática con \glosref{ruff}{Ruff} y comprobación de tipos con \glosref{mypy}{Mypy}. En esta sección no se valoran por la herramienta empleada, sino por el riesgo que reducen. Las pruebas unitarias comprueban el comportamiento determinista del simulador, las reglas económicas del procedimiento manual, el \acroref{OCR}{OCR}, los conectores de mercado, los datasets supervisados, el dataset de trading, el servicio de scoring y los componentes \acroref{MARL}{MARL}. La prueba de integración de persistencia se mantiene separada porque necesita una base de datos disponible.
+
+\begin{table}[h]
+\centering
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{0.27\textwidth} >{\raggedright\arraybackslash}X}
+\toprule
+Bloque & Riesgo controlado \\
+\midrule
+Reglas y cartera & Cálculos económicos incorrectos o posiciones imposibles. \\
+Datos y captura & Registros incompletos, mal normalizados o sin trazabilidad temporal. \\
+Modelo supervisado & Variables incompatibles, modelos no cargables o inferencia incoherente. \\
+Simulación \acroref{MARL}{MARL} & Acciones inválidas, recompensas mal asignadas o estado de cartera inconsistente. \\
+Interfaz y operación & Comandos inseguros, estados poco claros o recomendaciones no revisables. \\
+\bottomrule
+\end{tabularx}
+\caption{Cobertura de pruebas.}
+\end{table}
+
+Las pruebas de \textbf{\glosref{rendimiento-tecnico}{rendimiento técnico}} se interpretan con cautela. En este proyecto el rendimiento no se reduce al tiempo de ejecución: también importan la cobertura de datos, el número de señales generadas, el coste de entrenamiento, el capital bloqueado, el \textbf{\glosref{drawdown}{drawdown}} y las operaciones rechazadas. Las ejecuciones mínimas de entrenamiento y los episodios \acroref{MARL}{MARL} registran estas métricas para comprobar que el sistema produce salidas interpretables y comparables entre configuraciones. Aun así, estas pruebas no sustituyen la evaluación económica final: validan que el sistema puede medir, no que una estrategia sea mejor que otra.
+
+\section{Métricas}
+\label{sec:metricas-experimentacion}
+
+\textcolor{magenta}{y las métricas para medir el MARL???}
+
+\textcolor{blue}{vamos a ver, desde el punto de vista computacional y del aprendizaje tienes dos modelos, el modelo supervisado que general la señal y el modelo MARL, esto está claro y tienen que verse las métricas y resultados de cada uno de los modelos de aprendizaje por separado ... no veo las métricas aquí de MARL}
+
+\textcolor{red}{desde el punto de vista económico, qué es exactamente lo que quieres medir?? aquí pones tres métricas 'métricas económicas de la operación', métricas de 'riesgo y uso de cartera' y luego tienes métricas de rendimiento técnico y volumen ... TIENES QUE ESTRUCTURAR BIEN TODO ESTO, POR CIERTO, CREO QUE ESTÁ RELACIONADO CON LO QUE HAS PUESTO EN LA TABLA 7.1 PERO ESTA TABLA NO LAS HAS REFERENCIADO NUNCA EN EL TEXTO }
+
+\textcolor{magenta}{Si lo que estás haciendo son tres validaciones, económica, aprendizaje y técnica (entiendo que esta última incluiría el bloque que llamas Interfaz y operación en la Tabla 7.1), ESTO TIENE QUE QUEDAR CLARO ... el problema es no se presenta la información claramente ni estructuradamente y resulta difícil que estás midiendo, validando exactamente}
+
+\textcolor{blue}{da primero la visión general del sistema de validación, o sea, QUÉ SE ESTÁ EVALUANDO, ASPECTOS QUE SE ESTÁN EVALUANDO, sin entrar en cómo se evalúan, y lo que sea validación computacional lo relacionas con la arquitectura ... TIENE QUE QUEDAR CLARO LOS ASPECTOS ECONÓMICOS Y OTROS que estés evaluando}
+
+
+Las métricas permiten interpretar el sistema desde varias perspectivas. En este trabajo no basta con saber si un modelo produce una señal favorable, porque una señal puede ser estadísticamente correcta y aun así no ser útil para operar. Por ejemplo, puede aparecer muy pocas veces, puede depender de un conjunto pequeño de artículos, puede que el beneficio no supere las comisiones o puede exigir un capital que la cartera no tiene disponible. Por ese motivo, la evaluación separa la calidad predictiva, el resultado económico, el riesgo asumido y el rendimiento técnico del sistema.
+
+\begin{itemize}
+  \item \textbf{Métricas predictivas del modelo supervisado.} Estas métricas se aplican al modelo que produce la señal supervisada. Su objetivo es medir si la estimación histórica aporta información antes de que intervenga el entorno \acroref{MARL}{MARL}. La precisión indica qué proporción de las señales marcadas como favorables termina siendo realmente favorable. La \textbf{\glosref{exhaustividad}{exhaustividad}}, también denominada \emph{recall}, mide qué proporción de los casos favorables detecta el modelo. La métrica \acroref{F1}{F1} combina ambas para evitar mirar solo una de ellas \cite{powers2011evaluation}. También se emplean \acroref{ROC-AUC}{ROC-AUC} y \acroref{PR-AUC}{PR-AUC}, aunque la segunda resulta más informativa cuando la clase positiva domina o cuando hay pocos ejemplos negativos \cite{saito2015pr}. Además, el \textbf{\glosref{brier-score}{Brier score}} mide el error de las probabilidades estimadas y la \textbf{\glosref{calibracion-probabilidades}{calibración de probabilidades}} comprueba si una probabilidad del modelo se corresponde con la frecuencia observada \cite{niculescu2005predicting,guo2017calibration}. En el uso operativo se presta especial atención a la precisión en umbrales altos, porque una señal menos frecuente pero más fiable puede ser más útil que muchas señales ruidosas.
+
+  \item \textbf{Métricas económicas de la operación.} Estas métricas miden el resultado económico de una compra, una venta o una secuencia de decisiones. Incluyen el beneficio neto, el retorno porcentual, el saldo final, el valor de la cartera y el número de señales operativas. El beneficio neto descuenta precio de compra, comisiones, conversión de divisa y costes aplicables; por tanto, es la medida más directa de si una operación concreta aporta ganancias. El retorno porcentual permite comparar operaciones de distinto tamaño, porque relaciona el beneficio con el capital empleado. El saldo final y el valor de cartera son necesarios cuando la evaluación incluye posiciones que todavía no se han cerrado, ya que una parte del resultado puede estar en efectivo y otra parte en activos pendientes de venta.
+
+  \item \textbf{Métricas de riesgo y uso de cartera.} Estas métricas responden a una pregunta distinta: si una estrategia es asumible aunque parezca rentable. Se consideran el capital bloqueado medio, el número de posiciones abiertas, la exposición por activo o plataforma, las operaciones rechazadas por riesgo y el impacto del \textit{trade hold}. También se usa el \textbf{\glosref{drawdown}{drawdown}}, entendido como la mayor caída del valor de la cartera respecto a un máximo anterior. Estas medidas son importantes porque el sistema no opera con capital infinito. Una política que concentra demasiadas compras en un único artículo, deja mucho saldo inmovilizado o depende de activos bloqueados puede ser mala aunque algunas operaciones individuales tengan beneficio.
+
+  \item \textbf{Métricas de rendimiento técnico y volumen.} El rendimiento técnico recoge cuánto tarda el sistema en ejecutar sus procesos, qué volumen de información maneja y qué coste práctico tiene repetir una ejecución. En esta memoria se registra el tiempo de ejecución de las pruebas automatizadas, el número de pruebas superadas, el número de filas de cada partición, el número de artículos cubiertos, las iteraciones de entrenamiento, los pasos de entorno y los episodios simulados. También se conserva el tamaño de los conjuntos generados cuando resulta relevante para explicar la cobertura disponible. Para la captura de datos, el tiempo no depende solo del código: también influyen los límites de las plataformas, los bloqueos temporales, la reutilización de cookies de sesión, los reintentos y los retrasos introducidos para no saturar las fuentes. Por eso, cuando se habla de cuánto tarda la captura, debe interpretarse como rendimiento operativo bajo restricciones externas, no como una medida de velocidad local. 
+\end{itemize}
+
+Esta separación de métricas evita mezclar conclusiones. Las métricas predictivas indican si la señal supervisada es razonable; las métricas económicas indican si una decisión produce beneficio; las métricas de riesgo indican si la cartera puede asumir esa decisión; y las métricas de rendimiento técnico indican si el sistema se puede ejecutar, repetir y auditar con los recursos disponibles.
+
+\section{Resultados}
+
+Esta sección reúne los resultados obtenidos durante la construcción del sistema. La validación de las reglas económicas ya se ha presentado en la Sección~\ref{sec:validacion-tecnica}. A continuación se muestra la evolución de los conjuntos de compraventa, las exploraciones supervisadas que se apoyan en ellos, la evidencia técnica y de \acroref{OCR}{OCR}, y los controles funcionales y entrenamientos del entorno multiagente. Esta ordenación mantiene separadas tres evidencias distintas: que los cálculos económicos son reproducibles, que la señal supervisada puede estimarse sobre datos históricos y que el simulador \acroref{MARL}{MARL} ejecuta decisiones de cartera.
+
+\subsection{Evolución de los conjuntos de datos de compraventa}
+\label{sec:evolucion-datasets}
+
+El conjunto de datos de compraventa no ha aparecido en una única ejecución. Se han construido varios cortes porque cada uno ha revelado una limitación diferente del histórico disponible. El primer \texttt{trading\_profit\_v1} ha reunido 2.331 filas y 50 artículos. Ha servido para comprobar el constructor de etiquetas, las comisiones y la persistencia de características, pero no se ha utilizado como una partición temporal evaluable. Por ese motivo no se comunican sus métricas como resultado de un modelo.
+
+Después se han corregido el proceso de lectura de datos de \acroref{BUFF}{BUFF}, la normalización de moneda y la recuperación de puntos históricos. Con estas correcciones se han ejecutado tres cortes BUFF--Steam desde diciembre de 2025. La Tabla~\ref{tab:cortes-datos} deja visibles tanto las muestras que permiten una exploración como las que se descartan. Esta distinción es importante: un conjunto de datos grande no es suficiente si sus bloques de validación solo contienen una clase.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{l r r r}
+\toprule
+Corte & Entrenamiento & Validación & Prueba \\
+\midrule
+Inicial (sin partición temporal) & 2.331 & --- & --- \\
+Marzo & 171 & 76 & 95 \\
+Mayo & 361 & 76 & 95 \\
+Reciente & 551 & 76 & 84 \\
+\bottomrule
+\end{tabular}
+\caption{Cortes de datos.}
+\label{tab:cortes-datos}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{figures/experimentacion/06_cortes_datasets.png}
+\caption{Número de ejemplos y porcentaje de operaciones rentables en los cortes temporales.}
+\label{fig:evolucion-cortes}
+\end{figure}
+
+La Figura~\ref{fig:evolucion-cortes} complementa la Tabla~\ref{tab:cortes-datos}. El gráfico de la izquierda muestra el número de ejemplos de entrenamiento, validación y prueba de cada uno de los tres cortes temporales evaluables. El gráfico de la derecha muestra la \textbf{tasa positiva}, es decir, el porcentaje de ejemplos cuya etiqueta vale uno porque la compraventa habría superado el retorno neto del 10\,\% definido para el experimento. Una tasa positiva cercana al 100\,\% indica que apenas hay ejemplos no rentables, por lo que el conjunto no permite distinguir bien entre ambas clases.
+
+La secuencia mejora la cobertura temporal, pero no el equilibrio de etiquetas. En marzo, la proporción de casos positivos es 93,0\% en entrenamiento, 98,7\% en validación y 89,5\% en prueba. Es el único corte que contiene ambas clases en los tres bloques, aunque sigue muy concentrado en oportunidades positivas.
+
+Los cortes de mayo y reciente amplían el número de filas. En mayo, validación y prueba contienen únicamente casos positivos. En el corte reciente las proporciones son 95,6\%, 100\% y 98,8\%, respectivamente. Estas muestras no habilitan ROC-AUC ni calibración sobre los bloques finales, por lo que se conservan como diagnósticos de calidad de datos y no como experimentos de rendimiento.
+
+\textbf{Comprobación del corte reciente.}
+
+El 11 de agosto de 2026 se construyó un corte posterior de BUFF--Steam con la base de datos disponible. Se utilizó una ventana desde diciembre de 2025, un horizonte de ocho días, una purga de ocho días y un bloque de prueba que termina en julio de 2026. El conjunto resultante conserva los 19 artículos presentes en el corte de marzo y permite comprobar si la nueva captura ha incorporado suficiente variedad de resultados.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{l r r}
+\toprule
+Partición & Ejemplos & Operaciones rentables \\
+\midrule
+Entrenamiento & 551 & 95,6\,\% \\
+Validación & 76 & 100\,\% \\
+Prueba & 84 & 98,8\,\% \\
+\bottomrule
+\end{tabular}
+\caption{Corte reciente de BUFF--Steam.}
+\label{tab:corte-reciente}
+\end{table}
+
+El resultado es importante aunque no permita entrenar otro clasificador. En validación y prueba falta una clase no rentable, por lo que ROC-AUC, calibración y una comparación de políticas no son interpretables. Entrenar con esta muestra produciría una clasificación trivial y no aportaría evidencia sobre el sistema. La prioridad experimental pasa a ser mantener capturas recurrentes de más artículos, incluir oportunidades descartadas y conservar decisiones cerradas para que la recompensa MARL pueda distinguir compras acertadas, compras fallidas y decisiones de espera.
+
+El flujo reproducible queda definido así: capturar observaciones, normalizar artículo y moneda, construir la etiqueta a ocho días, eliminar la zona de purga, separar por fecha y revisar la distribución antes de entrenar. Solo cuando cada bloque incluye resultados favorables y desfavorables se entrena un clasificador. Esta comprobación previa ha evitado presentar un entrenamiento trivial como una mejora del sistema.
+
+\textbf{Conjunto actual de compraventa.}
+
+Las exploraciones anteriores se conservan porque documentan la evolución de la captura y la construcción de etiquetas. Sin embargo, el entrenamiento multiagente actual utiliza \texttt{trading\_profit\_v2}, generado el 25 de agosto de 2026. Este conjunto contiene 36.505 ejemplos de la ruta de compra en \acroref{BUFF}{BUFF} y venta posterior en Steam, con un horizonte de ocho días, tolerancia de siete días para localizar el precio futuro y una purga de quince días entre particiones.
+
+La etiqueta vale uno cuando la operación habría superado un retorno sobre la inversión del 10\,\% después de aplicar las comisiones configuradas. La Tabla~\ref{tab:trading-v2-particiones} resume las particiones. A diferencia de los cortes iniciales, los tres bloques contienen ejemplos rentables y no rentables, aunque persiste una proporción elevada de operaciones rentables en validación y prueba.
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{l r r l r}
+\toprule
+Partición & Ejemplos & Artículos & Periodo & Rentables \\
+\midrule
+Entrenamiento & 16.274 & 353 & 02/07/2025--16/12/2025 & 64,9\,\% \\
+Validación & 4.394 & 352 & 01/01/2026--13/02/2026 & 81,0\,\% \\
+Prueba & 12.971 & 354 & 01/03/2026--30/06/2026 & 82,5\,\% \\
+\bottomrule
+\end{tabular}
+\caption{Particiones temporales de \texttt{trading\_profit\_v2}.}
+\label{tab:trading-v2-particiones}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.94\textwidth]{figures/experimentacion/07_dataset_trading_v2.png}
+\caption{Tamaño y distribución de la etiqueta en \texttt{trading\_profit\_v2}.}
+\label{fig:dataset-trading-v2}
+\end{figure}
+
+La Figura~\ref{fig:dataset-trading-v2} muestra que entrenamiento y prueba contienen un número elevado de ejemplos, mientras que validación es más pequeña. También muestra que la proporción de operaciones rentables aumenta del 64,9\,\% en entrenamiento al 81,0\,\% y 82,5\,\% en validación y prueba. Por tanto, el conjunto contiene operaciones rentables y no rentables en las tres particiones, aunque conserva un desequilibrio que obliga a interpretar las métricas predictivas con cautela.
+
+La separación por fechas mantiene la prueba aislada mientras se seleccionan los parámetros. Por tanto, la validación se utiliza para comparar políticas y detener el entrenamiento, mientras que la prueba queda reservada para una evaluación final de la configuración seleccionada.
+
+\subsection{Exploraciones supervisadas}
+
+\textbf{Exploración de dirección en Steam.}
+
+La fase supervisada conserva una exploración de dirección Steam con 47.467 filas de entrenamiento, 19.252 de validación y 18.412 de prueba. En este contexto, la etiqueta vale uno cuando el precio futuro de Steam supera el precio observado, y vale cero en el caso contrario. No representa una compraventa entre plataformas ni incorpora comisiones, por lo que no mide beneficio neto. Esta exploración sirve para comprobar que el flujo de variables, entrenamiento, calibración y selección por umbral funciona con una muestra de mayor tamaño, pero no se utiliza para aprobar compras. Los experimentos de compraventa BUFF--Steam se presentan a continuación y se apoyan en los conjuntos descritos en la Sección~\ref{sec:evolucion-datasets}.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{c r r r}
+\toprule
+Umbral & Precisión & Exhaustividad & Señales \\
+\midrule
+0,50 & 0,716 & 0,116 & 1.293 \\
+0,70 & 0,856 & 0,019 & 180 \\
+0,80 & 0,947 & 0,011 & 95 \\
+0,85 & 0,962 & 0,006 & 53 \\
+0,90 & 1,000 & 0,003 & 22 \\
+\bottomrule
+\end{tabular}
+\caption{Umbrales de la exploración supervisada de dirección Steam.}
+\label{tab:umbrales-direccion-steam}
+\end{table}
+
+El umbral 0,85 deja 53 señales de las 18.412 filas de prueba. Esto ilustra el intercambio entre precisión y cobertura: elevar el umbral selecciona menos casos y no convierte la probabilidad en una orden. La calibración se revisa porque una probabilidad solo es útil si representa de forma razonable la frecuencia observada \cite{niculescu2005predicting,guo2017calibration}. Estos resultados no se consideran definitivos ni equivalentes a rentabilidad. Sí indican que el flujo de entrenamiento, calibración, selección por umbral y evaluación temporal funciona antes de integrarse como señal auxiliar en el problema de compraventa.
+
+\textbf{Exploraciones de compraventa BUFF--Steam.}
+
+La exploración utiliza el corte de marzo descrito en la Sección~\ref{sec:evolucion-datasets}. Cada ejemplo representa la posibilidad de comprar un artículo en BUFF y venderlo en Steam tras un horizonte de ocho días. La etiqueta vale uno cuando, después de aplicar las comisiones configuradas, el retorno supera el 10\%. El precio de compra se toma de BUFF y el precio de venta de Steam se valora con el factor de venta de 0,87 empleado por el simulador.
+
+El orden temporal se conserva en todas las fases. Para el corte de marzo se han usado 171 ejemplos de entrenamiento, 76 de validación y 95 de prueba. El entrenamiento termina el 20 de enero, la validación ocupa del 2 al 20 de febrero y la prueba comprende del 4 al 28 de marzo. Se eliminan ocho días antes de cada frontera para que el horizonte futuro de una observación no alcance el bloque siguiente. Ningún parámetro se modifica al consultar la prueba. Esta separación evita mezclar pasado y futuro, una precaución esencial cuando las observaciones tienen dependencia temporal \cite{bergmeir2018cv}.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/experimentacion/03_cobertura_temporal.png}
+\caption{Corte temporal de marzo.}
+\label{fig:cobertura-marzo}
+\end{figure}
+
+La Figura~\ref{fig:cobertura-marzo} muestra una limitación que no se aprecia al mirar solo el número de filas. Los tres bloques contienen las mismas 19 representaciones de artículo y están dominados por la clase rentable. La separación temporal evita que se use información futura, pero no demuestra por sí sola que el modelo generalice a artículos que no ha visto durante el entrenamiento.
+
+La selección compara las familias dummy, regresión logística, random forest e histogram gradient boosting. El modelo dummy se utiliza exclusivamente como referencia de frecuencia base y no tiene parámetros que explorar, por lo que no aparece en la Tabla~\ref{tab:configuraciones-marzo}. La configuración se elige en validación mediante precisión al umbral 0,85 con al menos tres señales. Después se calibra con sigmoide y se mide sobre el bloque de prueba. Además, se ejecuta una ablación de la regresión logística sin retardos, cambios, retornos ni medias móviles de uno, tres y siete días. Esta comparación responde a una pregunta concreta: si el histórico añade información o solamente complejidad. La precisión se presenta junto a la cobertura porque una clase mayoritaria puede hacer que el \acroref{ROC-AUC}{ROC-AUC} parezca más concluyente de lo que permite la muestra \cite{saito2015pr}.
+
+La exploración no se ha limitado a escoger una familia. La Tabla~\ref{tab:configuraciones-marzo} recoge el espacio de búsqueda empleado. El conjunto de prueba ha quedado fuera de esta selección: sus valores se han consultado una vez después de fijar la configuración de validación.
+
+\begin{table}[htbp]
+\centering
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{0.25\textwidth} >{\raggedright\arraybackslash}X}
+\toprule
+Familia & Configuraciones exploradas \\
+\midrule
+Regresión logística & Regularización L2 con $C \in \{0{,}3, 1, 3\}$. \\
+Random forest & Profundidad 10 o 18, 160 árboles y cinco muestras por hoja. \\
+HGB & Tasa de aprendizaje 0,05 o 0,10, 160 iteraciones y 31 hojas. \\
+\bottomrule
+\end{tabularx}
+\caption{Configuraciones de marzo.}
+\label{tab:configuraciones-marzo}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{l r r r r}
+\toprule
+Configuración & ROC-AUC & Brier & Precisión @0,85 & Señales \\
+\midrule
+Logística con histórico & 0,641 & 0,075 & 0,929 & 85 \\
+Logística sin histórico & 0,760 & 0,072 & 0,970 & 67 \\
+Random forest con histórico & 0,742 & 0,074 & 0,942 & 86 \\
+HGB con histórico & 0,649 & 0,082 & 0,915 & 82 \\
+\bottomrule
+\end{tabular}
+\caption{Comparativa de marzo.}
+\label{tab:resultados-marzo}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{figures/experimentacion/01_modelos_marzo.png}
+\caption{Modelos en marzo.}
+\label{fig:modelos-marzo}
+\end{figure}
+
+La exploración inicial señala que la regresión logística sin características históricas puede separar mejor las dos clases que las alternativas probadas. También muestra que los retardos y medias móviles no deben darse por útiles sin contrastarlos. La siguiente ablación vuelve a medir esa decisión junto con la aumentación, usando particiones por fecha para que una fecha completa no se divida entre lados de un pliegue.
+
+\textbf{Ablación de variables históricas y aumentación.}
+
+La segunda exploración usa una matriz $2 \times 2$ con regresión logística. Se mantienen los mismos cortes temporales de marzo, el umbral de selección 0,85, tres pliegues temporales y calibración sigmoide. Se comparan dos decisiones de diseño: conservar o retirar las variables históricas, formadas por retardos y medias móviles, y entrenar con o sin aumentación numérica. La aumentación se contrasta como hipótesis y no se presupone beneficiosa, ya que su efecto depende del dominio y del volumen de datos \cite{iwana2021augmentation}.
+
+La aumentación se aplica únicamente al entrenamiento. Para cada variable numérica se genera una copia perturbada mediante
+
+\[
+x'_k=x_k+\varepsilon_k,
+\qquad
+\varepsilon_k \sim \mathcal{N}(0, 0{,}01 \cdot IQR(x_k)).
+\]
+
+En esta expresión, $x_k$ es una variable numérica y $\varepsilon_k$ es una pequeña perturbación aleatoria. $IQR(x_k)$ es el rango intercuartílico de esa variable, es decir, la amplitud de su zona central de valores. El segundo parámetro de la distribución normal es su desviación estándar. Por tanto, $0{,}01 \cdot IQR(x_k)$ fija la escala habitual de la perturbación en el uno por ciento de esa amplitud, sin imponer un límite absoluto. Las etiquetas, las variables categóricas y las fechas no cambian. Además, todas las filas de una misma fecha se mantienen dentro del mismo lado de cada pliegue temporal. De este modo la copia perturbada no puede aparecer en entrenamiento mientras su original está en validación. La validación y la prueba permanecen sin modificar.
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{l l r r r r}
+\toprule
+\shortstack[l]{Variables\\históricas} & \shortstack[l]{Perturbación\\numérica} & ROC-AUC & Brier & \shortstack[r]{Precisión\\@0,85} & Señales \\
+\midrule
+Sí & No & 0,631 & 0,076 & 0,931 & 87 \\
+No & No & \textbf{0,716} & \textbf{0,076} & \textbf{0,952} & 62 \\
+Sí & Sí & 0,575 & 0,085 & 0,924 & 92 \\
+No & Sí & 0,613 & 0,084 & 0,919 & 86 \\
+\bottomrule
+\end{tabular}
+\caption{Ablación de variables históricas y perturbación numérica.}
+\label{tab:ablacion-marzo}
+\end{table}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/experimentacion/02_ablacion_marzo.png}
+\caption{Histórico y aumentación.}
+\label{fig:ablacion-marzo}
+\end{figure}
+
+La combinación sin variables históricas ni perturbación numérica obtiene el mejor equilibrio entre separación y calibración. La perturbación duplica el tamaño de entrenamiento de 171 a 342 filas, pero empeora ROC-AUC y Brier en ambas configuraciones. Por ello no se incorpora al modelo de referencia. Este resultado no prueba que la aumentación sea perjudicial en cualquier muestra. Indica que, con una colección corta y muy concentrada en operaciones positivas, introducir pequeñas variaciones de precio añade más ruido que información.
+
+La lectura debe mantenerse prudente. Los 19 artículos disponibles en el corte aparecen tanto en entrenamiento como en prueba y la etiqueta positiva representa el 89,5\% de la prueba. Una estrategia que marca muchos casos como favorables puede alcanzar precisión elevada por la propia distribución de la muestra. El corte de mayo confirma este problema: de 361 ejemplos de entrenamiento, 76 de validación y 95 de prueba, las dos últimas particiones contienen exclusivamente etiquetas positivas. En esas condiciones ROC-AUC no es una métrica definida y no se entrena un modelo para presentarlo como comparación válida. Este resultado establece una condición de continuación clara: ampliar la cobertura cruzada BUFF--Steam y equilibrar los eventos antes de convertir el modelo en recomendación operativa.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/experimentacion/04_umbral_marzo.png}
+\caption{Métricas por umbral.}
+\label{fig:umbral-marzo}
+\end{figure}
+
+La Figura~\ref{fig:umbral-marzo} complementa esta lectura. La precisión se mantiene cerca de la tasa positiva de la prueba mientras el umbral aumenta, pero el número de señales solo cae de forma apreciable a partir de 0,90. Por tanto, un umbral alto no convierte por sí mismo la señal en evidencia de selección robusta. La calibración y la precisión deben volver a evaluarse cuando haya una proporción relevante de operaciones no rentables.
+
+\subsection{Evidencia técnica y OCR}
+
+La suite completa se ejecutó el 14 de agosto de 2026 y obtuvo 282 pruebas superadas en 24,94 segundos. Las tres pruebas de integración utilizaron el \texttt{DATABASE\_URL} PostgreSQL configurado en Supabase. Registran un snapshot de mercado, comprueban la actualización de una cotización y guardan una señal de oportunidad vinculada a un artículo. Cada una abre una transacción externa y la revierte al terminar, por lo que la comprobación no añade datos de prueba al histórico utilizado por los experimentos. Este registro de datos, configuración y resultados permite repetir las comprobaciones, práctica recomendada para hacer evaluables los resultados de aprendizaje automático \cite{pineau2021reproducibility}.
+
+\begin{table}[htbp]
+\centering
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{0.25\textwidth} r >{\raggedright\arraybackslash}X}
+\toprule
+Bloque & Pruebas & Alcance \\
+\midrule
+Unitarias actuales & 279 & Economía, OCR, conectores, scraping, datasets, simulador, MARL y panel web. \\
+Integración & 3 & Persistencia de snapshots, actualización de precios y señales en PostgreSQL. \\
+Suite completa & 282 & Todas superadas en 24,94 segundos. \\
+\bottomrule
+\end{tabularx}
+\caption{Pruebas automatizadas.}
+\label{tab:pruebas-recuperadas}
+\end{table}
+
+\textbf{Validación funcional de OCR.}
+
+La evaluación de OCR disponible es funcional, no una medida de exactitud sobre un corpus etiquetado de capturas. Por ello no se comunica una tasa de reconocimiento que no se ha medido. Las pruebas comprueban que el parser convierte una observación de mercado en un contrato con artículo, calidad, plataforma, precio, moneda y volumen, que rechaza una confianza inferior a 0,5 y que el recorrido de imagen llama a carga, preprocesado y reconocimiento antes de persistir el resultado. El uso del motor se apoya en la arquitectura de Tesseract descrita por Smith \cite{smith2007tesseract}. La Tabla~\ref{tab:ocr-funcional} delimita qué evidencia existe y qué queda pendiente.
+
+\begin{table}[htbp]
+\centering
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{0.28\textwidth} >{\raggedright\arraybackslash}X}
+\toprule
+Prueba & Caso ejecutado \\
+\midrule
+Fixture de texto & Texto Steam y BUFF convertido a observaciones. \\
+Umbral de confianza & Confianza 0,2 con mínimo configurado en 0,5. \\
+Recorrido de imagen & Carga, preprocesado y reconocimiento con un runner controlado. \\
+\bottomrule
+\end{tabularx}
+\caption{Validación funcional de OCR.}
+\label{tab:ocr-funcional}
+\end{table}
+
+La fixture confirma que el parser construye observaciones con los campos esperados a partir de texto de mercado. La prueba de confianza rechaza el valor 0,2 al exigir un mínimo de 0,5. El recorrido de imagen completa la secuencia de carga, preprocesado y reconocimiento y devuelve una confianza de 0,91 en el caso preparado.
+
+Estas comprobaciones validan la integración, no la exactitud del OCR sobre capturas de interfaz. Por eso el siguiente experimento debe usar un conjunto etiquetado y comunicar por separado la exactitud de artículo, calidad, plataforma, precio y moneda. Hasta disponer de ese conjunto, el OCR se presenta como un conector validado y no como un sistema de reconocimiento cuantificado.
+
+\subsection{Controles funcionales y entrenamiento MARL}
+
+La evaluación multiagente no utiliza una lista abstracta de acciones. Cada episodio recorre las observaciones del bloque de prueba de marzo en orden temporal. Scout indica si una oportunidad merece atención, Trader puede comprar una unidad, mantener o solicitar una venta y Portfolio aplica las restricciones de cartera. Una compra requiere el acuerdo de los tres roles. Una venta requiere que exista una posición desbloqueada del mismo artículo y que Portfolio la apruebe. De este modo, el episodio permite comprobar el intercambio entre una oportunidad local, las posiciones abiertas y el capital disponible para el conjunto de la cartera.
+
+\begin{table}[htbp]
+\centering
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{0.29\textwidth} >{\raggedright\arraybackslash}X}
+\toprule
+Elemento & Configuración comprobada \\
+\midrule
+Observaciones & 95 filas del bloque de prueba de marzo, en orden temporal. \\
+Roles & Scout, Trader y Portfolio con observaciones locales. \\
+Capital inicial & 1.000 EUR en el recorrido de cartera de marzo. \\
+Acciones & Compra con acuerdo de los tres roles y venta aprobada de posiciones desbloqueadas. \\
+Estado de cartera & Efectivo, posiciones, exposición, bloqueo y drawdown. \\
+Recompensa & Recompensa cooperativa al cerrar una operación, penalización por demora y señales individuales por rol. \\
+Smoke PPO & Una iteración y 64 pasos mediante el adaptador PettingZoo--RLlib. \\
+\bottomrule
+\end{tabularx}
+\caption{Episodio MARL.}
+\label{tab:protocolo-marl}
+\end{table}
+
+La diferencia entre el recorrido funcional y PPO debe mantenerse clara. La regla determinista se usa para verificar el ciclo de cartera completo. El smoke de PPO comprueba que el mismo entorno puede entregar observaciones y recompensas a RLlib. Estos controles no se utilizan para estimar el rendimiento de una política. Su finalidad es comprobar que el entorno que se usa después en el entrenamiento representa los ciclos de compra, bloqueo y venta definidos en el Capítulo~4.
+
+\textbf{Resultados de los controles funcionales.}
+
+El entorno multiagente se ha comprobado con el bloque de marzo. Scout marca una oportunidad, Trader solicita una compra o una venta y Portfolio decide si la propuesta respeta el saldo disponible, el tamaño de posición, la exposición por artículo y plataforma, la reserva de efectivo y la banda flexible de inversión. La recompensa cooperativa utilizada en estas ejecuciones se define en la Sección~\ref{sec:funcion-recompensa}. La venta añade un resultado importante: el beneficio neto se registra al cerrar la posición, no solo como una estimación en el momento de comprar.
+
+\begin{table}[H]
+\centering
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{0.31\textwidth} >{\raggedright\arraybackslash}X r}
+\toprule
+Ejecución & Finalidad & Pasos \\
+\midrule
+Caso controlado & Compra, bloqueo de ocho días y venta de una posición. & 2 \\
+Recorrido de cartera & Regla de margen positivo con compra, espera y venta. & 95 \\
+PPO, una iteración & PPO multiagente mediante PettingZoo--RLlib. & 64 \\
+\bottomrule
+\end{tabularx}
+\caption{Ejecuciones MARL.}
+\label{tab:marl-inicial}
+\end{table}
+
+En el caso controlado se ha comprado una unidad por 10,00 EUR en BUFF el 1 de enero de 2026. La venta ha permanecido inhabilitada hasta el 9 de enero. Al cerrarla en Steam por 14,00 EUR brutos, el simulador ha aplicado la comisión de venta y ha registrado un ingreso neto de 12,18 EUR. La cartera ha pasado de 100,00 EUR a 102,18 EUR y el beneficio neto es 2,18 EUR. Esta prueba confirma el cumplimiento del bloqueo y el registro de una venta, pero no evalúa una estrategia de selección.
+
+El recorrido de cartera parte de 1.000 EUR y procesa 95 observaciones de marzo. La regla determinista compra cuando el margen neto observado es positivo y las restricciones lo permiten. Cuando encuentra una posición desbloqueada del mismo artículo, solicita su venta. Se han ejecutado 24 compras y 19 ventas, con un máximo de 11 posiciones simultáneas. Al terminar han quedado cinco posiciones abiertas, 306,60 EUR de capital bloqueado, 888,99 EUR de efectivo disponible y 195,59 EUR de beneficio neto obtenido al cerrar posiciones. El valor de cartera registrado es 1.195,59 EUR.
+
+Estas cifras verifican que el entorno conserva las posiciones abiertas, aplica límites y reutiliza efectivo después de una venta. No miden el rendimiento de PPO ni permiten estimar beneficio neto futuro: el corte contiene oportunidades preseleccionadas y está muy concentrado en márgenes positivos.
+
+El comando PPO con \acroref{RLlib}{RLlib} ha completado una iteración y 64 pasos de entorno con el conjunto de entrenamiento. El estado central se expone al adaptador y hay una política por rol. La evaluación del checkpoint corto no ha ejecutado compras. Esta prueba valida la compatibilidad técnica, pero una única iteración no permite comparar una política aprendida con una regla de margen. La matriz de entrenamiento posterior repite semillas, episodios y configuraciones para comunicar la variabilidad del aprendizaje \cite{agarwal2021deep}.
+
+\textbf{Matriz de entrenamiento MARL.}
+
+La matriz actual entrena tres políticas por rol, Scout, Trader y Portfolio, a partir de las observaciones locales definidas en el entorno. Se emplea \texttt{trading\_profit\_v2}, 1.000~EUR de capital inicial, un máximo de 100 iteraciones, ocho episodios por iteración y parada temprana después de 20 iteraciones sin mejora en validación. Cada configuración se repite con las semillas 7, 19 y 31. En total se han completado 21 entrenamientos y 3.552 episodios, sin consultar el conjunto de prueba.
+
+La configuración base usa un peso común de $g=0{,}70$, un objetivo flexible de inversión del 50\,\%, tolerancia del 5\,\% y tasa de aprendizaje de $0{,}0003$. A partir de ella se estudian el peso de la recompensa cooperativa, el objetivo de inversión, la tasa de aprendizaje y la retirada de la probabilidad supervisada. La Tabla~\ref{tab:matriz-marl-validacion} muestra el retorno del valor final de cartera respecto del capital inicial, seleccionado por validación. Cada valor es la media de las tres semillas y el intervalo recoge la variabilidad observada.
+
+\begin{table}[htbp]
+\centering
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}} >{\raggedright\arraybackslash}p{0.43\textwidth} r r @{}}
+\toprule
+Familia de configuración & Retorno medio & Intervalo entre semillas \\
+\midrule
+Base & 12,29\,\% & 12,29--12,29\,\% \\
+Recompensa cooperativa 50\,\% & 12,29\,\% & 12,29--12,29\,\% \\
+Recompensa cooperativa 90\,\% & 12,33\,\% & 12,29--12,42\,\% \\
+Objetivo de inversión 35\,\% & 10,03\,\% & 10,03--10,03\,\% \\
+Objetivo de inversión 65\,\% & \textbf{12,45\,\%} & 12,22--12,91\,\% \\
+Tasa de aprendizaje 0,0001 & 12,29\,\% & 12,29--12,29\,\% \\
+Sin probabilidad supervisada & 12,29\,\% & 12,29--12,29\,\% \\
+\bottomrule
+\end{tabular*}
+\caption{Resultados de validación de la matriz MARL.}
+\label{tab:matriz-marl-validacion}
+\end{table}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.96\textwidth]{figures/experimentacion/08_marl_validacion.png}
+\caption{Resultados de validación de la matriz MARL. Cada punto representa una semilla.}
+\label{fig:matriz-marl-validacion}
+\end{figure}
+
+El objetivo de inversión del 65\,\% obtiene la mayor media, con un 12,45\,\% frente al 12,29\,\% de la configuración base. Sin embargo, la diferencia es reducida y su mejor resultado, 12,91\,\%, procede de una sola semilla. Además, 19 de las 21 ejecuciones se han detenido tras 20 iteraciones sin mejora. La matriz demuestra que el entrenamiento, la validación y la parada temprana se ejecutan de forma reproducible, pero no justifica todavía afirmar que una configuración supera de forma robusta a las demás.
+
+\section{Discusión}
+
+Esta sección interpreta los resultados obtenidos, sin añadir experimentos nuevos. Su objetivo es delimitar qué evidencia aporta el trabajo, qué condiciones reducen la solidez de las conclusiones y qué falta para comparar una política multiagente con una estrategia simple.
+
+\subsection{Evolución del enfoque experimental}
+
+La evolución de los conjuntos descrita en la Sección~\ref{sec:evolucion-datasets} ha condicionado el alcance de cada experimento. El primer conjunto de compraventa permitió verificar el cálculo de etiquetas y costes, pero no sirvió para medir un modelo por su falta de clases en validación y prueba. Las correcciones en la lectura de datos, la normalización de moneda y la recuperación de histórico condujeron al conjunto \texttt{trading\_profit\_v2}, que ya contiene operaciones rentables y no rentables en las tres particiones temporales. Aun así, la proporción de operaciones rentables sigue siendo elevada, por lo que sus resultados no equivalen a una garantía de rentabilidad futura.
+
+Esta evolución también ha permitido separar dos objetivos que no deben confundirse. La ruta BUFF--Steam se utiliza para construir y evaluar ejemplos de compraventa con precios, comisiones y horizonte temporal definidos. En una consulta operativa, un precio de \acroref{BUFF}{BUFF} puede utilizarse como entrada actual para comprobar si conserva margen frente a una salida Steam estimada. Esta segunda aplicación no pretende predecir el precio exacto de \acroref{BUFF}{BUFF}, sino decidir si la información disponible justifica revisar una oportunidad concreta.
+
+Por último, antes de ampliar el número de episodios y configuraciones multiagente, se priorizó que el entorno, las recompensas, las restricciones y las métricas fueran comprobables. Esta secuencia desplazó el trabajo desde reglas manuales dispersas hacia una simulación reproducible y permite interpretar la matriz de entrenamiento junto con sus límites de datos, en lugar de presentar una política como concluyente sin evidencia suficiente.
+
+\subsection{Alcance de la evidencia y limitaciones}
+
+La principal limitación de los resultados supervisados es el desequilibrio de etiquetas. La prueba de marzo contiene 85 operaciones rentables de 95 y los bloques posteriores llegan a tener una sola clase. Además, los mismos artículos aparecen en entrenamiento y prueba. La división por fecha evita utilizar información futura, pero no demuestra que el modelo pueda generalizar a artículos virtuales que no haya observado durante el entrenamiento. Estas condiciones hacen que una precisión elevada o una probabilidad bien calibrada deban interpretarse con cautela.
+
+También existe una limitación operativa. El precio de \acroref{BUFF}{BUFF} se consulta como entrada puntual, mientras que la salida en Steam se estima con histórico y comisiones. Para reproducir de forma más fiel una operación entre ambas plataformas se necesitan más capturas sincronizadas y una cobertura mayor de artículos. Además, los experimentos simulan operaciones con datos observados: no envían órdenes reales, no transfieren artículos entre plataformas ni utilizan capital real. Por tanto, no permiten garantizar que una operación pueda ejecutarse en el futuro al precio previsto.
+
+Por último, la evidencia técnica tiene alcances distintos. El \acroref{OCR}{OCR} está validado a nivel funcional, pero no dispone aún de un corpus de imágenes etiquetado con el que medir su exactitud. El entorno \acroref{MARL}{MARL} ya incluye compra, bloqueo, venta y una matriz de políticas entrenadas, pero las configuraciones presentan diferencias pequeñas en validación y todavía no se han contrastado en la prueba independiente. Estas limitaciones no invalidan la arquitectura, pero acotan las conclusiones a viabilidad técnica y evidencia experimental inicial.
+
+\textbf{Evidencia actual.}
+
+En conjunto, el trabajo demuestra que el sistema puede integrar fuentes de datos, construir conjuntos temporales, entrenar y calibrar modelos supervisados, aplicar reglas económicas y recorrer episodios de compra, bloqueo y venta dentro de una cartera simulada. También demuestra que la matriz multiagente puede entrenarse y validarse de forma reproducible con configuraciones y semillas registradas. La separación entre adquisición, predicción, simulación y decisión permite comprobar cada componente y localizar un problema sin rehacer el resto del sistema.
+
+La evidencia disponible respalda, por tanto, la viabilidad técnica de la propuesta, pero no una superioridad económica de la arquitectura multiagente. Para afirmar que una política mejora una estrategia simple será necesario completar la evaluación independiente sobre la prueba aislada, ampliar la cobertura temporal y contrastar los baselines homogéneos definidos en el diseño experimental.
