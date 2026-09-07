@@ -83,3 +83,59 @@ El conjunto actual separa los datos por fecha para evitar que los modelos conozc
 \end{itemize}
 
 Los quince días anteriores a cada frontera se excluyen del conjunto. Esta franja de purga impide que un registro de entrenamiento o validación utilice como resultado un precio perteneciente al periodo siguiente. Con este procedimiento, cada conjunto conserva únicamente la información disponible en su periodo y permite evaluar los modelos sin incorporar datos futuros. Cuando el entorno MARL recorre un episodio, consulta la probabilidad producida con estas variables temporales para completar $h_t$; los precios y atributos de la fecha del paso completan $m_t$ y el simulador actualiza $c_t$.
+
+\section{Calidad del conjunto experimental}
+\label{sec:calidad-conjunto-experimental}
+
+La construcción del conjunto se valida antes de entrenar los modelos. Esta validación no mide rentabilidad ni aprendizaje: comprueba tres condiciones mínimas para que las evaluaciones posteriores sean interpretables: cobertura suficiente de filas y artículos, separación temporal efectiva y presencia de las dos clases de la etiqueta en entrenamiento, validación y prueba. La proporción de operaciones rentables se utiliza aquí como diagnóstico de distribución de clases; no es un retorno de cartera.
+
+Los primeros cortes permiten documentar las limitaciones encontradas durante la captura. El conjunto inicial \texttt{trading\_profit\_v1} reunió 2.331 filas y 50 artículos, pero no se utilizó como partición temporal evaluable. Tras corregir la lectura de datos de \acroref{BUFF}{BUFF}, la normalización de moneda y la recuperación del histórico, se construyeron los cortes de la Tabla~\ref{tab:cortes-datos}. El corte de marzo es el único que conserva ambas clases en sus tres bloques; los de mayo y reciente se descartan para entrenar un clasificador porque validación o prueba contienen una sola clase.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{l r r r}
+\toprule
+Corte & Entrenamiento & Validación & Prueba \\
+\midrule
+Inicial (sin partición temporal) & 2.331 & --- & --- \\
+Marzo & 171 & 76 & 95 \\
+Mayo & 361 & 76 & 95 \\
+Reciente & 551 & 76 & 84 \\
+\bottomrule
+\end{tabular}
+\caption{Cortes temporales construidos.}
+\label{tab:cortes-datos}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{figures/experimentacion/06_cortes_datasets.png}
+\caption{Tamaño y distribución de los cortes iniciales.}
+\label{fig:evolucion-cortes}
+\end{figure}
+
+La Figura~\ref{fig:evolucion-cortes} expresa la misma comprobación. La tasa positiva es el porcentaje de ejemplos cuya etiqueta vale uno porque la compraventa habría alcanzado el retorno neto del 10\,\% definido. En marzo es 93,0\,\% en entrenamiento, 98,7\,\% en validación y 89,5\,\% en prueba; en el corte reciente alcanza 95,6\,\%, 100\,\% y 98,8\,\%, respectivamente. Una tasa próxima al 100\,\% impide evaluar de forma fiable métricas que requieren ambas clases, como ROC-AUC o calibración.
+
+El conjunto utilizado en los experimentos actuales es \texttt{trading\_profit\_v2}, generado el 25 de agosto de 2026. Contiene 36.505 ejemplos de compra en \acroref{BUFF}{BUFF} y venta posterior en Steam, con horizonte de ocho días, tolerancia de siete días para localizar el precio futuro y una purga de quince días. La Tabla~\ref{tab:trading-v2-particiones} muestra que sus tres particiones incluyen operaciones rentables y no rentables, aunque validación y prueba siguen sesgadas hacia la clase rentable. Esta es la condición de datos con la que se interpretan los experimentos del Capítulo~7.
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{l r r l r}
+\toprule
+Partición & Ejemplos & Artículos & Periodo & Rentables \\
+\midrule
+Entrenamiento & 16.274 & 353 & 02/07/2025--16/12/2025 & 64,9\,\% \\
+Validación & 4.394 & 352 & 01/01/2026--13/02/2026 & 81,0\,\% \\
+Prueba & 12.971 & 354 & 01/03/2026--30/06/2026 & 82,5\,\% \\
+\bottomrule
+\end{tabular}
+\caption{Particiones de \texttt{trading\_profit\_v2}.}
+\label{tab:trading-v2-particiones}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.94\textwidth]{figures/experimentacion/07_dataset_trading_v2.png}
+\caption{Distribución de \texttt{trading\_profit\_v2}.}
+\label{fig:dataset-trading-v2}
+\end{figure}
