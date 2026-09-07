@@ -209,6 +209,8 @@ r_{t}^{1}=r_{t}^{2}=\cdots=r_{t}^{N}=r_t.
 \label{eq:recompensa-compartida}
 \end{equation}
 
+\clearpage
+
 En la Ecuación~\ref{eq:recompensa-compartida}, $r_t$ representa la recompensa común. Esta estructura alinea explícitamente a todos los agentes con el mismo resultado. En un problema cooperativo, en cambio, cada agente puede recibir una recompensa individual distinta. Estas recompensas no tienen por qué coincidir, pero deben diseñarse para que los comportamientos que incentivan contribuyan al objetivo compartido. La distinción es relevante porque una recompensa común favorece la cooperación directa, mientras que las recompensas individuales permiten reflejar responsabilidades diferentes y pueden dificultar la coordinación si no están bien alineadas.
 
 MARL introduce dificultades que no aparecen con un único agente. Cada agente aprende y modifica su política mientras los demás también modifican las suyas. Por ello, desde el punto de vista de un agente, las consecuencias de una acción pueden cambiar aunque el entorno físico permanezca igual. Este fenómeno se denomina no estacionariedad. Además, un agente puede decidir a partir de una observación local que no contiene toda la información del estado global, lo que dificulta atribuir a cada decisión la parte del resultado que le corresponde.
@@ -266,6 +268,8 @@ La Figura~\ref{fig:marl-ctde} muestra una interacción general de este tipo. Las
 La gestión de una cartera estudia cómo las decisiones sobre varios activos y el saldo disponible afectan al conjunto de recursos. No basta con evaluar cada activo de forma aislada. Una decisión de compra o venta de un activo puede parecer atractiva por sí sola y, sin embargo, puede aumentar demasiado la dependencia de la cartera respecto a un activo, una categoría o una plataforma.
 
 La teoría moderna de carteras plantea que la rentabilidad y el riesgo deben analizarse conjuntamente \cite{markowitz1952portfolio}. La rentabilidad expresa el resultado obtenido en relación con los recursos utilizados. El riesgo recoge la incertidumbre y las posibles variaciones desfavorables que pueden afectar a ese resultado. Por ello, la gestión de carteras busca equilibrar ambos elementos en lugar de maximizar únicamente el resultado esperado de una decisión individual.
+
+\clearpage
 
 La asignación de recursos determina qué parte de la cartera se dedica a cada alternativa y qué parte permanece disponible. Una cartera concentrada destina una proporción elevada de sus recursos a pocos activos, categorías o plataformas. Esta concentración puede aumentar el resultado si los activos seleccionados evolucionan favorablemente, pero también aumenta el efecto de una variación desfavorable sobre el conjunto de la cartera.
 

@@ -11,6 +11,8 @@ El caso de estudio se centra en artículos con precios registrados en los mercad
 
 El motivo de seleccionar \textit{Counter-Strike 2} es analizar decisiones de compraventa de activos digitales que persiguen generar un beneficio neto a partir de diferencias de precio entre mercados secundarios. Una vez comprobado que dos publicaciones se refieren exactamente al mismo artículo, una diferencia entre sus precios permite plantear una compra en el mercado más barato y una venta posterior en el mercado con mayor precio. El objetivo no es asumir que toda diferencia de precios es rentable, sino determinar cuáles merecen evaluarse como posibles operaciones.
 
+\clearpage
+
 Esta situación no es exclusiva de los activos digitales, pero presenta características distintas de un mercado bursátil líquido. Las unidades de una misma acción ordinaria son intercambiables entre sí y las diferencias de precio para el mismo instrumento suelen corregirse rápidamente. En cambio, los mercados secundarios de activos digitales se encuentran administrados por plataformas separadas que publican información y aplican reglas de intercambio propias. Esta fragmentación permite observar diferencias de precio más visibles y convierte a \textit{Counter-Strike 2} en un caso adecuado para el objetivo de este trabajo.
 
 El análisis se limita a los artículos con precios registrados en BUFF y Steam Community Market cuyas publicaciones pueden verificarse como el mismo artículo. Esta delimitación permite estudiar una comparación concreta y trazable sin pretender representar todos los artículos de \textit{Counter-Strike 2}, todas las plataformas ni todos los mecanismos de intercambio del videojuego.
@@ -49,6 +51,8 @@ El caso de estudio combina dos mercados secundarios administrados por plataforma
     \item \textbf{Steam Community Market} es el mercado secundario integrado en la plataforma Steam. Publica ofertas de venta y órdenes de compra de artículos asociados a las cuentas de las personas usuarias. En la operación de compraventa, el precio de una oferta de venta observada en este mercado se utiliza como referencia del precio de venta simulado. También aporta información histórica y de actividad de intercambio \cite{steamMarketFAQ}.
     \item \textbf{BUFF} es una plataforma externa que opera un mercado secundario de artículos transferibles. En la operación de compraventa, el precio de una oferta de venta observada en BUFF se utiliza como referencia del precio de compra simulado. Los precios se conservan en CNY y con su conversión a EUR para permitir la comparación, junto con la actividad de intercambio y las órdenes de compra \cite{buffMarketplace}.
 \end{itemize}
+
+\clearpage
 
 La operación de compraventa compara una oferta de venta en BUFF con una oferta de venta en Steam Community Market para el mismo artículo. Las órdenes de compra describen una intención distinta, ya que una persona ofrece dinero hasta un importe máximo para adquirir un artículo. Por ello, se emplean como información complementaria y no como el precio principal de la operación simulada.
 
